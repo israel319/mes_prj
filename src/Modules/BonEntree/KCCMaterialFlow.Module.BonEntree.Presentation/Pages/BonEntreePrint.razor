@@ -1,0 +1,215 @@
+@page "/bon-entree/{Id:int}/print"
+@attribute [Authorize]
+@using KCCMaterialFlow.Module.BonEntree.Services
+@using KCCMaterialFlow.Module.BonEntree.Entities
+@inject IBonEntreeService BonEntreeService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Impression BEM @Id</PageTitle>
+
+@if (isLoading)
+{
+    <div style="text-align:center;padding:50px;">Chargement...</div>
+}
+else if (bon == null)
+{
+    <div style="text-align:center;padding:50px;">Bon non trouve (ID: @Id)</div>
+}
+else
+{
+    <div class="print-controls">
+        <button @onclick="GoBack">← RETOUR</button>
+        <button @onclick="PrintFormulaire">🖨 IMPRIMER</button>
+    </div>
+
+    <div class="a4-paper" id="printArea">
+        <table class="header-tbl">
+            <tr>
+                <td style="width:20%"><small>Expire date:</small></td>
+                <td style="width:60%;text-align:center"><img src="/images/kcc-logo.png" style="height:40px" /></td>
+                <td style="width:20%;text-align:right">
+                    <div class="validity-box">
+                        <small>Date validite</small><br/>
+                        <strong>@bon.DateExpiration.ToString("dd/MM/yyyy")</strong>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <div style="text-align:right;font-size:9px;margin-bottom:5px">No : @bon.NumeroReference</div>
+
+        <div class="title-bar">
+            <strong>BON D'ENTREE DE MATERIEL</strong><br/>
+            <span>COMPANY INFORMATION</span>
+        </div>
+
+        <table class="info-tbl">
+            <tr><td class="lbl">CONTRACT NUMBER</td><td>@(bon.NumeroContrat ?? "-")</td></tr>
+            <tr><td class="lbl">COMPANY NAME</td><td>@bon.NomCompagnie</td></tr>
+            <tr><td class="lbl">CONTRACTOR EMAIL ADDRESS</td><td>@(bon.EmailContractant ?? "-")</td></tr>
+            <tr><td class="lbl">SITE MANAGER (CONTRACTOR)</td><td>@bon.SiteManager</td></tr>
+            <tr><td class="lbl">HOST DEPARTMENT</td><td>@bon.HostDepartment</td></tr>
+            <tr><td class="lbl">REASON REQUIRED ON SITE:</td><td>@bon.ReasonOnSite</td></tr>
+        </table>
+
+        <div class="section-hdr">DETAIL DE L'ESCORTEUR</div>
+        <table class="info-tbl">
+            <tr><td class="lbl" style="width:12%">Name:<br/><u>Nom:</u></td><td>@bon.NomEscorteur</td></tr>
+            <tr><td class="lbl">Function:<br/><u>Fonction:</u></td><td>@(bon.FonctionEscorteur ?? "-")</td></tr>
+        </table>
+
+        <table class="mat-tbl">
+            <thead>
+                <tr>
+                    <th style="width:18%">Code produit/N Serial</th>
+                    <th style="width:32%">Designation</th>
+                    <th style="width:10%">Qte</th>
+                    <th style="width:20%">FROM</th>
+                    <th style="width:20%">TO</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in bon.Materiels.Take(4))
+                {
+                    <tr>
+                        <td>@m.CodeProduitSerial</td>
+                        <td>@m.Designation</td>
+                        <td style="text-align:center">@m.Quantite.ToString("0.00")</td>
+                        <td>@bon.Provenance</td>
+                        <td>@bon.Destination</td>
+                    </tr>
+                }
+                @for (int i = bon.Materiels.Count; i < 4; i++)
+                {
+                    <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
+                }
+                <tr class="total-row">
+                    <td style="text-align:center;font-weight:bold">TOTAL</td>
+                    <td></td>
+                    <td style="text-align:center">@bon.Materiels.Sum(x => x.Quantite).ToString("0.00")</td>
+                    <td></td><td></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="reserves"><strong>RESERVES EVENTUELLES :</strong> @(bon.Description ?? "")</div>
+
+        <table class="sig-tbl">
+            <tr>
+                <td>
+                    <strong>Security GATE</strong><br/>
+                    <small>Commandant Secteur</small><br/>
+                    <em style="font-size:6px">(Name/Nom Date - Signature)</em>
+                </td>
+                <td>
+                    <strong>Head of KCC Department</strong><br/>
+                    <small>Responsable du Departement KCC</small><br/>
+                    <em style="font-size:6px">(Name/Nom Date - Signature)</em>
+                </td>
+                <td>
+                    <strong>Security Department</strong><br/>
+                    <small>Departement de Securite</small><br/>
+                    <em style="font-size:6px">(Name/Nom Date - Signature)</em>
+                </td>
+            </tr>
+        </table>
+
+        <table class="note-tbl">
+            <tr>
+                <td class="note-content">
+                    <span style="color:red;font-weight:bold">NOTE:</span>
+                    <ul>
+                        <li><strong>This document is valid until expiry date</strong><br/>
+                            <em>La validite de ce document est liee a sa date d'expiration.</em></li>
+                        <li><strong>The owner of the document is responsible that the details of listed equipment are accurate.</strong><br/>
+                            <em>Le signataire du document certifie que l'equipement liste est correct.</em></li>
+                    </ul>
+                </td>
+                <td class="qr-box">
+                    @if (!string.IsNullOrEmpty(bon.QRCodeBase64))
+                    {
+                        <img src="@bon.QRCodeBase64" alt="QR" style="width:70px;height:70px;border:1px solid #000" />
+                    }
+                    else
+                    {
+                        <div style="width:70px;height:70px;border:1px dashed #999;text-align:center;line-height:70px;font-size:8px">QR Code</div>
+                    }
+                </td>
+            </tr>
+        </table>
+
+        <div class="footer-bar">
+            <span>CONFIDENTIAL</span>
+            <span>Page 1 of 1</span>
+        </div>
+    </div>
+}
+<script>
+    function printFormulaire() {
+        var content = document.getElementById('printArea').outerHTML;
+        var printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write('<html><head><title>BEM - Impression</title>');
+        printWindow.document.write('<style>');
+        printWindow.document.write('* { margin: 0; padding: 0; box-sizing: border-box; }');
+        printWindow.document.write('body { font-family: Arial, sans-serif; font-size: 13px; }');
+        printWindow.document.write('.a4-paper { width: 210mm; height: 297mm; padding: 8mm 10mm; background: white; display: flex; flex-direction: column; }');
+        printWindow.document.write('.header-tbl { width: 100%; border-collapse: collapse; }');
+        printWindow.document.write('.validity-box { border: 1px solid #000; padding: 3px 8px; display: inline-block; }');
+        printWindow.document.write('.title-bar { background: #d9d9d9; padding: 8px; text-align: center; border: 1px solid #000; font-size: 12px; }');
+        printWindow.document.write('.section-hdr { background: #d9d9d9; padding: 4px; text-align: center; border: 1px solid #000; border-top: none; font-weight: bold; text-decoration: underline; margin-top: 8px; }');
+        printWindow.document.write('.info-tbl { width: 100%; border-collapse: collapse; }');
+        printWindow.document.write('.info-tbl td { border: 1px solid #000; padding: 6px 8px; font-size: 12px; height: 12mm; }');
+        printWindow.document.write('.info-tbl .lbl { background: #f5f5f5; font-weight: bold; width: 35%; }');
+        printWindow.document.write('.mat-tbl { width: 100%; border-collapse: collapse; margin-top: 8px; flex-grow: 1; }');
+        printWindow.document.write('.mat-tbl th, .mat-tbl td { border: 1px solid #000; padding: 4px 6px; font-size: 12px; }');
+        printWindow.document.write('.mat-tbl th { background: #d9d9d9; text-align: center; height: 12mm; }');
+        printWindow.document.write('.mat-tbl td { height: 13mm; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }');
+        printWindow.document.write('.total-row { background: #f5f5f5; }');
+        printWindow.document.write('.reserves { border: 1px solid #000; border-top: none; padding: 6px 8px; font-size: 12px; min-height: 30px; }');
+        printWindow.document.write('.sig-tbl { width: 100%; margin-top: 10px; }');
+        printWindow.document.write('.sig-tbl td { text-align: center; padding: 10px 5px; vertical-align: top; font-size: 12px; height: 60px; }');
+        printWindow.document.write('.note-tbl { width: 100%; margin-top: 10px; }');
+        printWindow.document.write('.note-content { vertical-align: top; font-size: 11px; }');
+        printWindow.document.write('.note-content ul { margin: 3px 0 0 15px; padding: 0; }');
+        printWindow.document.write('.note-content li { margin-bottom: 3px; }');
+        printWindow.document.write('.qr-box { width: 80px; vertical-align: top; text-align: right; }');
+        printWindow.document.write('.footer-bar { display: flex; justify-content: space-between; margin-top: auto; padding-top: 5px; border-top: 1px solid #999; font-size: 9px; }');
+        printWindow.document.write('@@media print { @@page { size: A4; margin: 0; } body { margin: 0; } .a4-paper { margin: 0; box-shadow: none; } }');
+        printWindow.document.write('</style>');
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(content);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(function() { printWindow.print(); }, 500);
+    }
+</script>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private BonEntree? bon;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            bon = await BonEntreeService.GetAsync(Id);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task GoBack()
+    {
+        await JS.InvokeVoidAsync("history.back");
+    }
+
+    private async Task PrintFormulaire()
+    {
+        await JS.InvokeVoidAsync("printFormulaire");
+    }
+}

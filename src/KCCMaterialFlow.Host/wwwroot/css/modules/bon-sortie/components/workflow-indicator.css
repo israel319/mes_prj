@@ -1,0 +1,88 @@
+/* ============================================================
+   KCC Material Flow - WorkflowIndicator Component Styles
+   ============================================================ */
+
+.workflow-indicator {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.workflow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.workflow-step {
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.step-connector {
+    width: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.connector-line {
+    width: 2px;
+    height: 20px;
+    background: #dee2e6;
+    position: absolute;
+    top: -10px;
+    left: 11px;
+}
+
+.connector-line.completed {
+    background: #28a745;
+}
+
+.step-icon {
+    font-size: 1.5rem;
+    margin-right: 0.75rem;
+}
+
+.step-content {
+    flex: 1;
+}
+
+.step-title {
+    font-weight: 600;
+    color: #333;
+}
+
+.step-approver {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.step-date {
+    font-size: 0.75rem;
+    color: #adb5bd;
+}
+
+.workflow-step.completed .step-title {
+    color: #28a745;
+}
+
+.workflow-step.current .step-title {
+    color: #fd7e14;
+    font-weight: 700;
+}
+
+.workflow-step.rejected .step-title {
+    color: #dc3545;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}

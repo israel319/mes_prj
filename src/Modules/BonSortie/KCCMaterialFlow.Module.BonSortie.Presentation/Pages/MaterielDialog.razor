@@ -1,0 +1,43 @@
+@* Dialog pour ajouter un matériel *@
+@inject DialogService DialogService
+
+<RadzenStack Gap="1rem">
+    <div>
+        <RadzenLabel Text="Code Produit / N° Série *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenTextBox @bind-Value="@materiel.CodeProduitSerial" Style="width:100%;" />
+    </div>
+    
+    <div>
+        <RadzenLabel Text="Désignation *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenTextBox @bind-Value="@materiel.Designation" Style="width:100%;" />
+    </div>
+    
+    <div>
+        <RadzenLabel Text="Quantité *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenNumeric @bind-Value="@materiel.Quantite" Min="1" Style="width:100%;" />
+    </div>
+    
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="Ajouter" ButtonStyle="ButtonStyle.Primary" Icon="add" Click="@Confirm" 
+                      Disabled="@(!IsValid)" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    private MaterielSortieDto materiel = new() { Quantite = 1 };
+
+    private bool IsValid => !string.IsNullOrWhiteSpace(materiel.CodeProduitSerial) && 
+                           !string.IsNullOrWhiteSpace(materiel.Designation) && 
+                           materiel.Quantite > 0;
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+
+    private void Confirm()
+    {
+        DialogService.Close(materiel);
+    }
+}

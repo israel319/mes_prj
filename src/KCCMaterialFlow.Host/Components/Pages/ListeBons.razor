@@ -1,0 +1,396 @@
+@page "/liste-bons"
+@page "/liste-bons/{TabName?}"
+@page "/mes-bons"
+@attribute [Authorize]
+@using KCCMaterialFlow.Module.BonEntree.Services
+@using KCCMaterialFlow.Module.BonSortie.Services
+@using BEMEntities = KCCMaterialFlow.Module.BonEntree.Entities
+@using BSMEntities = KCCMaterialFlow.Module.BonSortie.Entities
+
+@inject ICurrentUserService CurrentUserService
+@inject IBonEntreeService BonEntreeService
+@inject IBonSortieService BonSortieService
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Gestion des Bons - KCC Material Flow</PageTitle>
+
+<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    @* === PAGE HEADER === *@
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">@(selectedTabIndex == 0 ? "Bons d'entrée" : "Bons de sortie")</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin-top: 0.25rem;">@(selectedTabIndex == 0 ? "Gérer les entrées de matériel dans l'entreprise" : "Gérer les sorties de matériel de l'entreprise")</RadzenText>
+        </RadzenStack>
+<RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+            @if (CanExport)
+            {
+                <RadzenButton Text="Exporter Excel" Icon="file_download"
+                              ButtonStyle="ButtonStyle.Success" Variant="Variant.Outlined"
+                              Click="@ExportExcel" />
+            }
+            <RadzenButton Text="@($"Nouveau bon {(selectedTabIndex == 0 ? "d'entrée" : "de sortie")}")"
+                          Icon="add_circle" ButtonStyle="ButtonStyle.Primary"
+                          Click="@(() => NavigateTo(selectedTabIndex == 0 ? "/bon-entree/nouveau" : "/bon-sortie/nouveau"))" />
+        </RadzenStack>
+    </RadzenStack>
+
+    @* === CARD CONTAINER === *@
+    <RadzenCard>
+        <RadzenTabs @bind-SelectedIndex="@selectedTabIndex" Change="@OnTabChange">
+            <Tabs>
+                @* === TAB BEM === *@
+                <RadzenTabsItem Text="@($"Entrées ({totalBEM})")">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="1rem" Style="padding: 1rem 0;">
+                        <RadzenTextBox @bind-Value="@searchTerm" Placeholder="Rechercher par numéro, compagnie, demandeur..."
+                                       Style="min-width: 300px;" class="rz-me-2" />
+                        <RadzenDropDown @bind-Value="@selectedStatut" Data="@statutOptions"
+                                        TextProperty="Text" ValueProperty="Value"
+                                        Placeholder="Tous les statuts" AllowClear="true"
+                                        Style="min-width: 180px;" />
+                        <RadzenButton Icon="search" Text="Rechercher" Click="@ApplyFilter"
+                                      ButtonStyle="ButtonStyle.Light" class="rz-me-1" />
+                        <RadzenButton Icon="clear" Text="Effacer" Click="@ResetFilter"
+                                      ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" />
+                    </RadzenStack>
+
+                    <RadzenDataGrid Data="@filteredBEM" TItem="BEMEntities.BonEntree"
+                                    AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                                    AllowSorting="true" AllowColumnResize="true"
+                                    RowClick="@((args) => { if (args.Data != null) NavigateTo($"/bon-entree/{args.Data.IdBon}"); })"
+                                    Style="cursor: pointer;"
+                                    EmptyText="Aucun bon d'entrée trouvé">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="NumeroReference" Title="Numéro" Width="160px">
+                                <Template Context="bon">
+                                    <strong>@bon.NumeroReference</strong>
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="NomCompagnie" Title="Compagnie" />
+                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="NomDemandeur" Title="Demandeur" />
+                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="DateCreation" Title="Date" Width="130px"
+                                                  FormatString="{0:dd/MM/yyyy}" SortOrder="SortOrder.Descending" />
+                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="StatutActuel" Title="Statut" Width="140px">
+                                <Template Context="bon">
+                                    <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" 
+                                                 BadgeStyle="@GetBadgeStyle(bon.StatutActuel)" 
+                                                 IsPill="true" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+                                <Template Context="bon">
+                                    <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
+                                                  Size="ButtonSize.Small" Click="@(() => NavigateTo($"/bon-entree/{bon.IdBon}"))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenTabsItem>
+
+                @* === TAB BSM === *@
+                <RadzenTabsItem Text="@($"Sorties ({totalBSM})")">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="1rem" Style="padding: 1rem 0;">
+                        <RadzenTextBox @bind-Value="@searchTerm" Placeholder="Rechercher par numéro, destination, demandeur..."
+                                       Style="min-width: 300px;" class="rz-me-2" />
+                        <RadzenDropDown @bind-Value="@selectedStatut" Data="@statutOptions"
+                                        TextProperty="Text" ValueProperty="Value"
+                                        Placeholder="Tous les statuts" AllowClear="true"
+                                        Style="min-width: 180px;" />
+                        <RadzenButton Icon="search" Text="Rechercher" Click="@ApplyFilter"
+                                      ButtonStyle="ButtonStyle.Light" class="rz-me-1" />
+                        <RadzenButton Icon="clear" Text="Effacer" Click="@ResetFilter"
+                                      ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" />
+                    </RadzenStack>
+
+                    <RadzenDataGrid Data="@filteredBSM" TItem="BSMEntities.BonSortie"
+                                    AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                                    AllowSorting="true" AllowColumnResize="true"
+                                    RowClick="@((args) => { if (args.Data != null) NavigateTo($"/bon-sortie/{args.Data.IdBon}"); })"
+                                    Style="cursor: pointer;"
+                                    EmptyText="Aucun bon de sortie trouvé">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Property="NumeroReference" Title="Numéro" Width="160px">
+                                <Template Context="bon">
+                                    <strong>@bon.NumeroReference</strong>
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Title="Type" Width="110px">
+                                <Template Context="bon">
+                                    @GetTypeBSM(bon)
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Title="Destination">
+                                <Template Context="bon">
+                                    @GetCompagnieBSM(bon)
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Property="DateCreation" Title="Date" Width="130px"
+                                                  FormatString="{0:dd/MM/yyyy}" SortOrder="SortOrder.Descending" />
+                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Property="StatutActuel" Title="Statut" Width="140px">
+                                <Template Context="bon">
+                                    <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" 
+                                                 BadgeStyle="@GetBadgeStyle(bon.StatutActuel)" 
+                                                 IsPill="true" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+                                <Template Context="bon">
+                                    <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
+                                                  Size="ButtonSize.Small" Click="@(() => NavigateTo($"/bon-sortie/{bon.IdBon}"))" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenTabsItem>
+            </Tabs>
+        </RadzenTabs>
+    </RadzenCard>
+</RadzenStack>
+
+@code {
+    [Parameter] public string? TabName { get; set; }
+    [SupplyParameterFromQuery(Name = "search")] public string? SearchQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "statut")] public string? StatutQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "filter")] public string? FilterQuery { get; set; }
+
+    private int selectedTabIndex = 0;
+    @* isLoading is used for future loading state *@
+    #pragma warning disable CS0414
+    private bool isLoading = true;
+    #pragma warning restore CS0414
+    private string searchTerm = "";
+    private string selectedStatut = "";
+    private string? activeSpecialFilter;
+
+    private bool CanExport => CurrentUserService.GetUserRoles()
+        .Any(r => r.Equals("Identification", StringComparison.OrdinalIgnoreCase));
+
+    private List<BEMEntities.BonEntree> bonsEntree = new();
+    private List<BSMEntities.BonSortie> bonsSortie = new();
+    private int totalBEM => bonsEntree.Count;
+    private int totalBSM => bonsSortie.Count;
+
+    private List<BEMEntities.BonEntree> filteredBEM => ApplyFilterBEM();
+    private List<BSMEntities.BonSortie> filteredBSM => ApplyFilterBSM();
+
+    private readonly List<object> statutOptions = new()
+    {
+        new { Text = "Brouillon", Value = "Draft" },
+        new { Text = "En attente", Value = "Pending" },
+        new { Text = "Approuvé", Value = "Approved" },
+        new { Text = "Rejeté", Value = "Rejected" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        selectedTabIndex = TabName?.ToLowerInvariant() == "bsm" ? 1 : 0;
+        
+        if (!string.IsNullOrWhiteSpace(SearchQuery))
+            searchTerm = SearchQuery;
+        
+        if (!string.IsNullOrWhiteSpace(StatutQuery))
+        {
+            selectedStatut = StatutQuery.ToLowerInvariant() switch
+            {
+                "approuve" or "approved" => "Approved",
+                "rejete" or "rejected" => "Rejected",
+                "brouillon" or "draft" => "Draft",
+                "pending" or "en-attente" => "Pending",
+                _ => selectedStatut
+            };
+        }
+        
+        if (!string.IsNullOrWhiteSpace(FilterQuery))
+            activeSpecialFilter = FilterQuery.ToLowerInvariant();
+        
+        await LoadDataAsync();
+    }
+
+    private void OnTabChange(int index)
+    {
+        selectedTabIndex = index;
+        NavigationManager.NavigateTo($"/liste-bons/{(index == 1 ? "bsm" : "bem")}", replace: true);
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var currentLogin = CurrentUserService.GetUserLogin();
+            var currentName = CurrentUserService.GetUserDisplayName();
+            var roles = CurrentUserService.GetUserRoles().ToList();
+            
+            var approverRoles = new[] { "Superviseur", "GM", "OPJ", "IT", "Environnement", "Identification", "Investigation", "Barriere" };
+            
+            var canSeeAll = roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
+            var isApprover = roles.Any(r => approverRoles.Contains(r, StringComparer.OrdinalIgnoreCase));
+            var isIdentificationOnly = roles.Any(r => r.Equals("Identification", StringComparison.OrdinalIgnoreCase)) 
+                                       && !canSeeAll
+                                       && !roles.Any(r => new[] { "Superviseur", "GM", "OPJ", "IT", "Environnement" }.Contains(r, StringComparer.OrdinalIgnoreCase));
+            
+            var bemResult = await BonEntreeService.GetListAsync(new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter { Take = 500 });
+            var bsmResult = await BonSortieService.GetListAsync(new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter { Take = 500 });
+            
+            if (canSeeAll)
+            {
+                bonsEntree = bemResult.Items.ToList();
+                bonsSortie = bsmResult.Items.ToList();
+            }
+            else if (isIdentificationOnly)
+            {
+                bonsEntree = bemResult.Items
+                    .Where(b => b.StatutActuel.Equals("Approved", StringComparison.OrdinalIgnoreCase) ||
+                                b.StatutActuel.Equals("Approuvé", StringComparison.OrdinalIgnoreCase) ||
+                                b.StatutActuel.Equals("PendingIdentification", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                    
+                bonsSortie = bsmResult.Items
+                    .Where(b => b.StatutActuel.Equals("Approved", StringComparison.OrdinalIgnoreCase) ||
+                                b.StatutActuel.Equals("Approuvé", StringComparison.OrdinalIgnoreCase) ||
+                                b.StatutActuel.Equals("PendingIdentification", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            else if (isApprover)
+            {
+                var myBonsEntreeIds = new HashSet<int>();
+                var myBonsSortieIds = new HashSet<int>();
+                
+                var myBonsEntree = bemResult.Items
+                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
+                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                foreach (var b in myBonsEntree) myBonsEntreeIds.Add(b.IdBon);
+                    
+                var myBonsSortie = bsmResult.Items
+                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
+                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
+                                b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                foreach (var b in myBonsSortie) myBonsSortieIds.Add(b.IdBon);
+                
+                var pendingBEM = await BonEntreeService.GetPendingApprovalsAsync();
+                var pendingBSM = await BonSortieService.GetPendingApprovalsAsync();
+                
+                foreach (var bon in pendingBEM)
+                {
+                    if (!myBonsEntreeIds.Contains(bon.IdBon))
+                        myBonsEntree.Add(bon);
+                }
+                
+                foreach (var bon in pendingBSM)
+                {
+                    if (!myBonsSortieIds.Contains(bon.IdBon))
+                        myBonsSortie.Add(bon);
+                }
+                
+                bonsEntree = myBonsEntree;
+                bonsSortie = myBonsSortie;
+            }
+            else
+            {
+                bonsEntree = bemResult.Items
+                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
+                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                    
+                bonsSortie = bsmResult.Items
+                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
+                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
+                                b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private List<BEMEntities.BonEntree> ApplyFilterBEM()
+    {
+        var result = bonsEntree.AsEnumerable();
+        
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.ToLowerInvariant();
+            result = result.Where(b => 
+                b.NumeroReference.ToLower().Contains(search) ||
+                b.NomCompagnie.ToLower().Contains(search) ||
+                b.NomDemandeur.ToLower().Contains(search));
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedStatut))
+            result = result.Where(b => b.StatutActuel.StartsWith(selectedStatut, StringComparison.OrdinalIgnoreCase));
+
+        return result.OrderByDescending(b => b.DateCreation).ToList();
+    }
+
+    private List<BSMEntities.BonSortie> ApplyFilterBSM()
+    {
+        var result = bonsSortie.AsEnumerable();
+        
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.ToLowerInvariant();
+            result = result.Where(b => 
+                b.NumeroReference.ToLower().Contains(search) ||
+                b.NomDemandeur.ToLower().Contains(search) ||
+                GetCompagnieBSM(b).ToLower().Contains(search));
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedStatut))
+            result = result.Where(b => b.StatutActuel.StartsWith(selectedStatut, StringComparison.OrdinalIgnoreCase));
+
+        return result.OrderByDescending(b => b.DateCreation).ToList();
+    }
+
+    private void ApplyFilter() { }
+    private void ResetFilter() { searchTerm = ""; selectedStatut = ""; }
+    private void NavigateTo(string url) => NavigationManager.NavigateTo(url);
+
+    private async Task ExportExcel()
+    {
+        var endpoint = selectedTabIndex == 0 ? "/api/export/bons-entree" : "/api/export/bons-sortie";
+        await JSRuntime.InvokeVoidAsync("open", endpoint, "_blank");
+    }
+
+    private static string GetCompagnieBSM(BSMEntities.BonSortie? bon) => bon switch
+    {
+        BSMEntities.Pret pret => pret.NomDestinataire ?? "Prêt",
+        BSMEntities.BonSortieExterne ext => ext.NomDestinataire ?? "N/A",
+        BSMEntities.BonSortieInterne => "Interne",
+        _ => "N/A"
+    };
+
+    private static string GetTypeBSM(BSMEntities.BonSortie? bon) => bon switch
+    {
+        BSMEntities.Pret => "Prêt",
+        BSMEntities.BonSortieExterne => "Externe",
+        BSMEntities.BonSortieInterne => "Interne",
+        _ => "Sortie"
+    };
+
+    private static string GetStatutLabel(string? s) => s?.ToUpperInvariant() switch
+    {
+        "DRAFT" => "Brouillon",
+        "APPROVED" => "Approuvé",
+        "REJECTED" => "Rejeté",
+        var x when x != null && x.StartsWith("PENDING") => "En attente",
+        _ => s ?? "-"
+    };
+
+    private static BadgeStyle GetBadgeStyle(string? s) => s?.ToUpperInvariant() switch
+    {
+        "DRAFT" => BadgeStyle.Light,
+        "APPROVED" => BadgeStyle.Success,
+        "REJECTED" => BadgeStyle.Danger,
+        var x when x != null && x.StartsWith("PENDING") => BadgeStyle.Warning,
+        _ => BadgeStyle.Light
+    };
+}

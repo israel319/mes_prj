@@ -1,0 +1,358 @@
+@page "/securite/anomalies/dashboard"
+@attribute [Authorize(Roles = "Admin,Security,OPJ,Identification,Superviseur")]
+@inject IAnomalieService AnomalieService
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Dashboard Anomalies - Investigation - KCC Material Flow</PageTitle>
+
+<div style="background-color: #f4f7fa; min-height: 100vh; padding: 2rem;">
+    <RadzenStack Gap="1.5rem">
+        
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn Size="12" SizeMD="8">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                    <RadzenButton Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" 
+                                  Click="@GoBack" Style="border-radius: 50%;" />
+                    <RadzenStack Gap="0">
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1a202c;">
+                            <RadzenIcon Icon="dashboard" Style="vertical-align: middle; margin-right: 0.5rem; color: #4299e1;" />
+                            Dashboard Anomalies
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                            Vue d'ensemble des anomalies - Dernière mise à jour: @DateTime.Now.ToString("HH:mm")
+                        </RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="4" class="rz-text-align-right">
+                <RadzenButton Text="Voir Toutes" Icon="list" ButtonStyle="ButtonStyle.Dark" 
+                              Style="border-radius: 8px;" 
+                              Click="@(() => Navigation.NavigateTo("/securite/anomalies"))" />
+            </RadzenColumn>
+        </RadzenRow>
+
+        @if (isLoading)
+        {
+            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 300px;">
+                <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Large" />
+            </RadzenStack>
+        }
+        else if (dashboard != null)
+        {
+            @* Métriques principales *@
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);">
+                        <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <div style="background: #e31b23; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="error" Style="color: white; font-size: 1.75rem;" />
+                            </div>
+                            <RadzenText TextStyle="TextStyle.H3" FontWeight="FontWeight.Bold" Style="color: #e31b23;">
+                                @dashboard.TotalNonTraitees
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #c53030;">Non Traitées</RadzenText>
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);">
+                        <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <div style="background: #d97706; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="warning" Style="color: white; font-size: 1.75rem;" />
+                            </div>
+                            <RadzenText TextStyle="TextStyle.H3" FontWeight="FontWeight.Bold" Style="color: #d97706;">
+                                @dashboard.CritiquesNonTraitees
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #92400e;">Critiques</RadzenText>
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);">
+                        <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <div style="background: #38a169; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="trending_up" Style="color: white; font-size: 1.75rem;" />
+                            </div>
+                            <RadzenText TextStyle="TextStyle.H3" FontWeight="FontWeight.Bold" Style="color: #38a169;">
+                                @dashboard.TauxResolution.ToString("0.0")%
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #276749;">Taux Résolution</RadzenText>
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);">
+                        <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <div style="background: #3182ce; border-radius: 50%; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="schedule" Style="color: white; font-size: 1.75rem;" />
+                            </div>
+                            <RadzenText TextStyle="TextStyle.H3" FontWeight="FontWeight.Bold" Style="color: #3182ce;">
+                                @(dashboard.DelaiMoyenResolution.HasValue ? $"{dashboard.DelaiMoyenResolution.Value.TotalHours:0.0}h" : "-")
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #2c5282;">Délai Moyen</RadzenText>
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+
+            @* Graphiques *@
+            <RadzenRow Gap="1rem">
+                @* Répartition par Type *@
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
+                        <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 1rem;">
+                            <RadzenIcon Icon="pie_chart" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                            Répartition par Type
+                        </RadzenText>
+                        @if (dashboard.ParType.Any())
+                        {
+                            <RadzenChart Style="height: 250px;">
+                                <RadzenDonutSeries Data="@typeChartData" CategoryProperty="Label" ValueProperty="Value">
+                                    <RadzenSeriesDataLabels Visible="true" />
+                                </RadzenDonutSeries>
+                            </RadzenChart>
+                        }
+                        else
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 250px;">
+                                <RadzenText Style="color: #a0aec0;">Aucune donnée disponible</RadzenText>
+                            </RadzenStack>
+                        }
+                    </RadzenCard>
+                </RadzenColumn>
+
+                @* Répartition par Gravité *@
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
+                        <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 1rem;">
+                            <RadzenIcon Icon="bar_chart" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                            Répartition par Gravité
+                        </RadzenText>
+                        @if (dashboard.ParGravite.Any())
+                        {
+                            <RadzenChart Style="height: 250px;">
+                                <RadzenColumnSeries Data="@graviteChartData" CategoryProperty="Label" ValueProperty="Value">
+                                    <RadzenSeriesDataLabels Visible="true" />
+                                </RadzenColumnSeries>
+                                <RadzenCategoryAxis>
+                                    <RadzenAxisTitle Text="" />
+                                </RadzenCategoryAxis>
+                                <RadzenValueAxis>
+                                    <RadzenAxisTitle Text="Nombre" />
+                                </RadzenValueAxis>
+                            </RadzenChart>
+                        }
+                        else
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 250px;">
+                                <RadzenText Style="color: #a0aec0;">Aucune donnée disponible</RadzenText>
+                            </RadzenStack>
+                        }
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+
+            @* Anomalies récentes *@
+            <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
+                <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="margin-bottom: 1rem;">
+                    <RadzenColumn>
+                        <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c;">
+                            <RadzenIcon Icon="schedule" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                            Anomalies Récentes (24h)
+                        </RadzenText>
+                    </RadzenColumn>
+                    <RadzenColumn class="rz-text-align-right">
+                        <RadzenBadge Text="@dashboard.AnomaliesRecentes.Count.ToString()" BadgeStyle="BadgeStyle.Info" IsPill="true" />
+                    </RadzenColumn>
+                </RadzenRow>
+
+                @if (dashboard.AnomaliesRecentes.Any())
+                {
+                    <RadzenDataList Data="@dashboard.AnomaliesRecentes" TItem="Anomalie">
+                        <Template Context="anomalie">
+                            <RadzenCard Variant="Variant.Flat" Style="border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 0.5rem; padding: 1rem; cursor: pointer;"
+                                        @onclick="@(() => VoirDetail(anomalie))">
+                                <RadzenRow AlignItems="AlignItems.Center">
+                                    <RadzenColumn Size="1">
+                                        <RadzenIcon Icon="@GetGraviteIcon(anomalie.NiveauGravite)" 
+                                                    Style="@($"color: {GetGraviteColor(anomalie.NiveauGravite)}; font-size: 1.5rem;")" />
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="2">
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                                            @anomalie.DateSignalement.ToString("HH:mm")
+                                        </RadzenText>
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="3">
+                                        <RadzenBadge Text="@GetGraviteLabel(anomalie.NiveauGravite)" 
+                                                     BadgeStyle="@GetGraviteStyle(anomalie.NiveauGravite)" IsPill="true" />
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="4">
+                                        <RadzenText Style="font-size: 0.9rem;">
+                                            @GetTypeLabel(anomalie.TypeAnomalie)
+                                        </RadzenText>
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="2" class="rz-text-align-right">
+                                        @if (!string.IsNullOrEmpty(anomalie.NumeroReferenceBon))
+                                        {
+                                            <RadzenText Style="font-family: monospace; color: #e31b23; font-size: 0.85rem;">
+                                                @anomalie.NumeroReferenceBon
+                                            </RadzenText>
+                                        }
+                                    </RadzenColumn>
+                                </RadzenRow>
+                            </RadzenCard>
+                        </Template>
+                    </RadzenDataList>
+                }
+                else
+                {
+                    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem;">
+                        <RadzenIcon Icon="check_circle" Style="font-size: 3rem; color: #48bb78;" />
+                        <RadzenText Style="color: #718096;">Aucune anomalie dans les dernières 24h</RadzenText>
+                    </RadzenStack>
+                }
+            </RadzenCard>
+
+            @* Alertes Critiques *@
+            @if (dashboard.CritiquesNonTraitees > 0)
+            {
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; background: #fff5f5; border: 2px solid #fc8181;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                        <RadzenIcon Icon="error" Style="font-size: 2rem; color: #e31b23;" />
+                        <RadzenStack Gap="0.25rem" Style="flex: 1;">
+                            <RadzenText FontWeight="FontWeight.Bold" Style="color: #c53030;">
+                                Attention : @dashboard.CritiquesNonTraitees anomalie(s) critique(s) en attente !
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #9b2c2c;">
+                                Ces anomalies nécessitent une attention immédiate de l'équipe Investigation.
+                            </RadzenText>
+                        </RadzenStack>
+                        <RadzenButton Text="Traiter" Icon="arrow_forward" ButtonStyle="ButtonStyle.Danger" 
+                                      Click="@VoirCritiques" />
+                    </RadzenStack>
+                </RadzenCard>
+            }
+        }
+    </RadzenStack>
+</div>
+
+@code {
+    private AnomalieDashboard? dashboard;
+    private bool isLoading = true;
+    private List<ChartDataItem> typeChartData = new();
+    private List<ChartDataItem> graviteChartData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            dashboard = await AnomalieService.GetDashboardAsync();
+            
+            // Préparer les données pour les graphiques
+            if (dashboard != null)
+            {
+                typeChartData = dashboard.ParType
+                    .Select(kv => new ChartDataItem { Label = GetTypeLabel(kv.Key), Value = kv.Value })
+                    .ToList();
+
+                graviteChartData = dashboard.ParGravite
+                    .OrderByDescending(kv => GetGraviteOrder(kv.Key))
+                    .Select(kv => new ChartDataItem { Label = GetGraviteLabel(kv.Key), Value = kv.Value })
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de charger le dashboard: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Navigation retour via historique
+    private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
+
+    private void VoirDetail(Anomalie anomalie)
+    {
+        Navigation.NavigateTo($"/securite/anomalies/{anomalie.IdAnomalie}");
+    }
+
+    private void VoirCritiques()
+    {
+        Navigation.NavigateTo("/securite/anomalies?gravite=Critique&statut=false");
+    }
+
+    private int GetGraviteOrder(string gravite) => gravite switch
+    {
+        "Critique" => 4,
+        "Eleve" => 3,
+        "Moyen" => 2,
+        "Faible" => 1,
+        _ => 0
+    };
+
+    private string GetGraviteLabel(string gravite) => gravite switch
+    {
+        "Critique" => "Critique",
+        "Eleve" => "Élevée",
+        "Moyen" => "Moyenne",
+        "Faible" => "Faible",
+        _ => gravite
+    };
+
+    private string GetGraviteColor(string gravite) => gravite switch
+    {
+        "Critique" => "#e31b23",
+        "Eleve" => "#ed8936",
+        "Moyen" => "#4299e1",
+        "Faible" => "#a0aec0",
+        _ => "#718096"
+    };
+
+    private string GetGraviteIcon(string gravite) => gravite switch
+    {
+        "Critique" => "error",
+        "Eleve" => "warning",
+        "Moyen" => "info",
+        "Faible" => "help_outline",
+        _ => "help"
+    };
+
+    private BadgeStyle GetGraviteStyle(string gravite) => gravite switch
+    {
+        "Critique" => BadgeStyle.Danger,
+        "Eleve" => BadgeStyle.Warning,
+        "Moyen" => BadgeStyle.Info,
+        "Faible" => BadgeStyle.Light,
+        _ => BadgeStyle.Secondary
+    };
+
+    private string GetTypeLabel(string type) => type switch
+    {
+        "BarriereNonAutorisee" => "Barrière non autorisée",
+        "DocumentExpire" => "Document expiré",
+        "DocumentInexistant" => "Document inexistant",
+        "ScanDuplique" => "Scan dupliqué",
+        "QRCodeInvalide" => "QR Code invalide",
+        "ItineraireNonRespectee" => "Itinéraire non respecté",
+        "SignalementManuel" => "Signalement manuel",
+        _ => type
+    };
+
+    private class ChartDataItem
+    {
+        public string Label { get; set; } = "";
+        public int Value { get; set; }
+    }
+}

@@ -1,0 +1,588 @@
+@page "/mes-approbations"
+@attribute [Authorize(Roles = "Admin,Superviseur,GM,IT,Environnement,OPJ,Identification,Barriere,Investigation")]
+@using KCCMaterialFlow.Domain.Enums
+@using KCCMaterialFlow.Module.BonEntree.Services
+@using KCCMaterialFlow.Module.BonSortie.Services
+@using KCCMaterialFlow.Host.Components.Dialogs
+@inject ICurrentUserService CurrentUserService
+@inject IBonEntreeService BonEntreeService
+@inject IBonSortieService BonSortieService
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<PageTitle>Mes Approbations - KCC Material Flow</PageTitle>
+
+
+    <div style="max-width: 1200px; margin: 0 auto;">
+
+        @* === EN-TÊTE === *@
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" class="rz-mb-6">
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-grey); margin: 0;">
+                    <RadzenIcon Icon="rule" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                    Mes Approbations
+                </RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500); margin: 0;">
+                    Bons en attente de votre validation • @CurrentUserService.GetUserDisplayName()
+                </RadzenText>
+            </RadzenStack>
+            <RadzenButton Icon="refresh" Text="Actualiser" Variant="Variant.Outlined" 
+                          ButtonStyle="ButtonStyle.Dark" Click="@LoadDataAsync" />
+        </RadzenStack>
+
+        @* === STATISTIQUES === *@
+        <RadzenRow Gap="1rem" class="rz-mb-4">
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard @onclick="@(() => SetFilter("BEM"))" Style="cursor: pointer;"
+                            Variant="@(activeFilter == "BEM" ? Variant.Outlined : Variant.Filled)">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); text-transform: uppercase; margin: 0;">Bons d'Entrée</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--rz-info); font-weight: 700; margin: 0;">@pendingBonsEntree.Count</RadzenText>
+                        </RadzenStack>
+                        <RadzenIcon Icon="inventory_2" Style="font-size: 2.5rem; color: var(--rz-info); opacity: 0.3;" />
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard @onclick="@(() => SetFilter("BSM"))" Style="cursor: pointer;"
+                            Variant="@(activeFilter == "BSM" ? Variant.Outlined : Variant.Filled)">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); text-transform: uppercase; margin: 0;">Bons de Sortie</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--kcc-slate); font-weight: 700; margin: 0;">@pendingBonsSortie.Count</RadzenText>
+                        </RadzenStack>
+                        <RadzenIcon Icon="logout" Style="font-size: 2.5rem; color: var(--kcc-slate); opacity: 0.3;" />
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard @onclick="@(() => SetFilter(null))" Style="cursor: pointer;"
+                            Variant="@(activeFilter == null ? Variant.Outlined : Variant.Filled)">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); text-transform: uppercase; margin: 0;">Total en attente</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--kcc-beige); font-weight: 700; margin: 0;">@(pendingBonsEntree.Count + pendingBonsSortie.Count)</RadzenText>
+                        </RadzenStack>
+                        <RadzenIcon Icon="pending_actions" Style="font-size: 2.5rem; color: var(--kcc-beige); opacity: 0.3;" />
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Filtre actif *@
+        @if (!string.IsNullOrEmpty(activeFilter))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" 
+                         AllowClose="true" Close="@(() => SetFilter(null))" class="rz-mb-4">
+                Filtre actif : <strong>@(activeFilter == "BEM" ? "Bons d'Entrée" : "Bons de Sortie")</strong>
+            </RadzenAlert>
+        }
+
+        @* === CONTENU === *@
+        @if (isLoading)
+        {
+            <RadzenCard>
+                <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 4rem;">
+                    <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500);">Chargement des approbations...</RadzenText>
+                </RadzenStack>
+            </RadzenCard>
+        }
+        else if (!filteredApprobations.Any())
+        {
+            <RadzenCard>
+                <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 4rem;">
+                    <RadzenIcon Icon="check_circle" Style="font-size: 4rem; color: var(--kcc-green); opacity: 0.4;" />
+                    <RadzenText TextStyle="TextStyle.H6" Style="color: var(--kcc-green); font-weight: 600;">
+                        Aucune approbation en attente
+                    </RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500);">
+                        Vous n'avez pas de bons à valider pour le moment.
+                    </RadzenText>
+                </RadzenStack>
+            </RadzenCard>
+        }
+        else
+        {
+            @* === BARRE DE RECHERCHE === *@
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center" class="rz-mb-4">
+                <RadzenIcon Icon="search" Style="color: var(--gray-400);" />
+                <RadzenTextBox @bind-Value="searchTerm" Placeholder="Rechercher par référence, demandeur, destination..." 
+                               Style="flex: 1;" Change="@OnSearchChanged" />
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                  Click="@ClearSearch" title="Effacer la recherche" />
+                }
+            </RadzenStack>
+
+            <RadzenDataGrid TItem="ApprobationDto" Data="@filteredApprobations.OrderBy(a => a.DateCreation)" 
+                            AllowSorting="true" AllowFiltering="false" AllowPaging="true" PageSize="10"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            Density="Density.Compact"
+                            GridLines="DataGridGridLines.Horizontal"
+                            ExpandMode="DataGridExpandMode.Single">
+                <Template Context="approbation">
+                    @* Détails expandable *@
+                    <div style="padding: 0.75rem 1rem; background: var(--rz-base-200); border-radius: 8px; margin: 0.25rem 0;">
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" Wrap="FlexWrap.Wrap" Style="margin-bottom: 0.5rem;">
+                            <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Provenance :</strong> @(approbation.Provenance ?? "N/A")</span>
+                            <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Destination :</strong> @(approbation.Destination ?? "N/A")</span>
+                            <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Matériels :</strong> @approbation.NombreMateriels article(s)</span>
+                        </RadzenStack>
+
+                        @if (!string.IsNullOrEmpty(approbation.Description))
+                        {
+                            <div style="margin-bottom: 0.5rem;">
+                                <strong style="color: var(--gray-500); font-size: 0.8rem;">Motif :</strong>
+                                <span>@approbation.Description</span>
+                            </div>
+                        }
+
+                        @* Dernière approbation *@
+                        @if (!string.IsNullOrEmpty(approbation.DerniereEtapeApprouvee))
+                        {
+                            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #dcfce7; border-radius: 6px; margin-top: 0.25rem;">
+                                <RadzenIcon Icon="check_circle" Style="color: #16a34a; font-size: 1.2rem;" />
+                                <span style="font-weight: 600; font-size: 0.85rem;">@approbation.DerniereEtapeApprouvee</span>
+                                <span style="color: var(--gray-500); font-size: 0.8rem;">— @(approbation.DernierApprobateur ?? "N/A"), @(approbation.DateDerniereApprobation?.ToString("dd/MM/yyyy HH:mm") ?? "")</span>
+                                @if (!string.IsNullOrEmpty(approbation.CommentaireDernierApprobateur))
+                                {
+                                    <span style="font-style: italic; color: var(--gray-600); font-size: 0.8rem;">« @approbation.CommentaireDernierApprobateur »</span>
+                                }
+                            </div>
+                        }
+
+                        <div style="text-align: right; margin-top: 0.5rem;">
+                            <RadzenButton Text="Voir détails" Icon="visibility" Variant="Variant.Outlined" 
+                                          ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small"
+                                          Click="@(() => OpenDetailDialog(approbation, false))" />
+                        </div>
+                    </div>
+                </Template>
+                <Columns>
+                    <RadzenDataGridColumn TItem="ApprobationDto" Title="Type" Width="120px" Sortable="true" Property="TypeBon">
+                        <Template Context="approbation">
+                            <RadzenBadge Text="@(approbation.TypeBon == "BEM" ? "Entrée" : "Sortie")" IsPill="true"
+                                         BadgeStyle="@(approbation.TypeBon == "BEM" ? BadgeStyle.Info : BadgeStyle.Secondary)" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ApprobationDto" Title="Référence" Property="NumeroReference" Width="180px" Sortable="true">
+                        <Template Context="approbation">
+                            <RadzenStack Gap="0">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600; margin: 0;">@approbation.NumeroReference</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); margin: 0;">
+                                    @approbation.DateCreation.ToString("dd/MM/yyyy")
+                                </RadzenText>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ApprobationDto" Title="Demandeur" Property="Demandeur" Width="180px" Sortable="true">
+                        <Template Context="approbation">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">@(approbation.Demandeur ?? "N/A")</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ApprobationDto" Title="Statut" Property="StatutLibelle" Width="160px" Sortable="true">
+                        <Template Context="approbation">
+                            <RadzenBadge Text="@approbation.StatutLibelle" IsPill="true" BadgeStyle="BadgeStyle.Warning" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ApprobationDto" Title="Matériels" Width="100px" TextAlign="TextAlign.Center" Sortable="true" Property="NombreMateriels">
+                        <Template Context="approbation">
+                            <RadzenBadge Text="@approbation.NombreMateriels.ToString()" IsPill="true" BadgeStyle="BadgeStyle.Light" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ApprobationDto" Title="Actions" Width="240px" TextAlign="TextAlign.Right" Sortable="false">
+                        <Template Context="approbation">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" AlignItems="AlignItems.Center">
+                                <RadzenButton Icon="cancel" Text="Rejeter" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                              ButtonStyle="ButtonStyle.Danger" 
+                                              Click="@(() => OpenDetailDialog(approbation, true, "reject"))" />
+                                <RadzenButton Icon="check_circle" Text="Approuver" Size="ButtonSize.Small"
+                                              ButtonStyle="ButtonStyle.Success" 
+                                              Click="@(() => OpenDetailDialog(approbation, true, "approve"))" />
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        }
+    </div>
+
+@code {
+    private bool isLoading = true;
+    private string? activeFilter;
+    private string? searchTerm;
+
+    private List<ApprobationDto> pendingBonsEntree = new();
+    private List<ApprobationDto> pendingBonsSortie = new();
+
+    private IEnumerable<ApprobationDto> filteredApprobations
+    {
+        get
+        {
+            IEnumerable<ApprobationDto> result = string.IsNullOrEmpty(activeFilter)
+                ? pendingBonsEntree.Concat(pendingBonsSortie)
+                : activeFilter == "BEM" ? pendingBonsEntree : pendingBonsSortie;
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.Trim().ToLowerInvariant();
+                result = result.Where(a =>
+                    (a.NumeroReference?.ToLowerInvariant().Contains(term) ?? false) ||
+                    (a.Demandeur?.ToLowerInvariant().Contains(term) ?? false) ||
+                    (a.Destination?.ToLowerInvariant().Contains(term) ?? false) ||
+                    (a.Provenance?.ToLowerInvariant().Contains(term) ?? false) ||
+                    (a.Description?.ToLowerInvariant().Contains(term) ?? false));
+            }
+
+            return result;
+        }
+    }
+
+    private void OnSearchChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = null;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Vérifier que l'utilisateur a au moins une activité d'approbation
+        if (!CurrentUserService.HasAnyActivite("BEM_APPROUVER", "BEM_REJETER", "BEM_RETOURNER", "BSM_APPROUVER", "BSM_REJETER", "BSM_RETOURNER"))
+        {
+            NavigationManager.NavigateTo("/", replace: true);
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var bonsEntree = await BonEntreeService.GetPendingApprovalsAsync();
+            var bonsSortie = await BonSortieService.GetPendingApprovalsAsync();
+
+            pendingBonsEntree = new List<ApprobationDto>();
+            foreach (var be in bonsEntree)
+            {
+                var dto = new ApprobationDto
+                {
+                    Id = be.IdBon,
+                    TypeBon = "BEM",
+                    NumeroReference = be.NumeroReference,
+                    Demandeur = be.NomDemandeur,
+                    Description = $"{be.NomCompagnie} - {be.ReasonOnSite}",
+                    Provenance = be.Provenance,
+                    Destination = be.Destination,
+                    DateCreation = be.DateCreation,
+                    StatutCode = be.StatutActuel,
+                    StatutLibelle = GetStatutLibelle(be.StatutActuel),
+                    NombreMateriels = be.Materiels?.Count ?? 0,
+                    Url = $"/bon-entree/{be.IdBon}"
+                };
+
+                try
+                {
+                    var approbations = await BonEntreeService.GetApprobationsAsync(be.IdBon);
+                    var derniereApprobation = approbations
+                        .Where(a => a.Decision == "Approuvé" && a.DateAction != null)
+                        .OrderByDescending(a => a.DateAction)
+                        .FirstOrDefault();
+
+                    if (derniereApprobation != null)
+                    {
+                        dto.DerniereEtapeApprouvee = derniereApprobation.NomEtape;
+                        dto.DernierApprobateur = derniereApprobation.NomApprobateur;
+                        dto.DateDerniereApprobation = derniereApprobation.DateAction;
+                        dto.CommentaireDernierApprobateur = derniereApprobation.ReservesEventuelles;
+                    }
+                }
+                catch { }
+
+                pendingBonsEntree.Add(dto);
+            }
+
+            pendingBonsSortie = new List<ApprobationDto>();
+            foreach (var bs in bonsSortie)
+            {
+                var dto = new ApprobationDto
+                {
+                    Id = bs.IdBon,
+                    TypeBon = bs is KCCMaterialFlow.Module.BonSortie.Entities.BonSortieExterne ? "BSM" : "BSI",
+                    NumeroReference = bs.NumeroReference,
+                    Demandeur = bs.NomDemandeur,
+                    Description = bs.MotifSortie,
+                    Provenance = bs.Provenance,
+                    Destination = bs.Destination,
+                    DateCreation = bs.DateCreation,
+                    StatutCode = bs.StatutActuel,
+                    StatutLibelle = GetStatutLibelle(bs.StatutActuel),
+                    NombreMateriels = bs.Materiels?.Count ?? 0,
+                    Url = $"/bon-sortie/{bs.IdBon}"
+                };
+
+                try
+                {
+                    var approbations = await BonSortieService.GetApprobationsAsync(bs.IdBon);
+                    var derniereApprobation = approbations
+                        .Where(a => a.Decision == "Approuvé" && a.DateAction != null)
+                        .OrderByDescending(a => a.DateAction)
+                        .FirstOrDefault();
+
+                    if (derniereApprobation != null)
+                    {
+                        dto.DerniereEtapeApprouvee = derniereApprobation.NomEtape;
+                        dto.DernierApprobateur = derniereApprobation.ApprobateurNom;
+                        dto.DateDerniereApprobation = derniereApprobation.DateAction;
+                        dto.CommentaireDernierApprobateur = derniereApprobation.Commentaire;
+                    }
+                }
+                catch { }
+
+                pendingBonsSortie.Add(dto);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de charger les approbations: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SetFilter(string? filter)
+    {
+        activeFilter = filter;
+    }
+
+    private async Task OpenDetailDialog(ApprobationDto approbation, bool showActions, string? initialAction = null)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "BonId", approbation.Id },
+            { "TypeBon", approbation.TypeBon },
+            { "ShowActions", showActions }
+        };
+
+        // Ajouter l'action initiale si spécifiée
+        if (!string.IsNullOrEmpty(initialAction))
+        {
+            parameters.Add("InitialAction", initialAction);
+        }
+
+        var result = await DialogService.OpenAsync<BonDetailDialog>(
+            $"Détails - {approbation.NumeroReference}",
+            parameters,
+            new DialogOptions 
+            { 
+                Width = "700px", 
+                Height = "auto",
+                CloseDialogOnOverlayClick = false,
+                ShowClose = true,
+                Resizable = true,
+                Draggable = true
+            }
+        );
+
+        // Traiter le résultat
+        if (result is BonDetailDialog.DialogResult dialogResult && dialogResult.Success)
+        {
+            if (dialogResult.Action == "approved")
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Approuvé", $"Le bon {approbation.NumeroReference} a été approuvé.");
+            }
+            else if (dialogResult.Action == "rejected")
+            {
+                NotificationService.Notify(NotificationSeverity.Warning, "Rejeté", $"Le bon {approbation.NumeroReference} a été rejeté.");
+            }
+
+            // Retirer le bon de la liste
+            if (approbation.TypeBon == "BEM")
+                pendingBonsEntree.RemoveAll(b => b.Id == approbation.Id);
+            else
+                pendingBonsSortie.RemoveAll(b => b.Id == approbation.Id);
+
+            StateHasChanged();
+        }
+    }
+
+    private void NavigateTo(string url)
+    {
+        NavigationManager.NavigateTo(url);
+    }
+
+    private async Task QuickApprove(ApprobationDto approbation)
+    {
+        var commentaire = await ShowCommentDialog("Approuver", approbation.NumeroReference, true);
+        if (commentaire == null) return;
+
+        try
+        {
+            if (approbation.TypeBon == "BEM")
+            {
+                var request = new KCCMaterialFlow.Module.BonEntree.Services.ApprovalRequest
+                {
+                    BonId = approbation.Id,
+                    ReservesEventuelles = commentaire
+                };
+                var result = await BonEntreeService.ApproveAsync(request);
+                if (result.Success)
+                {
+                    NotificationService.Notify(NotificationSeverity.Success, "Approuvé", $"Le bon {approbation.NumeroReference} a été approuvé.");
+                    pendingBonsEntree.RemoveAll(b => b.Id == approbation.Id);
+                }
+                else
+                {
+                    NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur inconnue");
+                }
+            }
+            else
+            {
+                var request = new KCCMaterialFlow.Module.BonSortie.Services.ApprovalRequest
+                {
+                    IdBon = approbation.Id,
+                    Commentaire = commentaire
+                };
+                var result = await BonSortieService.ApproveAsync(request);
+                if (result.Success)
+                {
+                    NotificationService.Notify(NotificationSeverity.Success, "Approuvé", $"Le bon {approbation.NumeroReference} a été approuvé.");
+                    pendingBonsSortie.RemoveAll(b => b.Id == approbation.Id);
+                }
+                else
+                {
+                    NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur inconnue");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task QuickReject(ApprobationDto approbation)
+    {
+        var motif = await ShowCommentDialog("Rejeter", approbation.NumeroReference, false);
+        if (motif == null) return;
+
+        try
+        {
+            if (approbation.TypeBon == "BEM")
+            {
+                var request = new KCCMaterialFlow.Module.BonEntree.Services.ApprovalRequest
+                {
+                    BonId = approbation.Id,
+                    ReservesEventuelles = motif
+                };
+                var result = await BonEntreeService.RejectAsync(request);
+                if (result.Success)
+                {
+                    NotificationService.Notify(NotificationSeverity.Warning, "Rejeté", $"Le bon {approbation.NumeroReference} a été rejeté.");
+                    pendingBonsEntree.RemoveAll(b => b.Id == approbation.Id);
+                }
+                else
+                {
+                    NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur inconnue");
+                }
+            }
+            else
+            {
+                var request = new KCCMaterialFlow.Module.BonSortie.Services.RejectRequest
+                {
+                    IdBon = approbation.Id,
+                    Motif = motif
+                };
+                var result = await BonSortieService.RejectAsync(request);
+                if (result.Success)
+                {
+                    NotificationService.Notify(NotificationSeverity.Warning, "Rejeté", $"Le bon {approbation.NumeroReference} a été rejeté.");
+                    pendingBonsSortie.RemoveAll(b => b.Id == approbation.Id);
+                }
+                else
+                {
+                    NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur inconnue");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task<string?> ShowCommentDialog(string action, string numeroReference, bool isApproval)
+    {
+        var parameters = new Dictionary<string, object>
+        {
+            { "Action", action },
+            { "NumeroReference", numeroReference },
+            { "IsApproval", isApproval }
+        };
+
+        var result = await DialogService.OpenAsync<ApprovalCommentDialog>(
+            $"{action} - {numeroReference}",
+            parameters,
+            new DialogOptions 
+            { 
+                Width = "500px", 
+                Height = "380px",
+                CloseDialogOnOverlayClick = false,
+                ShowClose = true
+            }
+        );
+        
+        return result as string;
+    }
+
+    private string GetStatutLibelle(string code) => code?.ToUpperInvariant() switch
+    {
+        "PENDINGSUP" or "PENDING_SUP" => "Att. Superviseur",
+        "PENDINGGM" or "PENDING_GM" => "Att. General Manager",
+        "PENDINGIT" or "PENDING_IT" => "Att. IT",
+        "PENDINGENV" or "PENDING_ENV" => "Att. Environnement",
+        "PENDINGOPJ" or "PENDING_OPJ" => "Att. OPJ",
+        "PENDINGIDENTIFICATION" or "PENDING_ID" => "Att. Identification",
+        _ => code ?? "-"
+    };
+
+    public class ApprobationDto
+    {
+        public int Id { get; set; }
+        public string TypeBon { get; set; } = string.Empty;
+        public string NumeroReference { get; set; } = string.Empty;
+        public string? Demandeur { get; set; }
+        public string? Description { get; set; }
+        public string? Provenance { get; set; }
+        public string? Destination { get; set; }
+        public DateTime DateCreation { get; set; }
+        public string StatutCode { get; set; } = string.Empty;
+        public string StatutLibelle { get; set; } = string.Empty;
+        public int NombreMateriels { get; set; }
+        public string Url { get; set; } = string.Empty;
+        public string? DerniereEtapeApprouvee { get; set; }
+        public string? DernierApprobateur { get; set; }
+        public DateTime? DateDerniereApprobation { get; set; }
+        public string? CommentaireDernierApprobateur { get; set; }
+    }
+}

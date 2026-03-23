@@ -1,0 +1,124 @@
+@* BSM-062: Modal extension date de retour (Identification only) *@
+@inject DialogService DialogService
+@inject IBonSortieService BonSortieService
+@inject NotificationService Notification
+
+<RadzenStack Gap="1rem">
+    <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small">
+        <strong>Note:</strong> L'extension de la date de retour est réservée au service Identification.
+    </RadzenAlert>
+
+    <div>
+        <RadzenLabel Text="Date de Retour Actuelle" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenText TextStyle="TextStyle.Body1" Style="margin-top: 0.25rem;">
+            <strong>@CurrentDate.ToString("dddd dd MMMM yyyy")</strong>
+        </RadzenText>
+    </div>
+
+    <div>
+        <RadzenLabel Text="Nouvelle Date de Retour *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenDatePicker @bind-Value="@nouvelleDateRetour" DateFormat="dd/MM/yyyy" Style="width: 100%;"
+            Min="@DateTime.Today.AddDays(1)" Placeholder="Sélectionner une date..." />
+    </div>
+
+    <div>
+        <RadzenLabel Text="Motif de l'Extension *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenDropDown @bind-Value="@motifSelectionne" Data="@motifs" Style="width: 100%;" Placeholder="Sélectionner un motif..." />
+    </div>
+
+    @if (motifSelectionne == "Autre")
+    {
+        <div>
+            <RadzenLabel Text="Préciser le motif *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+            <RadzenTextArea @bind-Value="@motifAutre" Rows="2" Placeholder="Expliquez le motif..." Style="width: 100%;" />
+        </div>
+    }
+
+    <div>
+        <RadzenLabel Text="Commentaire" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenTextArea @bind-Value="@commentaire" Rows="2" Placeholder="Observations (optionnel)..." Style="width: 100%;" />
+    </div>
+
+    @if (showDureeInfo)
+    {
+        <RadzenCard Style="background-color: #e9ecef;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                <RadzenIcon Icon="info" Style="color: #17a2b8;" />
+                <RadzenText TextStyle="TextStyle.Body2">
+                    Durée de l'extension: <strong>@dureeExtension jour(s)</strong>
+                </RadzenText>
+            </RadzenStack>
+        </RadzenCard>
+    }
+
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" Style="margin-top: 1rem;">
+        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="Confirmer l'Extension" ButtonStyle="ButtonStyle.Primary" Icon="event" 
+            Click="@Confirm" Disabled="@(!IsValid)" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public int PretId { get; set; }
+    [Parameter] public DateTime CurrentDate { get; set; }
+
+    private DateTime? nouvelleDateRetour;
+    private string? motifSelectionne;
+    private string? motifAutre;
+    private string? commentaire;
+
+    private bool showDureeInfo => nouvelleDateRetour.HasValue && nouvelleDateRetour.Value > CurrentDate;
+    private int dureeExtension => nouvelleDateRetour.HasValue ? (nouvelleDateRetour.Value - CurrentDate).Days : 0;
+
+    private bool IsValid => nouvelleDateRetour.HasValue && 
+                           nouvelleDateRetour.Value > CurrentDate &&
+                           !string.IsNullOrWhiteSpace(motifSelectionne) &&
+                           (motifSelectionne != "Autre" || !string.IsNullOrWhiteSpace(motifAutre));
+
+    private List<string> motifs = new()
+    {
+        "Travaux prolongés sur chantier",
+        "Retard livraison projet",
+        "Maintenance non terminée",
+        "Demande du client",
+        "Conditions météorologiques",
+        "Autre"
+    };
+
+    protected override void OnParametersSet()
+    {
+        nouvelleDateRetour = CurrentDate.AddDays(7);
+    }
+
+    private void Cancel() => DialogService.Close(false);
+
+    private async Task Confirm()
+    {
+        if (!IsValid) return;
+
+        try
+        {
+            var motifFinal = motifSelectionne == "Autre" ? motifAutre! : motifSelectionne!;
+            if (!string.IsNullOrWhiteSpace(commentaire))
+                motifFinal += $" - {commentaire}";
+
+            var request = new ExtendLoanRequest
+            {
+                IdBon = PretId,
+                NouvelleDateRetour = nouvelleDateRetour!.Value,
+                Motif = motifFinal
+            };
+
+            var result = await BonSortieService.ExtendLoanAsync(request);
+
+            if (result.Success)
+                DialogService.Close(true);
+            else
+                Notification.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Impossible de prolonger");
+        }
+        catch (Exception ex)
+        {
+            Notification.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+    }
+}

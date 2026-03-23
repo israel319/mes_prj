@@ -1,0 +1,283 @@
+@page "/admin/types-materiels"
+@attribute [Authorize(Roles = "Admin")]
+@using TypeMaterielEntity = KCCMaterialFlow.Module.Shared.Entities.TypeMateriel
+@using KCCMaterialFlow.Module.Shared.Services
+@using Microsoft.AspNetCore.Authorization
+@inject ITypeMaterielService TypeMaterielService
+@inject IAuditLogService AuditLogService
+@inject ICurrentUserService CurrentUserService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<PageTitle>Administration - Types de Matériel</PageTitle>
+
+<div style="padding: 1.5rem;">
+    <RadzenStack Gap="1.5rem">
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn>
+                <RadzenBreadCrumb>
+                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
+                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
+                    <RadzenBreadCrumbItem Text="Types de Matériel" Icon="category" />
+                </RadzenBreadCrumb>
+                <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
+                    <RadzenIcon Icon="category" Style="margin-right: 0.5rem; vertical-align: middle;" />
+                    Gestion des Types de Matériel
+                </RadzenText>
+            </RadzenColumn>
+            <RadzenColumn>
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                    <RadzenButton Text="Actualiser" Icon="refresh" ButtonStyle="ButtonStyle.Light" 
+                                  Click="@LoadDataAsync" />
+                    <RadzenButton Text="Nouveau type" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@ShowCreateDialog" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Filtres *@
+        <RadzenCard Variant="Variant.Flat" Style="padding: 1rem;">
+            <RadzenRow Gap="1rem" AlignItems="AlignItems.End">
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenFormField Text="Catégorie" Style="width: 100%;">
+                        <RadzenDropDown TValue="string" Data="@categories" @bind-Value="@filterCategorie"
+                                        AllowClear="true" Placeholder="Toutes" Style="width: 100%;"
+                                        Change="@(args => ApplyFilters())" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenButton Text="Réinitialiser" Icon="clear" ButtonStyle="ButtonStyle.Light" 
+                                  Click="@ResetFilters" Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+
+        @* Grille des types *@
+        <RadzenCard Variant="Variant.Flat">
+            <RadzenDataGrid @ref="grid" Data="@filteredTypes" TItem="TypeMaterielEntity" 
+                            AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="15"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Ordre" Title="#" Width="60px" TextAlign="TextAlign.Center" />
+                    
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="CodeType" Title="Code" Width="150px">
+                        <Template Context="type">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                @if (!string.IsNullOrEmpty(type.Icone))
+                                {
+                                    <RadzenIcon Icon="@type.Icone" Style="@($"color: {type.Couleur ?? "#666"}")" />
+                                }
+                                <RadzenBadge Text="@type.CodeType" 
+                                             Style="@($"background-color: {type.Couleur ?? "#6c757d"}; color: white;")" 
+                                             IsPill="true" />
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="NomType" Title="Nom" Width="200px" />
+                    
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Categorie" Title="Catégorie" Width="150px">
+                        <Template Context="type">
+                            @if (!string.IsNullOrEmpty(type.Categorie))
+                            {
+                                <RadzenBadge Text="@type.Categorie" BadgeStyle="BadgeStyle.Light" IsPill="true" />
+                            }
+                            else
+                            {
+                                <span style="color: #999;">-</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Approbations" Width="150px">
+                        <Template Context="type">
+                            <RadzenStack Gap="0">
+                                <RadzenText TextStyle="TextStyle.Caption">
+                                    @type.NiveauxApprobation niveau(x)
+                                </RadzenText>
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem">
+                                    @if (type.RequiertApprobationDepartement)
+                                    {
+                                        <RadzenBadge Text="Dept" BadgeStyle="BadgeStyle.Info" IsPill="true" Style="font-size: 0.6rem;" />
+                                    }
+                                    @if (type.RequiertApprobationDirection)
+                                    {
+                                        <RadzenBadge Text="Dir" BadgeStyle="BadgeStyle.Warning" IsPill="true" Style="font-size: 0.6rem;" />
+                                    }
+                                </RadzenStack>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Validité" Width="120px">
+                        <Template Context="type">
+                            <RadzenStack Gap="0">
+                                <RadzenText TextStyle="TextStyle.Caption">
+                                    Défaut: @type.DureeValiditeDefautJours j
+                                </RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
+                                    Max: @type.DureeMaximumJours j
+                                </RadzenText>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Requis" Width="120px">
+                        <Template Context="type">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" Wrap="FlexWrap.Wrap">
+                                @if (type.NumeroSerieObligatoire)
+                                {
+                                    <RadzenBadge Text="N° série" BadgeStyle="BadgeStyle.Secondary" IsPill="true" Style="font-size: 0.6rem;" />
+                                }
+                                @if (type.PhotoObligatoire)
+                                {
+                                    <RadzenBadge Text="Photo" BadgeStyle="BadgeStyle.Secondary" IsPill="true" Style="font-size: 0.6rem;" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="EstActif" Title="Statut" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="type">
+                            @if (type.EstActif)
+                            {
+                                <RadzenBadge Text="Actif" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                            }
+                            else
+                            {
+                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="type">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => ShowEditDialog(type))" title="Modifier" />
+                                @if (type.EstActif)
+                                {
+                                    <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                                  Click="@(() => ToggleStatus(type))" title="Désactiver" />
+                                }
+                                else
+                                {
+                                    <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                                  Click="@(() => ToggleStatus(type))" title="Activer" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    </RadzenStack>
+</div>
+
+@code {
+    private RadzenDataGrid<TypeMaterielEntity>? grid;
+    private List<TypeMaterielEntity> types = [];
+    private List<TypeMaterielEntity> filteredTypes = [];
+    private List<string> categories = [];
+    
+    private string? filterCategorie;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            types = (await TypeMaterielService.GetAllAsync()).ToList();
+            categories = (await TypeMaterielService.GetCategoriesAsync()).ToList();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du chargement: {ex.Message}");
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var query = types.AsEnumerable();
+        
+        if (!string.IsNullOrWhiteSpace(filterCategorie))
+        {
+            query = query.Where(t => t.Categorie == filterCategorie);
+        }
+        
+        filteredTypes = query.OrderBy(t => t.Ordre).ToList();
+    }
+
+    private void ResetFilters()
+    {
+        filterCategorie = null;
+        ApplyFilters();
+    }
+
+    private async Task ShowCreateDialog()
+    {
+        var result = await DialogService.OpenAsync<TypeMaterielEditDialog>("Nouveau type de matériel",
+            new Dictionary<string, object>(),
+            new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Type créé avec succès");
+        }
+    }
+
+    private async Task ShowEditDialog(TypeMaterielEntity type)
+    {
+        var result = await DialogService.OpenAsync<TypeMaterielEditDialog>("Modifier le type",
+            new Dictionary<string, object> { { "TypeMateriel", type } },
+            new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Type modifié avec succès");
+        }
+    }
+
+    private async Task ToggleStatus(TypeMaterielEntity type)
+    {
+        var action = type.EstActif ? "désactiver" : "activer";
+        var confirmed = await DialogService.Confirm(
+            $"Voulez-vous vraiment {action} le type {type.NomType} ?",
+            $"Confirmer {action}",
+            new ConfirmOptions { OkButtonText = "Oui", CancelButtonText = "Non" });
+        
+        if (confirmed == true)
+        {
+            try
+            {
+                await TypeMaterielService.DeleteAsync(type.IdTypeMateriel);
+                
+                await AuditLogService.LogAsync(
+                    CurrentUserService.GetUserLogin(),
+                    CurrentUserService.GetUserDisplayName(),
+                    type.EstActif ? "Deactivate" : "Activate",
+                    "TypeMateriel",
+                    $"Type {type.NomType} {(type.EstActif ? "désactivé" : "activé")}",
+                    type.IdTypeMateriel.ToString(),
+                    "TypeMateriel");
+                
+                await LoadDataAsync();
+                NotificationService.Notify(NotificationSeverity.Success, "Succès", 
+                    $"Type {(type.EstActif ? "désactivé" : "activé")}");
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+}

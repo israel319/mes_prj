@@ -1,0 +1,246 @@
+@inject DialogService DialogService
+@inject IScanService ScanService
+@inject NavigationManager Navigation
+
+<RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
+    @if (Scan != null)
+    {
+        @* Header avec Statut *@
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                <RadzenIcon Icon="@GetStatutIcon()" Style="@($"font-size: 2rem; color: {GetStatutColor()};")" />
+                <RadzenStack Gap="0">
+                    <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="@($"color: {GetStatutColor()};")">
+                        @GetStatutLabel()
+                    </RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                        @Scan.DateHeureScan.ToString("dddd dd MMMM yyyy à HH:mm:ss")
+                    </RadzenText>
+                </RadzenStack>
+            </RadzenStack>
+            @if (Scan.AnomalieSignalee)
+            {
+                <RadzenBadge Text="Anomalie" BadgeStyle="BadgeStyle.Warning" IsPill="true" />
+            }
+        </RadzenStack>
+
+        @* Informations Principales *@
+        <RadzenCard Variant="Variant.Flat" Style="background: #f8fafc; border-radius: 12px; padding: 1rem;">
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="6">
+                    <RadzenStack Gap="0.75rem">
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Référence Document</RadzenText>
+                            <RadzenText FontWeight="FontWeight.Bold" Style="font-family: monospace; color: #e31b23; font-size: 1.1rem;">
+                                @Scan.NumeroReferenceBon
+                            </RadzenText>
+                        </RadzenStack>
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Type de Document</RadzenText>
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <RadzenBadge Text="@Scan.TypeBon" BadgeStyle="@(Scan.TypeBon == "BEM" ? BadgeStyle.Info : BadgeStyle.Success)" IsPill="true" />
+                                <span style="color: #4a5568;">@GetTypeBonLabel()</span>
+                            </RadzenStack>
+                        </RadzenStack>
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Type de Mouvement</RadzenText>
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                                <RadzenIcon Icon="@(Scan.TypeMouvement == "Entree" ? "login" : "logout")" 
+                                            Style="@($"color: {(Scan.TypeMouvement == "Entree" ? "#48bb78" : "#ed8936")};")" />
+                                <span style="font-weight: 500;">@Scan.TypeMouvement</span>
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="6">
+                    <RadzenStack Gap="0.75rem">
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Barrière</RadzenText>
+                            <RadzenText FontWeight="FontWeight.SemiBold">
+                                <RadzenIcon Icon="location_on" Style="vertical-align: middle; margin-right: 0.25rem; color: #4299e1;" />
+                                @(Scan.Barriere?.NomBarriere ?? "N/A")
+                            </RadzenText>
+                        </RadzenStack>
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Agent de Sécurité</RadzenText>
+                            <RadzenText FontWeight="FontWeight.SemiBold">
+                                <RadzenIcon Icon="person" Style="vertical-align: middle; margin-right: 0.25rem; color: #718096;" />
+                                @(Scan.AgentNom ?? Scan.AgentLogin)
+                            </RadzenText>
+                        </RadzenStack>
+                        @if (!string.IsNullOrEmpty(Scan.NumeroPreuve))
+                        {
+                            <RadzenStack Gap="0.125rem">
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Numéro de Preuve</RadzenText>
+                                <RadzenText FontWeight="FontWeight.SemiBold" Style="font-family: monospace;">
+                                    <RadzenIcon Icon="receipt" Style="vertical-align: middle; margin-right: 0.25rem; color: #48bb78;" />
+                                    @Scan.NumeroPreuve
+                                </RadzenText>
+                            </RadzenStack>
+                        }
+                    </RadzenStack>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+
+        @* Trajet *@
+        @if (!string.IsNullOrEmpty(Scan.ProvenanceLieu) || !string.IsNullOrEmpty(Scan.DestinationLieu))
+        {
+            <RadzenCard Variant="Variant.Flat" Style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem;">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold" Style="color: #718096; margin-bottom: 0.75rem;">
+                    TRAJET PRÉVU
+                </RadzenText>
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="flex: 1;">
+                        <RadzenStack AlignItems="AlignItems.Center" Gap="0.25rem" Style="flex: 1; text-align: center;">
+                            <div style="background: #e2e8f0; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="flight_takeoff" Style="color: #4a5568;" />
+                            </div>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Provenance</RadzenText>
+                            <RadzenText FontWeight="FontWeight.Bold" Style="color: #2d3748;">@(Scan.ProvenanceLieu ?? "N/A")</RadzenText>
+                        </RadzenStack>
+                        <RadzenIcon Icon="arrow_forward" Style="color: #cbd5e0; font-size: 1.5rem;" />
+                        <RadzenStack AlignItems="AlignItems.Center" Gap="0.25rem" Style="flex: 1; text-align: center;">
+                            <div style="background: #e2e8f0; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="flight_land" Style="color: #4a5568;" />
+                            </div>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Destination</RadzenText>
+                            <RadzenText FontWeight="FontWeight.Bold" Style="color: #2d3748;">@(Scan.DestinationLieu ?? "N/A")</RadzenText>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenCard>
+        }
+
+        @* QR Code Hash (Debug Info) *@
+        @if (!string.IsNullOrEmpty(Scan.QRCodeHash))
+        {
+            <RadzenCard Variant="Variant.Flat" Style="background: #fafafa; border: 1px dashed #e2e8f0; border-radius: 8px; padding: 0.75rem;">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0; font-family: monospace; word-break: break-all;">
+                    QR Hash: @Scan.QRCodeHash.Substring(0, Math.Min(50, Scan.QRCodeHash.Length))...
+                </RadzenText>
+            </RadzenCard>
+        }
+
+        @* Anomalie Details *@
+        @if (Scan.AnomalieSignalee && PremièreAnomalie != null)
+        {
+            <RadzenCard Variant="Variant.Flat" Style="background: #fffbeb; border: 1px solid #f6e05e; border-radius: 12px; padding: 1rem;">
+                <RadzenStack Gap="0.5rem">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenIcon Icon="warning" Style="color: #d69e2e;" />
+                        <RadzenText FontWeight="FontWeight.Bold" Style="color: #744210;">Anomalie Signalée</RadzenText>
+                    </RadzenStack>
+                    <RadzenRow>
+                        <RadzenColumn Size="6">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #975a16;">Type: @PremièreAnomalie.TypeAnomalie</RadzenText>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #975a16;">Gravité: @PremièreAnomalie.NiveauGravite</RadzenText>
+                        </RadzenColumn>
+                    </RadzenRow>
+                    @if (!string.IsNullOrEmpty(PremièreAnomalie.Description))
+                    {
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #744210;">
+                            @PremièreAnomalie.Description
+                        </RadzenText>
+                    }
+                </RadzenStack>
+            </RadzenCard>
+        }
+
+        @* Actions *@
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+            @if (Scan.StatutScan == StatutScanValues.Valid && !string.IsNullOrEmpty(Scan.NumeroPreuve))
+            {
+                <RadzenButton Text="Réimprimer Preuve" Icon="print" ButtonStyle="ButtonStyle.Light" Click="@ReimprimerPreuve" />
+            }
+            <RadzenButton Text="Voir le Bon" Icon="description" ButtonStyle="ButtonStyle.Info" Click="@VoirBon" Visible="@(Scan.BonId.HasValue)" />
+            <RadzenButton Text="Fermer" Icon="close" ButtonStyle="ButtonStyle.Dark" Click="@Close" />
+        </RadzenStack>
+    }
+    else
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem;">
+            <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Medium" />
+        </RadzenStack>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter] public ScanEvenement? Scan { get; set; }
+
+    /// <summary>
+    /// Première anomalie du scan (remplace l'ancienne navigation Anomalie)
+    /// </summary>
+    private Anomalie? PremièreAnomalie => Scan?.Anomalies?.FirstOrDefault();
+
+    private string GetStatutIcon() => Scan?.StatutScan switch
+    {
+        "Valid" => "check_circle",
+        "Invalid" => "cancel",
+        "Expired" => "schedule",
+        "AlreadyUsed" => "replay",
+        "NotFound" => "help_outline",
+        _ => "help"
+    };
+
+    private string GetStatutColor() => Scan?.StatutScan switch
+    {
+        "Valid" => "#48bb78",
+        "Invalid" => "#f56565",
+        "Expired" => "#ed8936",
+        "AlreadyUsed" => "#4299e1",
+        "NotFound" => "#a0aec0",
+        _ => "#718096"
+    };
+
+    private string GetStatutLabel() => Scan?.StatutScan switch
+    {
+        "Valid" => "Scan Valide",
+        "Invalid" => "Document Invalide",
+        "Expired" => "Document Expiré",
+        "AlreadyUsed" => "Déjà Scanné",
+        "NotFound" => "Document Non Trouvé",
+        _ => "Statut Inconnu"
+    };
+
+    private string GetTypeBonLabel() => Scan?.TypeBon switch
+    {
+        "BEM" => "Bon d'Entrée Matériels",
+        "BSM" => "Bon de Sortie Matériels",
+        _ => Scan?.TypeBon ?? ""
+    };
+
+    private void VoirBon()
+    {
+        if (Scan?.BonId != null)
+        {
+            var route = Scan.TypeBon == "BEM" 
+                ? $"/bonsortie/list?highlight={Scan.BonId}" 
+                : $"/bonentree/list?highlight={Scan.BonId}";
+            Navigation.NavigateTo(route);
+            DialogService.Close();
+        }
+    }
+
+    private async Task ReimprimerPreuve()
+    {
+        if (Scan != null && !string.IsNullOrEmpty(Scan.NumeroPreuve))
+        {
+            var preuve = await ScanService.GetPreuvePassageAsync(Scan.IdScan);
+            if (preuve != null)
+            {
+                // Le dialog PreuvePassageDialog gère l'impression
+                await DialogService.OpenAsync<PreuvePassageDialog>("Preuve de Passage",
+                    new Dictionary<string, object> { { "Preuve", preuve } },
+                    new DialogOptions { Width = "500px" });
+            }
+        }
+    }
+
+    private void Close()
+    {
+        DialogService.Close();
+    }
+}

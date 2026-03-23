@@ -1,0 +1,73 @@
+@page "/profil"
+@page "/preferences"
+@page "/securite/scanner"
+@attribute [Authorize]
+
+@inject NavigationManager Navigation
+
+<PageTitle>@PageTitle - KCC Material Flow</PageTitle>
+
+<RadzenStack Gap="1.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
+             Style="max-width: 700px; margin: 0 auto; padding: 3rem 1.5rem; min-height: 60vh;">
+
+    @* === Icône animée === *@
+    <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #e8f0fe 0%, #d2e3fc 100%); display: flex; align-items: center; justify-content: center;">
+        <RadzenIcon Icon="@PageIcon" Style="font-size: 3.5rem; color: var(--rz-primary);" />
+    </div>
+
+    @* === Titre === *@
+    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); text-align: center; margin: 0;">
+        @PageTitle
+    </RadzenText>
+
+    @* === Message === *@
+    <RadzenText TextStyle="TextStyle.H6" Style="color: var(--kcc-text-light); text-align: center; margin: 0; font-weight: 400;">
+        Bientôt disponible
+    </RadzenText>
+
+    <RadzenCard Style="background: var(--rz-base-100, #f8f9fa); border: 1px dashed #dee2e6; text-align: center; max-width: 500px; width: 100%;">
+        <RadzenStack Gap="0.75rem" AlignItems="AlignItems.Center">
+            <RadzenIcon Icon="construction" Style="font-size: 2rem; color: #fd7e14;" />
+            <RadzenText TextStyle="TextStyle.Body1" Style="color: #495057; margin: 0;">
+                Cette fonctionnalité est en cours de développement et sera disponible dans une prochaine mise à jour.
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin: 0;">
+                @PageDescription
+            </RadzenText>
+        </RadzenStack>
+    </RadzenCard>
+
+    @* === Actions === *@
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" JustifyContent="JustifyContent.Center" Style="margin-top: 0.5rem;">
+        <RadzenButton Text="Retour au tableau de bord" Icon="home" ButtonStyle="ButtonStyle.Primary"
+                      Click="@(() => Navigation.NavigateTo("/"))" />
+        <RadzenButton Text="Retour" Icon="arrow_back" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Light"
+                      Click="@GoBack" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    private string PageTitle => GetPageInfo().title;
+    private string PageIcon => GetPageInfo().icon;
+    private string PageDescription => GetPageInfo().description;
+
+    private (string title, string icon, string description) GetPageInfo()
+    {
+        var uri = new Uri(Navigation.Uri);
+        var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+
+        return path switch
+        {
+            "/profil" => ("Mon Profil", "person", "Consultez et modifiez vos informations personnelles, votre photo et vos coordonnées."),
+            "/preferences" => ("Préférences", "settings", "Personnalisez vos notifications, le thème de l'interface et vos paramètres d'affichage."),
+            "/securite/scanner" => ("Scanner QR Code", "qr_code_scanner", "Scannez les QR codes des bons de matériel pour vérification aux points de contrôle."),
+            _ => ("Page en construction", "construction", "Cette page sera bientôt disponible.")
+        };
+    }
+
+    private void GoBack()
+    {
+        // Utilise JavaScript pour revenir en arrière dans l'historique
+        Navigation.NavigateTo("/");
+    }
+}

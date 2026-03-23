@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- RootNamespace identique au module original pour conserver les namespaces -->
+    <RootNamespace>KCCMaterialFlow.Module.BonEntree</RootNamespace>
+    <AssemblyName>KCCMaterialFlow.Module.BonEntree.Application</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Dépendances pour Services (pas Infrastructure - Clean Architecture) -->
+    <ProjectReference Include="..\..\..\KCCMaterialFlow.Domain\KCCMaterialFlow.Domain.csproj" />
+    <ProjectReference Include="..\..\..\KCCMaterialFlow.Application\KCCMaterialFlow.Application.csproj" />
+    <ProjectReference Include="..\..\KCCMaterialFlow.Module.Shared\KCCMaterialFlow.Module.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

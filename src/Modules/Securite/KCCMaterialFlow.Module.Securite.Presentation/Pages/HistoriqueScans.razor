@@ -1,0 +1,298 @@
+@page "/securite/historique"
+@attribute [Authorize]
+@inject IScanService ScanService
+@inject IBarriereService BarriereService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<PageTitle>Historique des Scans - KCC Material Flow</PageTitle>
+
+<div style="background-color: #f4f7fa; min-height: 100vh; padding: 2rem;">
+    <RadzenStack Gap="1.5rem">
+        
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn Size="12" SizeMD="8">
+                <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 0.25rem;">
+                    <RadzenIcon Icon="history" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                    Historique des Scans
+                </RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                    Liste complète des mouvements de matériels - Vue Identification
+                </RadzenText>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="4" class="rz-text-align-right">
+                <RadzenButton Text="Scanner QR" Icon="qr_code_scanner" ButtonStyle="ButtonStyle.Danger" 
+                              Style="background-color: #e31b23; border-radius: 8px; font-weight: 600;" 
+                              Click="@(() => Navigation.NavigateTo("/securite/scan"))" />
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Statistiques Rapides *@
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #4299e1;">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Total Aujourd'hui</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #4299e1;">@stats.TotalScans</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #48bb78;">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Scans Valides</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #48bb78;">@stats.ScansValides</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #f56565;">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Scans Invalides</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #f56565;">@stats.ScansInvalides</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #ed8936;">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Avec Anomalies</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #ed8936;">@stats.ScansAvecAnomalies</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Filtres *@
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.25rem; border: 1px solid #eee;">
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap" AlignItems="AlignItems.End">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Rechercher</RadzenText>
+                    <RadzenTextBox @bind-Value="@filter.SearchTerm" Placeholder="Réf, agent..." Style="width: 200px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Barrière</RadzenText>
+                    <RadzenDropDown @bind-Value="@filter.BarriereId" Data="@barrieres" TextProperty="NomBarriere" ValueProperty="IdBarriere"
+                                    Placeholder="Toutes" AllowClear="true" Style="width: 180px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Statut</RadzenText>
+                    <RadzenDropDown @bind-Value="@filter.StatutScan" Data="@statutOptions" 
+                                    Placeholder="Tous" AllowClear="true" Style="width: 150px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Type</RadzenText>
+                    <RadzenDropDown @bind-Value="@filter.TypeMouvement" Data="@typeOptions" 
+                                    Placeholder="Tous" AllowClear="true" Style="width: 120px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Date Début</RadzenText>
+                    <RadzenDatePicker @bind-Value="@filter.DateDebut" DateFormat="dd/MM/yyyy" Style="width: 150px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Date Fin</RadzenText>
+                    <RadzenDatePicker @bind-Value="@filter.DateFin" DateFormat="dd/MM/yyyy" Style="width: 150px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenButton Text="Filtrer" Icon="search" ButtonStyle="ButtonStyle.Dark" Click="@LoadDataAsync" Style="border-radius: 6px;" />
+                <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@ResetFilter" Style="border-radius: 6px;" />
+            </RadzenStack>
+        </RadzenCard>
+
+        @* Table de données *@
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 0; overflow: hidden; border: 1px solid #eee;">
+            <RadzenDataGrid @ref="grid" Data="@items" TItem="ScanEvenement" IsLoading="@isLoading"
+                            AllowPaging="true" PageSize="15" AllowSorting="true" Count="@totalCount"
+                            Variant="Variant.Flat" GridLines="DataGridGridLines.None"
+                            LoadData="@LoadDataGrid" PagerPosition="PagerPosition.Bottom">
+                <Columns>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Property="DateHeureScan" Title="DATE/HEURE" Width="160px">
+                        <Template Context="scan">
+                            <span style="font-size: 0.9rem;">@scan.DateHeureScan.ToString("dd/MM/yyyy HH:mm")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Property="NumeroReferenceBon" Title="RÉFÉRENCE" Width="140px">
+                        <Template Context="scan">
+                            <span style="font-weight: bold; color: #e31b23; font-family: monospace;">@scan.NumeroReferenceBon</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Property="TypeBon" Title="TYPE" Width="80px">
+                        <Template Context="scan">
+                            <RadzenBadge Text="@scan.TypeBon" BadgeStyle="@(scan.TypeBon == "BEM" ? BadgeStyle.Info : BadgeStyle.Success)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Property="TypeMouvement" Title="MOUVEMENT" Width="100px">
+                        <Template Context="scan">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                                <RadzenIcon Icon="@(scan.TypeMouvement == "Entree" ? "login" : "logout")" 
+                                            Style="@($"color: {(scan.TypeMouvement == "Entree" ? "#48bb78" : "#ed8936")};")" />
+                                <span>@scan.TypeMouvement</span>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Title="BARRIÈRE" Width="150px">
+                        <Template Context="scan">
+                            @(scan.Barriere?.NomBarriere ?? "N/A")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Property="AgentNom" Title="AGENT" Width="150px">
+                        <Template Context="scan">
+                            @(scan.AgentNom ?? scan.AgentLogin)
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Property="StatutScan" Title="STATUT" Width="120px">
+                        <Template Context="scan">
+                            <RadzenBadge Text="@GetStatutLabel(scan.StatutScan)" 
+                                         BadgeStyle="@GetStatutStyle(scan.StatutScan)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Property="AnomalieSignalee" Title="" Width="50px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="scan">
+                            @if (scan.AnomalieSignalee)
+                            {
+                                <RadzenIcon Icon="warning" Style="color: #ed8936;" title="Anomalie signalée" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="ScanEvenement" Title="ACTIONS" Width="80px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="scan">
+                            <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" 
+                                          Click="@(() => ShowScanDetails(scan))" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    </RadzenStack>
+</div>
+
+@code {
+    private RadzenDataGrid<ScanEvenement>? grid;
+    private IEnumerable<ScanEvenement> items = Enumerable.Empty<ScanEvenement>();
+    private int totalCount = 0;
+    private bool isLoading = false;
+    private ScanHistoryFilter filter = new();
+    private ScanStats stats = new();
+    private List<Barriere> barrieres = new();
+
+    private readonly List<string> statutOptions = new()
+    {
+        StatutScanValues.Valid,
+        StatutScanValues.Invalid,
+        StatutScanValues.Expired,
+        StatutScanValues.AlreadyUsed,
+        StatutScanValues.NotFound
+    };
+
+    private readonly List<string> typeOptions = new()
+    {
+        TypeMouvementValues.Entree,
+        TypeMouvementValues.Sortie
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Vérifier l'activité SEC_VOIR_HISTORIQUE
+        if (!CurrentUserService.HasActivite("SEC_VOIR_HISTORIQUE"))
+        {
+            Navigation.NavigateTo("/", replace: true);
+            return;
+        }
+
+        filter.DateDebut = DateTime.Today;
+        filter.DateFin = DateTime.Today.AddDays(1).AddSeconds(-1);
+        
+        await LoadBarrieres();
+        await LoadStatsAsync();
+    }
+
+    private async Task LoadBarrieres()
+    {
+        try
+        {
+            barrieres = (await BarriereService.GetAllAsync()).ToList();
+        }
+        catch { }
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        try
+        {
+            stats = await ScanService.GetStatistiquesAsync(
+                DateTime.Today, 
+                DateTime.Today.AddDays(1).AddSeconds(-1));
+        }
+        catch { }
+    }
+
+    private async Task LoadDataGrid(Radzen.LoadDataArgs args)
+    {
+        isLoading = true;
+        try
+        {
+            filter.Skip = args.Skip ?? 0;
+            filter.Take = args.Top ?? 15;
+
+            var result = await ScanService.GetScanHistoryAsync(filter);
+            items = result.Items;
+            totalCount = result.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de charger les données: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        if (grid != null)
+        {
+            await grid.FirstPage(true);
+        }
+        await LoadStatsAsync();
+    }
+
+    private async Task ResetFilter()
+    {
+        filter = new ScanHistoryFilter
+        {
+            DateDebut = DateTime.Today,
+            DateFin = DateTime.Today.AddDays(1).AddSeconds(-1)
+        };
+        await LoadDataAsync();
+    }
+
+    private async Task ShowScanDetails(ScanEvenement scan)
+    {
+        await DialogService.OpenAsync<ScanDetailsDialog>("Détails du Scan",
+            new Dictionary<string, object> { { "Scan", scan } },
+            new DialogOptions { Width = "600px" });
+    }
+
+    private string GetStatutLabel(string statut) => statut switch
+    {
+        "Valid" => "Valide",
+        "Invalid" => "Invalide",
+        "Expired" => "Expiré",
+        "AlreadyUsed" => "Déjà utilisé",
+        "NotFound" => "Non trouvé",
+        _ => statut
+    };
+
+    private BadgeStyle GetStatutStyle(string statut) => statut switch
+    {
+        "Valid" => BadgeStyle.Success,
+        "Invalid" => BadgeStyle.Danger,
+        "Expired" => BadgeStyle.Warning,
+        "AlreadyUsed" => BadgeStyle.Info,
+        "NotFound" => BadgeStyle.Light,
+        _ => BadgeStyle.Secondary
+    };
+}

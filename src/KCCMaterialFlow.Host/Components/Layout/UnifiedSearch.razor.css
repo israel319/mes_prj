@@ -1,0 +1,28 @@
+    .search-results-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 4px;
+        background: var(--kcc-bg-elevated);
+        border: 1px solid var(--kcc-border-strong);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        z-index: 1000;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .search-result-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--kcc-border);
+        transition: background 0.1s;
+    }
+
+    .search-result-item:hover, .search-result-item.selected {
+        background: var(--kcc-bg-hover);
+    }
+
+    .search-result-item:last-child {
+        border-bottom: none;
+    }

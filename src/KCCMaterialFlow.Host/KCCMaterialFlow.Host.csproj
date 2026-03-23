@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\KCCMaterialFlow.Infrastructure\KCCMaterialFlow.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\KCCMaterialFlow.Module.Shared\KCCMaterialFlow.Module.Shared.csproj" />
+    <!-- BonEntree Module -->
+    <ProjectReference Include="..\Modules\BonEntree\KCCMaterialFlow.Module.BonEntree.Application\KCCMaterialFlow.Module.BonEntree.Application.csproj" />
+    <ProjectReference Include="..\Modules\BonEntree\KCCMaterialFlow.Module.BonEntree.Presentation\KCCMaterialFlow.Module.BonEntree.Presentation.csproj" />
+    <!-- BonSortie Module -->
+    <ProjectReference Include="..\Modules\BonSortie\KCCMaterialFlow.Module.BonSortie.Application\KCCMaterialFlow.Module.BonSortie.Application.csproj" />
+    <ProjectReference Include="..\Modules\BonSortie\KCCMaterialFlow.Module.BonSortie.Presentation\KCCMaterialFlow.Module.BonSortie.Presentation.csproj" />
+    <!-- Securite Module -->
+    <ProjectReference Include="..\Modules\Securite\KCCMaterialFlow.Module.Securite.Application\KCCMaterialFlow.Module.Securite.Application.csproj" />
+    <ProjectReference Include="..\Modules\Securite\KCCMaterialFlow.Module.Securite.Presentation\KCCMaterialFlow.Module.Securite.Presentation.csproj" />
+    <ProjectReference Include="..\KCCMaterialFlow.Domain\KCCMaterialFlow.Domain.csproj" />
+    <ProjectReference Include="..\KCCMaterialFlow.Application\KCCMaterialFlow.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="10.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="QRCoder" Version="1.7.0" />
+    <PackageReference Include="Radzen.Blazor" Version="8.7.1" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="9.0.2" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+  </PropertyGroup>
+
+</Project>

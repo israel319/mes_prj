@@ -1,0 +1,326 @@
+@page "/suivi-bons"
+@page "/mes-bons-en-attente"
+@attribute [Authorize]
+@using KCCMaterialFlow.Module.BonEntree.Services
+@using KCCMaterialFlow.Module.BonSortie.Services
+@using BEMEntities = KCCMaterialFlow.Module.BonEntree.Entities
+@using BSMEntities = KCCMaterialFlow.Module.BonSortie.Entities
+
+@inject ICurrentUserService CurrentUserService
+@inject IBonEntreeService BonEntreeService
+@inject IBonSortieService BonSortieService
+@inject NavigationManager NavigationManager
+@inject NotificationService NotificationService
+
+<PageTitle>Suivi de mes bons - KCC Material Flow</PageTitle>
+
+<RadzenStack Gap="1.5rem" Style="max-width: 1200px; margin: 0 auto; padding: 1.5rem;">
+
+    <RadzenStack Gap="0.25rem">
+        <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">Suivi de mes bons</RadzenText>
+        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin: 0;">Suivez l'avancement de vos demandes en cours d'approbation</RadzenText>
+    </RadzenStack>
+
+    @if (isLoading)
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Style="padding: 3rem;">
+                <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Medium" />
+            </RadzenStack>
+        </RadzenCard>
+    }
+    else if (!bonsPending.Any())
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem" Style="padding: 3rem; color: var(--kcc-text-muted);">
+                <RadzenIcon Icon="check_circle" Style="font-size: 3rem; opacity: 0.5;" />
+                <RadzenText Style="color: var(--kcc-text-muted);">Vous n'avez aucun bon en attente d'approbation</RadzenText>
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.Center" Style="margin-top: 1rem;">
+                    <RadzenButton Text="Nouveau bon d'entrée" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@(() => NavigateTo("/bon-entree/nouveau"))" />
+                    <RadzenButton Text="Nouveau bon de sortie" Icon="add" ButtonStyle="ButtonStyle.Secondary"
+                                  Click="@(() => NavigateTo("/bon-sortie/nouveau"))" />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+    }
+    else
+    {
+        @* Bons d'entrée en attente *@
+        @if (bemPending.Any())
+        {
+            <RadzenCard Style="padding: 0; overflow: hidden;">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                             Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border);">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600; color: var(--kcc-slate);">Bons d'entrée en attente (@bemPending.Count)</RadzenText>
+                    <RadzenBadge Text="BEM" BadgeStyle="BadgeStyle.Info" IsPill="true" />
+                </RadzenStack>
+
+                @foreach (var bon in bemPending)
+                {
+                    <RadzenStack Gap="0.75rem" @onclick="@(() => NavigateTo($"/bon-entree/{bon.IdBon}"))"
+                                 Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border); cursor: pointer;">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Style="font-weight: 600; color: var(--kcc-slate); font-size: 0.9375rem; margin: 0;">@bon.NumeroReference</RadzenText>
+                                <RadzenText Style="font-size: 0.8125rem; color: #374151; margin: 0;">@bon.NomCompagnie - @bon.ReasonOnSite</RadzenText>
+                            </RadzenStack>
+                            <RadzenStack Gap="0.25rem" Style="text-align: right;">
+                                <RadzenBadge Text="@GetStatutLibelle(bon.StatutActuel)" BadgeStyle="BadgeStyle.Warning" IsPill="true" />
+                                <RadzenText Style="font-size: 0.75rem; color: var(--kcc-text-light); margin: 0;">@bon.DateCreation.ToString("dd/MM/yyyy HH:mm")</RadzenText>
+                            </RadzenStack>
+                        </RadzenStack>
+
+                        @* Workflow visualization *@
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem" Style="margin-top: 0.25rem;">
+                            @{
+                                var bemSteps = GetBEMWorkflowSteps(bon);
+                                var i = 0;
+                            }
+                            @foreach (var step in bemSteps)
+                            {
+                                if (i > 0)
+                                {
+                                    <div style="width: 20px; height: 2px; background: @(bemSteps[i-1].IsCompleted ? "#22c55e" : "var(--kcc-border)");"></div>
+                                }
+                                <RadzenStack AlignItems="AlignItems.Center" Gap="0.25rem">
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; background: @GetDotBackground(step); color: @GetDotColor(step);">
+                                        @if (step.IsCompleted)
+                                        {
+                                            <RadzenIcon Icon="check" Style="font-size: 0.75rem;" />
+                                        }
+                                        else if (step.IsCurrent)
+                                        {
+                                            <RadzenIcon Icon="pending" Style="font-size: 0.75rem;" />
+                                        }
+                                        else
+                                        {
+                                            @step.Order
+                                        }
+                                    </div>
+                                    <RadzenText Style="@GetLabelStyle(step)" TextStyle="TextStyle.Caption">@step.Label</RadzenText>
+                                </RadzenStack>
+                                i++;
+                            }
+                        </RadzenStack>
+                    </RadzenStack>
+                }
+            </RadzenCard>
+        }
+
+        @* Bons de sortie en attente *@
+        @if (bsmPending.Any())
+        {
+            <RadzenCard Style="padding: 0; overflow: hidden;">
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
+                             Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border);">
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600; color: var(--kcc-slate);">Bons de sortie en attente (@bsmPending.Count)</RadzenText>
+                    <RadzenBadge Text="BSM" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                </RadzenStack>
+
+                @foreach (var bon in bsmPending)
+                {
+                    <RadzenStack Gap="0.75rem" @onclick="@(() => NavigateTo($"/bon-sortie/{bon.IdBon}"))"
+                                 Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border); cursor: pointer;">
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText Style="font-weight: 600; color: var(--kcc-slate); font-size: 0.9375rem; margin: 0;">@bon.NumeroReference</RadzenText>
+                                <RadzenText Style="font-size: 0.8125rem; color: #374151; margin: 0;">@bon.MotifSortie</RadzenText>
+                            </RadzenStack>
+                            <RadzenStack Gap="0.25rem" Style="text-align: right;">
+                                <RadzenBadge Text="@GetStatutLibelle(bon.StatutActuel)" BadgeStyle="BadgeStyle.Warning" IsPill="true" />
+                                <RadzenText Style="font-size: 0.75rem; color: var(--kcc-text-light); margin: 0;">@bon.DateCreation.ToString("dd/MM/yyyy HH:mm")</RadzenText>
+                            </RadzenStack>
+                        </RadzenStack>
+
+                        @* Workflow visualization *@
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem" Style="margin-top: 0.25rem;">
+                            @{
+                                var bsmSteps = GetBSMWorkflowSteps(bon);
+                                var j = 0;
+                            }
+                            @foreach (var step in bsmSteps)
+                            {
+                                if (j > 0)
+                                {
+                                    <div style="width: 20px; height: 2px; background: @(bsmSteps[j-1].IsCompleted ? "#22c55e" : "var(--kcc-border)");"></div>
+                                }
+                                <RadzenStack AlignItems="AlignItems.Center" Gap="0.25rem">
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; background: @GetDotBackground(step); color: @GetDotColor(step);">
+                                        @if (step.IsCompleted)
+                                        {
+                                            <RadzenIcon Icon="check" Style="font-size: 0.75rem;" />
+                                        }
+                                        else if (step.IsCurrent)
+                                        {
+                                            <RadzenIcon Icon="pending" Style="font-size: 0.75rem;" />
+                                        }
+                                        else
+                                        {
+                                            @step.Order
+                                        }
+                                    </div>
+                                    <RadzenText Style="@GetLabelStyle(step)" TextStyle="TextStyle.Caption">@step.Label</RadzenText>
+                                </RadzenStack>
+                                j++;
+                            }
+                        </RadzenStack>
+                    </RadzenStack>
+                }
+            </RadzenCard>
+        }
+    }
+</RadzenStack>
+
+@code {
+    private bool isLoading = true;
+    private List<BEMEntities.BonEntree> bemPending = new();
+    private List<BSMEntities.BonSortie> bsmPending = new();
+    private IEnumerable<object> bonsPending => bemPending.Cast<object>().Concat(bsmPending.Cast<object>());
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPendingBonsAsync();
+    }
+
+    private async Task LoadPendingBonsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var currentLogin = CurrentUserService.GetUserLogin();
+            var currentName = CurrentUserService.GetUserDisplayName();
+
+            // Récupérer tous les bons de l'utilisateur
+            var bemResult = await BonEntreeService.GetListAsync(new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter { Take = 500 });
+            var bsmResult = await BonSortieService.GetListAsync(new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter { Take = 500 });
+
+            // Filtrer les bons créés par l'utilisateur et en attente
+            bemPending = bemResult.Items
+                .Where(b => (b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
+                             b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase)) &&
+                            b.StatutActuel.StartsWith("Pending", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(b => b.DateCreation)
+                .ToList();
+
+            bsmPending = bsmResult.Items
+                .Where(b => (b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
+                             b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
+                             b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)) &&
+                            b.StatutActuel.StartsWith("Pending", StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(b => b.DateCreation)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class WorkflowStep
+    {
+        public int Order { get; set; }
+        public string Label { get; set; } = "";
+        public string StatusCode { get; set; } = "";
+        public bool IsCompleted { get; set; }
+        public bool IsCurrent { get; set; }
+        public string CssClass => IsCompleted ? "completed" : (IsCurrent ? "current" : "pending");
+    }
+
+    private List<WorkflowStep> GetBEMWorkflowSteps(BEMEntities.BonEntree bon)
+    {
+        // Chaîne standard BEM: Superviseur → GM → OPJ → Identification
+        var steps = new List<WorkflowStep>
+        {
+            new() { Order = 1, Label = "Superviseur", StatusCode = "PendingSup" },
+            new() { Order = 2, Label = "GM", StatusCode = "PendingGM" },
+            new() { Order = 3, Label = "OPJ", StatusCode = "PendingOPJ" },
+            new() { Order = 4, Label = "ID", StatusCode = "PendingIdentification" }
+        };
+
+        var currentStatut = bon.StatutActuel;
+        var currentIndex = steps.FindIndex(s => s.StatusCode.Equals(currentStatut, StringComparison.OrdinalIgnoreCase));
+
+        for (int i = 0; i < steps.Count; i++)
+        {
+            if (i < currentIndex)
+                steps[i].IsCompleted = true;
+            else if (i == currentIndex)
+                steps[i].IsCurrent = true;
+        }
+
+        return steps;
+    }
+
+    private List<WorkflowStep> GetBSMWorkflowSteps(BSMEntities.BonSortie bon)
+    {
+        // Déterminer la chaîne selon le type de matériel
+        var steps = new List<WorkflowStep>();
+        var currentStatut = bon.StatutActuel;
+
+        // Vérifier s'il y a IT ou Environnement
+        if (currentStatut == "PendingIT" || bon.Approbations.Any(a => a.NomEtape == "IT"))
+        {
+            steps.Add(new() { Order = 1, Label = "IT", StatusCode = "PendingIT" });
+        }
+        else if (currentStatut == "PendingEnv" || bon.Approbations.Any(a => a.NomEtape == "Environnement"))
+        {
+            steps.Add(new() { Order = 1, Label = "Env", StatusCode = "PendingEnv" });
+        }
+
+        // Chaîne commune
+        var baseOrder = steps.Count;
+        steps.AddRange(new[]
+        {
+            new WorkflowStep { Order = baseOrder + 1, Label = "Sup", StatusCode = "PendingSuperviseur" },
+            new WorkflowStep { Order = baseOrder + 2, Label = "GM", StatusCode = "PendingGM" },
+            new WorkflowStep { Order = baseOrder + 3, Label = "OPJ", StatusCode = "PendingOPJ" },
+            new WorkflowStep { Order = baseOrder + 4, Label = "ID", StatusCode = "PendingIdentification" }
+        });
+
+        // Si pas de IT/Env au début, ajouter Superviseur en premier
+        if (baseOrder == 0)
+        {
+            steps = new List<WorkflowStep>
+            {
+                new() { Order = 1, Label = "Sup", StatusCode = "PendingSuperviseur" },
+                new() { Order = 2, Label = "GM", StatusCode = "PendingGM" },
+                new() { Order = 3, Label = "OPJ", StatusCode = "PendingOPJ" },
+                new() { Order = 4, Label = "ID", StatusCode = "PendingIdentification" }
+            };
+        }
+
+        var currentIndex = steps.FindIndex(s => s.StatusCode.Equals(currentStatut, StringComparison.OrdinalIgnoreCase));
+
+        for (int i = 0; i < steps.Count; i++)
+        {
+            if (i < currentIndex)
+                steps[i].IsCompleted = true;
+            else if (i == currentIndex)
+                steps[i].IsCurrent = true;
+        }
+
+        return steps;
+    }
+
+    private string GetStatutLibelle(string? statut) => statut switch
+    {
+        "PendingSup" or "PendingSuperviseur" => "Att. Superviseur",
+        "PendingGM" => "Att. GM",
+        "PendingOPJ" => "Att. OPJ",
+        "PendingIdentification" => "Att. Identification",
+        "PendingIT" => "Att. IT",
+        "PendingEnv" => "Att. Environnement",
+        _ => "En attente"
+    };
+
+    private void NavigateTo(string url) => NavigationManager.NavigateTo(url);
+
+    private static string GetDotBackground(WorkflowStep step) => step.IsCompleted ? "#22c55e" : step.IsCurrent ? "#3b82f6" : "#e5e7eb";
+    private static string GetDotColor(WorkflowStep step) => step.IsCompleted || step.IsCurrent ? "white" : "#9ca3af";
+    private static string GetLabelStyle(WorkflowStep step) => step.IsCurrent ? "text-align: center; max-width: 60px; color: #3b82f6; font-weight: 600;" : "text-align: center; max-width: 60px; color: #9ca3af;";
+}

@@ -1,0 +1,392 @@
+@page "/admin/workflows"
+@attribute [Authorize(Roles = "Admin")]
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IWorkflowConfigService WorkflowConfigService
+@inject IRoleService RoleService
+@inject ICurrentUserService CurrentUserService
+@inject NotificationService NotificationService
+
+<PageTitle>Administration - Workflows</PageTitle>
+
+<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+
+    @* ── En-tête ── *@
+    <RadzenCard Style="background: linear-gradient(135deg, var(--kcc-primary) 0%, var(--kcc-primary-dark) 100%); color: white; border-radius: 12px;">
+        <RadzenText TextStyle="TextStyle.Caption" Style="color: rgba(255,255,255,0.7);">
+            <RadzenIcon Icon="home" Style="font-size: 0.85rem; vertical-align: middle;" /> Accueil / Administration / Workflows
+        </RadzenText>
+        <RadzenText TextStyle="TextStyle.H5" Style="color: white; margin: 0;">
+            <RadzenIcon Icon="route" Style="vertical-align: middle; margin-right: 0.5rem;" />
+            Configuration des étapes d'approbation
+        </RadzenText>
+        <RadzenText TextStyle="TextStyle.Body2" Style="color: rgba(255,255,255,0.8); margin-top: 0.25rem;">
+            Chaque motif peut avoir son propre workflow ou hériter du workflow générique.
+        </RadzenText>
+    </RadzenCard>
+
+    @* ── Sélecteur de type de bon ── *@
+    <RadzenCard>
+        <RadzenRow AlignItems="AlignItems.Center" Gap="1rem">
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenFormField Text="Type de bon" Style="width:100%;">
+                    <RadzenDropDown TValue="string" Data="@bonTypes" @bind-Value="@selectedBonType"
+                                   Style="width:100%;" Change="@OnBonTypeChanged" />
+                </RadzenFormField>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="9">
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light);">
+                    @(selectedBonType == "BSM"
+                        ? "Bon de Sortie Matériel – chaque motif de sortie peut avoir un circuit d'approbation personnalisé."
+                        : "Bon d'Entrée Matériel – circuit unique : Superviseur → General Manager → OPJ → Identification.")
+                </RadzenText>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenCard>
+
+    @if (isLoading)
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Style="padding: 2rem;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+                <RadzenText>Chargement des workflows&hellip;</RadzenText>
+            </RadzenStack>
+        </RadzenCard>
+    }
+    else
+    {
+        <RadzenRow Gap="1rem">
+            @* ── Panneau gauche : liste des contextes ── *@
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard Style="height:100%;">
+                    <RadzenStack Gap="0.5rem">
+                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight:700;">
+                            <RadzenIcon Icon="list" Style="vertical-align:middle; margin-right:0.3rem;" />
+                            Motifs (@summary.Count)
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light);">
+                            Cliquez sur un motif pour voir ou modifier son workflow.
+                        </RadzenText>
+                        <hr style="margin: 0.25rem 0;" />
+
+                        @foreach (var ctx in summary)
+                        {
+                            var isSelected = ctx.RaisonSortieCode == selectedRaisonCode;
+                            <div @onclick="@(() => SelectContext(ctx))"
+                                 style="cursor:pointer; border-radius:8px; padding:0.6rem 0.75rem;
+                                        background:@(isSelected ? "var(--kcc-primary-light, #e8f5e9)" : "transparent");
+                                        border: 1px solid @(isSelected ? "var(--kcc-primary)" : "transparent");
+                                        transition: background 0.15s;">
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Gap="0.4rem">
+                                    <RadzenStack Gap="0.1rem">
+                                        <RadzenText TextStyle="TextStyle.Body1"
+                                                    Style="@($"font-weight:{(isSelected ? "700" : "500")}; font-size:0.85rem; margin:0;")">
+                                            @(ctx.RaisonSortieCode == null ? "(Défaut)" : ctx.RaisonSortieNom)
+                                        </RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light); margin:0;">
+                                            @ctx.NombreEtapesResolu étape(s) · @ctx.Source
+                                        </RadzenText>
+                                    </RadzenStack>
+                                    @if (ctx.EstPersonnalise)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Personnalisé" />
+                                    }
+                                    else
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="Hérité" />
+                                    }
+                                </RadzenStack>
+                            </div>
+                        }
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+
+            @* ── Panneau droit : éditeur ── *@
+            <RadzenColumn Size="12" SizeMD="8">
+                @if (selectedContext == null)
+                {
+                    <RadzenCard>
+                        <RadzenStack AlignItems="AlignItems.Center" Style="padding: 3rem 1rem; color: var(--kcc-text-light);">
+                            <RadzenIcon Icon="touch_app" Style="font-size:2.5rem; opacity:0.4;" />
+                            <RadzenText>Sélectionnez un motif dans la liste pour voir son workflow.</RadzenText>
+                        </RadzenStack>
+                    </RadzenCard>
+                }
+                else
+                {
+                    <RadzenCard>
+                        <RadzenStack Gap="0.75rem">
+                            @* Titre du contexte sélectionné *@
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center"
+                                         JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="0.5rem">
+                                <RadzenStack Gap="0.1rem">
+                                    <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight:700; margin:0;">
+                                        @(selectedContext.RaisonSortieCode == null ? "Workflow par défaut" : selectedContext.RaisonSortieNom)
+                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light);">
+                                        Source chargée : <strong>@sourceLabel</strong>
+                                    </RadzenText>
+                                </RadzenStack>
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" Wrap="FlexWrap.Wrap">
+                                    @if (selectedContext.EstPersonnalise)
+                                    {
+                                        <RadzenButton Text="Réinitialiser (hériter)" Icon="undo" ButtonStyle="ButtonStyle.Warning"
+                                                      Variant="Variant.Outlined" Click="@ResetToInheritedAsync"
+                                                      Disabled="@isSaving" />
+                                    }
+                                    else
+                                    {
+                                        <RadzenButton Text="Personnaliser ce motif" Icon="edit" ButtonStyle="ButtonStyle.Success"
+                                                      Variant="Variant.Outlined" Click="@PersonnaliserAsync"
+                                                      Disabled="@isSaving" />
+                                    }
+                                    <RadzenButton Text="Enregistrer" Icon="save" ButtonStyle="ButtonStyle.Primary"
+                                                  Click="@SaveAsync" Disabled="@isSaving" IsBusy="@isSaving" />
+                                </RadzenStack>
+                            </RadzenStack>
+
+                            @if (!selectedContext.EstPersonnalise)
+                            {
+                                <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" Style="margin:0;">
+                                    Ce motif hérite du workflow <strong>@sourceLabel</strong>. 
+                                    Cliquez <strong>Personnaliser</strong> pour créer une configuration indépendante, 
+                                    ou modifiez directement et enregistrez.
+                                </RadzenAlert>
+                            }
+
+                            <hr style="margin: 0.25rem 0;" />
+
+                            @* En-tête colonnes *@
+                            <RadzenRow Gap="0.5rem">
+                                <RadzenColumn Size="1"><RadzenText TextStyle="TextStyle.Caption" Style="font-weight:600; color:var(--kcc-text-light);">N°</RadzenText></RadzenColumn>
+                                <RadzenColumn Size="5"><RadzenText TextStyle="TextStyle.Caption" Style="font-weight:600; color:var(--kcc-text-light);">Rôle approbateur</RadzenText></RadzenColumn>
+                                <RadzenColumn Size="5"><RadzenText TextStyle="TextStyle.Caption" Style="font-weight:600; color:var(--kcc-text-light);">Libellé de l'étape</RadzenText></RadzenColumn>
+                                <RadzenColumn Size="1"></RadzenColumn>
+                            </RadzenRow>
+
+                            @if (!steps.Any())
+                            {
+                                <RadzenAlert AlertStyle="AlertStyle.Info" Shade="Shade.Lighter">
+                                    Aucune étape. Cliquez <strong>+ Ajouter</strong> ou <strong>Personnaliser</strong>.
+                                </RadzenAlert>
+                            }
+                            else
+                            {
+                                @for (var i = 0; i < steps.Count; i++)
+                                {
+                                    var rowIdx  = i;
+                                    var stepNum = i + 1;
+                                    var step    = steps[i];
+                                    <RadzenRow Gap="0.5rem" AlignItems="AlignItems.Center"
+                                               Style="border-bottom: 1px solid var(--rz-base-200, #f0f0f0); padding-bottom: 0.35rem;">
+                                        <RadzenColumn Size="1">
+                                            <RadzenText TextStyle="TextStyle.Body2" Style="font-weight:700; color: var(--kcc-primary);">@stepNum</RadzenText>
+                                        </RadzenColumn>
+                                        <RadzenColumn Size="5">
+                                            <RadzenDropDown TValue="string" Data="@roles" @bind-Value="@step.RoleCode"
+                                                            TextProperty="NomRole" ValueProperty="CodeRole"
+                                                            Placeholder="Rôle…" Style="width:100%;"
+                                                            Change="@(() => OnRoleSelected(step))" />
+                                        </RadzenColumn>
+                                        <RadzenColumn Size="5">
+                                            <RadzenTextBox @bind-Value="@step.NomEtape" Placeholder="Nom de l'étape…" Style="width:100%;" />
+                                        </RadzenColumn>
+                                        <RadzenColumn Size="1">
+                                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text"
+                                                          Click="@(() => RemoveStep(rowIdx))" Style="padding:0.3rem;" />
+                                        </RadzenColumn>
+                                    </RadzenRow>
+                                }
+                            }
+
+                            <RadzenButton Text="+ Ajouter une étape" Icon="add" ButtonStyle="ButtonStyle.Info"
+                                          Variant="Variant.Outlined" Click="@AddStep" Style="align-self: flex-start;" />
+                        </RadzenStack>
+                    </RadzenCard>
+                }
+            </RadzenColumn>
+        </RadzenRow>
+    }
+</RadzenStack>
+
+@code {
+    private sealed class StepVm
+    {
+        public string RoleCode { get; set; } = string.Empty;
+        public string NomEtape { get; set; } = string.Empty;
+    }
+
+    private bool isLoading = true;
+    private bool isSaving;
+
+    private string selectedBonType = "BSM";
+    private string? selectedRaisonCode = null;
+
+    private WorkflowContextSummary? selectedContext;
+    private string sourceLabel = string.Empty;
+
+    private readonly List<string> bonTypes = ["BSM", "BEM"];
+    private List<WorkflowContextSummary> summary = [];
+    private List<Role> roles = [];
+    private List<StepVm> steps = [];
+
+    // ──────────────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync()
+    {
+        roles = (await RoleService.GetAllAsync()).OrderByDescending(r => r.NiveauPriorite).ToList();
+        await RefreshSummaryAsync();
+    }
+
+    private async Task OnBonTypeChanged(object? _)
+    {
+        selectedContext = null;
+        selectedRaisonCode = null;
+        steps = [];
+        await RefreshSummaryAsync();
+    }
+
+    private async Task RefreshSummaryAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+        summary = (await WorkflowConfigService.GetWorkflowSummaryAsync(selectedBonType)).ToList();
+        isLoading = false;
+    }
+
+    private async Task SelectContext(WorkflowContextSummary ctx)
+    {
+        selectedContext = ctx;
+        selectedRaisonCode = ctx.RaisonSortieCode;
+        await LoadStepsAsync();
+    }
+
+    private async Task LoadStepsAsync()
+    {
+        if (selectedContext == null) return;
+
+        IReadOnlyList<WorkflowEtapeConfig> etapes;
+
+        if (selectedContext.EstPersonnalise)
+        {
+            // Chargement direct depuis BD (config spécifique)
+            etapes = await WorkflowConfigService.GetWorkflowEtapesForAdminAsync(selectedBonType, selectedRaisonCode);
+            sourceLabel = selectedContext.Source; // "BD spécifique" ou "BD générique"
+        }
+        else
+        {
+            // Résolution (générique ou défaut métier) – lecture seule, pas d'écriture BD
+            etapes = await WorkflowConfigService.GetResolvedWorkflowEtapesAsync(selectedBonType, selectedRaisonCode);
+            sourceLabel = selectedContext.Source;
+        }
+
+        steps = etapes
+            .OrderBy(x => x.OrdreEtape)
+            .Select(x => new StepVm { RoleCode = x.RoleCode, NomEtape = x.NomEtape })
+            .ToList();
+    }
+
+    // ── Personnaliser : crée une config BD indépendante pour ce motif ─────
+    private async Task PersonnaliserAsync()
+    {
+        if (selectedContext == null || isSaving) return;
+
+        // Les étapes actuellement affichées (résolues) deviennent la base de la personnalisation
+        if (!steps.Any())
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Personnaliser",
+                "Aucune étape à sauvegarder. Ajoutez au moins une étape.");
+            return;
+        }
+
+        await InternalSaveAsync();
+    }
+
+    // ── Réinitialiser : supprime la config BD et revient à l'héritage ─────
+    private async Task ResetToInheritedAsync()
+    {
+        if (selectedContext == null || isSaving) return;
+        isSaving = true;
+        try
+        {
+            await WorkflowConfigService.DeleteWorkflowEtapesAsync(
+                selectedBonType, selectedRaisonCode, CurrentUserService.GetUserLogin());
+
+            NotificationService.Notify(NotificationSeverity.Success, "Réinitialisé",
+                $"Le motif « {selectedContext.RaisonSortieNom} » hérite désormais du workflow générique.");
+
+            await RefreshSummaryAsync();
+            // Mettre à jour la ligne sélectionnée
+            selectedContext = summary.FirstOrDefault(s => s.RaisonSortieCode == selectedRaisonCode);
+            if (selectedContext != null) await LoadStepsAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally { isSaving = false; }
+    }
+
+    // ── Enregistrer ───────────────────────────────────────────────────────
+    private async Task SaveAsync()
+    {
+        if (selectedContext == null) return;
+        if (!steps.Any())
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Workflow", "Ajoutez au moins une étape.");
+            return;
+        }
+        if (steps.Any(s => string.IsNullOrWhiteSpace(s.RoleCode) || string.IsNullOrWhiteSpace(s.NomEtape)))
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Workflow", "Chaque étape doit avoir un rôle et un nom.");
+            return;
+        }
+        await InternalSaveAsync();
+    }
+
+    private async Task InternalSaveAsync()
+    {
+        isSaving = true;
+        try
+        {
+            var payload = steps.Select((s, i) => new WorkflowEtapeConfig
+            {
+                OrdreEtape = i + 1, RoleCode = s.RoleCode, NomEtape = s.NomEtape, EstActif = true
+            });
+
+            await WorkflowConfigService.SaveWorkflowEtapesAsync(
+                selectedBonType, selectedRaisonCode, payload, CurrentUserService.GetUserLogin());
+
+            NotificationService.Notify(NotificationSeverity.Success, "Enregistré",
+                "Configuration sauvegardée en base de données.");
+
+            await RefreshSummaryAsync();
+            selectedContext = summary.FirstOrDefault(s => s.RaisonSortieCode == selectedRaisonCode);
+            if (selectedContext != null) await LoadStepsAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally { isSaving = false; }
+    }
+
+    // ── Étapes ────────────────────────────────────────────────────────────
+    private void AddStep() => steps.Add(new StepVm());
+
+    private void RemoveStep(int index)
+    {
+        if (index >= 0 && index < steps.Count)
+            steps.RemoveAt(index);
+    }
+
+    private void OnRoleSelected(StepVm step)
+    {
+        if (string.IsNullOrWhiteSpace(step.NomEtape))
+        {
+            var role = roles.FirstOrDefault(r => r.CodeRole == step.RoleCode);
+            if (role is not null) step.NomEtape = role.NomRole;
+        }
+    }
+}

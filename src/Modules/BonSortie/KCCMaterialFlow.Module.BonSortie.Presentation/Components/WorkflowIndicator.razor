@@ -1,0 +1,175 @@
+@* BSM-068: Affichage étapes workflow selon type *@
+@using KCCMaterialFlow.Domain.Enums
+
+<div class="workflow-indicator">
+    <RadzenText TextStyle="TextStyle.Subtitle2" FontWeight="FontWeight.Bold" Style="margin-bottom: 0.75rem; color: #333;">
+        Workflow d'Approbation
+    </RadzenText>
+
+    <div class="workflow-steps">
+        @foreach (var (step, index) in steps.Select((s, i) => (s, i)))
+        {
+            <div class="workflow-step @GetStepClass(step)">
+                <div class="step-connector @(index == 0 ? "first" : "") @(index == steps.Count - 1 ? "last" : "")">
+                    @if (index > 0)
+                    {
+                        <div class="connector-line @(IsStepCompleted(steps[index - 1]) ? "completed" : "")"></div>
+                    }
+                </div>
+                <div class="step-icon">
+                    @if (IsStepCompleted(step))
+                    {
+                        <RadzenIcon Icon="check_circle" Style="color: #28a745;" />
+                    }
+                    else if (IsCurrentStep(step))
+                    {
+                        <RadzenIcon Icon="pending" Style="color: #fd7e14; animation: pulse 1.5s infinite;" />
+                    }
+                    else if (IsStepRejected(step))
+                    {
+                        <RadzenIcon Icon="cancel" Style="color: #dc3545;" />
+                    }
+                    else
+                    {
+                        <RadzenIcon Icon="radio_button_unchecked" Style="color: #dee2e6;" />
+                    }
+                </div>
+                <div class="step-content">
+                    <div class="step-title">@step.Title</div>
+                    @if (!string.IsNullOrEmpty(step.Approver))
+                    {
+                        <div class="step-approver">@step.Approver</div>
+                    }
+                    @if (step.Date.HasValue)
+                    {
+                        <div class="step-date">@step.Date.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public TypeMateriel TypeMateriel { get; set; }
+    [Parameter] public string CurrentStatus { get; set; } = "Draft";
+    [Parameter] public List<ApprovalStepInfo>? ApprovalHistory { get; set; }
+    [Parameter] public bool IsExterne { get; set; } = true;
+
+    private List<WorkflowStep> steps = new();
+
+    protected override void OnParametersSet()
+    {
+        BuildWorkflowSteps();
+    }
+
+    private void BuildWorkflowSteps()
+    {
+        steps = new List<WorkflowStep>();
+
+        // Étape 1: Création
+        steps.Add(new WorkflowStep
+        {
+            Code = "Created",
+            Title = "Création",
+            Status = StepStatus.Completed,
+            Date = ApprovalHistory?.FirstOrDefault()?.Date
+        });
+
+        // Étape 2: Selon TypeMateriel
+        if (TypeMateriel == TypeMateriel.Informatique)
+        {
+            steps.Add(new WorkflowStep
+            {
+                Code = "PendingIT",
+                Title = "Approbation IT",
+                Status = GetStepStatus("PendingIT", "ApprovedIT"),
+                Approver = GetApprover("IT"),
+                Date = GetApprovalDate("IT")
+            });
+        }
+        else if (TypeMateriel == TypeMateriel.Residu || TypeMateriel == TypeMateriel.Radioprotection || TypeMateriel == TypeMateriel.Modification)
+        {
+            steps.Add(new WorkflowStep
+            {
+                Code = "PendingEnv",
+                Title = "Approbation Environnement",
+                Status = GetStepStatus("PendingEnv", "ApprovedEnv"),
+                Approver = GetApprover("ENV"),
+                Date = GetApprovalDate("ENV")
+            });
+        }
+
+        // Étape 3: Identification (pour Externe)
+        if (IsExterne)
+        {
+            steps.Add(new WorkflowStep
+            {
+                Code = "PendingIdentification",
+                Title = "Approbation Identification",
+                Status = GetStepStatus("PendingIdentification", "Approved"),
+                Approver = GetApprover("Identification"),
+                Date = GetApprovalDate("Identification")
+            });
+        }
+
+        // Étape finale: Terminé
+        steps.Add(new WorkflowStep
+        {
+            Code = "Approved",
+            Title = CurrentStatus == "Rejected" ? "Rejeté" : "Approuvé",
+            Status = CurrentStatus == "Approved" ? StepStatus.Completed : 
+                     CurrentStatus == "Rejected" ? StepStatus.Rejected : StepStatus.Pending
+        });
+    }
+
+    private StepStatus GetStepStatus(string pendingCode, string approvedCode)
+    {
+        if (CurrentStatus == "Rejected") return StepStatus.Rejected;
+        if (CurrentStatus == approvedCode || CurrentStatus == "Approved") return StepStatus.Completed;
+        if (CurrentStatus == pendingCode) return StepStatus.Current;
+        
+        var statusOrder = new[] { "Draft", "PendingIT", "PendingEnv", "PendingIdentification", "Approved" };
+        var currentIndex = Array.IndexOf(statusOrder, CurrentStatus);
+        var stepIndex = Array.IndexOf(statusOrder, pendingCode);
+        
+        return currentIndex > stepIndex ? StepStatus.Completed : StepStatus.Pending;
+    }
+
+    private string? GetApprover(string role) => 
+        ApprovalHistory?.FirstOrDefault(a => a.Role == role)?.ApproverName;
+
+    private DateTime? GetApprovalDate(string role) => 
+        ApprovalHistory?.FirstOrDefault(a => a.Role == role)?.Date;
+
+    private bool IsStepCompleted(WorkflowStep step) => step.Status == StepStatus.Completed;
+    private bool IsCurrentStep(WorkflowStep step) => step.Status == StepStatus.Current;
+    private bool IsStepRejected(WorkflowStep step) => step.Status == StepStatus.Rejected;
+
+    private string GetStepClass(WorkflowStep step) => step.Status switch
+    {
+        StepStatus.Completed => "completed",
+        StepStatus.Current => "current",
+        StepStatus.Rejected => "rejected",
+        _ => "pending"
+    };
+
+    private class WorkflowStep
+    {
+        public string Code { get; set; } = "";
+        public string Title { get; set; } = "";
+        public StepStatus Status { get; set; }
+        public string? Approver { get; set; }
+        public DateTime? Date { get; set; }
+    }
+
+    private enum StepStatus { Pending, Current, Completed, Rejected }
+
+    public class ApprovalStepInfo
+    {
+        public string Role { get; set; } = "";
+        public string ApproverName { get; set; } = "";
+        public DateTime Date { get; set; }
+        public bool IsApproved { get; set; }
+    }
+}

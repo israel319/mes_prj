@@ -1,0 +1,285 @@
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@inject IUtilisateurService UtilisateurService
+@inject IDepartementService DepartementService
+@inject IRoleService RoleService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1rem">
+    @if (isLoading)
+    {
+        <div style="text-align: center; padding: 2rem;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" 
+                                       Style="color: var(--kcc-primary);" />
+            <RadzenText TextStyle="TextStyle.Body2" class="rz-mt-2">Chargement...</RadzenText>
+        </div>
+    }
+    else
+    {
+        @* Section Identification *@
+        <RadzenCard Variant="Variant.Text" Style="background: var(--kcc-bg-subtle); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; font-size: 0.75rem;">
+                <RadzenIcon Icon="person" Style="font-size: 0.9rem; vertical-align: middle;" /> Identification
+            </RadzenText>
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12">
+                    <RadzenFormField Text="Login Windows *" Style="width: 100%;">
+                        <RadzenTextBox @bind-Value="@model.Login" Style="width: 100%;" 
+                                       Placeholder="Ex: ANYACCESS\jdupont" Disabled="@isEditMode" />
+                    </RadzenFormField>
+                    @if (string.IsNullOrWhiteSpace(model.Login) && hasTriedSubmit)
+                    {
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #dc2626; margin-top: 0.25rem;">Le login est obligatoire</RadzenText>
+                    }
+                </RadzenColumn>
+            </RadzenRow>
+            
+            <RadzenRow Gap="1rem" class="rz-mt-2">
+                <RadzenColumn Size="12">
+                    <RadzenFormField Text="Nom complet *" Style="width: 100%;">
+                        <RadzenTextBox @bind-Value="@model.NomComplet" Style="width: 100%;" 
+                                       Placeholder="Ex: Jean Dupont" />
+                    </RadzenFormField>
+                    @if (string.IsNullOrWhiteSpace(model.NomComplet) && hasTriedSubmit)
+                    {
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #dc2626; margin-top: 0.25rem;">Le nom complet est obligatoire</RadzenText>
+                    }
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+        
+        @* Section Contact *@
+        <RadzenCard Variant="Variant.Text" Style="background: var(--kcc-bg-subtle); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; font-size: 0.75rem;">
+                <RadzenIcon Icon="contact_mail" Style="font-size: 0.9rem; vertical-align: middle;" /> Contact
+            </RadzenText>
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Email" Style="width: 100%;">
+                        <RadzenTextBox @bind-Value="@model.Email" Style="width: 100%;" 
+                                       Placeholder="email@kcc.cd" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Téléphone" Style="width: 100%;">
+                        <RadzenTextBox @bind-Value="@model.Telephone" Style="width: 100%;" 
+                                       Placeholder="+243..." />
+                    </RadzenFormField>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+        
+        @* Section Organisation *@
+        <RadzenCard Variant="Variant.Text" Style="background: var(--kcc-bg-subtle); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; font-size: 0.75rem;">
+                <RadzenIcon Icon="business" Style="font-size: 0.9rem; vertical-align: middle;" /> Organisation
+            </RadzenText>
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Département" Style="width: 100%;">
+                        <RadzenDropDown TValue="string" Data="@departements" @bind-Value="@model.Departement"
+                                        TextProperty="NomDepartement" ValueProperty="NomDepartement"
+                                        AllowClear="true" Placeholder="Sélectionner..." Style="width: 100%;"
+                                        AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Fonction" Style="width: 100%;">
+                        <RadzenTextBox @bind-Value="@model.Fonction" Style="width: 100%;" 
+                                       Placeholder="Ex: Ingénieur, Technicien..." />
+                    </RadzenFormField>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+        
+        @* Section Rôle et Statut *@
+        <RadzenCard Variant="Variant.Text" Style="background: #e6f7f4; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem; font-size: 0.75rem;">
+                <RadzenIcon Icon="security" Style="font-size: 0.9rem; vertical-align: middle;" /> Rôle & Permissions
+            </RadzenText>
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Rôle principal *" Style="width: 100%;">
+                        <RadzenDropDown TValue="int" Data="@roles" @bind-Value="@model.IdRole"
+                                        TextProperty="NomRole" ValueProperty="IdRole"
+                                        AllowClear="false" Style="width: 100%;">
+                            <Template Context="role">
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenBadge Text="@role.CodeRole" Style="@GetRoleBadgeStyle(role.CodeRole)" />
+                                    <span>@role.NomRole</span>
+                                </RadzenStack>
+                            </Template>
+                        </RadzenDropDown>
+                    </RadzenFormField>
+                    @if (model.IdRole == 0 && hasTriedSubmit)
+                    {
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #dc2626; margin-top: 0.25rem;">Le rôle est obligatoire</RadzenText>
+                    }
+                    @if (roles.Count == 0)
+                    {
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #dc2626; margin-top: 0.25rem;">Aucun rôle disponible - vérifiez la table des rôles</RadzenText>
+                    }
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <div style="padding-top: 1.75rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <RadzenSwitch @bind-Value="@model.EstActif" />
+                            <RadzenLabel Style="@($"color: {(model.EstActif ? "var(--kcc-primary)" : "#dc2626")}; font-weight: 500;")">
+                                @(model.EstActif ? "✓ Utilisateur actif" : "✗ Utilisateur inactif")
+                            </RadzenLabel>
+                        </RadzenStack>
+                    </div>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Shade="Shade.Lighter" AllowClose="false">
+                @errorMessage
+            </RadzenAlert>
+        }
+        
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" class="rz-mt-2">
+            <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" Disabled="@isSaving" />
+            <RadzenButton Text="@(isEditMode ? "Enregistrer" : "Créer l'utilisateur")" 
+                          ButtonStyle="ButtonStyle.Primary"
+                          Click="@Save" IsBusy="@isSaving" BusyText="Enregistrement..." 
+                          Icon="@(isEditMode ? "save" : "person_add")" />
+        </RadzenStack>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public Utilisateur? Utilisateur { get; set; }
+    
+    private Utilisateur model = new();
+    private List<Departement> departements = [];
+    private List<Role> roles = [];
+    private bool isEditMode;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool hasTriedSubmit;
+    private string? errorMessage;
+    
+    private bool IsValid => !string.IsNullOrWhiteSpace(model.Login) && 
+                           !string.IsNullOrWhiteSpace(model.NomComplet) &&
+                           model.IdRole > 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            departements = (await DepartementService.GetAllAsync()).ToList();
+            roles = (await RoleService.GetAllAsync()).ToList();
+            
+            if (Utilisateur != null)
+            {
+                isEditMode = true;
+                model = new Utilisateur
+                {
+                    IdUtilisateur = Utilisateur.IdUtilisateur,
+                    Login = Utilisateur.Login,
+                    NomComplet = Utilisateur.NomComplet,
+                    Email = Utilisateur.Email,
+                    Telephone = Utilisateur.Telephone,
+                    Departement = Utilisateur.Departement,
+                    Fonction = Utilisateur.Fonction,
+                    IdRole = Utilisateur.IdRole,
+                    EstActif = Utilisateur.EstActif,
+                    DateCreation = Utilisateur.DateCreation,
+                    DerniereConnexion = Utilisateur.DerniereConnexion
+                };
+            }
+            else
+            {
+                // Valeurs par défaut pour un nouvel utilisateur
+                // Chercher le rôle Demandeur par défaut (rôle de base)
+                var defaultRole = roles.FirstOrDefault(r => r.CodeRole.Equals("Demandeur", StringComparison.OrdinalIgnoreCase))
+                                ?? roles.FirstOrDefault(r => r.NiveauPriorite == roles.Min(x => x.NiveauPriorite))
+                                ?? roles.FirstOrDefault();
+                model.IdRole = defaultRole?.IdRole ?? 0;
+                model.EstActif = true;
+                model.DateCreation = DateTime.Now;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erreur lors du chargement: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string GetRoleBadgeStyle(string roleCode) => roleCode?.ToUpperInvariant() switch
+    {
+        "ADMIN" => "background: #fee2e2; color: #dc2626;",
+        "GM" => "background: #ede9fe; color: #7c3aed;",
+        "SUPERVISEUR" => "background: #fef3c7; color: #d97706;",
+        "OPJ" => "background: #fce7f3; color: #be185d;",
+        "IT" => "background: #e0f2fe; color: #0284c7;",
+        "ENVIRONNEMENT" => "background: #d1fae5; color: #059669;",
+        "IDENTIFICATION" => "background: #cffafe; color: #0891b2;",
+        "BARRIERE" => "background: #e0e7ff; color: #4f46e5;",
+        "INVESTIGATION" => "background: #f3e8ff; color: #9333ea;",
+        _ => "background: #f3f4f6; color: #6b7280;"
+    };
+
+    private async Task Save()
+    {
+        hasTriedSubmit = true;
+        errorMessage = null;
+        
+        if (!IsValid)
+        {
+            return;
+        }
+        
+        isSaving = true;
+        StateHasChanged();
+        
+        try
+        {
+            // Vérifier si le login existe déjà (pour création)
+            if (!isEditMode)
+            {
+                var existing = await UtilisateurService.GetByLoginAsync(model.Login);
+                if (existing != null)
+                {
+                    errorMessage = $"Un utilisateur avec le login '{model.Login}' existe déjà.";
+                    isSaving = false;
+                    return;
+                }
+            }
+            
+            model.DateModification = DateTime.Now;
+            var savedUser = await UtilisateurService.UpsertAsync(model);
+            
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", 
+                isEditMode ? $"Utilisateur '{savedUser.NomComplet}' modifié avec succès" 
+                           : $"Utilisateur '{savedUser.NomComplet}' créé avec succès");
+            
+            // Retourner l'objet utilisateur pour les nouveaux (permet d'enchaîner dialog activités)
+            DialogService.Close(isEditMode ? (object)true : savedUser);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erreur lors de l'enregistrement: {ex.Message}";
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(false);
+    }
+}

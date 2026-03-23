@@ -1,0 +1,343 @@
+/* ===========================================
+   KCC Material Flow - Radzen Theme Overrides
+   Base: standard (clair)
+   Sidebar: #1e3038 (sombre)
+   TopBar: blanc
+   Page background: #f0f2f5 (gris clair)
+   Cards: blanc
+   =========================================== */
+
+/* ============ COULEURS KCC ============ */
+:root {
+    /* Primary -> KCC Green #00B193 */
+    --rz-primary: #00B193;
+    --rz-primary-light: #29C1A5;
+    --rz-primary-lighter: rgba(0, 177, 147, 0.10);
+    --rz-primary-dark: #008F76;
+    --rz-primary-darker: #007D67;
+    --rz-on-primary: #ffffff;
+    --rz-on-primary-light: #ffffff;
+    --rz-on-primary-lighter: #00B193;
+    --rz-on-primary-dark: #ffffff;
+    --rz-on-primary-darker: #ffffff;
+
+    /* Success */
+    --rz-success: #00B193;
+    --rz-success-light: #29C1A5;
+    --rz-success-lighter: rgba(0, 177, 147, 0.10);
+    --rz-success-dark: #008F76;
+    --rz-on-success: #ffffff;
+    --rz-on-success-lighter: #00B193;
+
+    /* Danger -> KCC Accent #A61B0C */
+    --rz-danger: #A61B0C;
+    --rz-danger-light: #C4352B;
+    --rz-danger-lighter: rgba(166, 27, 12, 0.10);
+    --rz-danger-dark: #8B1709;
+    --rz-on-danger: #ffffff;
+    --rz-on-danger-lighter: #A61B0C;
+
+    /* Warning */
+    --rz-warning: #F59E0B;
+    --rz-warning-light: #FBBF24;
+    --rz-warning-lighter: rgba(245, 158, 11, 0.10);
+    --rz-warning-dark: #D97706;
+
+    /* Info */
+    --rz-info: #3B82F6;
+    --rz-info-light: #5B9AF7;
+    --rz-info-lighter: rgba(59, 130, 246, 0.10);
+    --rz-info-dark: #2563EB;
+
+    /* === BORDER-RADIUS : 0 partout === */
+    --rz-border-radius: 0px;
+    --rz-border-radius-1: 0;
+    --rz-border-radius-2: 0;
+    --rz-border-radius-3: 0;
+    --rz-border-radius-4: 0;
+    --rz-border-radius-5: 0;
+    --rz-border-radius-6: 0;
+    --rz-border-radius-7: 0;
+    --rz-border-radius-8: 0;
+    --rz-border-radius-9: 0;
+    --rz-border-radius-10: 0;
+
+    /* === OMBRES - Minimales === */
+    --rz-shadow-0: none;
+    --rz-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --rz-shadow-2: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --rz-shadow-3: 0 2px 6px rgba(0, 0, 0, 0.10);
+    --rz-shadow-4: 0 2px 6px rgba(0, 0, 0, 0.10);
+    --rz-shadow-5: 0 2px 6px rgba(0, 0, 0, 0.10);
+
+    /* === TRANSITIONS - Rapides === */
+    --rz-transition: 0.1s linear;
+    --rz-transition-all: all 0.1s linear;
+
+    /* === FOCUS === */
+    --rz-outline-color: #00B193;
+    --rz-outline-focus: 2px solid #00B193;
+
+    /* === HEADER — blanc === */
+    --rz-header-background-color: #ffffff;
+    --rz-header-color: #1a1a1a;
+    --rz-header-shadow: none;
+
+    /* === SIDEBAR — sombre === */
+    --rz-sidebar-background-color: #1e3038;
+    --rz-sidebar-color: #D1D5DB;
+
+    /* === BOUTONS === */
+    --rz-button-border-radius: 0;
+    --rz-button-shadow: none;
+    --rz-button-hover-shadow: none;
+    --rz-button-focus-shadow: none;
+    --rz-button-active-shadow: none;
+    --rz-button-hover-gradient: none;
+    --rz-button-focus-gradient: none;
+    --rz-button-active-gradient: none;
+
+    /* === INPUTS === */
+    --rz-input-border-radius: 0;
+
+    /* === CARD === */
+    --rz-card-border-radius: 0;
+    --rz-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+    /* === DIALOG === */
+    --rz-dialog-border-radius: 0;
+
+    /* === BADGE === */
+    --rz-badge-border-radius: 0;
+    --rz-badge-pill-border-radius: 0;
+
+    /* === NOTIFICATION === */
+    --rz-notification-border-radius: 0;
+    --rz-notification-shadow: none;
+
+    /* === TABS === */
+    --rz-tabs-border-radius: 0;
+    --rz-tabs-shadow: none;
+
+    /* === TOOLTIP === */
+    --rz-tooltip-border-radius: 0;
+
+    /* === CHECKBOX / SWITCH === */
+    --rz-checkbox-checked-color: #00B193;
+    --rz-checkbox-border-radius: 0;
+    --rz-switch-checked-background-color: #00B193;
+
+    /* === PROGRESSBAR === */
+    --rz-progressbar-border-radius: 0;
+
+    /* === LINK === */
+    --rz-link-color: #00B193;
+    --rz-link-hover-color: #008F76;
+
+    /* === FORM === */
+    --rz-form-field-label-focus-color: #00B193;
+    --rz-form-error-color: #A61B0C;
+    --rz-form-field-filled-border-radius: 0;
+}
+
+/* ============ PAGE BACKGROUND ============ */
+html, body {
+    background-color: #f0f2f5 !important;
+}
+
+.rz-body {
+    background-color: #f0f2f5 !important;
+}
+
+/* ============ HEADER — Blanc professionnel ============ */
+.rz-header {
+    background-color: #ffffff !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: none !important;
+    color: #1a1a1a;
+}
+
+/* ============ SIDEBAR — Sombre #1e3038 ============ */
+.rz-sidebar {
+    background-color: #1e3038 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Forcer le fond sur TOUTE la sidebar */
+.rz-sidebar *,
+.rz-sidebar .rz-panel-menu,
+.rz-sidebar .rz-navigation,
+.rz-sidebar .rz-panel-menu-item-content {
+    background-color: transparent !important;
+}
+
+.rz-sidebar .sidebar-simple {
+    background-color: #1e3038 !important;
+    height: 100%;
+    padding: 0.75rem;
+}
+
+/* Navigation dans sidebar (texte clair sur fond sombre) */
+.rz-panel-menu .rz-navigation-item {
+    border-radius: 8px !important;
+    margin: 2px 0;
+}
+
+.rz-panel-menu .rz-navigation-item-text {
+    color: #D1D5DB;
+}
+
+.rz-panel-menu .rz-navigation-item:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Item actif : fond vert KCC arrondi */
+.rz-panel-menu .rz-navigation-item-active {
+    background-color: #00B193 !important;
+}
+
+.rz-panel-menu .rz-navigation-item-active .rz-navigation-item-text {
+    color: #FFFFFF !important;
+}
+
+.rz-panel-menu .rz-navigation-item-icon {
+    color: #8899A4;
+}
+
+.rz-panel-menu .rz-navigation-item-active .rz-navigation-item-icon {
+    color: #FFFFFF !important;
+}
+
+/* ============ FORCE BORDER-RADIUS: 0 ============ */
+.rz-button,
+.rz-textbox,
+.rz-inputtext,
+.rz-dropdown,
+.rz-multiselect,
+.rz-calendar,
+.rz-datepicker,
+.rz-card,
+.rz-dialog,
+.rz-dialog-content,
+.rz-dialog-titlebar,
+.rz-panel,
+.rz-fieldset,
+.rz-badge,
+.rz-alert,
+.rz-notification,
+.rz-tooltip-content,
+.rz-tabview,
+.rz-tabview-nav,
+.rz-tabs,
+.rz-progressbar,
+.rz-progressbar-value,
+.rz-checkbox-box,
+.rz-chkbox-box,
+.rz-switch,
+.rz-switch-circle,
+.rz-slider-handle,
+.rz-autocomplete,
+.rz-menu,
+.rz-contextmenu,
+.rz-tree,
+.rz-listbox,
+.rz-colorpicker,
+.rz-form-field,
+.rz-datalist {
+    border-radius: 0 !important;
+}
+
+/* ============ BOUTONS — Aplats uniquement ============ */
+.rz-button::before,
+.rz-button::after {
+    display: none !important;
+}
+
+.rz-button:hover,
+.rz-button:focus,
+.rz-button:active {
+    background-image: none !important;
+}
+
+/* ============ DATAGRID — Fond clair ============ */
+.rz-datatable thead th {
+    background-color: #f9fafb;
+    color: #4a4a4a;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+}
+
+.rz-datatable tbody td {
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    color: #1a1a1a;
+}
+
+.rz-datatable tbody tr:hover td {
+    background-color: #f5f5f5;
+}
+
+.rz-pager {
+    background-color: #f9fafb;
+    color: #4a4a4a;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.rz-pager .rz-paginator-page.rz-state-active {
+    background-color: rgba(0, 177, 147, 0.16);
+    color: #00B193;
+}
+
+/* ============ PROFILE MENU ============ */
+.rz-profile-menu-button {
+    color: #1a1a1a !important;
+}
+
+.rz-profile-menu .rz-navigation-item-text {
+    color: #1a1a1a;
+}
+
+.rz-profile-menu .rz-navigation-item:hover {
+    background-color: #f0f0f0 !important;
+}
+
+/* ============ TYPOGRAPHIE — Letter-spacing compact ============ */
+body {
+    letter-spacing: -0.01em;
+}
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f0f2f5;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.35);
+}
+
+/* Scrollbar dans sidebar sombre */
+.rz-sidebar ::-webkit-scrollbar-track {
+    background: #1e3038;
+}
+
+.rz-sidebar ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* ============ SELECTION ============ */
+::selection {
+    background: rgba(0, 177, 147, 0.3);
+    color: #FFFFFF;
+}

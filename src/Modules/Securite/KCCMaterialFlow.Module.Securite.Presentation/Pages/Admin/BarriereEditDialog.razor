@@ -1,0 +1,171 @@
+@inject IBarriereService BarriereService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
+    <EditForm Model="@model" OnValidSubmit="@Submit">
+        <DataAnnotationsValidator />
+
+        <RadzenStack Gap="1rem">
+            @* Code et Nom *@
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                            Code Barrière <span style="color: #e31b23;">*</span>
+                        </RadzenText>
+                        <RadzenTextBox @bind-Value="@model.CodeBarriere" Placeholder="BAR-01" 
+                                       Style="width: 100%; border-radius: 6px; text-transform: uppercase;" />
+                        <ValidationMessage For="@(() => model.CodeBarriere)" />
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="8">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                            Nom de la Barrière <span style="color: #e31b23;">*</span>
+                        </RadzenText>
+                        <RadzenTextBox @bind-Value="@model.NomBarriere" Placeholder="Barrière Principale" 
+                                       Style="width: 100%; border-radius: 6px;" />
+                        <ValidationMessage For="@(() => model.NomBarriere)" />
+                    </RadzenStack>
+                </RadzenColumn>
+            </RadzenRow>
+
+            @* Localisation *@
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                    Localisation <span style="color: #e31b23;">*</span>
+                </RadzenText>
+                <RadzenTextBox @bind-Value="@model.Localisation" Placeholder="Entrée principale - Bâtiment A" 
+                               Style="width: 100%; border-radius: 6px;" />
+                <ValidationMessage For="@(() => model.Localisation)" />
+            </RadzenStack>
+
+            @* Type et Horaires *@
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Type de Barrière</RadzenText>
+                        <RadzenDropDown @bind-Value="@model.TypeBarriere" Data="@typeOptions" 
+                                        Style="width: 100%; border-radius: 6px;" />
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Horaires d'Ouverture</RadzenText>
+                        <RadzenTextBox @bind-Value="@model.HorairesOuverture" Placeholder="24/7 ou 06:00-22:00" 
+                                       Style="width: 100%; border-radius: 6px;" />
+                    </RadzenStack>
+                </RadzenColumn>
+            </RadzenRow>
+
+            @* Téléphone *@
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Téléphone</RadzenText>
+                <RadzenTextBox @bind-Value="@model.Telephone" Placeholder="+243 XXX XXX XXX" 
+                               Style="width: 100%; border-radius: 6px;" />
+            </RadzenStack>
+
+            @* Description *@
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Description</RadzenText>
+                <RadzenTextArea @bind-Value="@model.Description" Rows="3" Placeholder="Description détaillée de la barrière..."
+                                Style="width: 100%; border-radius: 6px;" />
+            </RadzenStack>
+
+            @* Statut *@
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                <RadzenSwitch @bind-Value="@model.EstActive" />
+                <RadzenText>Barrière active</RadzenText>
+            </RadzenStack>
+        </RadzenStack>
+
+        @* Actions *@
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="margin-top: 1.5rem;">
+            <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" ButtonType="ButtonType.Button" />
+            <RadzenButton Text="@(isNew ? "Créer" : "Enregistrer")" Icon="save" ButtonStyle="ButtonStyle.Danger" 
+                          Style="background-color: #e31b23;" ButtonType="ButtonType.Submit" IsBusy="@isSaving" />
+        </RadzenStack>
+    </EditForm>
+</RadzenStack>
+
+@code {
+    [Parameter] public Barriere? Barriere { get; set; }
+
+    private Barriere model = new();
+    private bool isNew = true;
+    private bool isSaving = false;
+
+    private readonly List<string> typeOptions = new() { "Entrée", "Sortie", "Mixte" };
+
+    protected override void OnInitialized()
+    {
+        if (Barriere != null)
+        {
+            isNew = false;
+            model = new Barriere
+            {
+                IdBarriere = Barriere.IdBarriere,
+                CodeBarriere = Barriere.CodeBarriere,
+                NomBarriere = Barriere.NomBarriere,
+                Localisation = Barriere.Localisation,
+                Description = Barriere.Description,
+                TypeBarriere = Barriere.TypeBarriere,
+                EstActive = Barriere.EstActive,
+                HorairesOuverture = Barriere.HorairesOuverture,
+                Telephone = Barriere.Telephone,
+                DateCreation = Barriere.DateCreation
+            };
+        }
+        else
+        {
+            model = new Barriere
+            {
+                TypeBarriere = "Mixte",
+                EstActive = true
+            };
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(model.CodeBarriere) || 
+            string.IsNullOrWhiteSpace(model.NomBarriere) ||
+            string.IsNullOrWhiteSpace(model.Localisation))
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Veuillez remplir tous les champs obligatoires");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            model.CodeBarriere = model.CodeBarriere.ToUpperInvariant();
+            
+            Barriere result;
+            if (isNew)
+            {
+                result = await BarriereService.CreateAsync(model);
+            }
+            else
+            {
+                result = await BarriereService.UpdateAsync(model);
+            }
+
+            DialogService.Close(result);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+}

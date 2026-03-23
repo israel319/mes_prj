@@ -1,0 +1,18 @@
+@namespace KCCMaterialFlow.Module.Shared.Components.Base
+@using Radzen
+@using Radzen.Blazor
+
+@* Indicateur de chargement *@
+
+<div class="loading-spinner text-center py-4">
+    <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" 
+                       Style="width: 200px; margin: 0 auto;" />
+    @if (!string.IsNullOrEmpty(Text))
+    {
+        <p class="mt-2 text-muted">@Text</p>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Text { get; set; }
+}

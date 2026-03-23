@@ -1,0 +1,220 @@
+@using KCCMaterialFlow.Host.Services
+@implements IDisposable
+@inject IUnifiedSearchService SearchService
+@inject NavigationManager NavigationManager
+
+<div class="unified-search-container" style="position: relative;">
+    <RadzenTextBox @bind-Value="@searchQuery" Placeholder="Rechercher un bon (n° référence, compagnie, demandeur...)"
+                   Style="width: 300px; border-radius: 20px; padding-left: 35px;"
+                   @onfocus="OnFocus" @onblur="OnBlur" @oninput="OnSearchInput" @onkeydown="OnKeyDown" />
+    <RadzenIcon Icon="search" Style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #999; font-size: 1.1rem;" />
+    
+    @if (isLoading)
+    {
+        <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);">
+            <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.ExtraSmall" />
+        </div>
+    }
+
+    @* Dropdown de résultats *@
+    @if (showResults && (searchResults.Any() || (!string.IsNullOrEmpty(searchQuery) && searchQuery.Length >= 2)))
+    {
+        <div class="search-results-dropdown" style="@dropdownStyle">
+            @if (isLoading)
+            {
+                <div style="padding: 1rem; text-align: center; color: #666;">
+                    Recherche en cours...
+                </div>
+            }
+            else if (!searchResults.Any())
+            {
+                <div style="padding: 1rem; text-align: center; color: #666;">
+                    <RadzenIcon Icon="search_off" Style="font-size: 2rem; opacity: 0.5; display: block; margin-bottom: 0.5rem;" />
+                    Aucun résultat pour "<strong>@searchQuery</strong>"
+                </div>
+            }
+            else
+            {
+                @foreach (var result in searchResults.Take(8))
+                {
+                    <div class="search-result-item @(selectedIndex == searchResults.IndexOf(result) ? "selected" : "")"
+                         style="@GetResultItemStyle(selectedIndex == searchResults.IndexOf(result))"
+                         @onclick="() => NavigateToResult(result)"
+                         @onmouseenter="() => selectedIndex = searchResults.IndexOf(result)">
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center">
+                            <div style="background: @result.Color; border-radius: 6px; padding: 6px; display: flex;">
+                                <RadzenIcon Icon="@result.Icon" Style="color: white; font-size: 1rem;" />
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-weight: 600; font-family: monospace;">@result.Reference</span>
+                                    <RadzenBadge BadgeStyle="@GetBadgeStyle(result.Type)" IsPill="true" Text="@result.Type" 
+                                                 Style="font-size: 0.6rem;" />
+                                </div>
+                                <div style="font-size: 0.8rem; color: #666; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    @result.Title @if(!string.IsNullOrEmpty(result.Subtitle)) { <span>• @result.Subtitle</span> }
+                                </div>
+                            </div>
+                            <div style="text-align: right; font-size: 0.75rem; color: #999;">
+                                @result.Date.ToString("dd/MM/yy")
+                            </div>
+                        </RadzenStack>
+                    </div>
+                }
+
+                @if (searchResults.Count > 8)
+                {
+                    <div style="padding: 0.5rem 1rem; text-align: center; border-top: 1px solid #eee; background: #f9f9f9;">
+                        <RadzenLink Text="@($"Voir tous les résultats ({searchResults.Count})")" 
+                                    Path="@($"/recherche?q={Uri.EscapeDataString(searchQuery)}")" 
+                                    Style="font-size: 0.8rem;" />
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private string searchQuery = string.Empty;
+    private List<SearchResultItem> searchResults = new();
+    private bool showResults;
+    private bool isLoading;
+    private int selectedIndex = -1;
+    private System.Timers.Timer? debounceTimer;
+    private CancellationTokenSource? searchCts;
+    private bool _disposed;
+
+    private string dropdownStyle => "position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 1000; max-height: 400px; overflow-y: auto;";
+
+    protected override void OnInitialized()
+    {
+        debounceTimer = new System.Timers.Timer(300);
+        debounceTimer.Elapsed += async (s, e) => await PerformSearchAsync();
+        debounceTimer.AutoReset = false;
+    }
+
+    private void OnFocus()
+    {
+        showResults = !string.IsNullOrEmpty(searchQuery) && searchQuery.Length >= 2;
+    }
+
+    private async Task OnBlur()
+    {
+        // Délai pour permettre le clic sur un résultat
+        await Task.Delay(200);
+        showResults = false;
+        StateHasChanged();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchQuery = e.Value?.ToString() ?? string.Empty;
+        selectedIndex = -1;
+        
+        debounceTimer?.Stop();
+        
+        if (searchQuery.Length >= 2)
+        {
+            showResults = true;
+            debounceTimer?.Start();
+        }
+        else
+        {
+            showResults = false;
+            searchResults.Clear();
+        }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (!showResults || !searchResults.Any()) return;
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                selectedIndex = Math.Min(selectedIndex + 1, Math.Min(searchResults.Count - 1, 7));
+                break;
+            case "ArrowUp":
+                selectedIndex = Math.Max(selectedIndex - 1, 0);
+                break;
+            case "Enter":
+                if (selectedIndex >= 0 && selectedIndex < searchResults.Count)
+                {
+                    NavigateToResult(searchResults[selectedIndex]);
+                }
+                break;
+            case "Escape":
+                showResults = false;
+                break;
+        }
+    }
+
+    private async Task PerformSearchAsync()
+    {
+        if (_disposed) return;
+
+        // Annuler la recherche précédente
+        searchCts?.Cancel();
+        searchCts = new CancellationTokenSource();
+
+        try
+        {
+            await InvokeAsync(async () =>
+            {
+                if (_disposed) return;
+                isLoading = true;
+                StateHasChanged();
+
+                try
+                {
+                    var result = await SearchService.SearchAsync(searchQuery, 20, searchCts.Token);
+                    searchResults = result.Items;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Recherche annulée
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Erreur recherche: {ex.Message}");
+                    searchResults = new List<SearchResultItem>();
+                }
+                finally
+                {
+                    isLoading = false;
+                    if (!_disposed) StateHasChanged();
+                }
+            });
+        }
+        catch (ObjectDisposedException) { }
+        catch (TaskCanceledException) { }
+    }
+
+    private void NavigateToResult(SearchResultItem result)
+    {
+        showResults = false;
+        searchQuery = string.Empty;
+        NavigationManager.NavigateTo(result.Url);
+    }
+
+    private string GetResultItemStyle(bool isSelected) =>
+        isSelected ? "padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f0f0f0; background: #f5f5f5;" 
+                   : "padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid #f0f0f0;";
+
+    private BadgeStyle GetBadgeStyle(string type) => type switch
+    {
+        "BEM" => BadgeStyle.Info,
+        "BSM" => BadgeStyle.Dark,
+        "BSI" => BadgeStyle.Secondary,
+        _ => BadgeStyle.Light
+    };
+
+    public void Dispose()
+    {
+        _disposed = true;
+        debounceTimer?.Dispose();
+        searchCts?.Cancel();
+        searchCts?.Dispose();
+    }
+}

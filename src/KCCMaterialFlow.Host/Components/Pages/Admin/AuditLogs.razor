@@ -1,0 +1,316 @@
+@page "/admin/audit"
+@attribute [Authorize(Roles = "Admin")]
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IAuditLogService AuditLogService
+@inject NotificationService NotificationService
+
+<PageTitle>Administration - Journal d'Audit</PageTitle>
+
+<div style="padding: 1.5rem;">
+    <RadzenStack Gap="1.5rem">
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn>
+                <RadzenBreadCrumb>
+                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
+                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
+                    <RadzenBreadCrumbItem Text="Journal d'Audit" Icon="history" />
+                </RadzenBreadCrumb>
+                <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
+                    <RadzenIcon Icon="history" Style="margin-right: 0.5rem; vertical-align: middle;" />
+                    Journal d'Audit
+                </RadzenText>
+            </RadzenColumn>
+            <RadzenColumn>
+                <RadzenButton Text="Actualiser" Icon="refresh" ButtonStyle="ButtonStyle.Light" 
+                              Click="@LoadDataAsync" />
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Statistiques *@
+        @if (stats != null)
+        {
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="6" SizeMD="3">
+                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: #e3f2fd;">
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1976d2;">
+                            @stats.TotalActions
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption">Total actions</RadzenText>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="6" SizeMD="3">
+                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: #e8f5e9;">
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #388e3c;">
+                            @stats.TotalUsers
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption">Utilisateurs</RadzenText>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="6" SizeMD="3">
+                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: #fff3e0;">
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #f57c00;">
+                            @stats.ActionsByType.Count
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption">Types d'actions</RadzenText>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="6" SizeMD="3">
+                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: #fce4ec;">
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #c2185b;">
+                            @stats.TotalErrors
+                        </RadzenText>
+                        <RadzenText TextStyle="TextStyle.Caption">Erreurs</RadzenText>
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+        }
+
+        @* Filtres *@
+        <RadzenCard Variant="Variant.Flat" Style="padding: 1rem;">
+            <RadzenRow Gap="1rem" AlignItems="AlignItems.End">
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenFormField Text="Date début" Style="width: 100%;">
+                        <RadzenDatePicker @bind-Value="@filterDateDebut" Style="width: 100%;" 
+                                          ShowTime="false" DateFormat="dd/MM/yyyy" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenFormField Text="Date fin" Style="width: 100%;">
+                        <RadzenDatePicker @bind-Value="@filterDateFin" Style="width: 100%;" 
+                                          ShowTime="false" DateFormat="dd/MM/yyyy" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenFormField Text="Utilisateur" Style="width: 100%;">
+                        <RadzenTextBox @bind-Value="@filterUtilisateur" Style="width: 100%;" 
+                                       Placeholder="Login..." />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenFormField Text="Type d'action" Style="width: 100%;">
+                        <RadzenDropDown TValue="string" Data="@typesAction" @bind-Value="@filterTypeAction"
+                                        AllowClear="true" Placeholder="Tous" Style="width: 100%;" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenFormField Text="Catégorie" Style="width: 100%;">
+                        <RadzenDropDown TValue="string" Data="@categories" @bind-Value="@filterCategorie"
+                                        AllowClear="true" Placeholder="Toutes" Style="width: 100%;" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                        <RadzenButton Text="Rechercher" Icon="search" ButtonStyle="ButtonStyle.Primary" 
+                                      Click="@(() => SearchAsync())" Style="flex: 1;" />
+                        <RadzenButton Icon="clear" ButtonStyle="ButtonStyle.Light" 
+                                      Click="@ResetFilters" title="Réinitialiser" />
+                    </RadzenStack>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+
+        @* Grille des logs *@
+        <RadzenCard Variant="Variant.Flat">
+            <RadzenDataGrid @ref="grid" Data="@logs" TItem="AuditLog" 
+                            AllowFiltering="false" AllowSorting="true" AllowPaging="true" 
+                            PageSize="20" Count="@totalCount"
+                            LoadData="@LoadDataGrid"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="AuditLog" Property="DateAction" Title="Date" Width="150px">
+                        <Template Context="log">
+                            <RadzenStack Gap="0">
+                                <RadzenText TextStyle="TextStyle.Body2">
+                                    @log.DateAction.ToString("dd/MM/yyyy HH:mm")
+                                </RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
+                                    @log.DateAction.ToString("ss")s
+                                </RadzenText>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Title="Utilisateur" Width="150px">
+                        <Template Context="log">
+                            <RadzenStack Gap="0">
+                                <RadzenText TextStyle="TextStyle.Body2" FontWeight="FontWeight.SemiBold">
+                                    @log.UtilisateurNom
+                                </RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
+                                    @log.UtilisateurLogin
+                                </RadzenText>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="TypeAction" Title="Action" Width="120px">
+                        <Template Context="log">
+                            <RadzenBadge Text="@log.TypeAction" 
+                                         BadgeStyle="@GetActionBadgeStyle(log.TypeAction)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Categorie" Title="Catégorie" Width="120px">
+                        <Template Context="log">
+                            <RadzenBadge Text="@log.Categorie" BadgeStyle="BadgeStyle.Light" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Description" Title="Détails">
+                        <Template Context="log">
+                            <RadzenStack Gap="0">
+                                <RadzenText TextStyle="TextStyle.Body2">
+                                    @log.Description
+                                </RadzenText>
+                                @if (!string.IsNullOrEmpty(log.EntiteId))
+                                {
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
+                                        @log.EntiteType #@log.EntiteId
+                                    </RadzenText>
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Property="Niveau" Title="Niveau" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="log">
+                            <RadzenBadge Text="@log.Niveau" 
+                                         BadgeStyle="@GetNiveauBadgeStyle(log.Niveau)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="AuditLog" Title="" Width="50px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="log">
+                            @if (!string.IsNullOrEmpty(log.AncienneValeur) || !string.IsNullOrEmpty(log.NouvelleValeur))
+                            {
+                                <RadzenButton Icon="compare_arrows" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => ShowDiff(log))" title="Voir les modifications" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    </RadzenStack>
+</div>
+
+@inject DialogService DialogService
+
+@code {
+    private RadzenDataGrid<AuditLog>? grid;
+    private List<AuditLog> logs = [];
+    private int totalCount;
+    private AuditStats? stats;
+    
+    private DateTime filterDateDebut = DateTime.Today.AddDays(-7);
+    private DateTime filterDateFin = DateTime.Today;
+    private string? filterUtilisateur;
+    private string? filterTypeAction;
+    private string? filterCategorie;
+    
+    private readonly List<string> typesAction = ["Create", "Update", "Delete", "Activate", "Deactivate", "Login", "Logout", "Access", "Approve", "Reject"];
+    private readonly List<string> categories = ["BonEntree", "BonSortie", "Materiel", "Utilisateur", "Departement", "Role", "Statut", "TypeMateriel", "ParametreSysteme", "Authentification"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatsAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        await LoadStatsAsync();
+        if (grid != null)
+        {
+            await grid.Reload();
+        }
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        try
+        {
+            stats = await AuditLogService.GetStatsAsync(filterDateDebut, filterDateFin);
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du chargement des stats: {ex.Message}");
+        }
+    }
+
+    private async Task LoadDataGrid(LoadDataArgs args)
+    {
+        try
+        {
+            var skip = args.Skip ?? 0;
+            var take = args.Top ?? 20;
+            var page = (skip / take) + 1;
+            
+            var result = await AuditLogService.GetPagedAsync(
+                page, 
+                take,
+                filterDateDebut,
+                filterDateFin,
+                filterUtilisateur,
+                filterTypeAction,
+                filterCategorie);
+            
+            logs = result.Items.ToList();
+            totalCount = result.TotalCount;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du chargement: {ex.Message}");
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        await LoadStatsAsync();
+        if (grid != null)
+        {
+            await grid.FirstPage(true);
+        }
+    }
+
+    private async Task ResetFilters()
+    {
+        filterDateDebut = DateTime.Today.AddDays(-7);
+        filterDateFin = DateTime.Today;
+        filterUtilisateur = null;
+        filterTypeAction = null;
+        filterCategorie = null;
+        await SearchAsync();
+    }
+
+    private BadgeStyle GetActionBadgeStyle(string action) => action switch
+    {
+        "Create" => BadgeStyle.Success,
+        "Update" => BadgeStyle.Info,
+        "Delete" => BadgeStyle.Danger,
+        "Approve" => BadgeStyle.Success,
+        "Reject" => BadgeStyle.Warning,
+        "Login" => BadgeStyle.Primary,
+        "Logout" => BadgeStyle.Light,
+        _ => BadgeStyle.Secondary
+    };
+
+    private BadgeStyle GetNiveauBadgeStyle(string niveau) => niveau switch
+    {
+        "Info" => BadgeStyle.Info,
+        "Warning" => BadgeStyle.Warning,
+        "Error" => BadgeStyle.Danger,
+        "Critical" => BadgeStyle.Danger,
+        _ => BadgeStyle.Light
+    };
+
+    private async Task ShowDiff(AuditLog log)
+    {
+        await DialogService.OpenAsync<AuditLogDiffDialog>("Modifications",
+            new Dictionary<string, object> { { "AuditLog", log } },
+            new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
+    }
+}

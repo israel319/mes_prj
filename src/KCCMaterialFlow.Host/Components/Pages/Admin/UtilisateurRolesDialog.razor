@@ -1,0 +1,155 @@
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@inject IRoleService RoleService
+@inject ICurrentUserService CurrentUserService
+@inject DialogService DialogService
+
+<RadzenStack Gap="1rem">
+    <RadzenCard Style="background: linear-gradient(135deg, var(--kcc-primary) 0%, var(--kcc-primary-dark) 100%); color: white; padding: 1rem 1.5rem; margin: -1rem -1rem 1.5rem -1rem; border-radius: 8px 8px 0 0;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+            <RadzenIcon Icon="vpn_key" />
+            <RadzenText TextStyle="TextStyle.H6" Style="color: white; margin: 0; font-weight: 600;">Gestion des rôles</RadzenText>
+        </RadzenStack>
+        <RadzenText TextStyle="TextStyle.Body2" Style="color: rgba(255,255,255,0.9); margin-top: 0.25rem;">@Utilisateur?.NomComplet</RadzenText>
+    </RadzenCard>
+    
+    @if (allRoles.Count == 0)
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter">
+            Aucun rôle disponible dans le système.
+        </RadzenAlert>
+    }
+    else
+    {
+        @foreach (var role in allRoles)
+        {
+            var isAssigned = IsRoleAssigned(role.IdRole);
+            <RadzenCard Style="@($"padding: 0.75rem 1rem; margin-bottom: 0.5rem; cursor: {(role.EstSysteme ? "not-allowed" : "pointer")}; border: 1px solid {(isAssigned ? "var(--kcc-primary)" : "var(--kcc-border)")}; background: {(isAssigned ? "#e6f7f4" : "var(--kcc-bg-subtle)")}; opacity: {(role.EstSysteme ? "0.7" : "1")};")"
+                 @onclick="@(() => { if (!role.EstSysteme) ToggleRole(role.IdRole, !isAssigned); })">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenStack Gap="0.25rem" Style="flex: 1;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                            <RadzenText TextStyle="TextStyle.Body1" Style="font-weight: 600; color: var(--kcc-text);">@role.NomRole</RadzenText>
+                            <RadzenBadge Text="@role.CodeRole" Style="@GetRoleBadgeStyle(role.CodeRole)" />
+                            @if (role.EstSysteme)
+                            {
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #9ca3af;">(système)</RadzenText>
+                            }
+                        </RadzenStack>
+                        @if (!string.IsNullOrEmpty(role.Description))
+                        {
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light);">@role.Description</RadzenText>
+                        }
+                    </RadzenStack>
+                    <RadzenCheckBox TValue="bool" Value="@isAssigned" 
+                                    Disabled="@role.EstSysteme" />
+                </RadzenStack>
+            </RadzenCard>
+        }
+        
+        @if (HasChanges)
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" AllowClose="false" Style="margin-top: 1rem;">
+                <strong>Modifications en attente:</strong>
+                @if (addedRoles.Any())
+                {
+                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-primary); display: inline;"> +@addedRoles.Count ajouté(s)</RadzenText>
+                }
+                @if (removedRoles.Any())
+                {
+                    <RadzenText TextStyle="TextStyle.Body2" Style="color: #dc2626; display: inline;"> -@removedRoles.Count retiré(s)</RadzenText>
+                }
+            </RadzenAlert>
+        }
+    }
+    
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" class="rz-mt-2">
+        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Close" />
+        <RadzenButton Text="Enregistrer les rôles" ButtonStyle="ButtonStyle.Primary" Click="@Save" 
+                      Icon="save" Disabled="@(!HasChanges)" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public Utilisateur? Utilisateur { get; set; }
+    
+    private List<Role> allRoles = [];
+    private List<int> assignedRoleIds = [];
+    private List<int> originalRoleIds = [];
+
+    private List<int> addedRoles => assignedRoleIds.Where(id => !originalRoleIds.Contains(id)).ToList();
+    private List<int> removedRoles => originalRoleIds.Where(id => !assignedRoleIds.Contains(id)).ToList();
+    private bool HasChanges => addedRoles.Any() || removedRoles.Any();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Utilisateur == null) return;
+        
+        allRoles = (await RoleService.GetAllAsync()).ToList();
+        var userRoles = await RoleService.GetRolesForUserAsync(Utilisateur.IdUtilisateur);
+        assignedRoleIds = userRoles.Select(r => r.IdRole).ToList();
+        originalRoleIds = [.. assignedRoleIds];
+    }
+
+    private bool IsRoleAssigned(int roleId) => assignedRoleIds.Contains(roleId);
+
+    private void ToggleRole(int roleId, bool assigned)
+    {
+        if (assigned && !assignedRoleIds.Contains(roleId))
+        {
+            assignedRoleIds.Add(roleId);
+        }
+        else if (!assigned && assignedRoleIds.Contains(roleId))
+        {
+            assignedRoleIds.Remove(roleId);
+        }
+    }
+
+    private static string GetRoleBadgeStyle(string roleCode) => roleCode?.ToUpperInvariant() switch
+    {
+        "ADMIN" => "background: #fee2e2; color: #dc2626;",
+        "GM" => "background: #ede9fe; color: #7c3aed;",
+        "SUPERVISEUR" => "background: #fef3c7; color: #d97706;",
+        "OPJ" => "background: #fce7f3; color: #be185d;",
+        "IT" => "background: #e0f2fe; color: #0284c7;",
+        "ENVIRONNEMENT" => "background: #d1fae5; color: #059669;",
+        "IDENTIFICATION" => "background: #cffafe; color: #0891b2;",
+        "BARRIERE" => "background: #e0e7ff; color: #4f46e5;",
+        "INVESTIGATION" => "background: #f3e8ff; color: #9333ea;",
+        _ => "background: #f3f4f6; color: #6b7280;"
+    };
+
+    private async Task Save()
+    {
+        if (Utilisateur == null) return;
+        
+        try
+        {
+            var currentLogin = CurrentUserService.GetUserLogin();
+            
+            // Retirer les rôles désélectionnés
+            foreach (var roleId in originalRoleIds.Where(id => !assignedRoleIds.Contains(id)))
+            {
+                await RoleService.RemoveRoleFromUserAsync(Utilisateur.IdUtilisateur, roleId);
+            }
+            
+            // Ajouter les nouveaux rôles
+            foreach (var roleId in assignedRoleIds.Where(id => !originalRoleIds.Contains(id)))
+            {
+                await RoleService.AssignRoleToUserAsync(Utilisateur.IdUtilisateur, roleId, currentLogin);
+            }
+            
+            DialogService.Close(true);
+        }
+        catch (Exception ex)
+        {
+            await DialogService.Alert($"Erreur: {ex.Message}", "Erreur");
+        }
+    }
+
+    private void Close()
+    {
+        DialogService.Close(false);
+    }
+}

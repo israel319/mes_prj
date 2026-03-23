@@ -1,0 +1,80 @@
+/* ===========================================
+   KCC Material Flow - Variables centralisees
+   Theme: Enterprise Hybrid
+   Page: #f0f2f5 (gris clair)
+   Sidebar: #1e3038 (sombre)
+   TopBar: blanc
+   Cards: blanc
+   Regle 60/30/10
+   =========================================== */
+:root {
+    /* === COULEURS PRINCIPALES === */
+
+    /* 30% - Secondaire (CTA, interactions, succes) */
+    --kcc-primary: #00B193;
+    --kcc-primary-dark: #008F76;
+    --kcc-primary-light: rgba(0, 177, 147, 0.10);
+
+    /* 10% - Accent (erreurs, alertes critiques, suppression) */
+    --kcc-accent: #A61B0C;
+    --kcc-accent-hover: #8B1709;
+    --kcc-accent-light: rgba(166, 27, 12, 0.10);
+
+    /* Couleurs utilitaires */
+    --kcc-warning: #F59E0B;
+    --kcc-warning-light: rgba(245, 158, 11, 0.10);
+    --kcc-info: #3B82F6;
+    --kcc-info-light: rgba(59, 130, 246, 0.10);
+
+    /* === FONDS === */
+    --kcc-bg: #f0f2f5;               /* 60% - fond de page gris clair */
+    --kcc-bg-card: #ffffff;           /* fond des cartes / panels */
+    --kcc-bg-elevated: #253C45;       /* surfaces sombres (tables, sidebar) */
+    --kcc-bg-input: #ffffff;          /* fond inputs */
+    --kcc-bg-hover: #f5f5f5;          /* hover sur fond clair */
+    --kcc-bg-sidebar: #1e3038;        /* sidebar sombre */
+    --kcc-bg-header: #ffffff;         /* topbar blanche */
+
+    /* === TEXTE === */
+    /* Sur fond clair (cards, page) */
+    --kcc-text-title: #1a1a1a;
+    --kcc-text-body: #4a4a4a;
+    --kcc-text-muted: #6b7280;
+    /* Sur fond sombre (sidebar, header, tables) */
+    --kcc-text-on-dark: #D1D5DB;
+    --kcc-text-on-dark-title: #FFFFFF;
+    --kcc-text-on-dark-muted: #8899A4;
+
+    /* === BORDURES === */
+    --kcc-border: rgba(0, 0, 0, 0.08);         /* sur fond clair */
+    --kcc-border-strong: rgba(0, 0, 0, 0.15);   /* sur fond clair, plus visible */
+    --kcc-border-on-dark: rgba(255, 255, 255, 0.1);  /* sur fond sombre */
+
+    /* === ALIAS DE COMPATIBILITE === */
+    --kcc-green: var(--kcc-primary);
+    --kcc-green-dark: var(--kcc-primary-dark);
+    --kcc-red: var(--kcc-accent);
+    --kcc-orange: var(--kcc-warning);
+    --kcc-blue: var(--kcc-info);
+    --kcc-slate: #253C45;
+    --kcc-grey: var(--kcc-text-title);
+    --kcc-beige: #BB8748;
+    --kcc-text: var(--kcc-text-body);
+    --kcc-text-light: var(--kcc-text-muted);
+    --kcc-bg-subtle: #f0f0f0;
+    --kcc-bg-page: var(--kcc-bg);
+    --kcc-sidebar-bg: var(--kcc-bg-sidebar);
+    --kcc-sidebar-hover: #2a4550;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+}
+
+/* Radzen Material Icons - police fix */
+.rzi, [class^="rzi-"], [class*=" rzi-"] {
+    font-family: 'Material Icons' !important;
+}

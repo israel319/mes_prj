@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>KCCMaterialFlow.Module.BonSortie</RootNamespace>
+    <AssemblyName>KCCMaterialFlow.Module.BonSortie.Presentation</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KCCMaterialFlow.Module.BonSortie.Application\KCCMaterialFlow.Module.BonSortie.Application.csproj" />
+    <ProjectReference Include="..\..\KCCMaterialFlow.Module.Shared\KCCMaterialFlow.Module.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.2" />
+    <PackageReference Include="Radzen.Blazor" Version="8.7.1" />
+  </ItemGroup>
+
+</Project>

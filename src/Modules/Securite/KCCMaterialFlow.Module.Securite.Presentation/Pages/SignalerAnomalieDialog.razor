@@ -1,0 +1,117 @@
+@* Dialog pour signaler une anomalie manuellement *@
+
+@inject IAnomalieService AnomalieService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1rem">
+    <RadzenText TextStyle="TextStyle.Subtitle1" FontWeight="FontWeight.Bold">
+        Signaler une Anomalie
+    </RadzenText>
+
+    @if (!string.IsNullOrWhiteSpace(NumeroReference))
+    {
+        <RadzenCard Variant="Variant.Flat" Style="background-color: #f7fafc; border-radius: 6px; padding: 0.75rem;">
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Bon Concerné</RadzenText>
+            <RadzenText FontWeight="FontWeight.Bold" Style="font-family: monospace;">@NumeroReference (@TypeBon)</RadzenText>
+        </RadzenCard>
+    }
+
+    <RadzenStack Gap="0.5rem">
+        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Type d'Anomalie *</RadzenText>
+        <RadzenDropDown @bind-Value="@request.TypeAnomalie" Data="@typesAnomalie" Style="width: 100%; border-radius: 6px;"
+                        Placeholder="Sélectionnez le type..." />
+    </RadzenStack>
+
+    <RadzenStack Gap="0.5rem">
+        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Niveau de Gravité *</RadzenText>
+        <RadzenDropDown @bind-Value="@request.NiveauGravite" Data="@niveauxGravite" Style="width: 100%; border-radius: 6px;" />
+    </RadzenStack>
+
+    <RadzenStack Gap="0.5rem">
+        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Description *</RadzenText>
+        <RadzenTextArea @bind-Value="@request.Description" Rows="3" Style="width: 100%; border-radius: 6px;"
+                        Placeholder="Décrivez l'anomalie constatée..." />
+    </RadzenStack>
+
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.End" Style="margin-top: 1rem;">
+        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" Style="border-radius: 6px;" />
+        <RadzenButton Text="Signaler" Icon="warning" ButtonStyle="ButtonStyle.Warning" Click="@Submit"
+                      Disabled="@(!IsValid())" Style="border-radius: 6px;" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public int? BonId { get; set; }
+    [Parameter] public string? TypeBon { get; set; }
+    [Parameter] public string? NumeroReference { get; set; }
+    [Parameter] public int? BarriereId { get; set; }
+    [Parameter] public int? ScanId { get; set; }
+
+    [Inject] public DialogService DialogService { get; set; } = default!;
+
+    private CreateAnomalieRequest request = new();
+
+    private readonly List<string> typesAnomalie = new()
+    {
+        TypeAnomalieValues.MaterielManquant,
+        TypeAnomalieValues.MaterielExcedentaire,
+        TypeAnomalieValues.MaterielNonConforme,
+        TypeAnomalieValues.DocumentManquant,
+        TypeAnomalieValues.AutorisationManquante,
+        TypeAnomalieValues.BarriereNonAutorisee,
+        TypeAnomalieValues.HorsHoraires,
+        TypeAnomalieValues.Autre
+    };
+
+    private readonly List<string> niveauxGravite = new()
+    {
+        NiveauGraviteValues.Faible,
+        NiveauGraviteValues.Moyen,
+        NiveauGraviteValues.Eleve,
+        NiveauGraviteValues.Critique
+    };
+
+    protected override void OnInitialized()
+    {
+        request.BonId = BonId;
+        request.TypeBon = TypeBon;
+        request.NumeroReferenceBon = NumeroReference;
+        request.BarriereId = BarriereId;
+        request.ScanId = ScanId;
+        request.NiveauGravite = NiveauGraviteValues.Moyen;
+    }
+
+    private bool IsValid()
+    {
+        return !string.IsNullOrWhiteSpace(request.TypeAnomalie) &&
+               !string.IsNullOrWhiteSpace(request.Description) &&
+               !string.IsNullOrWhiteSpace(request.NiveauGravite);
+    }
+
+    private async Task Submit()
+    {
+        try
+        {
+            var result = await AnomalieService.CreateAsync(request);
+            if (result.Success)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Anomalie Signalée", 
+                    $"Anomalie #{result.Anomalie?.IdAnomalie} créée avec succès");
+                DialogService.Close(result.Anomalie);
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close();
+    }
+}

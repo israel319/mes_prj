@@ -1,0 +1,275 @@
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@inject IActiviteService ActiviteService
+@inject ICurrentUserService CurrentUserService
+@inject DialogService DialogService
+@inject Microsoft.Extensions.Caching.Memory.IMemoryCache MemoryCache
+
+<RadzenStack Gap="1rem">
+    <RadzenCard Style="background: linear-gradient(135deg, var(--kcc-primary) 0%, var(--kcc-primary-dark) 100%); color: white; padding: 1rem 1.5rem; margin: -1rem -1rem 1.5rem -1rem; border-radius: 8px 8px 0 0;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+            <RadzenIcon Icon="task_alt" />
+            <RadzenText TextStyle="TextStyle.H6" Style="color: white; margin: 0; font-weight: 600;">Activités autorisées</RadzenText>
+        </RadzenStack>
+        <RadzenText TextStyle="TextStyle.Body2" Style="color: rgba(255,255,255,0.9); margin-top: 0.25rem;">@Utilisateur?.NomComplet</RadzenText>
+    </RadzenCard>
+
+    @if (isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted);">Chargement des activités...</RadzenText>
+        </RadzenStack>
+    }
+    else if (!activitesGrouped.Any())
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter">
+            Aucune activité disponible dans le système.
+        </RadzenAlert>
+    }
+    else
+    {
+        @* Barre d'actions rapides *@
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+            <RadzenButton Text="Tout sélectionner" Icon="check_box" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                          Click="@SelectAll" />
+            <RadzenButton Text="Tout désélectionner" Icon="check_box_outline_blank" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                          Click="@DeselectAll" />
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin-left: auto;">
+                @assignedActiviteIds.Count / @allActivites.Count activités sélectionnées
+            </RadzenText>
+        </RadzenStack>
+
+        @* Liste groupée par module *@
+        <div style="max-height: 450px; overflow-y: auto; padding-right: 0.25rem;">
+            @foreach (var group in activitesGrouped)
+            {
+                var moduleLabel = GetModuleLabel(group.Key);
+                var moduleIcon = GetModuleIcon(group.Key);
+                var moduleColor = GetModuleColor(group.Key);
+                var allInModule = group.Value.Select(a => a.IdActivite).ToList();
+                var allSelected = allInModule.All(id => assignedActiviteIds.Contains(id));
+                var someSelected = !allSelected && allInModule.Any(id => assignedActiviteIds.Contains(id));
+
+                <RadzenCard Style="margin-bottom: 0.75rem; padding: 0.75rem;">
+                    @* En-tête du module *@
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem"
+                                 Style="@($"cursor: pointer; padding-bottom: 0.5rem; border-bottom: 2px solid {moduleColor};")"
+                                 @onclick="@(() => ToggleModule(group.Key))">
+                        <RadzenIcon Icon="@moduleIcon" Style="@($"color: {moduleColor}; font-size: 1.2rem;")" />
+                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0; flex: 1;">@moduleLabel</RadzenText>
+                        <RadzenBadge Text="@($"{allInModule.Count(id => assignedActiviteIds.Contains(id))}/{allInModule.Count}")"
+                                     Style="@($"background: {moduleColor}; color: white;")" />
+                        <RadzenCheckBox TValue="bool" Value="@allSelected" @onclick:stopPropagation="true"
+                                        Change="@(val => ToggleAllInModule(group.Key, val))"
+                                        title="Sélectionner / Désélectionner tout le module"
+                                        Style="@(someSelected ? "opacity: 0.6;" : "")" />
+                    </RadzenStack>
+
+                    @* Activités du module *@
+                    @if (!collapsedModules.Contains(group.Key))
+                    {
+                        <RadzenStack Gap="0.25rem" Style="margin-top: 0.5rem;">
+                            @foreach (var activite in group.Value)
+                            {
+                                var isAssigned = assignedActiviteIds.Contains(activite.IdActivite);
+                                <div style="@($"display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer; background: {(isAssigned ? "#e6f7f4" : "transparent")}; border: 1px solid {(isAssigned ? "var(--kcc-primary)" : "transparent")}; transition: all 0.15s;")"
+                                     @onclick="@(() => ToggleActivite(activite.IdActivite, !isAssigned))">
+                                    <RadzenCheckBox TValue="bool" Value="@isAssigned" @onclick:stopPropagation="true"
+                                                    Change="@(val => ToggleActivite(activite.IdActivite, val))" />
+                                    <RadzenStack Gap="0.1rem" Style="flex: 1;">
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="@($"font-weight: {(isAssigned ? "600" : "400")}; color: var(--kcc-text); margin: 0;")">
+                                            @activite.NomActivite
+                                        </RadzenText>
+                                        @if (!string.IsNullOrEmpty(activite.Description))
+                                        {
+                                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light); margin: 0;">
+                                                @activite.Description
+                                            </RadzenText>
+                                        }
+                                    </RadzenStack>
+                                    @if (!string.IsNullOrEmpty(activite.Categorie))
+                                    {
+                                        <RadzenBadge Text="@activite.Categorie" Style="background: #f3f4f6; color: #6b7280; font-size: 0.7rem;" />
+                                    }
+                                </div>
+                            }
+                        </RadzenStack>
+                    }
+                </RadzenCard>
+            }
+        </div>
+
+        @if (HasChanges)
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" AllowClose="false">
+                <strong>Modifications en attente:</strong>
+                @if (addedActivites.Any())
+                {
+                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-primary); display: inline;"> +@addedActivites.Count ajoutée(s)</RadzenText>
+                }
+                @if (removedActivites.Any())
+                {
+                    <RadzenText TextStyle="TextStyle.Body2" Style="color: #dc2626; display: inline;"> -@removedActivites.Count retirée(s)</RadzenText>
+                }
+            </RadzenAlert>
+        }
+    }
+
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" class="rz-mt-2">
+        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Close" />
+        <RadzenButton Text="Enregistrer" ButtonStyle="ButtonStyle.Primary" Click="@Save"
+                      Icon="save" Disabled="@(!HasChanges || isSaving)" IsBusy="@isSaving" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public Utilisateur? Utilisateur { get; set; }
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private List<Activite> allActivites = [];
+    private Dictionary<string, List<Activite>> activitesGrouped = new();
+    private List<int> assignedActiviteIds = [];
+    private List<int> originalActiviteIds = [];
+    private HashSet<string> collapsedModules = [];
+
+    private List<int> addedActivites => assignedActiviteIds.Where(id => !originalActiviteIds.Contains(id)).ToList();
+    private List<int> removedActivites => originalActiviteIds.Where(id => !assignedActiviteIds.Contains(id)).ToList();
+    private bool HasChanges => addedActivites.Any() || removedActivites.Any();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Utilisateur == null) return;
+
+        try
+        {
+            // Charger toutes les activités groupées par module
+            activitesGrouped = await ActiviteService.GetActivitesGroupedByModuleAsync();
+            allActivites = activitesGrouped.SelectMany(g => g.Value).ToList();
+
+            // Charger les activités assignées à cet utilisateur
+            var userActiviteIds = await ActiviteService.GetActiviteIdsForUserAsync(Utilisateur.IdUtilisateur);
+            assignedActiviteIds = userActiviteIds.ToList();
+            originalActiviteIds = [.. assignedActiviteIds];
+        }
+        catch (Exception ex)
+        {
+            await DialogService.Alert($"Erreur : {ex.Message}", "Erreur de chargement");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ToggleActivite(int activiteId, bool assigned)
+    {
+        if (assigned && !assignedActiviteIds.Contains(activiteId))
+        {
+            assignedActiviteIds.Add(activiteId);
+        }
+        else if (!assigned && assignedActiviteIds.Contains(activiteId))
+        {
+            assignedActiviteIds.Remove(activiteId);
+        }
+    }
+
+    private void ToggleAllInModule(string module, bool selectAll)
+    {
+        if (!activitesGrouped.ContainsKey(module)) return;
+
+        var moduleIds = activitesGrouped[module].Select(a => a.IdActivite).ToList();
+
+        if (selectAll)
+        {
+            foreach (var id in moduleIds.Where(id => !assignedActiviteIds.Contains(id)))
+            {
+                assignedActiviteIds.Add(id);
+            }
+        }
+        else
+        {
+            assignedActiviteIds.RemoveAll(id => moduleIds.Contains(id));
+        }
+    }
+
+    private void ToggleModule(string module)
+    {
+        if (!collapsedModules.Remove(module))
+        {
+            collapsedModules.Add(module);
+        }
+    }
+
+    private void SelectAll()
+    {
+        assignedActiviteIds = allActivites.Select(a => a.IdActivite).ToList();
+    }
+
+    private void DeselectAll()
+    {
+        assignedActiviteIds.Clear();
+    }
+
+    private async Task Save()
+    {
+        if (Utilisateur == null) return;
+
+        isSaving = true;
+        try
+        {
+            var currentLogin = CurrentUserService.GetUserLogin();
+            await ActiviteService.UpdateUserActivitesAsync(
+                Utilisateur.IdUtilisateur,
+                assignedActiviteIds,
+                currentLogin);
+
+            // Invalider le cache des activités de cet utilisateur
+            MemoryCache.Remove($"DbActivites_{Utilisateur.Login}");
+
+            DialogService.Close(true);
+        }
+        catch (Exception ex)
+        {
+            await DialogService.Alert($"Erreur : {ex.Message}", "Erreur");
+            isSaving = false;
+        }
+    }
+
+    private void Close()
+    {
+        DialogService.Close(false);
+    }
+
+    private static string GetModuleLabel(string module) => module switch
+    {
+        "BonEntree" => "Bons d'Entrée Matériel",
+        "BonSortie" => "Bons de Sortie Matériel",
+        "Securite" => "Sécurité & Contrôle",
+        "Admin" => "Administration Système",
+        "Transversal" => "Fonctions Transversales",
+        _ => module
+    };
+
+    private static string GetModuleIcon(string module) => module switch
+    {
+        "BonEntree" => "login",
+        "BonSortie" => "logout",
+        "Securite" => "security",
+        "Admin" => "admin_panel_settings",
+        "Transversal" => "dashboard",
+        _ => "category"
+    };
+
+    private static string GetModuleColor(string module) => module switch
+    {
+        "BonEntree" => "#0891b2",
+        "BonSortie" => "#d97706",
+        "Securite" => "#dc2626",
+        "Admin" => "#7c3aed",
+        "Transversal" => "#059669",
+        _ => "#6b7280"
+    };
+}

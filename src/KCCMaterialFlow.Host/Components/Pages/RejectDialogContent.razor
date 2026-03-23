@@ -1,0 +1,50 @@
+@inject DialogService DialogService
+
+<RadzenStack Gap="1rem" class="rz-p-4">
+    <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" Size="AlertSize.Small">
+        <strong>Attention:</strong> Cette action est irréversible. Le bon sera définitivement rejeté.
+    </RadzenAlert>
+    
+    <RadzenFormField Text="Motif du rejet *" Style="width: 100%;">
+        <RadzenTextArea @bind-Value="@motif" 
+                        Rows="4" 
+                        Placeholder="Expliquez la raison du rejet..."
+                        Style="width: 100%;" />
+    </RadzenFormField>
+    
+    @if (string.IsNullOrWhiteSpace(motif))
+    {
+        <RadzenText TextStyle="TextStyle.Caption" Style="color: #dc3545;">
+            * Le motif du rejet est obligatoire
+        </RadzenText>
+    }
+    
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.End" Style="margin-top: 1rem;">
+        <RadzenButton Text="Annuler" 
+                      Icon="close" 
+                      ButtonStyle="ButtonStyle.Light"
+                      Click="@Cancel" />
+        <RadzenButton Text="Rejeter" 
+                      Icon="cancel" 
+                      ButtonStyle="ButtonStyle.Danger"
+                      Click="@Confirm"
+                      Disabled="@(string.IsNullOrWhiteSpace(motif))" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    private string? motif;
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+
+    private void Confirm()
+    {
+        if (!string.IsNullOrWhiteSpace(motif))
+        {
+            DialogService.Close(motif);
+        }
+    }
+}

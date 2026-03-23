@@ -1,0 +1,45 @@
+@* Dialog pour approbation/rejet *@
+@inject DialogService DialogService
+
+<RadzenStack Gap="1rem">
+    <RadzenText TextStyle="TextStyle.Body2">
+        @if (IsReject)
+        {
+            <span>Veuillez indiquer le motif.</span>
+        }
+        else
+        {
+            <span>Confirmer l'approbation.</span>
+        }
+    </RadzenText>
+    
+    <div>
+        <RadzenLabel Text="@(IsReject ? "Motif *" : "Commentaire (optionnel)")" 
+                     Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenTextArea @bind-Value="@commentaire" Rows="3" Style="width:100%;" 
+                        Placeholder="@(IsReject ? "Expliquez le motif..." : "Ajouter un commentaire...")" />
+    </div>
+    
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@(IsReject ? "Confirmer" : "Approuver")" 
+                      ButtonStyle="@(IsReject ? ButtonStyle.Danger : ButtonStyle.Success)"
+                      Click="@Confirm" Disabled="@(IsReject && string.IsNullOrWhiteSpace(commentaire))" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public bool IsReject { get; set; } = false;
+
+    private string commentaire = "";
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+
+    private void Confirm()
+    {
+        DialogService.Close(commentaire);
+    }
+}

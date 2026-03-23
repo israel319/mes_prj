@@ -1,0 +1,480 @@
+@page "/securite/scan"
+@attribute [Authorize]
+@inject IScanService ScanService
+@inject IBarriereService BarriereService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Scanner QR Code - KCC Material Flow</PageTitle>
+
+<div style="background-color: #1a202c; min-height: 100vh; padding: 2rem;">
+    <RadzenStack Gap="1.5rem" Style="max-width: 900px; margin: 0 auto;">
+        
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn Size="12">
+                <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: white; margin-bottom: 0.25rem;">
+                    <RadzenIcon Icon="qr_code_scanner" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                    Scanner QR Code
+                </RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">
+                    Scannez le QR Code du bon de matériel pour valider le passage
+                </RadzenText>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Sélection Barrière *@
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.25rem; background-color: #2d3748;">
+            <RadzenStack Gap="0.5rem">
+                <RadzenText TextStyle="TextStyle.Subtitle1" FontWeight="FontWeight.Bold" Style="color: white;">
+                    <RadzenIcon Icon="location_on" Style="vertical-align: middle;" /> Barrière Active
+                </RadzenText>
+                <RadzenDropDown @bind-Value="@selectedBarriereId" Data="@barrieres" TextProperty="NomBarriere" ValueProperty="IdBarriere"
+                                Placeholder="Sélectionnez votre barrière..." Style="width: 100%; border-radius: 8px;"
+                                Change="@OnBarriereChanged" />
+            </RadzenStack>
+        </RadzenCard>
+
+        @if (selectedBarriereId > 0)
+        {
+            @* Zone de Scan *@
+            <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; background-color: #2d3748;">
+                <RadzenStack Gap="1rem" AlignItems="AlignItems.Center">
+                    
+                    @* Toggle Camera / Manuel *@
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                        <RadzenButton Text="Caméra" Icon="camera_alt" ButtonStyle="@(useCameraMode ? ButtonStyle.Danger : ButtonStyle.Secondary)"
+                                      Click="@(() => useCameraMode = true)" Style="border-radius: 8px;" />
+                        <RadzenButton Text="Saisie Manuelle" Icon="keyboard" ButtonStyle="@(!useCameraMode ? ButtonStyle.Danger : ButtonStyle.Secondary)"
+                                      Click="@(() => useCameraMode = false)" Style="border-radius: 8px;" />
+                    </RadzenStack>
+
+                    @if (useCameraMode)
+                    {
+                        @* SEC-026: Zone Caméra *@
+                        <div id="qr-reader" style="width: 100%; max-width: 500px; border-radius: 12px; overflow: hidden; background-color: #1a202c;">
+                            @if (!cameraActive)
+                            {
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; color: #a0aec0;">
+                                    <RadzenIcon Icon="videocam_off" Style="font-size: 4rem; margin-bottom: 1rem;" />
+                                    <RadzenText Style="color: #a0aec0;">Caméra non active</RadzenText>
+                                    <RadzenButton Text="Activer la caméra" Icon="videocam" ButtonStyle="ButtonStyle.Success"
+                                                  Click="@StartCamera" Style="margin-top: 1rem; border-radius: 8px;" />
+                                </div>
+                            }
+                            else
+                            {
+                                <video id="qr-video" style="width: 100%; height: 350px; object-fit: cover;"></video>
+                                <RadzenButton Text="Arrêter" Icon="stop" ButtonStyle="ButtonStyle.Danger"
+                                              Click="@StopCamera" Style="margin-top: 0.5rem; border-radius: 8px;" />
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        @* SEC-027: Saisie Manuelle *@
+                        <RadzenStack Gap="1rem" Style="width: 100%; max-width: 500px;">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">
+                                Entrez le code QR ou le numéro de référence du bon :
+                            </RadzenText>
+                            <RadzenTextBox @bind-Value="@manualCode" Placeholder="Code QR ou Numéro de référence..."
+                                           Style="width: 100%; border-radius: 8px; font-size: 1.2rem; padding: 1rem;"
+                                           @onkeypress="@OnManualCodeKeyPress" />
+                            <RadzenButton Text="Valider le Code" Icon="check_circle" ButtonStyle="ButtonStyle.Success"
+                                          Click="@ProcessManualCode" Disabled="@(string.IsNullOrWhiteSpace(manualCode))"
+                                          Style="width: 100%; border-radius: 8px; font-size: 1.1rem; padding: 0.75rem;" />
+                        </RadzenStack>
+                    }
+                </RadzenStack>
+            </RadzenCard>
+
+            @* SEC-028: Affichage Résultat Scan *@
+            @if (lastScanResult != null)
+            {
+                <RadzenCard Variant="Variant.Flat" Style="@GetResultCardStyle()">
+                    <RadzenStack Gap="1rem">
+                        @if (lastScanResult.IsValid)
+                        {
+                            @* Scan Valide *@
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                                <div style="background-color: #48bb78; border-radius: 50%; padding: 1rem;">
+                                    <RadzenIcon Icon="check_circle" Style="font-size: 2.5rem; color: white;" />
+                                </div>
+                                <RadzenStack Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" Style="color: #48bb78;">
+                                        ACCÈS AUTORISÉ
+                                    </RadzenText>
+                                    <RadzenText Style="color: white;">@lastScanResult.Message</RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+
+                            @* Infos du Bon *@
+                            <RadzenCard Variant="Variant.Flat" Style="background-color: rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem;">
+                                <RadzenRow>
+                                    <RadzenColumn Size="6">
+                                        <RadzenStack Gap="0.5rem">
+                                            <div>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Référence</RadzenText>
+                                                <RadzenText FontWeight="FontWeight.Bold" Style="color: white; font-family: monospace; font-size: 1.2rem;">
+                                                    @lastScanResult.NumeroReference
+                                                </RadzenText>
+                                            </div>
+                                            <div>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Type</RadzenText>
+                                                <RadzenBadge Text="@lastScanResult.TypeBon" BadgeStyle="BadgeStyle.Info" IsPill="true" />
+                                            </div>
+                                        </RadzenStack>
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="6">
+                                        <RadzenStack Gap="0.5rem">
+                                            <div>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Provenance (FROM)</RadzenText>
+                                                <RadzenText FontWeight="FontWeight.Bold" Style="color: white;">@lastScanResult.Provenance</RadzenText>
+                                            </div>
+                                            <div>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Destination (TO)</RadzenText>
+                                                <RadzenText FontWeight="FontWeight.Bold" Style="color: white;">@lastScanResult.Destination</RadzenText>
+                                            </div>
+                                        </RadzenStack>
+                                    </RadzenColumn>
+                                </RadzenRow>
+                                <RadzenRow Style="margin-top: 1rem;">
+                                    <RadzenColumn Size="6">
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Nombre de Matériels</RadzenText>
+                                        <RadzenText FontWeight="FontWeight.Bold" Style="color: white; font-size: 1.5rem;">
+                                            @lastScanResult.NombreMateriels
+                                        </RadzenText>
+                                    </RadzenColumn>
+                                    <RadzenColumn Size="6">
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Expiration</RadzenText>
+                                        <RadzenText FontWeight="FontWeight.Bold" Style="@GetExpirationStyle(lastScanResult.DateExpiration)">
+                                            @lastScanResult.DateExpiration?.ToString("dd/MM/yyyy HH:mm")
+                                        </RadzenText>
+                                    </RadzenColumn>
+                                </RadzenRow>
+                            </RadzenCard>
+
+                            @* SEC-029: Boutons de Confirmation *@
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.Center">
+                                <RadzenButton Text="Confirmer le Passage" Icon="verified" ButtonStyle="ButtonStyle.Success"
+                                              Size="ButtonSize.Large" Click="@ConfirmPassage"
+                                              Style="border-radius: 8px; padding: 1rem 2rem; font-weight: bold;" />
+                                <RadzenButton Text="Signaler Anomalie" Icon="warning" ButtonStyle="ButtonStyle.Warning"
+                                              Size="ButtonSize.Large" Click="@SignalerAnomalie"
+                                              Style="border-radius: 8px; padding: 1rem 2rem;" />
+                            </RadzenStack>
+                        }
+                        else
+                        {
+                            @* SEC-030: Scan Invalide / Erreur *@
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                                <div style="background-color: #f56565; border-radius: 50%; padding: 1rem;">
+                                    <RadzenIcon Icon="cancel" Style="font-size: 2.5rem; color: white;" />
+                                </div>
+                                <RadzenStack Gap="0.25rem">
+                                    <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" Style="color: #f56565;">
+                                        ACCÈS REFUSÉ
+                                    </RadzenText>
+                                    <RadzenText Style="color: white;">@GetErrorMessage(lastScanResult.StatutScan)</RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+
+                            <RadzenCard Variant="Variant.Flat" Style="background-color: rgba(245,101,101,0.2); border-radius: 8px; padding: 1rem; border: 1px solid #f56565;">
+                                <RadzenText Style="color: #feb2b2;">
+                                    <strong>Raison :</strong> @lastScanResult.Message
+                                </RadzenText>
+                            </RadzenCard>
+
+                            @* Anomalies détectées *@
+                            @if (lastScanResult.Anomalies?.Any() == true)
+                            {
+                                <RadzenStack Gap="0.5rem">
+                                    <RadzenText FontWeight="FontWeight.Bold" Style="color: #f56565;">Anomalies détectées :</RadzenText>
+                                    @foreach (var anomalie in lastScanResult.Anomalies)
+                                    {
+                                        <RadzenCard Variant="Variant.Flat" Style="background-color: rgba(245,101,101,0.1); border-radius: 6px; padding: 0.5rem;">
+                                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                                <RadzenBadge Text="@anomalie.NiveauGravite" BadgeStyle="@GetGraviteBadgeStyle(anomalie.NiveauGravite)" IsPill="true" />
+                                                <RadzenText Style="color: white;">@anomalie.Description</RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCard>
+                                    }
+                                </RadzenStack>
+                            }
+
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.Center">
+                                <RadzenButton Text="Nouveau Scan" Icon="refresh" ButtonStyle="ButtonStyle.Light"
+                                              Size="ButtonSize.Large" Click="@ResetScan"
+                                              Style="border-radius: 8px; padding: 1rem 2rem;" />
+                                <RadzenButton Text="Signaler au Superviseur" Icon="report" ButtonStyle="ButtonStyle.Warning"
+                                              Size="ButtonSize.Large" Click="@SignalerSuperviseur"
+                                              Style="border-radius: 8px; padding: 1rem 2rem;" />
+                            </RadzenStack>
+                        }
+                    </RadzenStack>
+                </RadzenCard>
+            }
+
+            @* Observations *@
+            @if (lastScanResult?.IsValid == true)
+            {
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; background-color: #2d3748;">
+                    <RadzenStack Gap="0.5rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Observations (optionnel)</RadzenText>
+                        <RadzenTextArea @bind-Value="@observations" Placeholder="Ajouter des observations..."
+                                        Rows="2" Style="width: 100%; border-radius: 8px;" />
+                    </RadzenStack>
+                </RadzenCard>
+            }
+        }
+        else
+        {
+            <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 2rem; background-color: #2d3748; text-align: center;">
+                <RadzenIcon Icon="info" Style="font-size: 3rem; color: #4299e1;" />
+                <RadzenText TextStyle="TextStyle.H6" Style="color: white; margin-top: 1rem;">
+                    Veuillez sélectionner votre barrière pour commencer le scan
+                </RadzenText>
+            </RadzenCard>
+        }
+
+    </RadzenStack>
+</div>
+
+@* SEC-031: Dialog Preuve de Passage *@
+<RadzenDialog />
+
+@code {
+    private List<Barriere> barrieres = new();
+    private int selectedBarriereId;
+    private bool useCameraMode = true;
+    private bool cameraActive = false;
+    private string manualCode = string.Empty;
+    private string observations = string.Empty;
+    private ScanValidationResult? lastScanResult;
+    private ScanProcessResult? processResult;
+    private bool isProcessing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Vérifier l'activité SEC_SCANNER
+        if (!CurrentUserService.HasActivite("SEC_SCANNER"))
+        {
+            Navigation.NavigateTo("/", replace: true);
+            return;
+        }
+
+        await LoadBarrieres();
+    }
+
+    private async Task LoadBarrieres()
+    {
+        try
+        {
+            barrieres = (await BarriereService.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de charger les barrières: {ex.Message}");
+        }
+    }
+
+    private void OnBarriereChanged()
+    {
+        ResetScan();
+    }
+
+    private async Task StartCamera()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("startQRScanner", DotNetObjectReference.Create(this));
+            cameraActive = true;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur Caméra", $"Impossible d'accéder à la caméra: {ex.Message}");
+        }
+    }
+
+    private async Task StopCamera()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("stopQRScanner");
+            cameraActive = false;
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public async Task OnQRCodeScanned(string code)
+    {
+        await ProcessQRCode(code);
+    }
+
+    private async Task OnManualCodeKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(manualCode))
+        {
+            await ProcessManualCode();
+        }
+    }
+
+    private async Task ProcessManualCode()
+    {
+        await ProcessQRCode(manualCode);
+    }
+
+    private async Task ProcessQRCode(string code)
+    {
+        if (isProcessing || string.IsNullOrWhiteSpace(code)) return;
+
+        try
+        {
+            isProcessing = true;
+            StateHasChanged();
+
+            var request = new ScanRequest
+            {
+                QRCodeData = code,
+                BarriereId = selectedBarriereId,
+                AgentLogin = CurrentUserService.GetUserLogin() ?? "unknown",
+                AgentNom = CurrentUserService.GetUserDisplayName()
+            };
+
+            lastScanResult = await ScanService.ValidateScanAsync(request);
+            
+            if (lastScanResult.IsValid)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Scan Valide", "Document vérifié avec succès");
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Scan Invalide", lastScanResult.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du scan: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmPassage()
+    {
+        if (lastScanResult == null || !lastScanResult.IsValid) return;
+
+        try
+        {
+            var request = new ScanRequest
+            {
+                QRCodeData = manualCode,
+                BarriereId = selectedBarriereId,
+                AgentLogin = CurrentUserService.GetUserLogin() ?? "unknown",
+                AgentNom = CurrentUserService.GetUserDisplayName(),
+                Observations = observations
+            };
+
+            processResult = await ScanService.ProcessScanAsync(request);
+
+            if (processResult.Success && processResult.Preuve != null)
+            {
+                // SEC-031: Afficher et imprimer la preuve
+                await ShowPreuveDialog(processResult.Preuve);
+                
+                NotificationService.Notify(NotificationSeverity.Success, "Passage Confirmé", 
+                    $"Preuve de passage générée: {processResult.Preuve.NumeroPreuve}");
+                
+                ResetScan();
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", processResult.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors de la confirmation: {ex.Message}");
+        }
+    }
+
+    private async Task ShowPreuveDialog(PreuvePassage preuve)
+    {
+        await DialogService.OpenAsync<PreuvePassageDialog>("Preuve de Passage",
+            new Dictionary<string, object> { { "Preuve", preuve } },
+            new DialogOptions 
+            { 
+                Width = "600px", 
+                Height = "auto",
+                CloseDialogOnOverlayClick = false
+            });
+    }
+
+    private async Task SignalerAnomalie()
+    {
+        await DialogService.OpenAsync<SignalerAnomalieDialog>("Signaler une Anomalie",
+            new Dictionary<string, object?> 
+            { 
+                { "BonId", lastScanResult?.BonId },
+                { "TypeBon", lastScanResult?.TypeBon },
+                { "NumeroReference", lastScanResult?.NumeroReference },
+                { "BarriereId", selectedBarriereId }
+            }!,
+            new DialogOptions { Width = "500px" });
+    }
+
+    private async Task SignalerSuperviseur()
+    {
+        NotificationService.Notify(NotificationSeverity.Info, "Notification Envoyée", 
+            "Le superviseur a été notifié de cette anomalie");
+    }
+
+    private void ResetScan()
+    {
+        lastScanResult = null;
+        processResult = null;
+        manualCode = string.Empty;
+        observations = string.Empty;
+        StateHasChanged();
+    }
+
+    private string GetResultCardStyle()
+    {
+        var baseStyle = "border-radius: 12px; padding: 1.5rem;";
+        if (lastScanResult?.IsValid == true)
+            return baseStyle + " background-color: #276749; border: 2px solid #48bb78;";
+        return baseStyle + " background-color: #742a2a; border: 2px solid #f56565;";
+    }
+
+    private string GetExpirationStyle(DateTime? dateExpiration)
+    {
+        if (!dateExpiration.HasValue)
+            return "color: white;";
+        return dateExpiration.Value < DateTime.Now.AddDays(1) ? "color: #f56565;" : "color: white;";
+    }
+
+    private string GetErrorMessage(string statut) => statut switch
+    {
+        "Invalid" => "Document Anormal - Accès Impossible",
+        "Expired" => "Document Expiré - Accès Refusé",
+        "AlreadyUsed" => "Document Déjà Utilisé à Cette Barrière",
+        "NotFound" => "Document Non Trouvé - Accès Impossible",
+        "Unauthorized" => "Barrière Non Autorisée pour ce Document",
+        _ => "Accès Refusé"
+    };
+
+    private BadgeStyle GetGraviteBadgeStyle(string gravite) => gravite switch
+    {
+        "Critique" => BadgeStyle.Danger,
+        "Eleve" => BadgeStyle.Warning,
+        "Moyen" => BadgeStyle.Info,
+        _ => BadgeStyle.Light
+    };
+}

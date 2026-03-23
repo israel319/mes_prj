@@ -1,0 +1,249 @@
+@* BSM-063: Page de confirmation retour matériel *@
+@page "/pret/{Id:int}/retour"
+@page "/bon-sortie/pret/{Id:int}/retour"
+@attribute [Authorize]
+
+@inject IBonSortieService BonSortieService
+@inject NavigationManager Navigation
+@inject NotificationService Notification
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Retour de Prêt - KCC Material Flow</PageTitle>
+
+@if (isLoading)
+{
+    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 60vh;">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
+        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Chargement...</RadzenText>
+    </RadzenStack>
+}
+else if (pret == null)
+{
+    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem" Style="min-height: 40vh;">
+        <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small">
+            Prêt non trouvé ou inaccessible.
+        </RadzenAlert>
+        <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="GoBack" />
+    </RadzenStack>
+}
+else if (pret.EstRetourne)
+{
+    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem" Style="min-height: 40vh;">
+        <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small">
+            Ce prêt a déjà été retourné le @pret.DateRetourEffective?.ToString("dd/MM/yyyy").
+        </RadzenAlert>
+        <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="GoBack" />
+    </RadzenStack>
+}
+else
+{
+    <RadzenStack Gap="1rem" Style="max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem;">
+
+        @* ===== EN-TÊTE ===== *@
+        <RadzenCard>
+            <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                <RadzenColumn Size="4">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <div style="width: 36px; height: 36px; border-radius: 6px; background: var(--kcc-primary); display: flex; align-items: center; justify-content: center;">
+                            <span style="color: #fff; font-weight: 700; font-size: 0.6rem; line-height: 1;">KCC</span>
+                        </div>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600;">KCC Material Flow</RadzenText>
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="4" Style="text-align: center;">
+                    <RadzenText TextStyle="TextStyle.H6" Style="font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin: 0;">
+                        Confirmation de Retour
+                    </RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">
+                        LOAN RETURN CONFIRMATION
+                    </RadzenText>
+                </RadzenColumn>
+                <RadzenColumn Size="4" Style="text-align: right;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem" JustifyContent="JustifyContent.End">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">No:</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600; color: var(--kcc-primary);">@pret.NumeroReference</RadzenText>
+                    </RadzenStack>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+
+        @* ===== INFORMATIONS DU PRÊT ===== *@
+        <RadzenCard>
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Informations du Prêt</RadzenText>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="6">
+                        <RadzenStack Gap="0.15rem">
+                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Demandeur</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body2">@pret.NomDemandeur</RadzenText>
+                        </RadzenStack>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenStack Gap="0.15rem">
+                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Département</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body2">@pret.DepartementDemandeur</RadzenText>
+                        </RadzenStack>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenStack Gap="0.15rem">
+                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Date de Sortie</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body2">@pret.DateCreation.ToString("dd/MM/yyyy")</RadzenText>
+                        </RadzenStack>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenStack Gap="0.15rem">
+                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Date de Retour Prévue</RadzenText>
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="@(pret.EstEnRetard ? "font-weight: 700; color: #dc2626;" : "")">
+                                    @pret.DateRetourPrevue.ToString("dd/MM/yyyy")
+                                </RadzenText>
+                                @if (pret.EstEnRetard)
+                                {
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="@($"Retard {pret.JoursRetard}j")" IsPill="true" />
+                                }
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenColumn>
+                </RadzenRow>
+        </RadzenCard>
+
+        @* ===== MATÉRIELS À RETOURNER ===== *@
+        <RadzenCard>
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Matériels à Retourner</RadzenText>
+            <RadzenDataGrid TItem="MaterielSortie" Data="@pret.Materiels" Density="Density.Compact" Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="MaterielSortie" Property="Designation" Title="DÉSIGNATION" />
+                    <RadzenDataGridColumn TItem="MaterielSortie" Property="Quantite" Title="QTÉ" Width="100px" TextAlign="TextAlign.Center" />
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+
+        @* ===== ENREGISTREMENT DU RETOUR ===== *@
+        <RadzenCard>
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Enregistrement du Retour</RadzenText>
+                <RadzenRow Gap="1rem" Style="margin-bottom: 1rem;">
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Date de Retour Effective *" Style="width: 100%;">
+                            <RadzenDatePicker @bind-Value="@dateRetourEffective" DateFormat="dd/MM/yyyy" Style="width: 100%;" Max="@DateTime.Today" Density="Density.Compact" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Réceptionné par" Style="width: 100%;">
+                            <RadzenTextBox @bind-Value="@receptionnePar" Placeholder="Nom de l'agent" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+
+                <RadzenStack Gap="0.5rem" Style="margin-bottom: 1rem;">
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">État Général du Matériel *</RadzenText>
+                    <RadzenRadioButtonList @bind-Value="@etatRetour" TValue="string" Orientation="Orientation.Horizontal">
+                        <Items>
+                            <RadzenRadioButtonListItem Text="Bon état" Value="@("Bon")" />
+                            <RadzenRadioButtonListItem Text="Usé" Value="@("Usé")" />
+                            <RadzenRadioButtonListItem Text="Endommagé" Value="@("Endommagé")" />
+                            <RadzenRadioButtonListItem Text="Incomplet" Value="@("Incomplet")" />
+                        </Items>
+                    </RadzenRadioButtonList>
+                </RadzenStack>
+
+                @if (etatRetour is "Endommagé" or "Incomplet")
+                {
+                    <RadzenAlert AlertStyle="AlertStyle.Warning" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small" Style="margin-bottom: 1rem;">
+                        Veuillez détailler les dommages ou éléments manquants.
+                    </RadzenAlert>
+                }
+
+                <RadzenFormField Text="Observations" Style="width: 100%;">
+                    <RadzenTextArea @bind-Value="@observations" Rows="3" Placeholder="Décrivez l'état du matériel..." Style="width: 100%;" />
+                </RadzenFormField>
+        </RadzenCard>
+
+        @* ===== ACTIONS ===== *@
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+            <RadzenButton Text="Annuler" Icon="cancel" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                          Size="ButtonSize.Small" Click="GoBack" />
+            <RadzenButton Text="Confirmer le Retour" Icon="check" ButtonStyle="ButtonStyle.Success"
+                          Size="ButtonSize.Small" Click="@ConfirmerRetour" Disabled="@isSaving" IsBusy="@isSaving" />
+        </RadzenStack>
+    </RadzenStack>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Pret? pret;
+    private bool isLoading = true;
+    private bool isSaving = false;
+
+    private DateTime? dateRetourEffective = DateTime.Today;
+    private string etatRetour = "Bon";
+    private string? observations;
+    private string? receptionnePar;
+
+    // Navigation retour via historique
+    private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var bon = await BonSortieService.GetAsync(Id);
+            if (bon is Pret pretEntity)
+                pret = pretEntity;
+        }
+        catch (Exception ex)
+        {
+            Notification.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ConfirmerRetour()
+    {
+        if (!dateRetourEffective.HasValue || string.IsNullOrWhiteSpace(etatRetour))
+        {
+            Notification.Notify(NotificationSeverity.Warning, "Validation", "Remplissez les champs obligatoires");
+            return;
+        }
+
+        if ((etatRetour is "Endommagé" or "Incomplet") && string.IsNullOrWhiteSpace(observations))
+        {
+            Notification.Notify(NotificationSeverity.Warning, "Validation", "Décrivez les dommages/manquants");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            var request = new ReturnLoanRequest
+            {
+                IdBon = Id,
+                EtatRetour = etatRetour,
+                ReceptionnePar = receptionnePar
+            };
+
+            var result = await BonSortieService.ReturnLoanAsync(request);
+
+            if (result.Success)
+            {
+                Notification.Notify(NotificationSeverity.Success, "Succès", "Retour enregistré");
+                Navigation.NavigateTo("/bon-sortie/prets");
+            }
+            else
+            {
+                Notification.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur");
+            }
+        }
+        catch (Exception ex)
+        {
+            Notification.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

@@ -1,0 +1,26 @@
+@using KCCMaterialFlow.Host.Components.Layout
+
+<Router AppAssembly="typeof(Program).Assembly"
+        AdditionalAssemblies="new[] { 
+            typeof(KCCMaterialFlow.Module.Shared.ModuleInfo).Assembly,
+            typeof(KCCMaterialFlow.Module.BonEntree.Presentation.PresentationInfo).Assembly,
+            typeof(KCCMaterialFlow.Module.BonSortie.Presentation.PresentationInfo).Assembly,
+            typeof(KCCMaterialFlow.Module.Securite.Presentation.PresentationInfo).Assembly 
+        }">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Page non trouv�e</PageTitle>
+        <LayoutView Layout="typeof(MainLayout)">
+            <div class="rz-p-4 rz-text-align-center">
+                <h1>404 - Page non trouv�e</h1>
+                <p>La page que vous recherchez n'existe pas.</p>
+                <a href="/" class="rz-button rz-button-md rz-variant-filled rz-primary">
+                    Retour � l'accueil
+                </a>
+            </div>
+        </LayoutView>
+    </NotFound>
+</Router>

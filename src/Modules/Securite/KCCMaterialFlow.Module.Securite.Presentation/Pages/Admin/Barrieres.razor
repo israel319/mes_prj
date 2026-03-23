@@ -1,0 +1,303 @@
+@page "/securite/admin/barrieres"
+@attribute [Authorize(Roles = "Admin,Security")]
+@inject IBarriereService BarriereService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+<PageTitle>Gestion des Barrières - Admin - KCC Material Flow</PageTitle>
+
+<div style="background-color: #f4f7fa; min-height: 100vh; padding: 2rem;">
+    <RadzenStack Gap="1.5rem">
+        
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn Size="12" SizeMD="8">
+                <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 0.25rem;">
+                    <RadzenIcon Icon="security" Style="vertical-align: middle; margin-right: 0.5rem; color: #e31b23;" />
+                    Gestion des Barrières
+                </RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                    Configuration des points de contrôle de sécurité
+                </RadzenText>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="4" class="rz-text-align-right">
+                <RadzenButton Text="Nouvelle Barrière" Icon="add" ButtonStyle="ButtonStyle.Danger" 
+                              Style="background-color: #e31b23; border-radius: 8px; font-weight: 600;" 
+                              Click="@CreateNew" />
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Statistiques *@
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #48bb78;">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Barrières Actives</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #48bb78;">@activeCount</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #a0aec0;">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Barrières Inactives</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #a0aec0;">@inactiveCount</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="4">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #4299e1;">
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Total Barrières</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #4299e1;">@(activeCount + inactiveCount)</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Filtres *@
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border: 1px solid #eee;">
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap" AlignItems="AlignItems.End">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Rechercher</RadzenText>
+                    <RadzenTextBox @bind-Value="@searchTerm" Placeholder="Code, nom, localisation..." Style="width: 250px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Type</RadzenText>
+                    <RadzenDropDown @bind-Value="@filterType" Data="@typeOptions" 
+                                    Placeholder="Tous" AllowClear="true" Style="width: 140px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Statut</RadzenText>
+                    <RadzenDropDown @bind-Value="@filterActive" Data="@statutOptions" TextProperty="Label" ValueProperty="Value"
+                                    Placeholder="Tous" AllowClear="true" Style="width: 130px; border-radius: 6px;" />
+                </RadzenStack>
+                <RadzenButton Text="Filtrer" Icon="search" ButtonStyle="ButtonStyle.Dark" Click="@ApplyFilter" Style="border-radius: 6px;" />
+                <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@ResetFilter" Style="border-radius: 6px;" />
+            </RadzenStack>
+        </RadzenCard>
+
+        @* Table *@
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 0; overflow: hidden; border: 1px solid #eee;">
+            <RadzenDataGrid @ref="grid" Data="@filteredBarrieres" TItem="Barriere" IsLoading="@isLoading"
+                            AllowPaging="true" PageSize="10" AllowSorting="true"
+                            Variant="Variant.Flat" GridLines="DataGridGridLines.None">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Barriere" Property="CodeBarriere" Title="CODE" Width="120px">
+                        <Template Context="b">
+                            <span style="font-family: monospace; font-weight: bold; color: #e31b23;">@b.CodeBarriere</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Barriere" Property="NomBarriere" Title="NOM" MinWidth="180px">
+                        <Template Context="b">
+                            <RadzenText FontWeight="FontWeight.SemiBold">@b.NomBarriere</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Barriere" Property="Localisation" Title="LOCALISATION" MinWidth="200px">
+                        <Template Context="b">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                                <RadzenIcon Icon="location_on" Style="color: #4299e1; font-size: 1rem;" />
+                                <span style="color: #4a5568;">@b.Localisation</span>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Barriere" Property="TypeBarriere" Title="TYPE" Width="100px">
+                        <Template Context="b">
+                            <RadzenBadge Text="@b.TypeBarriere" BadgeStyle="@GetTypeBadgeStyle(b.TypeBarriere)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Barriere" Property="HorairesOuverture" Title="HORAIRES" Width="120px">
+                        <Template Context="b">
+                            <span style="font-size: 0.9rem; color: #718096;">@(b.HorairesOuverture ?? "N/A")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Barriere" Property="EstActive" Title="STATUT" Width="100px">
+                        <Template Context="b">
+                            @if (b.EstActive)
+                            {
+                                <RadzenBadge Text="Active" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                            }
+                            else
+                            {
+                                <RadzenBadge Text="Inactive" BadgeStyle="BadgeStyle.Light" IsPill="true" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="Barriere" Title="ACTIONS" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="b">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Small"
+                                              Click="@(() => EditBarriere(b))" title="Modifier" />
+                                <RadzenButton Icon="@(b.EstActive ? "block" : "check_circle")" 
+                                              ButtonStyle="@(b.EstActive ? ButtonStyle.Warning : ButtonStyle.Success)" 
+                                              Variant="Variant.Flat" Size="ButtonSize.Small"
+                                              Click="@(() => ToggleActive(b))" title="@(b.EstActive ? "Désactiver" : "Activer")" />
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    </RadzenStack>
+</div>
+
+@code {
+    private RadzenDataGrid<Barriere>? grid;
+    private List<Barriere> allBarrieres = new();
+    private IEnumerable<Barriere> filteredBarrieres = Enumerable.Empty<Barriere>();
+    private bool isLoading = true;
+    private string? searchTerm;
+    private string? filterType;
+    private bool? filterActive;
+    private int activeCount;
+    private int inactiveCount;
+
+    private readonly List<string> typeOptions = new() { "Entrée", "Sortie", "Mixte" };
+    private readonly List<StatutOption> statutOptions = new()
+    {
+        new StatutOption { Label = "Active", Value = true },
+        new StatutOption { Label = "Inactive", Value = false }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!CurrentUserService.HasActivite("SEC_GERER_BARRIERES"))
+        {
+            Navigation.NavigateTo("/", replace: true);
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            // Récupérer toutes les barrières (pas juste actives)
+            var active = await BarriereService.GetAllAsync();
+            allBarrieres = active.ToList();
+            
+            // Pour inclure les inactives, on doit faire une requête séparée ou modifier le service
+            // Pour l'instant on travaille avec les actives
+            
+            UpdateStats();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de charger les barrières: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void UpdateStats()
+    {
+        activeCount = allBarrieres.Count(b => b.EstActive);
+        inactiveCount = allBarrieres.Count(b => !b.EstActive);
+    }
+
+    private void ApplyFilter()
+    {
+        var result = allBarrieres.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.ToUpperInvariant();
+            result = result.Where(b => 
+                b.CodeBarriere.ToUpperInvariant().Contains(term) ||
+                b.NomBarriere.ToUpperInvariant().Contains(term) ||
+                b.Localisation.ToUpperInvariant().Contains(term));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filterType))
+        {
+            result = result.Where(b => b.TypeBarriere == filterType);
+        }
+
+        if (filterActive.HasValue)
+        {
+            result = result.Where(b => b.EstActive == filterActive.Value);
+        }
+
+        filteredBarrieres = result.ToList();
+    }
+
+    private void ResetFilter()
+    {
+        searchTerm = null;
+        filterType = null;
+        filterActive = null;
+        ApplyFilter();
+    }
+
+    private async Task CreateNew()
+    {
+        var result = await DialogService.OpenAsync<BarriereEditDialog>("Nouvelle Barrière",
+            new Dictionary<string, object> { { "Barriere", null! } },
+            new DialogOptions { Width = "600px" });
+
+        if (result is Barriere)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Barrière créée avec succès");
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task EditBarriere(Barriere barriere)
+    {
+        var result = await DialogService.OpenAsync<BarriereEditDialog>("Modifier la Barrière",
+            new Dictionary<string, object> { { "Barriere", barriere } },
+            new DialogOptions { Width = "600px" });
+
+        if (result is Barriere)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Barrière mise à jour avec succès");
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task ToggleActive(Barriere barriere)
+    {
+        var action = barriere.EstActive ? "désactiver" : "activer";
+        var confirm = await DialogService.Confirm(
+            $"Voulez-vous vraiment {action} la barrière \"{barriere.NomBarriere}\" ?",
+            $"Confirmer {action}",
+            new ConfirmOptions { OkButtonText = "Oui", CancelButtonText = "Non" });
+
+        if (confirm == true)
+        {
+            try
+            {
+                barriere.EstActive = !barriere.EstActive;
+                await BarriereService.UpdateAsync(barriere);
+                NotificationService.Notify(NotificationSeverity.Success, "Succès", $"Barrière {(barriere.EstActive ? "activée" : "désactivée")}");
+                await LoadDataAsync();
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+
+    private BadgeStyle GetTypeBadgeStyle(string type) => type switch
+    {
+        "Entrée" => BadgeStyle.Success,
+        "Sortie" => BadgeStyle.Info,
+        "Mixte" => BadgeStyle.Warning,
+        _ => BadgeStyle.Light
+    };
+
+    private class StatutOption
+    {
+        public string Label { get; set; } = "";
+        public bool Value { get; set; }
+    }
+}

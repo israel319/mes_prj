@@ -1,0 +1,35 @@
+@* _Imports.razor pour KCCMaterialFlow.Module.Securite.Presentation - Imports communs pour les composants *@
+
+@using System.Net.Http
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.JSInterop
+@using Radzen
+@using Radzen.Blazor
+
+@* === Core Abstractions === *@
+@using KCCMaterialFlow.Application.Interfaces
+@using KCCMaterialFlow.Module.Shared.Components.Base
+@using KCCMaterialFlow.Domain.Enums
+@using KCCMaterialFlow.Module.Shared.Entities
+
+@* === Module Shared === *@
+@using KCCMaterialFlow.Module.Shared.Services
+@using KCCMaterialFlow.Module.Shared.Components
+
+@* === Module Securite (via Application layer) === *@
+@using KCCMaterialFlow.Module.Securite
+@using KCCMaterialFlow.Module.Securite.Services
+@using KCCMaterialFlow.Module.Securite.Entities
+
+@* === Presentation layer === *@
+@using KCCMaterialFlow.Module.Securite.Pages
+
+@* === Type aliases pour éviter les ambiguïtés === *@
+@using CoreEntities = KCCMaterialFlow.Module.Shared.Entities
+@using SharedEntities = KCCMaterialFlow.Module.Shared.Entities

@@ -1,0 +1,46 @@
+@* Dialog pour enregistrer le retour d'un prêt *@
+@inject DialogService DialogService
+
+<RadzenStack Gap="1rem">
+    <RadzenText TextStyle="TextStyle.Body2">
+        Enregistrez les informations de retour du prêt.
+    </RadzenText>
+    
+    <div>
+        <RadzenLabel Text="État du Matériel au Retour" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenDropDown @bind-Value="@etatRetour" Data="@etats" Style="width:100%;" />
+    </div>
+    
+    <div>
+        <RadzenLabel Text="Commentaire" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenTextArea @bind-Value="@commentaire" Rows="2" Placeholder="Observations..." Style="width:100%;" />
+    </div>
+    
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="Confirmer Retour" ButtonStyle="ButtonStyle.Success" Icon="check" Click="@Confirm" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    private string etatRetour = "Bon";
+    private string commentaire = "";
+
+    private List<string> etats = new() { "Bon", "Usé", "Endommagé", "Incomplet" };
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+
+    private void Confirm()
+    {
+        DialogService.Close(new ReturnData { EtatRetour = etatRetour, Commentaire = commentaire });
+    }
+
+    public class ReturnData
+    {
+        public string EtatRetour { get; set; } = "";
+        public string Commentaire { get; set; } = "";
+    }
+}

@@ -1,0 +1,79 @@
+@inject DialogService DialogService
+
+<RadzenStack Gap="1.5rem" Style="padding: 1rem;">
+    @* En-tête avec icône *@
+    <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem">
+        @if (IsApproval)
+        {
+            <div style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #e6f7f4, #dcfce7); color: #00B193;">
+                <RadzenIcon Icon="check_circle" Style="font-size: 2rem;" />
+            </div>
+        }
+        else
+        {
+            <div style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #fef2f2, #fee2e2); color: #dc2626;">
+                <RadzenIcon Icon="cancel" Style="font-size: 2rem;" />
+            </div>
+        }
+        <RadzenText TextStyle="TextStyle.H6" Style="color: #253C45; font-weight: 600; margin: 0;">
+            @(IsApproval ? "Confirmer l'approbation" : "Confirmer le rejet")
+        </RadzenText>
+        <RadzenText TextStyle="TextStyle.Body2" Style="color: #6b7280; margin: 0;">
+            @NumeroReference
+        </RadzenText>
+    </RadzenStack>
+
+    @* Zone de commentaire *@
+    <RadzenStack Gap="0.5rem">
+        <RadzenLabel Text="@(IsApproval ? "Commentaire / Observations *" : "Motif du rejet *")" />
+        <RadzenTextArea @bind-Value="commentaire" 
+                        Rows="4" 
+                        Style="width: 100%;"
+                        Placeholder="@(IsApproval ? "Saisissez vos observations ou commentaires..." : "Veuillez indiquer le motif du rejet...")" />
+        
+        @if (showError)
+        {
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Shade="Shade.Lighter" 
+                         Size="AlertSize.Small" ShowIcon="true" AllowClose="false">
+                @(IsApproval ? "Un commentaire est requis" : "Le motif du rejet est obligatoire")
+            </RadzenAlert>
+        }
+    </RadzenStack>
+
+    @* Boutons d'action *@
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" JustifyContent="JustifyContent.End"
+                 Style="padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+        <RadzenButton Text="Annuler" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Light" 
+                      Click="@Cancel" />
+        <RadzenButton Text="@(IsApproval ? "Approuver" : "Rejeter")" 
+                      Icon="@(IsApproval ? "check" : "close")"
+                      ButtonStyle="@(IsApproval ? ButtonStyle.Success : ButtonStyle.Danger)" 
+                      Disabled="@(string.IsNullOrWhiteSpace(commentaire))"
+                      Click="@Confirm" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public string Action { get; set; } = string.Empty;
+    [Parameter] public string NumeroReference { get; set; } = string.Empty;
+    [Parameter] public bool IsApproval { get; set; }
+
+    private string commentaire = string.Empty;
+    private bool showError = false;
+
+    private void Confirm()
+    {
+        if (string.IsNullOrWhiteSpace(commentaire))
+        {
+            showError = true;
+            return;
+        }
+
+        DialogService.Close(commentaire.Trim());
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+}

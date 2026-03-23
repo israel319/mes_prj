@@ -1,0 +1,280 @@
+@page "/admin/statuts"
+@attribute [Authorize(Roles = "Admin")]
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IStatutService StatutService
+@inject IAuditLogService AuditLogService
+@inject ICurrentUserService CurrentUserService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<PageTitle>Administration - Statuts</PageTitle>
+
+<div style="padding: 1.5rem;">
+    <RadzenStack Gap="1.5rem">
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn>
+                <RadzenBreadCrumb>
+                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
+                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
+                    <RadzenBreadCrumbItem Text="Statuts" Icon="flag" />
+                </RadzenBreadCrumb>
+                <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
+                    <RadzenIcon Icon="flag" Style="margin-right: 0.5rem; vertical-align: middle;" />
+                    Gestion des Statuts
+                </RadzenText>
+            </RadzenColumn>
+            <RadzenColumn>
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                    <RadzenButton Text="Actualiser" Icon="refresh" ButtonStyle="ButtonStyle.Light" 
+                                  Click="@LoadDataAsync" />
+                    <RadzenButton Text="Nouveau statut" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@ShowCreateDialog" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Filtres *@
+        <RadzenCard Variant="Variant.Flat" Style="padding: 1rem;">
+            <RadzenRow Gap="1rem" AlignItems="AlignItems.End">
+                <RadzenColumn Size="12" SizeMD="4">
+                    <RadzenFormField Text="Type de bon" Style="width: 100%;">
+                        <RadzenDropDown TValue="string" Data="@typesBon" @bind-Value="@filterTypeBon"
+                                        AllowClear="true" Placeholder="Tous" Style="width: 100%;"
+                                        Change="@(args => ApplyFilters())" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenButton Text="Réinitialiser" Icon="clear" ButtonStyle="ButtonStyle.Light" 
+                                  Click="@ResetFilters" Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+
+        @* Grille des statuts *@
+        <RadzenCard Variant="Variant.Flat">
+            <RadzenDataGrid @ref="grid" Data="@filteredStatuts" TItem="Statut" 
+                            AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="15"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Statut" Property="Ordre" Title="#" Width="60px" TextAlign="TextAlign.Center" />
+                    
+                    <RadzenDataGridColumn TItem="Statut" Property="CodeStatut" Title="Code" Width="180px">
+                        <Template Context="statut">
+                            <span style="background-color: @statut.CouleurFond; color: @statut.CouleurTexte; 
+                                         padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">
+                                @if (!string.IsNullOrEmpty(statut.Icone))
+                                {
+                                    <i class="@statut.Icone" style="margin-right: 0.25rem;"></i>
+                                }
+                                @statut.CodeStatut
+                            </span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Statut" Property="LibelleStatut" Title="Libellé" Width="200px">
+                        <Template Context="statut">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <span>@statut.LibelleStatut</span>
+                                @if (statut.EstSysteme)
+                                {
+                                    <RadzenBadge Text="Système" BadgeStyle="BadgeStyle.Info" IsPill="true" Style="font-size: 0.65rem;" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Statut" Property="TypeBon" Title="Type de bon" Width="120px">
+                        <Template Context="statut">
+                            <RadzenBadge Text="@statut.TypeBon" 
+                                         BadgeStyle="@(statut.TypeBon == "Tous" ? BadgeStyle.Secondary : 
+                                                       statut.TypeBon == "BonEntree" ? BadgeStyle.Success : BadgeStyle.Warning)" 
+                                         IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Statut" Property="Description" Title="Description">
+                        <Template Context="statut">
+                            @(statut.Description ?? "-")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Statut" Title="Propriétés" Width="180px">
+                        <Template Context="statut">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem">
+                                @if (statut.EstFinal)
+                                {
+                                    <RadzenBadge Text="Final" BadgeStyle="BadgeStyle.Dark" IsPill="true" Style="font-size: 0.65rem;" />
+                                }
+                                @if (statut.RequiertAction)
+                                {
+                                    <RadzenBadge Text="Action req." BadgeStyle="BadgeStyle.Warning" IsPill="true" Style="font-size: 0.65rem;" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Statut" Title="Couleur" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="statut">
+                            <div style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <div style="width: 20px; height: 20px; border-radius: 4px; 
+                                            background-color: @statut.CouleurFond; border: 1px solid #ddd;"></div>
+                                <span style="font-size: 0.7rem; color: #666;">@statut.CouleurFond</span>
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Statut" Property="EstActif" Title="Statut" Width="90px" TextAlign="TextAlign.Center">
+                        <Template Context="statut">
+                            @if (statut.EstActif)
+                            {
+                                <RadzenBadge Text="Actif" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                            }
+                            else
+                            {
+                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Statut" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="statut">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => ShowEditDialog(statut))" title="Modifier" />
+                                @if (!statut.EstSysteme)
+                                {
+                                    @if (statut.EstActif)
+                                    {
+                                        <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                                      Click="@(() => ToggleStatus(statut))" title="Désactiver" />
+                                    }
+                                    else
+                                    {
+                                        <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                                      Click="@(() => ToggleStatus(statut))" title="Activer" />
+                                    }
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    </RadzenStack>
+</div>
+
+@code {
+    private RadzenDataGrid<Statut>? grid;
+    private List<Statut> statuts = [];
+    private List<Statut> filteredStatuts = [];
+    
+    private string? filterTypeBon;
+    
+    private readonly List<string> typesBon = ["Tous", "BonEntree", "BonSortie"];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            statuts = (await StatutService.GetAllAsync()).ToList();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du chargement: {ex.Message}");
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var query = statuts.AsEnumerable();
+        
+        if (!string.IsNullOrWhiteSpace(filterTypeBon))
+        {
+            query = query.Where(s => s.TypeBon == filterTypeBon);
+        }
+        
+        filteredStatuts = query.OrderBy(s => s.Ordre).ToList();
+    }
+
+    private void ResetFilters()
+    {
+        filterTypeBon = null;
+        ApplyFilters();
+    }
+
+    private async Task ShowCreateDialog()
+    {
+        var result = await DialogService.OpenAsync<StatutEditDialog>("Nouveau statut",
+            new Dictionary<string, object>(),
+            new DialogOptions { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Statut créé avec succès");
+        }
+    }
+
+    private async Task ShowEditDialog(Statut statut)
+    {
+        var result = await DialogService.OpenAsync<StatutEditDialog>("Modifier le statut",
+            new Dictionary<string, object> { { "Statut", statut } },
+            new DialogOptions { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Statut modifié avec succès");
+        }
+    }
+
+    private async Task ToggleStatus(Statut statut)
+    {
+        if (statut.EstSysteme)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Information", "Les statuts système ne peuvent pas être modifiés");
+            return;
+        }
+        
+        var action = statut.EstActif ? "désactiver" : "activer";
+        var confirmed = await DialogService.Confirm(
+            $"Voulez-vous vraiment {action} le statut {statut.LibelleStatut} ?",
+            $"Confirmer {action}",
+            new ConfirmOptions { OkButtonText = "Oui", CancelButtonText = "Non" });
+        
+        if (confirmed == true)
+        {
+            try
+            {
+                await StatutService.DeleteAsync(statut.IdStatut);
+                
+                await AuditLogService.LogAsync(
+                    CurrentUserService.GetUserLogin(),
+                    CurrentUserService.GetUserDisplayName(),
+                    statut.EstActif ? "Deactivate" : "Activate",
+                    "Statut",
+                    $"Statut {statut.LibelleStatut} {(statut.EstActif ? "désactivé" : "activé")}",
+                    statut.IdStatut.ToString(),
+                    "Statut");
+                
+                await LoadDataAsync();
+                NotificationService.Notify(NotificationSeverity.Success, "Succès", 
+                    $"Statut {(statut.EstActif ? "désactivé" : "activé")}");
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+}

@@ -1,0 +1,116 @@
+@* Dialog pour afficher les détails d'un rejet *@
+@using KCCMaterialFlow.Module.Shared.Entities
+
+<RadzenStack Gap="1rem">
+    @if (Notification != null)
+    {
+        @* Header *@
+        <RadzenCard Variant="Variant.Flat" Style="background: var(--rz-danger); color: white; border-radius: 8px; padding: 1rem 1.25rem;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
+                <RadzenIcon Icon="cancel" Style="font-size: 2rem;" />
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.H6" Style="color: white; margin: 0; font-weight: 600;">
+                        Rejet - @Notification.NumeroReference
+                    </RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: rgba(255,255,255,0.85); margin: 0;">
+                        @Notification.BonType · @Notification.DateRejet.ToString("dd/MM/yyyy HH:mm")
+                    </RadzenText>
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+
+        @* Informations du rejet *@
+        <RadzenFieldset Text="Informations du rejet" Icon="info">
+            <RadzenRow Gap="0.75rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Type de bon" Variant="Variant.Text" Style="width: 100%;">
+                        <RadzenTextBox Value="@Notification.BonType" ReadOnly="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="N° Référence" Variant="Variant.Text" Style="width: 100%;">
+                        <RadzenTextBox Value="@Notification.NumeroReference" ReadOnly="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Étape du rejet" Variant="Variant.Text" Style="width: 100%;">
+                        <RadzenTextBox Value="@Notification.EtapeRejet" ReadOnly="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Date du rejet" Variant="Variant.Text" Style="width: 100%;">
+                        <RadzenTextBox Value="@Notification.DateRejet.ToString("dd MMM yyyy à HH:mm")" ReadOnly="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenFieldset>
+
+        @* Approbateur *@
+        <RadzenFieldset Text="Approbateur" Icon="person">
+            <RadzenRow Gap="0.75rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Nom" Variant="Variant.Text" Style="width: 100%;">
+                        <RadzenTextBox Value="@Notification.ApprobateurNom" ReadOnly="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenFormField Text="Login" Variant="Variant.Text" Style="width: 100%;">
+                        <RadzenTextBox Value="@(Notification.ApprobateurLogin ?? "N/A")" ReadOnly="true" />
+                    </RadzenFormField>
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenFieldset>
+
+        @* Demandeur *@
+        <RadzenFieldset Text="Demandeur" Icon="person_outline">
+            <RadzenFormField Text="Nom du demandeur" Variant="Variant.Text" Style="width: 100%;">
+                <RadzenTextBox Value="@(Notification.DemandeurNom ?? "Non spécifié")" ReadOnly="true" />
+            </RadzenFormField>
+        </RadzenFieldset>
+
+        @* Motif du rejet *@
+        <RadzenFieldset Text="Motif du rejet" Icon="warning">
+            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Shade="Shade.Lighter" 
+                         AllowClose="false" ShowIcon="true" Size="AlertSize.Medium">
+                <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; line-height: 1.5;">
+                    @Notification.MotifRejet
+                </RadzenText>
+            </RadzenAlert>
+        </RadzenFieldset>
+
+        @* Footer *@
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" JustifyContent="JustifyContent.End"
+                     Style="padding-top: 0.5rem; border-top: 1px solid var(--gray-200);">
+            @if (!Notification.EstLue)
+            {
+                <RadzenButton Text="Marquer comme lu" Icon="check" 
+                              ButtonStyle="ButtonStyle.Success" Click="@MarkAsRead" />
+            }
+            <RadzenButton Text="Fermer" Variant="Variant.Outlined" 
+                          ButtonStyle="ButtonStyle.Light" Click="@Close" />
+        </RadzenStack>
+    }
+    else
+    {
+        <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 2rem;">
+            <RadzenIcon Icon="error_outline" Style="font-size: 3rem; color: var(--gray-400);" />
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500);">Notification non trouvée</RadzenText>
+        </RadzenStack>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter] public NotificationRejet? Notification { get; set; }
+    [Parameter] public EventCallback OnMarkedAsRead { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private async Task MarkAsRead()
+    {
+        await OnMarkedAsRead.InvokeAsync();
+    }
+
+    private async Task Close()
+    {
+        await OnClose.InvokeAsync();
+    }
+}

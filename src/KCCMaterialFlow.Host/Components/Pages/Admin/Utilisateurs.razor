@@ -1,0 +1,459 @@
+@page "/admin/utilisateurs"
+@attribute [Authorize(Roles = "Admin")]
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IUtilisateurService UtilisateurService
+@inject IRoleService RoleService
+@inject IAuditLogService AuditLogService
+@inject ICurrentUserService CurrentUserService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<PageTitle>Administration - Utilisateurs</PageTitle>
+
+<div style="padding: 1.5rem;">
+    <RadzenStack Gap="1rem">
+        @* En-tête KCC *@
+        <RadzenCard Style="background: linear-gradient(135deg, var(--kcc-primary) 0%, var(--kcc-primary-dark) 100%); color: white; border-radius: 12px;">
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: rgba(255,255,255,0.9);">
+                <RadzenIcon Icon="home" Style="font-size: 0.9rem; vertical-align: middle;" /> Accueil / Administration / Utilisateurs
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.H5" Style="color: white; margin: 0;">
+                <RadzenIcon Icon="people" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                Gestion des Utilisateurs
+            </RadzenText>
+        </RadzenCard>
+        
+        @* Statistiques rapides *@
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenCard Style="border-left: 4px solid var(--kcc-primary);">
+                    <RadzenText TextStyle="TextStyle.H4" Style="color: var(--kcc-primary); margin: 0;">@utilisateurs.Count</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Total Utilisateurs</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenCard Style="border-left: 4px solid var(--kcc-primary);">
+                    <RadzenText TextStyle="TextStyle.H4" Style="color: var(--kcc-primary); margin: 0;">@utilisateurs.Count(u => u.EstActif)</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Actifs</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenCard Style="border-left: 4px solid #f59e0b;">
+                    <RadzenText TextStyle="TextStyle.H4" Style="color: #f59e0b; margin: 0;">@utilisateurs.Count(u => !u.EstActif)</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Inactifs</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="3">
+                <RadzenCard Style="border-left: 4px solid var(--kcc-primary);">
+                    <RadzenText TextStyle="TextStyle.H4" Style="color: var(--kcc-primary); margin: 0;">@roles.Count</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Rôles</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+        
+        @* Boutons d'action *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" class="rz-mb-2">
+            <RadzenColumn>
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                    <RadzenButton Text="Actualiser" Icon="refresh" ButtonStyle="ButtonStyle.Light" 
+                                  Click="@LoadDataAsync" />
+                    <RadzenButton Text="Nouvel utilisateur" Icon="person_add" 
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Click="@ShowCreateDialog" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Filtres *@
+        <RadzenCard Style="background: var(--kcc-bg-subtle);">
+            <RadzenRow Gap="1rem" AlignItems="AlignItems.End">
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenFormField Text="Rechercher" Style="width: 100%;">
+                        <RadzenTextBox @bind-Value="@searchTerm" Placeholder="Nom, login, email..." 
+                                       Style="width: 100%;" @oninput="@OnSearchChanged" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenFormField Text="Département" Style="width: 100%;">
+                        <RadzenDropDown TValue="string" Data="@departements" @bind-Value="@filterDepartement"
+                                        AllowClear="true" Placeholder="Tous" Style="width: 100%;"
+                                        Change="@(args => LoadDataAsync())" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenFormField Text="Rôle" Style="width: 100%;">
+                        <RadzenDropDown TValue="int?" Data="@roles" @bind-Value="@filterRoleId"
+                                        TextProperty="NomRole" ValueProperty="IdRole"
+                                        AllowClear="true" Placeholder="Tous" Style="width: 100%;"
+                                        Change="@(args => LoadDataAsync())" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="2">
+                    <RadzenFormField Text="Statut" Style="width: 100%;">
+                        <RadzenDropDown TValue="bool?" Data="@statutOptions" @bind-Value="@filterActif"
+                                        TextProperty="Text" ValueProperty="Value"
+                                        AllowClear="true" Placeholder="Tous" Style="width: 100%;"
+                                        Change="@(args => LoadDataAsync())" />
+                    </RadzenFormField>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="3">
+                    <RadzenButton Text="Réinitialiser" Icon="clear" ButtonStyle="ButtonStyle.Light" 
+                                  Click="@ResetFilters" Style="width: 100%;" />
+                </RadzenColumn>
+            </RadzenRow>
+        </RadzenCard>
+
+        @* Grille des utilisateurs *@
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+            <RadzenDataGrid @ref="grid" Data="@filteredUtilisateurs" TItem="Utilisateur" 
+                            AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="20"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Utilisateur" Property="Login" Title="Login" Width="150px">
+                        <Template Context="user">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--kcc-bg-subtle); color: var(--kcc-primary); display: flex; align-items: center; justify-content: center; font-weight: 600;">
+                                    @(user.NomComplet?.FirstOrDefault().ToString().ToUpper() ?? "?")
+                                </div>
+                                <RadzenStack Gap="0">
+                                    <RadzenText TextStyle="TextStyle.Body2" FontWeight="FontWeight.SemiBold">@user.Login</RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Utilisateur" Property="NomComplet" Title="Nom complet" Width="200px" />
+                    
+                    <RadzenDataGridColumn TItem="Utilisateur" Property="Email" Title="Email" Width="200px">
+                        <Template Context="user">
+                            @if (!string.IsNullOrEmpty(user.Email))
+                            {
+                                <a href="mailto:@user.Email" style="color: var(--kcc-primary); text-decoration: none;">@user.Email</a>
+                            }
+                            else
+                            {
+                                <span style="color: #999;">-</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Utilisateur" Property="Departement" Title="Département" Width="150px">
+                        <Template Context="user">
+                            @if (!string.IsNullOrEmpty(user.Departement))
+                            {
+                                <RadzenBadge Text="@user.Departement" BadgeStyle="BadgeStyle.Info" IsPill="true" />
+                            }
+                            else
+                            {
+                                <span style="color: #999;">-</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Utilisateur" Property="IdRole" Title="Rôle" Width="130px">
+                        <Template Context="user">
+                            <RadzenBadge Text="@GetRoleDisplayName(user.IdRole)" BadgeStyle="@GetRoleBadgeStyle(user.RolePrincipal?.CodeRole ?? "")" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Utilisateur" Property="Fonction" Title="Fonction" Width="150px">
+                        <Template Context="user">
+                            @(user.Fonction ?? "-")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Utilisateur" Property="EstActif" Title="Statut" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="user">
+                            @if (user.EstActif)
+                            {
+                                <RadzenBadge Text="Actif" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                            }
+                            else
+                            {
+                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Utilisateur" Property="DerniereConnexion" Title="Dernière connexion" Width="140px">
+                        <Template Context="user">
+                            @if (user.DerniereConnexion.HasValue)
+                            {
+                                <span title="@user.DerniereConnexion.Value.ToString("dd/MM/yyyy HH:mm")">
+                                    @GetTimeAgo(user.DerniereConnexion.Value)
+                                </span>
+                            }
+                            else
+                            {
+                                <span style="color: #999;">Jamais</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Utilisateur" Title="Actions" Width="200px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="user">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => ShowEditDialog(user))" title="Modifier" />
+                                <RadzenButton Icon="vpn_key" Size="ButtonSize.Small"
+                                              ButtonStyle="ButtonStyle.Primary"
+                                              Click="@(() => ShowRolesDialog(user))" title="Gérer les rôles" />
+                                <RadzenButton Icon="task_alt" Size="ButtonSize.Small"
+                                              ButtonStyle="ButtonStyle.Info"
+                                              Click="@(() => ShowActivitesDialog(user))" title="Gérer les activités" />
+                                @if (user.EstActif)
+                                {
+                                    <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                                  Click="@(() => ToggleUserStatus(user))" title="Désactiver" />
+                                }
+                                else
+                                {
+                                    <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                                  Click="@(() => ToggleUserStatus(user))" title="Activer" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    </RadzenStack>
+</div>
+
+@code {
+    private RadzenDataGrid<Utilisateur>? grid;
+    private List<Utilisateur> utilisateurs = [];
+    private List<Utilisateur> filteredUtilisateurs = [];
+    private List<Role> roles = [];
+    private List<string> departements = [];
+    
+    private string searchTerm = string.Empty;
+    private string? filterDepartement;
+    private int? filterRoleId;
+    private bool? filterActif;
+    
+    private readonly List<object> statutOptions = 
+    [
+        new { Text = "Actif", Value = true },
+        new { Text = "Inactif", Value = false }
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            // Charger TOUS les utilisateurs (actifs et inactifs) pour l'admin
+            var allUsers = await UtilisateurService.GetAllAsync();
+            utilisateurs = allUsers.ToList();
+            
+            // Charger les rôles
+            roles = (await RoleService.GetAllAsync()).ToList();
+            
+            // Extraire les départements distincts
+            departements = utilisateurs
+                .Where(u => !string.IsNullOrEmpty(u.Departement))
+                .Select(u => u.Departement!)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList();
+            
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du chargement: {ex.Message}");
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        var query = utilisateurs.AsEnumerable();
+        
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.ToUpperInvariant();
+            query = query.Where(u => 
+                u.Login.ToUpperInvariant().Contains(term) ||
+                u.NomComplet.ToUpperInvariant().Contains(term) ||
+                (u.Email?.ToUpperInvariant().Contains(term) ?? false) ||
+                (u.Fonction?.ToUpperInvariant().Contains(term) ?? false));
+        }
+        
+        if (!string.IsNullOrWhiteSpace(filterDepartement))
+        {
+            query = query.Where(u => u.Departement == filterDepartement);
+        }
+        
+        if (filterRoleId.HasValue)
+        {
+            query = query.Where(u => u.IdRole == filterRoleId.Value);
+        }
+        
+        if (filterActif.HasValue)
+        {
+            query = query.Where(u => u.EstActif == filterActif.Value);
+        }
+        
+        filteredUtilisateurs = query.ToList();
+    }
+
+    private void OnSearchChanged(ChangeEventArgs args)
+    {
+        searchTerm = args.Value?.ToString() ?? string.Empty;
+        ApplyFilters();
+    }
+
+    private void ResetFilters()
+    {
+        searchTerm = string.Empty;
+        filterDepartement = null;
+        filterRoleId = null;
+        filterActif = null;
+        ApplyFilters();
+    }
+
+    private async Task ShowCreateDialog()
+    {
+        var result = await DialogService.OpenAsync<UtilisateurEditDialog>("Nouvel utilisateur",
+            new Dictionary<string, object>(),
+            new DialogOptions { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result is Utilisateur newUser)
+        {
+            // Recharger les données pour inclure le nouvel utilisateur
+            await LoadDataAsync();
+            
+            // Ouvrir automatiquement le dialogue d'activités pour le nouvel utilisateur
+            var activiteResult = await DialogService.OpenAsync<UtilisateurActivitesDialog>("Assigner les activités",
+                new Dictionary<string, object> { { "Utilisateur", newUser } },
+                new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
+            
+            if (activiteResult == true)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Succès", 
+                    $"Utilisateur '{newUser.NomComplet}' créé et activités assignées");
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Info, "Info", 
+                    $"Utilisateur '{newUser.NomComplet}' créé. Pensez à lui assigner des activités.");
+            }
+        }
+        else if (result == true)
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task ShowEditDialog(Utilisateur user)
+    {
+        var result = await DialogService.OpenAsync<UtilisateurEditDialog>("Modifier l'utilisateur",
+            new Dictionary<string, object> { { "Utilisateur", user } },
+            new DialogOptions { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Utilisateur modifié avec succès");
+        }
+    }
+
+    private async Task ShowRolesDialog(Utilisateur user)
+    {
+        var result = await DialogService.OpenAsync<UtilisateurRolesDialog>("Gérer les rôles",
+            new Dictionary<string, object> { { "Utilisateur", user } },
+            new DialogOptions { Width = "500px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Rôles mis à jour avec succès");
+        }
+    }
+
+    private async Task ShowActivitesDialog(Utilisateur user)
+    {
+        var result = await DialogService.OpenAsync<UtilisateurActivitesDialog>("Gérer les activités",
+            new Dictionary<string, object> { { "Utilisateur", user } },
+            new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Activités mises à jour avec succès");
+        }
+    }
+
+    private async Task ToggleUserStatus(Utilisateur user)
+    {
+        var action = user.EstActif ? "désactiver" : "activer";
+        var confirmed = await DialogService.Confirm(
+            $"Voulez-vous vraiment {action} l'utilisateur {user.NomComplet} ?",
+            $"Confirmer {action}",
+            new ConfirmOptions { OkButtonText = "Oui", CancelButtonText = "Non" });
+        
+        if (confirmed == true)
+        {
+            try
+            {
+                user.EstActif = !user.EstActif;
+                user.DateModification = DateTime.Now;
+                await UtilisateurService.UpsertAsync(user);
+                
+                await AuditLogService.LogAsync(
+                    CurrentUserService.GetUserLogin(),
+                    CurrentUserService.GetUserDisplayName(),
+                    user.EstActif ? "Activate" : "Deactivate",
+                    "Utilisateur",
+                    $"Utilisateur {user.NomComplet} {(user.EstActif ? "activé" : "désactivé")}",
+                    user.IdUtilisateur.ToString(),
+                    "Utilisateur");
+                
+                await LoadDataAsync();
+                NotificationService.Notify(NotificationSeverity.Success, "Succès", $"Utilisateur {(user.EstActif ? "activé" : "désactivé")}");
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+
+    private static BadgeStyle GetRoleBadgeStyle(string? role) => role switch
+    {
+        "Admin" => BadgeStyle.Danger,
+        "GM" => BadgeStyle.Secondary,
+        "Superviseur" => BadgeStyle.Warning,
+        "OPJ" => BadgeStyle.Danger,
+        "IT" => BadgeStyle.Info,
+        "Environnement" => BadgeStyle.Success,
+        "Identification" => BadgeStyle.Info,
+        "Barriere" => BadgeStyle.Primary,
+        "Investigation" => BadgeStyle.Secondary,
+        _ => BadgeStyle.Light
+    };
+
+    private string GetRoleDisplayName(int idRole)
+    {
+        var role = roles.FirstOrDefault(r => r.IdRole == idRole);
+        return role?.NomRole ?? "-";
+    }
+
+    private static string GetTimeAgo(DateTime date)
+    {
+        var diff = DateTime.Now - date;
+        if (diff.TotalMinutes < 1) return "À l'instant";
+        if (diff.TotalMinutes < 60) return $"Il y a {(int)diff.TotalMinutes} min";
+        if (diff.TotalHours < 24) return $"Il y a {(int)diff.TotalHours}h";
+        if (diff.TotalDays < 7) return $"Il y a {(int)diff.TotalDays}j";
+        return date.ToString("dd/MM/yyyy");
+    }
+}

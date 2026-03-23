@@ -1,0 +1,273 @@
+@page "/admin/roles"
+@attribute [Authorize(Roles = "Admin")]
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@using Microsoft.AspNetCore.Authorization
+@inject IRoleService RoleService
+@inject IPermissionService PermissionService
+@inject IAuditLogService AuditLogService
+@inject ICurrentUserService CurrentUserService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<PageTitle>Administration - Rôles</PageTitle>
+
+<div style="padding: 1.5rem;">
+    <RadzenStack Gap="1.5rem">
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn>
+                <RadzenBreadCrumb>
+                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
+                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
+                    <RadzenBreadCrumbItem Text="Rôles" Icon="admin_panel_settings" />
+                </RadzenBreadCrumb>
+                <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
+                    <RadzenIcon Icon="admin_panel_settings" Style="margin-right: 0.5rem; vertical-align: middle;" />
+                    Gestion des Rôles et Permissions
+                </RadzenText>
+            </RadzenColumn>
+            <RadzenColumn>
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                    <RadzenButton Text="Actualiser" Icon="refresh" ButtonStyle="ButtonStyle.Light" 
+                                  Click="@LoadDataAsync" />
+                    <RadzenButton Text="Nouveau rôle" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                                  Click="@ShowCreateDialog" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Grille des rôles *@
+        <RadzenCard Variant="Variant.Flat">
+            <RadzenDataGrid @ref="grid" Data="@roles" TItem="Role" 
+                            AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="15"
+                            PagerHorizontalAlign="HorizontalAlign.Center"
+                            Style="border: none;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="Role" Property="CodeRole" Title="Code" Width="150px">
+                        <Template Context="role">
+                            <RadzenBadge Text="@role.CodeRole" BadgeStyle="@GetRoleBadgeStyle(role)" IsPill="true" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Role" Property="NomRole" Title="Nom" Width="200px">
+                        <Template Context="role">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <span>@role.NomRole</span>
+                                @if (role.EstSysteme)
+                                {
+                                    <RadzenBadge Text="Système" BadgeStyle="BadgeStyle.Info" IsPill="true" Style="font-size: 0.65rem;" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Role" Property="Description" Title="Description">
+                        <Template Context="role">
+                            @(role.Description ?? "-")
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Role" Property="NiveauPriorite" Title="Priorité" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="role">
+                            <RadzenBadge Text="@role.NiveauPriorite.ToString()" 
+                                         BadgeStyle="@(role.NiveauPriorite >= 50 ? BadgeStyle.Warning : BadgeStyle.Secondary)" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Role" Title="Permissions" Width="250px" Sortable="false">
+                        <Template Context="role">
+                            @{
+                                var perms = GetRolePermissions(role.IdRole);
+                            }
+                            @if (perms.Count > 0)
+                            {
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" Wrap="FlexWrap.Wrap">
+                                    @foreach (var perm in perms.Take(3))
+                                    {
+                                        <RadzenBadge Text="@perm.CodePermission" BadgeStyle="BadgeStyle.Light" IsPill="true" Style="font-size: 0.65rem;" />
+                                    }
+                                    @if (perms.Count > 3)
+                                    {
+                                        <RadzenBadge Text="@($"+{perms.Count - 3}")" BadgeStyle="BadgeStyle.Secondary" IsPill="true" Style="font-size: 0.65rem;" />
+                                    }
+                                </RadzenStack>
+                            }
+                            else
+                            {
+                                <span style="color: #999;">Aucune</span>
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Role" Property="EstActif" Title="Statut" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="role">
+                            @if (role.EstActif)
+                            {
+                                <RadzenBadge Text="Actif" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                            }
+                            else
+                            {
+                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    
+                    <RadzenDataGridColumn TItem="Role" Title="Actions" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="role">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => ShowEditDialog(role))" title="Modifier"
+                                              Disabled="@role.EstSysteme" />
+                                @if (!role.EstSysteme)
+                                {
+                                    @if (role.EstActif)
+                                    {
+                                        <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                                      Click="@(() => ToggleStatus(role))" title="Désactiver" />
+                                    }
+                                    else
+                                    {
+                                        <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                                      Click="@(() => ToggleStatus(role))" title="Activer" />
+                                    }
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+        
+        @* Légende des permissions *@
+        <RadzenCard Variant="Variant.Flat" Style="padding: 1rem;">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold" Style="margin-bottom: 0.5rem;">
+                Permissions disponibles
+            </RadzenText>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                @foreach (var perm in allPermissions)
+                {
+                    <RadzenBadge Text="@perm.CodePermission" BadgeStyle="BadgeStyle.Light" IsPill="true" Style="font-size: 0.7rem;" title="@perm.NomPermission" />
+                }
+            </RadzenStack>
+        </RadzenCard>
+    </RadzenStack>
+</div>
+
+@code {
+    private RadzenDataGrid<Role>? grid;
+    private List<Role> roles = [];
+    private List<Permission> allPermissions = [];
+    private Dictionary<int, List<Permission>> rolePermissionsMap = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            roles = (await RoleService.GetAllAsync()).ToList();
+            allPermissions = (await PermissionService.GetAllAsync()).ToList();
+            
+            // Charger les permissions de chaque rôle
+            rolePermissionsMap.Clear();
+            foreach (var role in roles)
+            {
+                var perms = await PermissionService.GetPermissionsForRoleAsync(role.IdRole);
+                rolePermissionsMap[role.IdRole] = perms.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du chargement: {ex.Message}");
+        }
+    }
+
+    private List<Permission> GetRolePermissions(int roleId)
+    {
+        return rolePermissionsMap.TryGetValue(roleId, out var perms) ? perms : [];
+    }
+
+    private async Task ShowCreateDialog()
+    {
+        var result = await DialogService.OpenAsync<RoleEditDialog>("Nouveau rôle",
+            new Dictionary<string, object>(),
+            new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Rôle créé avec succès");
+        }
+    }
+
+    private async Task ShowEditDialog(Role role)
+    {
+        if (role.EstSysteme)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Information", "Les rôles système ne peuvent pas être modifiés");
+            return;
+        }
+        
+        var result = await DialogService.OpenAsync<RoleEditDialog>("Modifier le rôle",
+            new Dictionary<string, object> { { "Role", role } },
+            new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
+        
+        if (result == true)
+        {
+            await LoadDataAsync();
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Rôle modifié avec succès");
+        }
+    }
+
+    private async Task ToggleStatus(Role role)
+    {
+        if (role.EstSysteme)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Information", "Les rôles système ne peuvent pas être modifiés");
+            return;
+        }
+        
+        var action = role.EstActif ? "désactiver" : "activer";
+        var confirmed = await DialogService.Confirm(
+            $"Voulez-vous vraiment {action} le rôle {role.NomRole} ?",
+            $"Confirmer {action}",
+            new ConfirmOptions { OkButtonText = "Oui", CancelButtonText = "Non" });
+        
+        if (confirmed == true)
+        {
+            try
+            {
+                await RoleService.DeleteAsync(role.IdRole);
+                
+                await AuditLogService.LogAsync(
+                    CurrentUserService.GetUserLogin(),
+                    CurrentUserService.GetUserDisplayName(),
+                    role.EstActif ? "Deactivate" : "Activate",
+                    "Role",
+                    $"Rôle {role.NomRole} {(role.EstActif ? "désactivé" : "activé")}",
+                    role.IdRole.ToString(),
+                    "Role");
+                
+                await LoadDataAsync();
+                NotificationService.Notify(NotificationSeverity.Success, "Succès", 
+                    $"Rôle {(role.EstActif ? "désactivé" : "activé")}");
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+
+    private static BadgeStyle GetRoleBadgeStyle(Role role) => role.CodeRole switch
+    {
+        "ADMIN" => BadgeStyle.Danger,
+        "APPROBATEUR" => BadgeStyle.Warning,
+        "AGENT_SECURITE" => BadgeStyle.Info,
+        _ => BadgeStyle.Primary
+    };
+}

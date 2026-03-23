@@ -1,0 +1,105 @@
+@* BSM-069: Compte à rebours date retour prêt *@
+
+<div class="pret-countdown @GetCountdownClass()">
+    <div class="countdown-icon">
+        <RadzenIcon Icon="@GetIcon()" Style="font-size: 2rem;" />
+    </div>
+    <div class="countdown-content">
+        <div class="countdown-value">@GetCountdownText()</div>
+        <div class="countdown-label">@GetLabel()</div>
+        @if (ShowDateRetour)
+        {
+            <div class="countdown-date">Retour prévu: @DateRetourPrevue.ToString("dd/MM/yyyy")</div>
+        }
+    </div>
+    @if (ShowProgressBar && !EstRetourne)
+    {
+        <div class="countdown-progress">
+            <RadzenProgressBar Value="@GetProgressValue()" Max="100" ShowValue="false" 
+                Style="@GetProgressStyle()" />
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public DateTime DateRetourPrevue { get; set; }
+    [Parameter] public DateTime? DateRetourEffective { get; set; }
+    [Parameter] public bool EstRetourne { get; set; }
+    [Parameter] public bool ShowDateRetour { get; set; } = true;
+    [Parameter] public bool ShowProgressBar { get; set; } = true;
+    [Parameter] public DateTime? DateSortie { get; set; }
+    [Parameter] public bool Compact { get; set; } = false;
+
+    private int JoursRestants => (DateRetourPrevue.Date - DateTime.Today).Days;
+
+    private string GetCountdownClass()
+    {
+        if (EstRetourne) return "returned";
+        if (JoursRestants <= -7) return "critical";
+        if (JoursRestants < 0) return "overdue";
+        if (JoursRestants == 0) return "today";
+        if (JoursRestants <= 3) return "warning";
+        if (JoursRestants <= 7) return "soon";
+        return "normal";
+    }
+
+    private string GetIcon()
+    {
+        if (EstRetourne) return "check_circle";
+        if (JoursRestants < 0) return "error";
+        if (JoursRestants == 0) return "today";
+        if (JoursRestants <= 3) return "schedule";
+        return "event";
+    }
+
+    private string GetCountdownText()
+    {
+        if (EstRetourne)
+        {
+            if (DateRetourEffective.HasValue)
+            {
+                var retard = (DateRetourEffective.Value.Date - DateRetourPrevue.Date).Days;
+                return retard > 0 ? $"Retourné (+{retard}j)" : "Retourné";
+            }
+            return "Retourné";
+        }
+
+        if (JoursRestants < -1) return $"{-JoursRestants} jours de retard";
+        if (JoursRestants == -1) return "1 jour de retard";
+        if (JoursRestants == 0) return "Aujourd'hui";
+        if (JoursRestants == 1) return "Demain";
+        return $"{JoursRestants} jours";
+    }
+
+    private string GetLabel()
+    {
+        if (EstRetourne) return "Prêt clôturé";
+        if (JoursRestants < 0) return "⚠️ EN RETARD";
+        if (JoursRestants == 0) return "🔔 RETOUR AUJOURD'HUI";
+        if (JoursRestants <= 3) return "⏰ Bientôt";
+        return "Restants";
+    }
+
+    private double GetProgressValue()
+    {
+        if (!DateSortie.HasValue || EstRetourne) return 100;
+
+        var totalDays = (DateRetourPrevue.Date - DateSortie.Value.Date).Days;
+        if (totalDays <= 0) return 100;
+
+        var elapsedDays = (DateTime.Today - DateSortie.Value.Date).Days;
+        var progress = (elapsedDays * 100.0) / totalDays;
+
+        return Math.Min(100, Math.Max(0, progress));
+    }
+
+    private string GetProgressStyle()
+    {
+        string color;
+        if (JoursRestants < 0) color = "#dc3545";
+        else if (JoursRestants == 0) color = "#fd7e14";
+        else if (JoursRestants <= 3) color = "#ffc107";
+        else color = "#28a745";
+        return $"height: 6px; --rz-primary: {color};";
+    }
+}

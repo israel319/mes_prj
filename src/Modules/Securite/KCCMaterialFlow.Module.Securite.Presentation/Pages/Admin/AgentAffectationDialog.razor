@@ -1,0 +1,173 @@
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
+    <RadzenStack Gap="1rem">
+        @* Agent Info *@
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeMD="6">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                        Matricule Agent <span style="color: #e31b23;">*</span>
+                    </RadzenText>
+                    <RadzenTextBox @bind-Value="@model.AgentMatricule" Placeholder="SEC-001" 
+                                   Style="width: 100%; border-radius: 6px; text-transform: uppercase;" />
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="6">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                        Login <span style="color: #e31b23;">*</span>
+                    </RadzenText>
+                    <RadzenTextBox @bind-Value="@model.AgentLogin" Placeholder="jdupont" 
+                                   Style="width: 100%; border-radius: 6px;" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Nom complet *@
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                Nom Complet <span style="color: #e31b23;">*</span>
+            </RadzenText>
+            <RadzenTextBox @bind-Value="@model.AgentNom" Placeholder="Jean Dupont" 
+                           Style="width: 100%; border-radius: 6px;" />
+        </RadzenStack>
+
+        @* Barrière et Vacation *@
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeMD="7">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                        Barrière <span style="color: #e31b23;">*</span>
+                    </RadzenText>
+                    <RadzenDropDown @bind-Value="@model.BarriereId" Data="@Barrieres" TextProperty="NomBarriere" ValueProperty="IdBarriere"
+                                    Placeholder="Sélectionner une barrière" Style="width: 100%; border-radius: 6px;" />
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="5">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Vacation</RadzenText>
+                    <RadzenDropDown @bind-Value="@model.Vacation" Data="@vacationOptions" 
+                                    Style="width: 100%; border-radius: 6px;" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Dates *@
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="12" SizeMD="6">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                        Date Début <span style="color: #e31b23;">*</span>
+                    </RadzenText>
+                    <RadzenDatePicker @bind-Value="@model.DateDebut" DateFormat="dd/MM/yyyy" 
+                                      Style="width: 100%; border-radius: 6px;" />
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="12" SizeMD="6">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Date Fin (optionnel)</RadzenText>
+                    <RadzenDatePicker @bind-Value="@model.DateFin" DateFormat="dd/MM/yyyy" 
+                                      Style="width: 100%; border-radius: 6px;" />
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Info permanence *@
+        <RadzenCard Variant="Variant.Flat" Style="background: #f8fafc; border-radius: 8px; padding: 0.75rem;">
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                <RadzenIcon Icon="info" Style="vertical-align: middle; font-size: 0.9rem;" />
+                Laissez la date de fin vide pour une affectation permanente
+            </RadzenText>
+        </RadzenCard>
+
+        @* Statut *@
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+            <RadzenSwitch @bind-Value="@model.EstActif" />
+            <RadzenText>Affectation active</RadzenText>
+        </RadzenStack>
+    </RadzenStack>
+
+    @* Actions *@
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="margin-top: 1rem;">
+        <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@(isNew ? "Créer" : "Enregistrer")" Icon="save" ButtonStyle="ButtonStyle.Danger" 
+                      Style="background-color: #e31b23;" Click="@Submit" IsBusy="@isSaving" 
+                      Disabled="@(!IsValid)" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public AgentsBarriere.AgentAffectation? Affectation { get; set; }
+    [Parameter] public List<Barriere> Barrieres { get; set; } = new();
+
+    private AgentsBarriere.AgentAffectation model = new();
+    private bool isNew = true;
+    private bool isSaving = false;
+
+    private readonly List<string> vacationOptions = new() { "Jour", "Nuit", "Mixte" };
+
+    private bool IsValid => !string.IsNullOrWhiteSpace(model.AgentLogin) && 
+                            !string.IsNullOrWhiteSpace(model.AgentNom) &&
+                            !string.IsNullOrWhiteSpace(model.AgentMatricule) &&
+                            model.BarriereId > 0;
+
+    protected override void OnInitialized()
+    {
+        if (Affectation != null)
+        {
+            isNew = false;
+            model = new AgentsBarriere.AgentAffectation
+            {
+                Id = Affectation.Id,
+                AgentLogin = Affectation.AgentLogin,
+                AgentNom = Affectation.AgentNom,
+                AgentMatricule = Affectation.AgentMatricule,
+                BarriereId = Affectation.BarriereId,
+                BarriereNom = Affectation.BarriereNom,
+                Vacation = Affectation.Vacation,
+                DateDebut = Affectation.DateDebut,
+                DateFin = Affectation.DateFin,
+                EstActif = Affectation.EstActif
+            };
+        }
+        else
+        {
+            model = new AgentsBarriere.AgentAffectation
+            {
+                DateDebut = DateTime.Today,
+                Vacation = "Jour",
+                EstActif = true
+            };
+        }
+    }
+
+    private void Submit()
+    {
+        if (!IsValid)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Veuillez remplir tous les champs obligatoires");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            model.AgentMatricule = model.AgentMatricule.ToUpperInvariant();
+            var barriere = Barrieres.FirstOrDefault(b => b.IdBarriere == model.BarriereId);
+            model.BarriereNom = barriere?.NomBarriere ?? "";
+            
+            DialogService.Close(model);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+}

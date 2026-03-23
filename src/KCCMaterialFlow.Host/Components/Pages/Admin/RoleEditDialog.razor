@@ -1,0 +1,173 @@
+@using KCCMaterialFlow.Module.Shared.Entities
+@using KCCMaterialFlow.Module.Shared.Services
+@inject IRoleService RoleService
+@inject IPermissionService PermissionService
+@inject DialogService DialogService
+
+<RadzenStack Gap="1rem">
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeMD="4">
+            <RadzenFormField Text="Code *" Style="width: 100%;">
+                <RadzenTextBox @bind-Value="@model.CodeRole" Style="width: 100%;" 
+                               Placeholder="ROLE_CODE" MaxLength="50" />
+            </RadzenFormField>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="8">
+            <RadzenFormField Text="Nom du rôle *" Style="width: 100%;">
+                <RadzenTextBox @bind-Value="@model.NomRole" Style="width: 100%;" />
+            </RadzenFormField>
+        </RadzenColumn>
+    </RadzenRow>
+    
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12">
+            <RadzenFormField Text="Description" Style="width: 100%;">
+                <RadzenTextArea @bind-Value="@model.Description" Style="width: 100%;" Rows="2" />
+            </RadzenFormField>
+        </RadzenColumn>
+    </RadzenRow>
+    
+    <RadzenRow Gap="1rem">
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenFormField Text="Niveau de priorité" Style="width: 100%;">
+                <RadzenNumeric @bind-Value="@model.NiveauPriorite" Style="width: 100%;" Min="0" Max="100" />
+            </RadzenFormField>
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">Plus le niveau est élevé, plus le rôle a de privilèges</RadzenText>
+        </RadzenColumn>
+        <RadzenColumn Size="12" SizeMD="6">
+            <RadzenStack Style="padding-top: 1.5rem;">
+                <RadzenCheckBox @bind-Value="@model.EstActif" TValue="bool" />
+                <RadzenLabel Text="Rôle actif" Style="margin-left: 0.5rem;" />
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+    
+    <RadzenFieldset Text="Permissions">
+        @if (isLoading)
+        {
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Small" />
+        }
+        else
+        {
+            @foreach (var group in availablePermissions.GroupBy(p => p.Categorie ?? "Autre"))
+            {
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin-top: 0.5rem; margin-bottom: 0.25rem; color: #555;">
+                    @group.Key
+                </RadzenText>
+                <RadzenStack Gap="0.5rem" Style="margin-bottom: 0.5rem;">
+                    @foreach (var perm in group)
+                    {
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <RadzenCheckBox Value="@IsPermissionSelected(perm.IdPermission)" TValue="bool"
+                                            ValueChanged="@(val => TogglePermission(perm.IdPermission, val))" />
+                            <RadzenLabel Text="@perm.CodePermission" Style="margin-left: 0.25rem; font-weight: 500;" />
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #666; margin-left: 0.5rem;">
+                                @perm.NomPermission
+                            </RadzenText>
+                        </RadzenStack>
+                    }
+                </RadzenStack>
+            }
+        }
+    </RadzenFieldset>
+    
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" class="rz-mt-4">
+        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@(isEditMode ? "Enregistrer" : "Créer")" ButtonStyle="ButtonStyle.Primary" 
+                      Click="@Save" Disabled="@(!IsValid)" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public Role? Role { get; set; }
+    
+    private Role model = new();
+    private bool isEditMode;
+    private bool isLoading = true;
+    private List<Permission> availablePermissions = [];
+    private HashSet<int> selectedPermissionIds = new();
+    
+    private bool IsValid => !string.IsNullOrWhiteSpace(model.CodeRole) && 
+                           !string.IsNullOrWhiteSpace(model.NomRole);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Charger les permissions depuis la base de données
+        availablePermissions = (await PermissionService.GetAllAsync()).ToList();
+        
+        // Initialiser les permissions sélectionnées
+        foreach (var perm in availablePermissions)
+        {
+            // Pas sélectionné par défaut
+        }
+        
+        if (Role != null)
+        {
+            isEditMode = true;
+            model = new Role
+            {
+                IdRole = Role.IdRole,
+                CodeRole = Role.CodeRole,
+                NomRole = Role.NomRole,
+                Description = Role.Description,
+                NiveauPriorite = Role.NiveauPriorite,
+                EstActif = Role.EstActif,
+                EstSysteme = Role.EstSysteme,
+                DateCreation = Role.DateCreation
+            };
+            
+            // Charger les permissions existantes du rôle
+            var rolePerms = await PermissionService.GetPermissionsForRoleAsync(Role.IdRole);
+            selectedPermissionIds = rolePerms.Select(p => p.IdPermission).ToHashSet();
+        }
+        else
+        {
+            model.EstActif = true;
+        }
+        
+        isLoading = false;
+    }
+
+    private bool IsPermissionSelected(int permissionId) => selectedPermissionIds.Contains(permissionId);
+
+    private void TogglePermission(int permissionId, bool selected)
+    {
+        if (selected)
+            selectedPermissionIds.Add(permissionId);
+        else
+            selectedPermissionIds.Remove(permissionId);
+    }
+
+    private async Task Save()
+    {
+        if (!IsValid) return;
+        
+        try
+        {
+            if (isEditMode)
+            {
+                await RoleService.UpdateAsync(model);
+                // Mettre à jour les permissions du rôle
+                await PermissionService.UpdateRolePermissionsAsync(model.IdRole, selectedPermissionIds);
+            }
+            else
+            {
+                var created = await RoleService.CreateAsync(model);
+                // Attribuer les permissions au nouveau rôle
+                await PermissionService.UpdateRolePermissionsAsync(created.IdRole, selectedPermissionIds);
+            }
+            
+            DialogService.Close(true);
+        }
+        catch (Exception ex)
+        {
+            await DialogService.Alert($"Erreur lors de l'enregistrement: {ex.Message}", "Erreur");
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(false);
+    }
+}

@@ -1,0 +1,387 @@
+@page "/securite/anomalies/{Id:int}"
+@attribute [Authorize(Roles = "Admin,Security,OPJ,Identification,Superviseur")]
+@inject IAnomalieService AnomalieService
+@inject IScanService ScanService
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Détail Anomalie - KCC Material Flow</PageTitle>
+
+<div style="background-color: #f4f7fa; min-height: 100vh; padding: 2rem;">
+    @if (isLoading)
+    {
+        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 300px;">
+            <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Large" />
+            <RadzenText>Chargement...</RadzenText>
+        </RadzenStack>
+    }
+    else if (anomalie == null)
+    {
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 2rem; text-align: center;">
+            <RadzenIcon Icon="search_off" Style="font-size: 3rem; color: #a0aec0;" />
+            <RadzenText TextStyle="TextStyle.H5" Style="color: #718096; margin-top: 1rem;">Anomalie non trouvée</RadzenText>
+            <RadzenButton Text="Retour à la liste" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" 
+                          Style="margin-top: 1rem;" Click="@GoBack" />
+        </RadzenCard>
+    }
+    else
+    {
+        <RadzenStack Gap="1.5rem">
+            @* En-tête *@
+            <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                <RadzenColumn Size="12" SizeMD="8">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem">
+                        <RadzenButton Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" 
+                                      Click="@GoBack" Style="border-radius: 50%;" />
+                        <RadzenStack Gap="0">
+                            <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" Style="color: #1a202c;">
+                                Anomalie #@anomalie.IdAnomalie
+                            </RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                                Signalée le @anomalie.DateSignalement.ToString("dddd dd MMMM yyyy à HH:mm")
+                            </RadzenText>
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="4" class="rz-text-align-right">
+                    @if (!anomalie.EstTraitee)
+                    {
+                        <RadzenButton Text="Traiter" Icon="check_circle" ButtonStyle="ButtonStyle.Success" 
+                                      Style="border-radius: 8px;" Click="@TraiterAnomalie" />
+                    }
+                    else
+                    {
+                        <RadzenButton Text="Réouvrir" Icon="refresh" ButtonStyle="ButtonStyle.Warning" 
+                                      Style="border-radius: 8px;" Click="@ReouvririAnomalie" />
+                    }
+                </RadzenColumn>
+            </RadzenRow>
+
+            @* Statut et Gravité *@
+            <RadzenRow Gap="1rem">
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenCard Variant="Variant.Flat" Style="@($"border-radius: 12px; padding: 1.5rem; border-left: 5px solid {GetGraviteColor(anomalie.NiveauGravite)};")">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">NIVEAU DE GRAVITÉ</RadzenText>
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <RadzenIcon Icon="@GetGraviteIcon(anomalie.NiveauGravite)" Style="@($"font-size: 2rem; color: {GetGraviteColor(anomalie.NiveauGravite)};")" />
+                                <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" Style="@($"color: {GetGraviteColor(anomalie.NiveauGravite)};")">
+                                    @GetGraviteLabel(anomalie.NiveauGravite)
+                                </RadzenText>
+                            </RadzenStack>
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6">
+                    <RadzenCard Variant="Variant.Flat" Style="@($"border-radius: 12px; padding: 1.5rem; background: {(anomalie.EstTraitee ? "#f0fff4" : "#fffbeb")};")">
+                        <RadzenStack Gap="0.5rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">STATUT</RadzenText>
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <RadzenIcon Icon="@(anomalie.EstTraitee ? "check_circle" : "pending")" 
+                                            Style="@($"font-size: 2rem; color: {(anomalie.EstTraitee ? "#48bb78" : "#ed8936")};")" />
+                                <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" Style="@($"color: {(anomalie.EstTraitee ? "#2f855a" : "#c05621")};")">
+                                    @(anomalie.EstTraitee ? "Traitée" : "En attente")
+                                </RadzenText>
+                            </RadzenStack>
+                            @if (anomalie.EstTraitee && anomalie.DateTraitement.HasValue)
+                            {
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                                    Traitée le @anomalie.DateTraitement.Value.ToString("dd/MM/yyyy HH:mm")
+                                </RadzenText>
+                            }
+                        </RadzenStack>
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+
+            @* Détails de l'anomalie *@
+            <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
+                <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 1rem;">
+                    <RadzenIcon Icon="info" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                    Détails de l'Anomalie
+                </RadzenText>
+                <RadzenRow Gap="1.5rem">
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenStack Gap="1rem">
+                            <RadzenStack Gap="0.125rem">
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Type d'Anomalie</RadzenText>
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenIcon Icon="@GetTypeIcon(anomalie.TypeAnomalie)" Style="color: #ed8936;" />
+                                    <RadzenText FontWeight="FontWeight.SemiBold">@GetTypeLabel(anomalie.TypeAnomalie)</RadzenText>
+                                </RadzenStack>
+                            </RadzenStack>
+                            @if (!string.IsNullOrEmpty(anomalie.NumeroReferenceBon))
+                            {
+                                <RadzenStack Gap="0.125rem">
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Document Concerné</RadzenText>
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                        <RadzenBadge Text="@anomalie.TypeBon" BadgeStyle="@(anomalie.TypeBon == "BEM" ? BadgeStyle.Info : BadgeStyle.Success)" IsPill="true" />
+                                        <RadzenText FontWeight="FontWeight.Bold" Style="font-family: monospace; color: #e31b23;">
+                                            @anomalie.NumeroReferenceBon
+                                        </RadzenText>
+                                        <RadzenButton Icon="open_in_new" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                      Click="@VoirBon" title="Voir le document" />
+                                    </RadzenStack>
+                                </RadzenStack>
+                            }
+                            @if (anomalie.Barriere != null)
+                            {
+                                <RadzenStack Gap="0.125rem">
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Barrière</RadzenText>
+                                    <RadzenText FontWeight="FontWeight.SemiBold">
+                                        <RadzenIcon Icon="location_on" Style="vertical-align: middle; margin-right: 0.25rem; color: #4299e1;" />
+                                        @anomalie.Barriere.NomBarriere
+                                    </RadzenText>
+                                </RadzenStack>
+                            }
+                        </RadzenStack>
+                    </RadzenColumn>
+                    <RadzenColumn Size="12" SizeMD="6">
+                        <RadzenStack Gap="0.125rem">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Description</RadzenText>
+                            <RadzenText Style="color: #4a5568; line-height: 1.6;">
+                                @anomalie.Description
+                            </RadzenText>
+                        </RadzenStack>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenCard>
+
+            @* SEC-035: Bon Associé *@
+            @if (anomalie.BonId.HasValue && !string.IsNullOrEmpty(anomalie.TypeBon))
+            {
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
+                    <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 1rem;">
+                        <RadzenIcon Icon="description" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                        Document Associé
+                    </RadzenText>
+                    <RadzenRow Gap="1rem">
+                        <RadzenColumn Size="12" SizeMD="4">
+                            <RadzenStack AlignItems="AlignItems.Center" Style="padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                                <RadzenIcon Icon="@(anomalie.TypeBon == "BEM" ? "login" : "logout")" Style="font-size: 2.5rem; color: #4299e1;" />
+                                <RadzenText FontWeight="FontWeight.Bold">@(anomalie.TypeBon == "BEM" ? "Bon d'Entrée" : "Bon de Sortie")</RadzenText>
+                                <RadzenText Style="font-family: monospace; color: #e31b23;">@anomalie.NumeroReferenceBon</RadzenText>
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="12" SizeMD="8">
+                            <RadzenStack Gap="0.75rem">
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
+                                    Ce document a déclenché l'anomalie lors d'un contrôle de sécurité.
+                                </RadzenText>
+                                <RadzenButton Text="Voir le Document Complet" Icon="open_in_new" ButtonStyle="ButtonStyle.Info" Click="@VoirBon" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCard>
+            }
+
+            @* Scan Associé *@
+            @if (anomalie.ScanId.HasValue && scan != null)
+            {
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
+                    <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 1rem;">
+                        <RadzenIcon Icon="qr_code_scanner" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                        Scan Associé
+                    </RadzenText>
+                    <RadzenRow Gap="1rem">
+                        <RadzenColumn Size="6" SizeMD="3">
+                            <RadzenStack Gap="0.125rem">
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Date/Heure</RadzenText>
+                                <RadzenText FontWeight="FontWeight.SemiBold">@scan.DateHeureScan.ToString("dd/MM/yy HH:mm")</RadzenText>
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6" SizeMD="3">
+                            <RadzenStack Gap="0.125rem">
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Barrière</RadzenText>
+                                <RadzenText FontWeight="FontWeight.SemiBold">@(scan.Barriere?.NomBarriere ?? "N/A")</RadzenText>
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6" SizeMD="3">
+                            <RadzenStack Gap="0.125rem">
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Agent</RadzenText>
+                                <RadzenText FontWeight="FontWeight.SemiBold">@(scan.AgentNom ?? scan.AgentLogin)</RadzenText>
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6" SizeMD="3">
+                            <RadzenStack Gap="0.125rem">
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Statut Scan</RadzenText>
+                                <RadzenBadge Text="@scan.StatutScan" BadgeStyle="@(scan.StatutScan == "Valid" ? BadgeStyle.Success : BadgeStyle.Danger)" IsPill="true" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenCard>
+            }
+
+            @* Résolution (si traitée) *@
+            @if (anomalie.EstTraitee && !string.IsNullOrEmpty(anomalie.Resolution))
+            {
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; background: #f0fff4; border: 1px solid #9ae6b4;">
+                    <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #2f855a; margin-bottom: 1rem;">
+                        <RadzenIcon Icon="check_circle" Style="vertical-align: middle; margin-right: 0.5rem;" />
+                        Résolution
+                    </RadzenText>
+                    <RadzenStack Gap="0.75rem">
+                        <RadzenText Style="color: #276749; line-height: 1.6;">
+                            @anomalie.Resolution
+                        </RadzenText>
+                        @if (!string.IsNullOrEmpty(anomalie.ActionsCorrectives))
+                        {
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold" Style="color: #2f855a;">Actions Correctives</RadzenText>
+                                <RadzenText Style="color: #276749;">@anomalie.ActionsCorrectives</RadzenText>
+                            </RadzenStack>
+                        }
+                    </RadzenStack>
+                </RadzenCard>
+            }
+        </RadzenStack>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Anomalie? anomalie;
+    private ScanEvenement? scan;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            anomalie = await AnomalieService.GetByIdAsync(Id);
+            
+            if (anomalie?.ScanId.HasValue == true)
+            {
+                var scans = await ScanService.GetScansByBonAsync(anomalie.BonId ?? 0, anomalie.TypeBon ?? "");
+                scan = scans.FirstOrDefault(s => s.IdScan == anomalie.ScanId);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de charger l'anomalie: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Navigation retour via historique
+    private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
+
+    private void VoirBon()
+    {
+        if (anomalie?.BonId != null)
+        {
+            var route = anomalie.TypeBon == "BEM" 
+                ? $"/bonentree/{anomalie.BonId}" 
+                : $"/bonsortie/{anomalie.BonId}";
+            Navigation.NavigateTo(route);
+        }
+    }
+
+    private async Task TraiterAnomalie()
+    {
+        if (anomalie == null) return;
+
+        var result = await DialogService.OpenAsync<TraiterAnomalieDialog>("Traiter l'Anomalie",
+            new Dictionary<string, object> { { "Anomalie", anomalie } },
+            new DialogOptions { Width = "500px" });
+
+        if (result is bool success && success)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Anomalie traitée avec succès");
+            await LoadDataAsync();
+        }
+    }
+
+    private async Task ReouvririAnomalie()
+    {
+        if (anomalie == null) return;
+
+        var motif = await DialogService.OpenAsync<ReouvririAnomalieDialog>("Réouvrir l'Anomalie",
+            new Dictionary<string, object>(),
+            new DialogOptions { Width = "400px" });
+
+        if (motif is string m && !string.IsNullOrWhiteSpace(m))
+        {
+            try
+            {
+                var result = await AnomalieService.ReopenAsync(anomalie.IdAnomalie, m);
+                if (result.Success)
+                {
+                    NotificationService.Notify(NotificationSeverity.Success, "Succès", "Anomalie réouverte");
+                    await LoadDataAsync();
+                }
+                else
+                {
+                    NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+
+    private string GetGraviteLabel(string gravite) => gravite switch
+    {
+        "Critique" => "CRITIQUE",
+        "Eleve" => "Élevée",
+        "Moyen" => "Moyenne",
+        "Faible" => "Faible",
+        _ => gravite
+    };
+
+    private string GetGraviteColor(string gravite) => gravite switch
+    {
+        "Critique" => "#e31b23",
+        "Eleve" => "#ed8936",
+        "Moyen" => "#4299e1",
+        "Faible" => "#a0aec0",
+        _ => "#718096"
+    };
+
+    private string GetGraviteIcon(string gravite) => gravite switch
+    {
+        "Critique" => "error",
+        "Eleve" => "warning",
+        "Moyen" => "info",
+        "Faible" => "help_outline",
+        _ => "help"
+    };
+
+    private string GetTypeIcon(string type) => type switch
+    {
+        "BarriereNonAutorisee" => "block",
+        "DocumentExpire" => "schedule",
+        "DocumentInexistant" => "help_outline",
+        "ScanDuplique" => "content_copy",
+        "QRCodeInvalide" => "qr_code",
+        "ItineraireNonRespectee" => "alt_route",
+        "SignalementManuel" => "edit_note",
+        _ => "warning"
+    };
+
+    private string GetTypeLabel(string type) => type switch
+    {
+        "BarriereNonAutorisee" => "Barrière non autorisée",
+        "DocumentExpire" => "Document expiré",
+        "DocumentInexistant" => "Document inexistant",
+        "ScanDuplique" => "Scan dupliqué",
+        "QRCodeInvalide" => "QR Code invalide",
+        "ItineraireNonRespectee" => "Itinéraire non respecté",
+        "SignalementManuel" => "Signalement manuel",
+        _ => type
+    };
+}
