@@ -1,0 +1,228 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<MudDialog>
+    <TitleContent>
+        <div class="d-flex align-items-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" />
+            <span>@Article?.Description</span>
+        </div>
+    </TitleContent>
+    <DialogContent>
+        @if (Article != null)
+        {
+            <!-- Info article -->
+            <div class="d-flex flex-wrap gap-3 mb-3">
+                <div>
+                    <small class="text-muted d-block">Code</small>
+                    <strong>@Article.IdArticle</strong>
+                </div>
+                <div>
+                    <small class="text-muted d-block">Prix</small>
+                    <strong>@Article.Price.ToString("N0") Fc</strong>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Article.DescriptionI))
+                {
+                    <div>
+                        <small class="text-muted d-block">Description longue</small>
+                        <span>@Article.DescriptionI</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Stocks par localisation -->
+            <h6 class="fw-bold mb-2">Stock par localisation</h6>
+
+            @if (Stocks == null || !Stocks.Any())
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                    Cet article n'est associé à aucune localisation.
+                </MudAlert>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Localisation</th>
+                                <th class="text-center">Stock</th>
+                                <th class="text-center">Seuil</th>
+                                <th class="text-center">État</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var stock in Stocks)
+                            {
+                                var couleur = stock.Qte <= 0 ? "#dc2626" : stock.Qte <= stock.Seuil ? "#f59e0b" : "#16a34a";
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">@stock.LocalisationName</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span style="color:@couleur;font-weight:600;">
+                                            @if (stock.Qte <= 0)
+                                            {
+                                                <i class="bi bi-exclamation-circle me-1"></i>
+                                            }
+                                            else if (stock.Qte <= stock.Seuil)
+                                            {
+                                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                            }
+                                            @stock.Qte
+                                        </span>
+                                    </td>
+                                    <td class="text-center">@stock.Seuil</td>
+                                    <td class="text-center">
+                                        @if (stock.Qte <= 0)
+                                        {
+                                            <span class="badge bg-danger">Rupture</span>
+                                        }
+                                        else if (stock.Qte <= stock.Seuil)
+                                        {
+                                            <span class="badge bg-warning text-dark">Bas</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">OK</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart"
+                                                       Color="Color.Primary" Size="Size.Small"
+                                                       Title="Approvisionner cette localisation"
+                                                       OnClick="@(() => OnApproLocation(stock))" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-light">
+                                <td><strong>Total</strong></td>
+                                <td class="text-center"><strong>@Stocks.Sum(s => s.Qte)</strong></td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex justify-content-between w-100 px-2 pb-2">
+            <div class="d-flex gap-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="@OnDeleteArticle">Supprimer</MudButton>
+            </div>
+            <div class="d-flex gap-2">
+                <MudButton Variant="Variant.Outlined" OnClick="@Cancel">Fermer</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="@OnEditArticle">Modifier</MudButton>
+            </div>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public Article? Article { get; set; }
+
+    [Parameter]
+    public List<StockLocationInfo>? Stocks { get; set; }
+
+    [Parameter]
+    public List<Localisation>? Localisations { get; set; }
+
+    void Cancel() => MudDialog?.Cancel();
+
+    void OnEditArticle()
+    {
+        MudDialog?.Close(DialogResult.Ok(true));
+        Navigation.NavigateTo($"/gestion/article/modifier/{Article?.IdArticle}");
+    }
+
+    async Task OnDeleteArticle()
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirmation",
+            $"Supprimer l'article « {Article?.Description} » et tous ses stocks ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+
+        if (confirm == true && Article != null)
+        {
+            try
+            {
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+
+                // First remove all stocks for this article
+                var stocks = await ctx.Stocks.Where(s => s.IdArticle == Article.IdArticle).ToListAsync();
+                ctx.Stocks.RemoveRange(stocks);
+
+                // Then remove the article
+                var article = await ctx.Articles.FindAsync(Article.IdArticle);
+                if (article != null)
+                {
+                    ctx.Articles.Remove(article);
+                }
+
+                await ctx.SaveChangesAsync();
+                Snackbar.Add("Article supprimé", Severity.Success);
+                MudDialog?.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur lors de la suppression : {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    async Task OnApproLocation(StockLocationInfo stock)
+    {
+        var parameters = new DialogParameters
+        {
+            { "ApproId", 0 },
+            { "PreselectedArticleId", Article?.IdArticle },
+            { "PreselectedLocalisationId", stock.IdLocalisation }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ApproForm>("Approvisionnement", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            // Refresh stock data
+            await RefreshStockData();
+        }
+    }
+
+    async Task RefreshStockData()
+    {
+        if (Article == null) return;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var stocks = await ctx.Stocks.Where(s => s.IdArticle == Article.IdArticle).ToListAsync();
+        var locs = Localisations ?? new List<Localisation>();
+
+        Stocks = stocks
+            .Select(s => new StockLocationInfo
+            {
+                StockId = s.Id,
+                IdLocalisation = s.IdLocalisation,
+                LocalisationName = locs.FirstOrDefault(l => l.IdLocalisation == s.IdLocalisation)?.DescriptionLocalisation ?? "?",
+                Qte = (int)s.Qte,
+                Seuil = s.Seuil
+            })
+            .OrderBy(s => s.LocalisationName)
+            .ToList();
+
+        StateHasChanged();
+    }
+}

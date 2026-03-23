@@ -1,0 +1,208 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex justify-content-center py-4">
+                <MudProgressCircular Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-4">
+                <MudText Typo="Typo.h6" Class="mb-2">
+                    <i class="bi bi-geo-alt me-2"></i>@Localisation?.DescriptionLocalisation
+                </MudText>
+
+                <!-- Utilisateurs assignés -->
+                <div>
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">
+                        <i class="bi bi-people me-2"></i>Utilisateurs assignés (@_users.Count)
+                    </MudText>
+                    @if (_users.Any())
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Bordered="true" Style="max-height:200px;overflow-y:auto;">
+                            <thead>
+                                <tr>
+                                    <th>Login</th>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Rôle</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var user in _users)
+                                {
+                                    <tr>
+                                        <td>@user.Login</td>
+                                        <td>@user.Name</td>
+                                        <td>@user.Email</td>
+                                        <td>@(user.Role?.DescriptionRole ?? "-")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true">Aucun utilisateur assigné</MudAlert>
+                    }
+                </div>
+
+                <!-- Articles dans cette localisation -->
+                <div>
+                    <MudText Typo="Typo.subtitle1" Class="fw-bold mb-2">
+                        <i class="bi bi-box-seam me-2"></i>Articles (@_articles.Count)
+                    </MudText>
+                    @if (_articles.Any())
+                    {
+                        <MudSimpleTable Dense="true" Hover="true" Bordered="true" Style="max-height:300px;overflow-y:auto;">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Description</th>
+                                    <th style="text-align:right;">Quantité</th>
+                                    <th style="text-align:right;">Seuil</th>
+                                    <th style="text-align:center;">État</th>
+                                    <th style="text-align:center;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var art in _articles)
+                                {
+                                    var qte = (int)(art.Qte ?? 0);
+                                    var seuil = art.Soeuil;
+                                    var couleur = qte <= 0 ? "#dc2626" : qte <= seuil ? "#f59e0b" : "#16a34a";
+                                    var etat = qte <= 0 ? "Rupture" : qte <= seuil ? "Stock bas" : "OK";
+                                    <tr>
+                                        <td>@art.IdArticle</td>
+                                        <td>@art.Description</td>
+                                        <td style="text-align:right;font-weight:600;color:@couleur;">@qte</td>
+                                        <td style="text-align:right;">@seuil</td>
+                                        <td style="text-align:center;">
+                                            <MudChip T="string" Size="Size.Small"
+                                                     Color="@(qte <= 0 ? Color.Error : qte <= seuil ? Color.Warning : Color.Success)">
+                                                @etat
+                                            </MudChip>
+                                        </td>
+                                        <td style="text-align:center;">
+                                            <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart"
+                                                           Color="Color.Primary" Size="Size.Small"
+                                                           OnClick="@(() => OnAppro(art))" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true">Aucun article dans cette localisation</MudAlert>
+                    }
+                </div>
+
+                <!-- Résumé -->
+                <div class="d-flex gap-3 flex-wrap">
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudText Typo="Typo.caption" Class="text-muted">Total articles</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold">@_articles.Count</MudText>
+                    </MudPaper>
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudText Typo="Typo.caption" Class="text-muted">Stock total</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold">@_articles.Sum(a => (int)(a.Qte ?? 0))</MudText>
+                    </MudPaper>
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudText Typo="Typo.caption" Class="text-muted">En rupture</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold" Style="color:#dc2626;">@_articles.Count(a => (a.Qte ?? 0) <= 0)</MudText>
+                    </MudPaper>
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudText Typo="Typo.caption" Class="text-muted">Stock bas</MudText>
+                        <MudText Typo="Typo.h5" Class="fw-bold" Style="color:#f59e0b;">@_articles.Count(a => (a.Qte ?? 0) > 0 && (a.Qte ?? 0) <= a.Soeuil)</MudText>
+                    </MudPaper>
+                </div>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Fermer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Localisation? Localisation { get; set; }
+
+    private bool _loading = true;
+    private List<User> _users = new();
+    private List<Article> _articles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Localisation == null) return;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        // Get users via UserLocalisations (many-to-many)
+        var userIds = await ctx.UserLocalisations
+            .Where(ul => ul.LocalisationId == Localisation.IdLocalisation && ul.Activate == true)
+            .Select(ul => ul.UserId)
+            .ToListAsync();
+
+        _users = await ctx.Users
+            .Include(u => u.Role)
+            .Where(u => userIds.Contains(u.Login))
+            .OrderBy(u => u.Name)
+            .ToListAsync();
+
+        // Get articles via Stock table
+        var articleIds = await ctx.Stocks
+            .Where(s => s.IdLocalisation == Localisation.IdLocalisation)
+            .Select(s => s.IdArticle)
+            .ToListAsync();
+
+        _articles = await ctx.Articles
+            .Where(a => articleIds.Contains(a.IdArticle))
+            .OrderBy(a => a.Description)
+            .ToListAsync();
+
+        _loading = false;
+    }
+
+    private async Task OnAppro(Article article)
+    {
+        var parameters = new DialogParameters<ApproForm>
+        {
+            { x => x.ApproId, 0 },
+            { x => x.PreselectedArticleId, article.IdArticle },
+            { x => x.PreselectedLocalisationId, Localisation?.IdLocalisation }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ApproForm>("Approvisionnement", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            // Refresh articles via Stock table
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var articleIds = await ctx.Stocks
+                .Where(s => s.IdLocalisation == Localisation!.IdLocalisation)
+                .Select(s => s.IdArticle)
+                .ToListAsync();
+
+            _articles = await ctx.Articles
+                .Where(a => articleIds.Contains(a.IdArticle))
+                .OrderBy(a => a.Description)
+                .ToListAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void Close() => MudDialog.Close();
+}

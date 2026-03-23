@@ -1,0 +1,273 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex flex-column align-items-center justify-content-center" style="min-height:180px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (_fact is null)
+        {
+            <MudAlert Severity="Severity.Warning"><strong>Introuvable</strong> Cette facture n'existe pas.</MudAlert>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+
+                <!-- ── Résumé facture ── -->
+                <div class="card bg-body-secondary"><div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="text-muted small">Client</div>
+                            <div class="fw-semibold">@_fact.DescriptionName</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-muted small">Total facture</div>
+                            <div class="fw-semibold">@_totalFact.ToString("N2")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-muted small">Date</div>
+                            <div class="fw-semibold">@_fact.Date.ToString("dd/MM/yyyy")</div>
+                        </div>
+                    </div>
+                </div></div>
+
+                <!-- ── Historique paiements ── -->
+                @if (_payments.Any())
+                {
+                    <h6 class="fw-semibold mb-0">Paiements enregistrés</h6>
+                    <MudDataGrid Items="@_payments" T="Payment" Dense="true" Hover="true" Bordered="true" Elevation="0">
+                        <Columns>
+                            <TemplateColumn Title="Date">
+                                <CellTemplate>
+                                    @context.Item.Date.ToString("dd/MM/yyyy")
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Montant">
+                                <CellTemplate>
+                                    <span style="text-align:right;display:block;">@context.Item.Amount.ToString("N2")</span>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <PropertyColumn Property="x => x.Note" Title="Note" />
+                            <PropertyColumn Property="x => x.User" Title="Login" />
+                        </Columns>
+                    </MudDataGrid>
+                }
+
+                <!-- ── Récap montants ── -->
+                <div class="card border-success-subtle bg-success-subtle"><div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-muted small">Déjà payé</div>
+                            <div class="fw-bold text-success">@_totalPaye.ToString("N2")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-muted small">Solde restant</div>
+                            <div style="font-weight:700;color:@(_solde > 0 ? "var(--bs-warning)" : "var(--bs-success)");">@_solde.ToString("N2")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-muted small">Status</div>
+                            <div>
+                                @if (_solde <= 0)
+                                {
+                                    <span class="badge bg-success">Payée</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">En cours</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div></div>
+
+                @if (_solde > 0)
+                {
+                    <!-- ── Formulaire nouveau paiement ── -->
+                    <h6 class="fw-semibold mb-0">Nouveau paiement</h6>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Montant</label>
+                            <MudNumericField @bind-Value="_amount" T="decimal" Min="0" Max="@_solde"
+                                             Placeholder="0.00" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date</label>
+                            <MudDatePicker @bind-Date="_date" DateFormat="dd/MM/yyyy"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Note (optionnel)</label>
+                            <input type="text" class="form-control" @bind="_note" maxlength="200" placeholder="Réf., mode…" />
+                        </div>
+                    </div>
+
+                    @if (_showError)
+                    {
+                        <MudAlert Severity="Severity.Error">@_errorMsg</MudAlert>
+                    }
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_fact is not null && _solde > 0)
+        {
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+            <button type="button" class="btn btn-primary" @onclick="OnSave" disabled="@_saving">
+                <i class="bi bi-credit-card me-1"></i>Enregistrer le paiement
+            </button>
+        }
+        else
+        {
+            <button type="button" class="btn btn-secondary" @onclick="@(() => MudDialog.Close(DialogResult.Ok(true)))">Fermer</button>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int FactId { get; set; }
+
+    Fact? _fact;
+    List<Payment> _payments = new();
+    bool _loading = true;
+    bool _saving;
+    bool _showError;
+    string _errorMsg = "";
+
+    decimal _totalFact;
+    decimal _totalPaye;
+    decimal _solde;
+
+    decimal _amount;
+    DateTime? _date = DateTime.Today;
+    string _note = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _fact = await ctx.Facts.AsNoTracking().FirstOrDefaultAsync(f => f.Id == FactId);
+        if (_fact is not null)
+        {
+            _payments = await ctx.Payments
+                .Where(p => p.IdFact == FactId)
+                .OrderBy(p => p.Date)
+                .ThenBy(p => p.Id)
+                .AsNoTracking()
+                .ToListAsync();
+
+            _totalFact = _fact.TotalApresReduction ?? _fact.Total ?? 0;
+            _totalPaye = _payments.Sum(p => p.Amount);
+            _solde = _totalFact - _totalPaye;
+            if (_solde < 0) _solde = 0;
+        }
+
+        _loading = false;
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnSave()
+    {
+        _showError = false;
+
+        if (_amount <= 0)
+        {
+            _showError = true;
+            _errorMsg = "Le montant doit être supérieur à 0.";
+            return;
+        }
+
+        if (_amount > _solde)
+        {
+            _showError = true;
+            _errorMsg = $"Le montant ne peut pas dépasser le solde restant ({_solde:N2}).";
+            return;
+        }
+
+        if (_date is null)
+        {
+            _showError = true;
+            _errorMsg = "Veuillez sélectionner une date.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var payment = new Payment
+            {
+                IdFact = FactId,
+                Date = DateOnly.FromDateTime(_date.Value),
+                Amount = _amount,
+                Note = string.IsNullOrWhiteSpace(_note) ? null : _note.Trim(),
+                DateSys = DateTime.Now,
+                User = _fact!.User
+            };
+            ctx.Payments.Add(payment);
+
+            var newTotalPaye = _totalPaye + _amount;
+            if (newTotalPaye >= _totalFact)
+            {
+                var fact = await ctx.Facts.FindAsync(FactId);
+                if (fact is not null)
+                {
+                    fact.Status = 2;
+
+                    if (fact.CommandeId.HasValue)
+                    {
+                        var commande = await ctx.Commandes
+                            .Include(c => c.Details)
+                            .FirstOrDefaultAsync(c => c.CommandeId == fact.CommandeId.Value);
+
+                        if (commande != null)
+                        {
+                            commande.MontantPaye += _amount;
+                            commande.MontantRest = commande.MontantTotal - commande.MontantPaye;
+                            if (commande.MontantRest < 0) commande.MontantRest = 0;
+
+                            var allLivPaid = await ctx.Livraisons
+                                .Where(l => l.CommandeId == commande.CommandeId)
+                                .AllAsync(l => l.Status == 2);
+                            var toutLivre = commande.Details.All(d => (d.QteRest ?? 0) <= 0);
+
+                            if (allLivPaid && toutLivre)
+                                commande.Status = 3;
+                        }
+                    }
+
+                    if (fact.LivraisonId.HasValue)
+                    {
+                        var liv = await ctx.Livraisons.FindAsync(fact.LivraisonId.Value);
+                        if (liv != null && liv.Status < 2)
+                            liv.Status = 2;
+                    }
+                }
+            }
+
+            await ctx.SaveChangesAsync();
+
+            Snackbar.Add($"{_amount:N2} enregistré pour la facture N°{FactId}.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            _showError = true;
+            _errorMsg = $"Erreur : {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

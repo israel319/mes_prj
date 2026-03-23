@@ -1,0 +1,1816 @@
+@page "/administration"
+@page "/admin"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject MudBlazor.IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject RolePermissionService RolePermissionService
+
+<PageTitle>@AppSettings.AppName — Administration</PageTitle>
+
+@if (!_loaded)
+{
+    <div class="d-flex justify-content-center align-items-center" style="min-height:200px;"><div class="spinner-border text-primary" role="status"></div></div>
+}
+else
+{
+    <div>
+        <div class="d-flex flex-wrap align-items-center justify-content-between mb-2 hub-header">
+            <div class="d-flex align-items-center gap-3">
+                <div class="hub-icon" style="background:rgba(37,60,69,.12);color:#253C45;">
+                    <i class="bi bi-gear fs-4"></i>
+                </div>
+                <div>
+                    <h2 class="fw-bold mb-0 fs-5">Administration</h2>
+                    <small class="text-muted">Utilisateurs, rôles, activités et données de base</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card hub-tabs-shell">
+            <ul class="nav nav-tabs px-3 pt-1">
+                <li class="nav-item"><button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(() => _tab = 0)"><i class="bi bi-people me-1"></i>Utilisateurs</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(() => _tab = 1)"><i class="bi bi-truck me-1"></i>Fournisseurs</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 2 ? "active" : "")" @onclick="@(() => _tab = 2)"><i class="bi bi-percent me-1"></i>Taux de change</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 3 ? "active" : "")" @onclick="@(() => _tab = 3)"><i class="bi bi-calendar-event me-1"></i>Périodes</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 4 ? "active" : "")" @onclick="@(() => _tab = 4)"><i class="bi bi-bank me-1"></i>Versements</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 5 ? "active" : "")" @onclick="@(() => _tab = 5)"><i class="bi bi-receipt me-1"></i>Gestion factures</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 6 ? "active" : "")" @onclick="@(() => _tab = 6)"><i class="bi bi-truck me-1"></i>Gestion livraisons</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 7 ? "active" : "")" @onclick="@(() => _tab = 7)"><i class="bi bi-building me-1"></i>Localisations</button></li>
+            </ul>
+
+            @* ══════════════════ UTILISATEURS ══════════════════ *@
+            @if (_tab == 0)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-end gap-2 mb-2">
+                        <button class="btn btn-primary" @onclick="@OnAddUser"><i class="bi bi-person-plus me-1"></i>Ajouter</button>
+                    </div>
+
+                    <div class="card"><div class="card-body p-0">
+                        <MudDataGrid Items="@_userData" T="User" Loading="@_userLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     Filterable="true" RowsPerPage="10"
+                                     Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Login" Title="Login" />
+                                <PropertyColumn Property="x => x.Name" Title="Nom" />
+                                <TemplateColumn Title="Rôle">
+                                    <CellTemplate>
+                                        <MudChip T="string" Size="Size.Small"
+                                                 Color="@(context.Item.RoleId.HasValue ? Color.Info : Color.Default)">
+                                            @(context.Item.Role?.DescriptionRole ?? "Non attribué")
+                                        </MudChip>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <PropertyColumn Property="x => x.Email" Title="Email" />
+                                <TemplateColumn Title="Statut">
+                                    <CellTemplate>
+                                        <MudChip T="string" Size="Size.Small"
+                                                 Color="@(context.Item.Activated == true ? Color.Success : Color.Error)">
+                                            @(context.Item.Activated == true ? "Actif" : "Inactif")
+                                        </MudChip>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Localisations">
+                                    <CellTemplate>
+                                        @{
+                                            var locs = _userLocalisationsMap.GetValueOrDefault(context.Item.Login, new List<string>());
+                                        }
+                                        @if (locs.Any())
+                                        {
+                                            @foreach (var loc in locs)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="me-1 mb-1">@loc</MudChip>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Non assignée</MudChip>
+                                        }
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnManageUserAccess(context.Item))" Title="Gérer accès" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditUser(context.Item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteUser(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="User" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+                </div>
+            }
+
+            @if (false)
+            {
+            @* ══════════════════ ACCÈS UTILISATEURS ══════════════════ *@
+            <div class="card-body">
+                <div class="d-flex flex-column gap-3">
+                    <div class="card mb-2"><div class="card-body">
+                        <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <div class="d-flex flex-column gap-1" style="min-width:280px;">
+                                    <label class="form-label fw-bold">Utilisateur</label>
+                                    <MudSelect T="string" Value="_selectedUserLogin"
+                                               ValueChanged="@(async val => { _selectedUserLogin = val; await OnSelectedUserChanged(); })"
+                                               Placeholder="Sélectionner un utilisateur"
+                                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:280px;">
+                                        @foreach (var u in _userData)
+                                        {
+                                            <MudSelectItem T="string" Value="@u.Login">@u.Login</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </div>
+
+                                <div class="d-flex flex-column gap-1" style="min-width:280px;">
+                                    <label class="form-label fw-bold">Rôle de l'utilisateur</label>
+                                    <MudSelect T="int?" Value="_selectedUserRoleId"
+                                               ValueChanged="@(async val => { _selectedUserRoleId = val; await OnSelectedUserRoleChanged(); })"
+                                               Placeholder="Sélectionner un rôle"
+                                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:280px;">
+                                        @foreach (var r in _roleData)
+                                        {
+                                            <MudSelectItem T="int?" Value="@((int?)r.RoleId)">@r.DescriptionRole</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-light" @onclick="@LoadUserAccessRows"><i class="bi bi-arrow-clockwise me-1"></i>Actualiser</button>
+                                <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(_selectedUserLogin))" @onclick="@SaveUserAccess"><i class="bi bi-floppy me-1"></i>Enregistrer accès utilisateur</button>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mt-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle" style="font-size:18px;"></i>
+                            Les activités sont gérées par rôle : si vous modifiez les permissions ci-dessous, tous les utilisateurs ayant ce rôle seront impactés.
+                        </div>
+                    </div></div>
+
+                    @if (string.IsNullOrWhiteSpace(_selectedUserLogin))
+                    {
+                        <div class="card mb-2"><div class="card-body">
+                            <span class="text-muted">Sélectionnez un utilisateur pour gérer ses activités.</span>
+                        </div></div>
+                    }
+                    else
+                    {
+                        <div class="card mb-2"><div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div>
+                                    <h6 class="fw-bold">Activités visibles pour @(_selectedUserLogin)</h6>
+                                    <p class="text-muted mb-0">
+                                        Cochez les droits autorisés (Lecture, Écriture, Suppression).
+                                    </p>
+                                </div>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                                    @(_roleData.FirstOrDefault(r => r.RoleId == _selectedUserRoleId)?.DescriptionRole ?? "Sans rôle")
+                                </MudChip>
+                            </div>
+
+                            <MudDataGrid Items="@_userAccessRows" T="RolePermissionRow" Loading="@_userAccessLoading"
+                                         Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                         RowsPerPage="10" Style="width:100%;">
+                                <Columns>
+                                    <PropertyColumn Property="x => x.FonctionLabel" Title="Fonction" />
+                                    <TemplateColumn Title="Lecture" Sortable="false" Filterable="false">
+                                        <CellTemplate>
+                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanRead" Dense="true" />
+                                        </CellTemplate>
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="Écriture" Sortable="false" Filterable="false">
+                                        <CellTemplate>
+                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanWrite" Dense="true" />
+                                        </CellTemplate>
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="Suppression" Sortable="false" Filterable="false">
+                                        <CellTemplate>
+                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanDelete" Dense="true" />
+                                        </CellTemplate>
+                                    </TemplateColumn>
+                                </Columns>
+                                <PagerContent>
+                                    <MudDataGridPager T="RolePermissionRow" />
+                                </PagerContent>
+                            </MudDataGrid>
+                        </div></div>
+                    }
+                </div>
+            </div>
+
+            @* ══════════════════ RÔLES & PERMISSIONS ══════════════════ *@
+            <div class="card-body">
+                <div class="d-flex flex-column gap-3">
+                    <div class="card mb-2"><div class="card-body">
+                        <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
+                            <div class="d-flex flex-column gap-1" style="min-width:320px;">
+                                <label class="form-label fw-bold">Rôle à configurer</label>
+                                <MudSelect T="int?" Value="_selectedRoleId"
+                                           ValueChanged="@(async val => { _selectedRoleId = val; await OnSelectedRoleChanged(); })"
+                                           Placeholder="Sélectionner un rôle"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:320px;">
+                                    @foreach (var r in _roleData)
+                                    {
+                                        <MudSelectItem T="int?" Value="@((int?)r.RoleId)">@r.DescriptionRole</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-info" disabled="@(!_selectedRoleId.HasValue)" @onclick="@ApplyDefaultPermissions" title="Appliquer les permissions par défaut basées sur le nom du rôle">
+                                    <i class="bi bi-magic me-1"></i>Permissions par défaut
+                                </button>
+                                <button class="btn btn-light" @onclick="@(() => LoadRolePermissions())"><i class="bi bi-arrow-clockwise me-1"></i>Actualiser</button>
+                                <button class="btn btn-primary" disabled="@(!_selectedRoleId.HasValue)" @onclick="@SaveRolePermissions"><i class="bi bi-floppy me-1"></i>Enregistrer les permissions</button>
+                            </div>
+                        </div>
+                    </div></div>
+
+                    @if (!_selectedRoleId.HasValue)
+                    {
+                        <div class="card mb-2"><div class="card-body">
+                            <span class="text-muted">Aucun rôle disponible pour le moment.</span>
+                        </div></div>
+                    }
+                    else
+                    {
+                        <div class="card mb-2"><div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="fw-bold">Fonctions du rôle</h6>
+                                    <p class="text-muted mb-0">
+                                        Active les accès selon le rôle sélectionné. Un utilisateur hérite automatiquement des fonctions de son rôle.
+                                    </p>
+                                </div>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                                    @(_roleData.FirstOrDefault(r => r.RoleId == _selectedRoleId)?.DescriptionRole ?? "Rôle")
+                                </MudChip>
+                            </div>
+
+                            <MudDataGrid Items="@_rolePermissionRows" T="RolePermissionRow" Loading="@_rolePermissionLoading"
+                                         Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                         RowsPerPage="10" Style="width:100%;">
+                                <Columns>
+                                    <PropertyColumn Property="x => x.FonctionLabel" Title="Fonction" />
+                                    <TemplateColumn Title="Lecture" Sortable="false" Filterable="false">
+                                        <CellTemplate>
+                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanRead" Dense="true" />
+                                        </CellTemplate>
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="Écriture" Sortable="false" Filterable="false">
+                                        <CellTemplate>
+                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanWrite" Dense="true" />
+                                        </CellTemplate>
+                                    </TemplateColumn>
+                                    <TemplateColumn Title="Suppression" Sortable="false" Filterable="false">
+                                        <CellTemplate>
+                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanDelete" Dense="true" />
+                                        </CellTemplate>
+                                    </TemplateColumn>
+                                </Columns>
+                                <PagerContent>
+                                    <MudDataGridPager T="RolePermissionRow" />
+                                </PagerContent>
+                            </MudDataGrid>
+                        </div></div>
+                    }
+                </div>
+            </div>
+
+            @* ══════════════════ RÉFÉRENTIEL ACTIVITÉS ══════════════════ *@
+            <div class="card-body">
+                <div class="d-flex flex-column gap-3">
+                    <div class="card mb-2"><div class="card-body">
+                        <div class="d-flex align-items-end gap-3 flex-wrap">
+                            <div class="d-flex flex-column gap-1" style="min-width:250px;">
+                                <label class="form-label fw-bold">Fonction</label>
+                                <MudSelect T="int?" @bind-Value="_newActivityFonctionId"
+                                           Placeholder="Choisir une fonction"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:250px;">
+                                    @foreach (var f in _fonctionData)
+                                    {
+                                        <MudSelectItem T="int?" Value="@((int?)f.IdFonction)">@f.DescriptionFonction</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </div>
+
+                            <div class="d-flex flex-column gap-1" style="min-width:260px;">
+                                <label class="form-label fw-bold">Code activité</label>
+                                <input type="text" @bind="_newActivityCode" class="form-control" placeholder="ex: vente_read" style="width:260px;" />
+                            </div>
+
+                            <div class="d-flex flex-column gap-1" style="min-width:360px;">
+                                <label class="form-label fw-bold">Description</label>
+                                <input type="text" @bind="_newActivityLabel" class="form-control" placeholder="ex: Consulter Vente" style="width:360px;" />
+                            </div>
+
+                            <button class="btn btn-primary" @onclick="@AddActivity"><i class="bi bi-plus-lg me-1"></i>Ajouter activité</button>
+                        </div>
+                    </div></div>
+
+                    <div class="card"><div class="card-body p-0">
+                        <MudDataGrid Items="@_activityData" T="Activity" Loading="@_activityLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     Filterable="true" RowsPerPage="12"
+                                     Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.ActivityId" Title="#" />
+                                <TemplateColumn Title="Fonction">
+                                    <CellTemplate>@context.Item.Fonction?.DescriptionFonction</CellTemplate>
+                                </TemplateColumn>
+                                <PropertyColumn Property="x => x.Code" Title="Code" />
+                                <PropertyColumn Property="x => x.DescriptionActivity" Title="Activité" />
+                                <TemplateColumn Title="Actif">
+                                    <CellTemplate>
+                                        <MudChip T="string" Size="Size.Small"
+                                                 Color="@(context.Item.IsActive ? Color.Success : Color.Default)">
+                                            @(context.Item.IsActive ? "Oui" : "Non")
+                                        </MudChip>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Sync" Color="Color.Default" Size="Size.Small" OnClick="@(() => ToggleActivityState(context.Item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteActivity(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Activity" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+                </div>
+            </div>
+
+            @* ══════════════════ ACTIVITÉS UTILISATEUR ══════════════════ *@
+            <div class="card-body">
+                <div class="d-flex flex-column gap-3">
+                    <div class="card mb-2"><div class="card-body">
+                        <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
+                            <div class="d-flex gap-3 flex-wrap">
+                                <div class="d-flex flex-column gap-1" style="min-width:260px;">
+                                    <label class="form-label fw-bold">Utilisateur</label>
+                                    <MudSelect T="string" Value="_selectedActivityUserLogin"
+                                               ValueChanged="@(async val => { _selectedActivityUserLogin = val; await OnActivityUserChanged(); })"
+                                               Placeholder="Choisir un utilisateur"
+                                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:260px;">
+                                        @foreach (var u in _userData)
+                                        {
+                                            <MudSelectItem T="string" Value="@u.Login">@u.Login</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </div>
+
+                                <div class="d-flex flex-column gap-1" style="min-width:260px;">
+                                    <label class="form-label fw-bold">Filtrer par fonction</label>
+                                    <MudSelect T="int?" Value="_activityFilterFonctionId"
+                                               ValueChanged="@(val => { _activityFilterFonctionId = val; ApplyActivityUserFilter(); })"
+                                               Placeholder="Toutes les fonctions"
+                                               Clearable="true"
+                                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:260px;">
+                                        @foreach (var f in _fonctionData)
+                                        {
+                                            <MudSelectItem T="int?" Value="@((int?)f.IdFonction)">@f.DescriptionFonction</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(_selectedActivityUserLogin))" @onclick="@SaveUserActivities"><i class="bi bi-floppy me-1"></i>Enregistrer activités</button>
+                        </div>
+                    </div></div>
+
+                    @if (string.IsNullOrWhiteSpace(_selectedActivityUserLogin))
+                    {
+                        <div class="card mb-2"><div class="card-body">
+                            <span class="text-muted">Sélectionnez un utilisateur pour définir ses activités.</span>
+                        </div></div>
+                    }
+                    else
+                    {
+                        <div class="card"><div class="card-body p-0">
+                            <MudDataGrid Items="@_userActivityRows" T="UserActivityRow" Loading="@_userActivitiesLoading"
+                                         Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                         RowsPerPage="12" Style="width:100%;">
+                                <Columns>
+                                    <PropertyColumn Property="x => x.FonctionLabel" Title="Fonction" />
+                                    <PropertyColumn Property="x => x.ActivityCode" Title="Code" />
+                                    <PropertyColumn Property="x => x.ActivityLabel" Title="Activité" />
+                                    <TemplateColumn Title="Autorisé" Sortable="false" Filterable="false">
+                                        <CellTemplate>
+                                            <MudCheckBox T="bool" @bind-Value="context.Item.IsGranted" Dense="true" />
+                                        </CellTemplate>
+                                    </TemplateColumn>
+                                </Columns>
+                                <PagerContent>
+                                    <MudDataGridPager T="UserActivityRow" />
+                                </PagerContent>
+                            </MudDataGrid>
+                        </div></div>
+                    }
+                </div>
+            </div>
+            }
+
+            @* ══════════════════ FOURNISSEURS ══════════════════ *@
+            @if (_tab == 1)
+            {
+                <div class="card-body">
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-primary" @onclick="@OnAddSupplier"><i class="bi bi-person-plus me-1"></i>Nouveau fournisseur</button>
+                        </div>
+
+                        <MudDataGrid Items="@_supplierData" T="Supplier" Loading="@_supplierLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     Filterable="true" RowsPerPage="15"
+                                     Style="width:100%;cursor:pointer;"
+                                     RowClick="@(args => OnEditSupplier(args.Item))">
+                            <Columns>
+                                <PropertyColumn Property="x => x.SupplierId" Title="ID" />
+                                <PropertyColumn Property="x => x.SupplierNumber" Title="N° Fournisseur" />
+                                <PropertyColumn Property="x => x.SupplierName" Title="Nom" />
+                                <PropertyColumn Property="x => x.Contact" Title="Contact" />
+                                <PropertyColumn Property="x => x.Email" Title="Email" />
+                                <PropertyColumn Property="x => x.Adresse" Title="Adresse" />
+                                <PropertyColumn Property="x => x.CcAmountToPay" Title="Montant à payer" Format="N2" />
+                                <PropertyColumn Property="x => x.CcAmountPay" Title="Montant payé" Format="N2" />
+                                <PropertyColumn Property="x => x.CreationDate" Title="Date création" Format="dd/MM/yyyy" />
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <div class="d-flex gap-0 justify-content-center">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
+                                                           OnClick="@(() => OnEditSupplier(context.Item))" Title="Modifier" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                                           OnClick="@(() => OnDeleteSupplier(context.Item))" Title="Supprimer" />
+                                        </div>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Supplier" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div>
+                </div>
+            }
+
+            @* ══════════════════ TAUX DE CHANGE ══════════════════ *@
+            @if (_tab == 2)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-end gap-2 mb-2">
+                        <button class="btn btn-primary" @onclick="@OnAddTaux"><i class="bi bi-plus-circle me-1"></i>Ajouter</button>
+                    </div>
+
+                    <div class="card"><div class="card-body p-0">
+                        <MudDataGrid Items="@_tauxData" T="Taux" Loading="@_tauxLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     RowsPerPage="10" Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Id" Title="N°" />
+                                <PropertyColumn Property="x => x.TauxValue" Title="Taux" Format="N2" />
+                                <PropertyColumn Property="x => x.RateLow" Title="Taux bas" Format="N2" />
+                                <PropertyColumn Property="x => x.RateUp" Title="Taux haut" Format="N2" />
+                                <PropertyColumn Property="x => x.Date" Title="Date" Format="dd/MM/yyyy" />
+                                <PropertyColumn Property="x => x.Comment" Title="Commentaire" />
+                                <PropertyColumn Property="x => x.UserLogin" Title="Utilisateur" />
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditTaux(context.Item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteTaux(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Taux" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+                </div>
+            }
+
+            @* ══════════════════ PÉRIODES ══════════════════ *@
+            @if (_tab == 3)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-end gap-2 mb-2">
+                        <button class="btn btn-primary" @onclick="@OnAddPeriode"><i class="bi bi-plus-circle me-1"></i>Ajouter</button>
+                    </div>
+
+                    <div class="card"><div class="card-body p-0">
+                        <MudDataGrid Items="@_periodeData" T="Periode" Loading="@_periodeLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     RowsPerPage="10" Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Id" Title="N°" />
+                                <PropertyColumn Property="x => x.Comment" Title="Description" />
+                                <PropertyColumn Property="x => x.FromDate" Title="Du" Format="dd/MM/yyyy" />
+                                <PropertyColumn Property="x => x.ToDate" Title="Au" Format="dd/MM/yyyy" />
+                                <TemplateColumn Title="Statut">
+                                    <CellTemplate>
+                                        <MudChip T="string" Size="Size.Small"
+                                                 Color="@(context.Item.Activated == true ? Color.Success : Color.Default)">
+                                            @(context.Item.Activated == true ? "Active" : "Clôturée")
+                                        </MudChip>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <PropertyColumn Property="x => x.UserLogin" Title="Créée par" />
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditPeriode(context.Item))" />
+                                        <MudIconButton Icon="@(context.Item.Activated == true ? Icons.Material.Filled.Lock : Icons.Material.Filled.LockOpen)"
+                                                       Color="@(context.Item.Activated == true ? Color.Error : Color.Success)"
+                                                       Size="Size.Small" OnClick="@(() => ToggleActivated(context.Item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeletePeriode(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Periode" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+                </div>
+            }
+
+            @* ══════════════════ VERSEMENTS ══════════════════ *@
+            @if (_tab == 4)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="text-muted">Du</span>
+                            <MudDatePicker @bind-Date="_versDateFrom" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:150px;" />
+                            <span class="text-muted">Au</span>
+                            <MudDatePicker @bind-Date="_versDateTo" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:150px;" />
+                            <button class="btn btn-info btn-sm" @onclick="@LoadVersements"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+                        </div>
+                        <button class="btn btn-primary" @onclick="@OnAddVersement"><i class="bi bi-plus-circle me-1"></i>Ajouter</button>
+                    </div>
+
+                    <div class="card"><div class="card-body p-0">
+                        <MudDataGrid Items="@_versementData" T="ApproExpense" Loading="@_versementLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     Filterable="true" RowsPerPage="10"
+                                     Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Id" Title="N°" />
+                                <PropertyColumn Property="x => x.Description" Title="Description" />
+                                <PropertyColumn Property="x => x.AmountUSD" Title="Montant USD" Format="N2" />
+                                <PropertyColumn Property="x => x.AmountCDF" Title="Montant CDF" Format="N2" />
+                                <PropertyColumn Property="x => x.Depositeur" Title="Déposeur" />
+                                <PropertyColumn Property="x => x.Comment" Title="Commentaire" />
+                                <PropertyColumn Property="x => x.CreationDate" Title="Date" Format="dd/MM/yyyy" />
+                                <PropertyColumn Property="x => x.UserLogin" Title="Utilisateur" />
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditVersement(context.Item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteVersement(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="ApproExpense" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+                </div>
+            }
+
+            @* ══════════════════ GESTION FACTURES ══════════════════ *@
+            @if (_tab == 5)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="text-muted">Du</span>
+                            <MudDatePicker @bind-Date="_factDateFrom" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:150px;" />
+                            <span class="text-muted">Au</span>
+                            <MudDatePicker @bind-Date="_factDateTo" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:150px;" />
+                            <button class="btn btn-info btn-sm" @onclick="@LoadAdminFactures"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+                        </div>
+                    </div>
+
+                    <div class="card"><div class="card-body p-0">
+                        <MudDataGrid Items="@_factAdminData" T="Fact" Loading="@_factAdminLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     Filterable="true" RowsPerPage="10"
+                                     Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.Id" Title="N° Facture" />
+                                <PropertyColumn Property="x => x.DescriptionName" Title="Client" />
+                                <PropertyColumn Property="x => x.Total" Title="Montant" Format="N2" />
+                                <PropertyColumn Property="x => x.Reduction" Title="Réduction" Format="N2" />
+                                <PropertyColumn Property="x => x.TotalApresReduction" Title="Net" Format="N2" />
+                                <PropertyColumn Property="x => x.Taux" Title="Taux" />
+                                <PropertyColumn Property="x => x.Date" Title="Date" Format="dd/MM/yyyy" />
+                                <TemplateColumn Title="Statut">
+                                    <CellTemplate>
+                                        @{ var (label, chipColor) = context.Item.Status switch { 0 => ("Brouillon", Color.Warning), 1 => ("Validée", Color.Success), 2 => ("Payée", Color.Info), 3 => ("Annulée", Color.Error), _ => ("Inconnu", Color.Default) }; }
+                                        <MudChip T="string" Size="Size.Small" Color="@chipColor">@label</MudChip>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <PropertyColumn Property="x => x.User" Title="Utilisateur" />
+                                <PropertyColumn Property="x => x.Cumputer" Title="Machine" />
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteAdminFacture(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Fact" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+                </div>
+            }
+
+            @* ══════════════════ GESTION LIVRAISONS ══════════════════ *@
+            @if (_tab == 6)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex gap-2 align-items-center">
+                            <span class="text-muted">Du</span>
+                            <MudDatePicker @bind-Date="_livCmdDateFrom" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:150px;" />
+                            <span class="text-muted">Au</span>
+                            <MudDatePicker @bind-Date="_livCmdDateTo" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:150px;" />
+                            <button class="btn btn-info btn-sm" @onclick="@LoadLivraisonCommandes"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-2">Livraisons</h6>
+
+                    <div class="card mb-2"><div class="card-body p-0">
+                        <MudDataGrid Items="@_adminLivraisons" T="Livraison" Loading="@_livCmdLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     Filterable="true" RowsPerPage="5"
+                                     Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.LivraisonId" Title="N°" />
+                                <PropertyColumn Property="x => x.Porteur" Title="Porteur" />
+                                <PropertyColumn Property="x => x.ClientId" Title="Client" />
+                                <PropertyColumn Property="x => x.Date" Title="Date" Format="dd/MM/yyyy" />
+                                <PropertyColumn Property="x => x.UserLogin" Title="Utilisateur" />
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteAdminLivraison(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Livraison" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+
+                    <h6 class="mb-2">Payements (Commandes)</h6>
+
+                    <div class="card"><div class="card-body p-0">
+                        <MudDataGrid Items="@_adminCommandes" T="Commande" Loading="@_livCmdLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     Filterable="true" RowsPerPage="5"
+                                     Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.CommandeId" Title="N° Cmd" />
+                                <PropertyColumn Property="x => x.CommandeDescription" Title="Description" />
+                                <PropertyColumn Property="x => x.MontantTotal" Title="Total" Format="N2" />
+                                <PropertyColumn Property="x => x.MontantPaye" Title="Payé" Format="N2" />
+                                <TemplateColumn Title="Reste">
+                                    <CellTemplate>
+                                        <MudChip T="string" Size="Size.Small"
+                                                 Color="@(context.Item.MontantRest == 0 ? Color.Success : Color.Warning)">
+                                            @context.Item.MontantRest.ToString("N2")
+                                        </MudChip>
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                <PropertyColumn Property="x => x.CreationDate" Title="Date" Format="dd/MM/yyyy" />
+                                <PropertyColumn Property="x => x.UserLogin" Title="Utilisateur" />
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteAdminCommande(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Commande" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+                </div>
+            }
+
+            @* ══════════════════ LOCALISATIONS ══════════════════ *@
+            @if (_tab == 7)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-end gap-2 mb-2">
+                        <button class="btn btn-primary btn-sm" @onclick="@OnAddLocalisation"><i class="bi bi-plus-lg me-1"></i>Ajouter</button>
+                    </div>
+
+                    <div class="card"><div class="card-body p-0">
+                        <MudDataGrid Items="@_localisations" T="Localisation" Loading="@_localisationsLoading"
+                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                     Filterable="true" RowsPerPage="10"
+                                     Style="width:100%;">
+                            <Columns>
+                                <PropertyColumn Property="x => x.IdLocalisation" Title="ID" />
+                                <PropertyColumn Property="x => x.DescriptionLocalisation" Title="Description" />
+                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                    <CellTemplate>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnViewLocalisation(context.Item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditLocalisation(context.Item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteLocalisation(context.Item))" />
+                                    </CellTemplate>
+                                </TemplateColumn>
+                            </Columns>
+                            <PagerContent>
+                                <MudDataGridPager T="Localisation" />
+                            </PagerContent>
+                        </MudDataGrid>
+                    </div></div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    /* ── Hub ── */
+    int _tab;
+    bool _loaded;
+
+    /* ── Utilisateurs ── */
+    List<User> _userData = new();
+    Dictionary<string, List<string>> _userLocalisationsMap = new();
+    bool _userLoading;
+    string? _selectedUserLogin;
+    int? _selectedUserRoleId;
+    List<RolePermissionRow> _userAccessRows = new();
+    bool _userAccessLoading;
+
+    /* ── Rôles & permissions ── */
+    List<Role> _roleData = new();
+    List<RolePermissionRow> _rolePermissionRows = new();
+    int? _selectedRoleId;
+    bool _rolePermissionLoading;
+
+    /* ── Référentiel activités ── */
+    List<Fonction> _fonctionData = new();
+    List<Activity> _activityData = new();
+    bool _activityLoading;
+    int? _newActivityFonctionId;
+    string _newActivityCode = string.Empty;
+    string _newActivityLabel = string.Empty;
+
+    /* ── Activités utilisateur ── */
+    string? _selectedActivityUserLogin;
+    int? _activityFilterFonctionId;
+    bool _userActivitiesLoading;
+    List<UserActivityRow> _allUserActivityRows = new();
+    List<UserActivityRow> _userActivityRows = new();
+
+    /* ── Fournisseurs ── */
+    List<Supplier> _supplierData = new();
+    bool _supplierLoading;
+
+    /* ── Taux ── */
+    List<Taux> _tauxData = new();
+    bool _tauxLoading;
+
+    /* ── Périodes ── */
+    List<Periode> _periodeData = new();
+    bool _periodeLoading;
+
+    /* ── Versements ── */
+    List<ApproExpense> _versementData = new();
+    bool _versementLoading;
+    DateTime? _versDateFrom = new DateTime(DateTime.Today.Year, 1, 1);
+    DateTime? _versDateTo = DateTime.Today;
+
+    /* ── Gestion factures ── */
+    List<Fact> _factAdminData = new();
+    bool _factAdminLoading;
+    DateTime? _factDateFrom = new DateTime(DateTime.Today.Year, 1, 1);
+    DateTime? _factDateTo = DateTime.Today;
+
+    /* ── Gestion livraisons & commandes ── */
+    List<Livraison> _adminLivraisons = new();
+    List<Commande> _adminCommandes = new();
+    bool _livCmdLoading;
+    DateTime? _livCmdDateFrom = new DateTime(DateTime.Today.Year, 1, 1);
+    DateTime? _livCmdDateTo = DateTime.Today;
+
+    /* ── Localisations ── */
+    List<Localisation> _localisations = new();
+    bool _localisationsLoading;
+
+    /* ════════════════════════════════════════════════════════════
+       INIT
+       ════════════════════════════════════════════════════════════ */
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(
+            LoadUsers(),
+            LoadLocalisations(),
+            LoadRolePermissions(false),
+            LoadFonctions(),
+            LoadActivities(),
+            LoadSuppliers(),
+            LoadTaux(),
+            LoadPeriodes(),
+            LoadVersements(),
+            LoadAdminFactures(),
+            LoadLivraisonCommandes()
+        );
+
+        await InitializeUserAccessPanel();
+        await InitializeUserActivitiesPanel();
+        _loaded = true;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       UTILISATEURS
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadUsers()
+    {
+        _userLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _userData = await ctx.Users
+            .Include(u => u.Role)
+            .OrderBy(u => u.Login)
+            .ToListAsync();
+
+        // Load user localisations
+        var allUserLocs = await ctx.UserLocalisations
+            .Where(ul => ul.Activate == true)
+            .ToListAsync();
+
+        var locDict = await ctx.Localisations.ToDictionaryAsync(l => l.IdLocalisation, l => l.DescriptionLocalisation ?? "");
+
+        _userLocalisationsMap = allUserLocs
+            .Where(ul => ul.UserId != null && ul.LocalisationId.HasValue)
+            .GroupBy(ul => ul.UserId!)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(ul => locDict.GetValueOrDefault(ul.LocalisationId!.Value, "")).ToList()
+            );
+
+        _userLoading = false;
+    }
+
+    async Task OnAddUser()
+    {
+        var parameters = new DialogParameters<UserForm>();
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<UserForm>("Nouvel utilisateur", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadUsers();
+            await InitializeUserAccessPanel();
+        }
+    }
+
+    async Task OnEditUser(User item)
+    {
+        var parameters = new DialogParameters<UserForm> { { x => x.UserLogin, item.Login } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<UserForm>("Modifier l'utilisateur", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadUsers();
+            await InitializeUserAccessPanel();
+        }
+    }
+
+    async Task OnManageUserAccess(User item)
+    {
+        var parameters = new DialogParameters<UserAccessForm> { { x => x.UserLogin, item.Login } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<UserAccessForm>($"Accès utilisateur — {item.Login}", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await LoadUsers();
+        }
+    }
+
+    async Task OnDeleteUser(User item)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer l'utilisateur '{item.Login}' ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.Users.Remove(item);
+            await ctx.SaveChangesAsync();
+            await LoadUsers();
+            await InitializeUserAccessPanel();
+        }
+    }
+
+    async Task InitializeUserAccessPanel()
+    {
+        if (!_userData.Any())
+        {
+            _selectedUserLogin = null;
+            _selectedUserRoleId = null;
+            _userAccessRows = new();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedUserLogin) || !_userData.Any(u => u.Login == _selectedUserLogin))
+        {
+            _selectedUserLogin = _userData.First().Login;
+        }
+
+        var user = _userData.FirstOrDefault(u => u.Login == _selectedUserLogin);
+        _selectedUserRoleId = user?.RoleId;
+
+        await LoadUserAccessRows();
+    }
+
+    async Task OnSelectedUserChanged()
+    {
+        var user = _userData.FirstOrDefault(u => u.Login == _selectedUserLogin);
+        _selectedUserRoleId = user?.RoleId;
+        await LoadUserAccessRows();
+    }
+
+    async Task OnSelectedUserRoleChanged()
+    {
+        await LoadUserAccessRows();
+    }
+
+    async Task LoadUserAccessRows()
+    {
+        _userAccessLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var fonctions = await ctx.Fonctions
+            .OrderBy(f => f.DescriptionFonction)
+            .ToListAsync();
+
+        if (!_selectedUserRoleId.HasValue)
+        {
+            _userAccessRows = fonctions
+                .Select(f => new RolePermissionRow
+                {
+                    FonctionId = f.IdFonction,
+                    FonctionLabel = f.DescriptionFonction ?? $"Fonction #{f.IdFonction}",
+                    CanRead = false,
+                    CanWrite = false,
+                    CanDelete = false
+                })
+                .ToList();
+
+            _userAccessLoading = false;
+            return;
+        }
+
+        var permissions = await ctx.Permissions
+            .Where(p => p.RoleId == _selectedUserRoleId.Value)
+            .ToListAsync();
+
+        _userAccessRows = fonctions
+            .Select(f =>
+            {
+                var permission = permissions.FirstOrDefault(p => p.FonctionId == f.IdFonction);
+                return new RolePermissionRow
+                {
+                    FonctionId = f.IdFonction,
+                    FonctionLabel = f.DescriptionFonction ?? $"Fonction #{f.IdFonction}",
+                    CanRead = permission?.CanRead ?? false,
+                    CanWrite = permission?.CanWrite ?? false,
+                    CanDelete = permission?.CanDelete ?? false
+                };
+            })
+            .ToList();
+
+        _userAccessLoading = false;
+    }
+
+    async Task SaveUserAccess()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedUserLogin))
+        {
+            Snackbar.Add("Sélectionnez un utilisateur.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var user = await ctx.Users.FirstOrDefaultAsync(u => u.Login == _selectedUserLogin);
+            if (user is null)
+            {
+                Snackbar.Add("Utilisateur introuvable.", Severity.Error);
+                return;
+            }
+
+            user.RoleId = _selectedUserRoleId;
+            await ctx.SaveChangesAsync();
+
+            if (_selectedUserRoleId.HasValue)
+            {
+                var existing = await ctx.Permissions
+                    .Where(p => p.RoleId == _selectedUserRoleId.Value)
+                    .ToListAsync();
+
+                if (existing.Any())
+                {
+                    ctx.Permissions.RemoveRange(existing);
+                    await ctx.SaveChangesAsync();
+                }
+
+                var newPermissions = _userAccessRows
+                    .Where(p => p.CanRead || p.CanWrite || p.CanDelete)
+                    .Select(p => new Permission
+                    {
+                        RoleId = _selectedUserRoleId.Value,
+                        FonctionId = p.FonctionId,
+                        CanRead = p.CanRead || p.CanWrite || p.CanDelete,
+                        CanWrite = p.CanWrite,
+                        CanDelete = p.CanDelete
+                    })
+                    .ToList();
+
+                if (newPermissions.Any())
+                {
+                    await ctx.Permissions.AddRangeAsync(newPermissions);
+                    await ctx.SaveChangesAsync();
+                }
+            }
+
+            Snackbar.Add("Rôle et activités enregistrés.", Severity.Success);
+            await LoadUsers();
+            await LoadRolePermissions();
+            await InitializeUserAccessPanel();
+        }
+        catch (Exception ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(message, Severity.Error);
+        }
+    }
+
+    async Task LoadFonctions()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _fonctionData = await ctx.Fonctions
+            .OrderBy(f => f.DescriptionFonction)
+            .ToListAsync();
+
+        if (!_newActivityFonctionId.HasValue && _fonctionData.Any())
+        {
+            _newActivityFonctionId = _fonctionData.First().IdFonction;
+        }
+    }
+
+    async Task LoadActivities()
+    {
+        _activityLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _activityData = await ctx.Activities
+            .Include(a => a.Fonction)
+            .OrderBy(a => a.Fonction!.DescriptionFonction)
+            .ThenBy(a => a.DescriptionActivity)
+            .ToListAsync();
+        _activityLoading = false;
+    }
+
+    async Task AddActivity()
+    {
+        if (!_newActivityFonctionId.HasValue || string.IsNullOrWhiteSpace(_newActivityCode) || string.IsNullOrWhiteSpace(_newActivityLabel))
+        {
+            Snackbar.Add("Fonction, code et description sont obligatoires.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var code = _newActivityCode.Trim().ToLowerInvariant();
+
+            var exists = await ctx.Activities.AnyAsync(a => a.Code == code);
+            if (exists)
+            {
+                Snackbar.Add("Ce code existe déjà.", Severity.Warning);
+                return;
+            }
+
+            ctx.Activities.Add(new Activity
+            {
+                FonctionId = _newActivityFonctionId.Value,
+                Code = code,
+                DescriptionActivity = _newActivityLabel.Trim(),
+                IsActive = true
+            });
+
+            await ctx.SaveChangesAsync();
+            _newActivityCode = string.Empty;
+            _newActivityLabel = string.Empty;
+
+            Snackbar.Add("Activité ajoutée.", Severity.Success);
+            await LoadActivities();
+            await LoadUserActivities();
+        }
+        catch (Exception ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(message, Severity.Error);
+        }
+    }
+
+    async Task ToggleActivityState(Activity activity)
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var entity = await ctx.Activities.FirstOrDefaultAsync(a => a.ActivityId == activity.ActivityId);
+        if (entity is null) return;
+
+        entity.IsActive = !entity.IsActive;
+        await ctx.SaveChangesAsync();
+        await LoadActivities();
+        await LoadUserActivities();
+    }
+
+    async Task DeleteActivity(Activity activity)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer l'activité '{activity.DescriptionActivity}' ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm != true) return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var entity = await ctx.Activities.FirstOrDefaultAsync(a => a.ActivityId == activity.ActivityId);
+            if (entity is null) return;
+
+            var links = await ctx.UserActivities.Where(ua => ua.ActivityId == entity.ActivityId).ToListAsync();
+            if (links.Any()) ctx.UserActivities.RemoveRange(links);
+
+            ctx.Activities.Remove(entity);
+            await ctx.SaveChangesAsync();
+
+            Snackbar.Add("Activité supprimée.", Severity.Success);
+            await LoadActivities();
+            await LoadUserActivities();
+        }
+        catch (Exception ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(message, Severity.Error);
+        }
+    }
+
+    async Task InitializeUserActivitiesPanel()
+    {
+        if (!_userData.Any())
+        {
+            _selectedActivityUserLogin = null;
+            _allUserActivityRows = new();
+            _userActivityRows = new();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_selectedActivityUserLogin) || !_userData.Any(u => u.Login == _selectedActivityUserLogin))
+        {
+            _selectedActivityUserLogin = _userData.First().Login;
+        }
+
+        await LoadUserActivities();
+    }
+
+    async Task OnActivityUserChanged()
+    {
+        await LoadUserActivities();
+    }
+
+    void ApplyActivityUserFilter()
+    {
+        _userActivityRows = _allUserActivityRows
+            .Where(a => !_activityFilterFonctionId.HasValue || a.FonctionId == _activityFilterFonctionId.Value)
+            .ToList();
+    }
+
+    async Task LoadUserActivities()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedActivityUserLogin))
+        {
+            _allUserActivityRows = new();
+            _userActivityRows = new();
+            return;
+        }
+
+        _userActivitiesLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var activities = await ctx.Activities
+            .Include(a => a.Fonction)
+            .Where(a => a.IsActive)
+            .OrderBy(a => a.Fonction!.DescriptionFonction)
+            .ThenBy(a => a.DescriptionActivity)
+            .ToListAsync();
+
+        var grantedIds = await ctx.UserActivities
+            .Where(ua => ua.UserLogin == _selectedActivityUserLogin && ua.IsGranted)
+            .Select(ua => ua.ActivityId)
+            .ToListAsync();
+
+        var grantedSet = grantedIds.ToHashSet();
+
+        _allUserActivityRows = activities
+            .Select(a => new UserActivityRow
+            {
+                ActivityId = a.ActivityId,
+                FonctionId = a.FonctionId,
+                FonctionLabel = a.Fonction?.DescriptionFonction ?? "-",
+                ActivityCode = a.Code,
+                ActivityLabel = a.DescriptionActivity,
+                IsGranted = grantedSet.Contains(a.ActivityId)
+            })
+            .ToList();
+
+        ApplyActivityUserFilter();
+        _userActivitiesLoading = false;
+    }
+
+    async Task SaveUserActivities()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedActivityUserLogin))
+            return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var existing = await ctx.UserActivities
+                .Where(ua => ua.UserLogin == _selectedActivityUserLogin)
+                .ToListAsync();
+
+            if (existing.Any())
+            {
+                ctx.UserActivities.RemoveRange(existing);
+                await ctx.SaveChangesAsync();
+            }
+
+            var rows = _allUserActivityRows
+                .Where(a => a.IsGranted)
+                .Select(a => new UserActivity
+                {
+                    UserLogin = _selectedActivityUserLogin,
+                    ActivityId = a.ActivityId,
+                    IsGranted = true,
+                    AssignedDate = DateTime.Now
+                })
+                .ToList();
+
+            if (rows.Any())
+            {
+                await ctx.UserActivities.AddRangeAsync(rows);
+                await ctx.SaveChangesAsync();
+            }
+
+            Snackbar.Add("Activités enregistrées.", Severity.Success);
+            await LoadUserActivities();
+        }
+        catch (Exception ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(message, Severity.Error);
+        }
+    }
+
+    async Task LoadRolePermissions(bool preserveSelection = true)
+    {
+        _rolePermissionLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _roleData = await ctx.Roles
+            .Where(r => r.IsActive)
+            .OrderBy(r => r.DescriptionRole)
+            .ToListAsync();
+
+        if (!_roleData.Any())
+        {
+            _selectedRoleId = null;
+            _rolePermissionRows = new();
+            _rolePermissionLoading = false;
+            return;
+        }
+
+        if (!preserveSelection || !_selectedRoleId.HasValue || !_roleData.Any(r => r.RoleId == _selectedRoleId.Value))
+        {
+            _selectedRoleId = _roleData.First().RoleId;
+        }
+
+        var fonctions = await ctx.Fonctions
+            .OrderBy(f => f.DescriptionFonction)
+            .ToListAsync();
+
+        var permissions = await ctx.Permissions
+            .Where(p => p.RoleId == _selectedRoleId.Value)
+            .ToListAsync();
+
+        _rolePermissionRows = fonctions
+            .Select(f =>
+            {
+                var permission = permissions.FirstOrDefault(p => p.FonctionId == f.IdFonction);
+                return new RolePermissionRow
+                {
+                    FonctionId = f.IdFonction,
+                    FonctionLabel = f.DescriptionFonction ?? $"Fonction #{f.IdFonction}",
+                    CanRead = permission?.CanRead ?? false,
+                    CanWrite = permission?.CanWrite ?? false,
+                    CanDelete = permission?.CanDelete ?? false
+                };
+            })
+            .ToList();
+
+        _rolePermissionLoading = false;
+    }
+
+    async Task OnSelectedRoleChanged()
+    {
+        await LoadRolePermissions();
+    }
+
+    async Task SaveRolePermissions()
+    {
+        if (!_selectedRoleId.HasValue)
+            return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var existing = await ctx.Permissions
+                .Where(p => p.RoleId == _selectedRoleId.Value)
+                .ToListAsync();
+
+            if (existing.Any())
+            {
+                ctx.Permissions.RemoveRange(existing);
+                await ctx.SaveChangesAsync();
+            }
+
+            var newPermissions = _rolePermissionRows
+                .Where(p => p.CanRead || p.CanWrite || p.CanDelete)
+                .Select(p => new Permission
+                {
+                    RoleId = _selectedRoleId.Value,
+                    FonctionId = p.FonctionId,
+                    CanRead = p.CanRead || p.CanWrite || p.CanDelete,
+                    CanWrite = p.CanWrite,
+                    CanDelete = p.CanDelete
+                })
+                .ToList();
+
+            if (newPermissions.Any())
+            {
+                await ctx.Permissions.AddRangeAsync(newPermissions);
+                await ctx.SaveChangesAsync();
+            }
+
+            Snackbar.Add("Les fonctions du rôle ont été mises à jour.", Severity.Success);
+            await LoadRolePermissions();
+        }
+        catch (Exception ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(message, Severity.Error);
+        }
+    }
+
+    async Task ApplyDefaultPermissions()
+    {
+        if (!_selectedRoleId.HasValue) return;
+
+        var confirm = await DialogService.ShowMessageBox("Permissions par défaut",
+            "Voulez-vous appliquer les permissions par défaut pour ce rôle ?\nCela remplacera les permissions actuelles.",
+            yesText: "Appliquer", cancelText: "Annuler");
+
+        if (confirm == true)
+        {
+            try
+            {
+                await RolePermissionService.SetDefaultPermissionsForRoleAsync(_selectedRoleId.Value, overwrite: true);
+                Snackbar.Add("Permissions par défaut appliquées", Severity.Success);
+                await LoadRolePermissions();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       FOURNISSEURS
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadSuppliers()
+    {
+        _supplierLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _supplierData = await ctx.Suppliers.OrderBy(s => s.SupplierName).ToListAsync();
+        _supplierLoading = false;
+    }
+
+    async Task OnAddSupplier()
+    {
+        var parameters = new DialogParameters<SupplierForm>();
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<SupplierForm>("Nouveau fournisseur", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadSuppliers();
+    }
+
+    async Task OnEditSupplier(Supplier s)
+    {
+        var parameters = new DialogParameters<SupplierForm> { { x => x.SupplierId, s.SupplierId } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<SupplierForm>($"Modifier — {s.SupplierName}", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadSuppliers();
+    }
+
+    async Task OnDeleteSupplier(Supplier s)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer le fournisseur « {s.SupplierName} » ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+
+        if (confirmed != true) return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var entity = await ctx.Suppliers.FindAsync(s.SupplierId);
+            if (entity != null)
+            {
+                ctx.Suppliers.Remove(entity);
+                await ctx.SaveChangesAsync();
+                Snackbar.Add(s.SupplierName, Severity.Success);
+                await LoadSuppliers();
+            }
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(msg, Severity.Error);
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TAUX DE CHANGE
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadTaux()
+    {
+        _tauxLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _tauxData = await ctx.TauxChanges.OrderByDescending(t => t.Date).ToListAsync();
+        _tauxLoading = false;
+    }
+
+    async Task OnAddTaux()
+    {
+        var parameters = new DialogParameters<TauxForm>();
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<TauxForm>("Nouveau taux", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadTaux();
+    }
+
+    async Task OnEditTaux(Taux item)
+    {
+        var parameters = new DialogParameters<TauxForm> { { x => x.TauxId, item.Id } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<TauxForm>("Modifier le taux", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadTaux();
+    }
+
+    async Task OnDeleteTaux(Taux item)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer le taux N° {item.Id} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.TauxChanges.Remove(item);
+            await ctx.SaveChangesAsync();
+            await LoadTaux();
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       PÉRIODES
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadPeriodes()
+    {
+        _periodeLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _periodeData = await ctx.Periodes.OrderByDescending(p => p.FromDate).ToListAsync();
+        _periodeLoading = false;
+    }
+
+    async Task OnAddPeriode()
+    {
+        var parameters = new DialogParameters<PeriodeForm>();
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PeriodeForm>("Nouvelle période", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadPeriodes();
+    }
+
+    async Task OnEditPeriode(Periode item)
+    {
+        var parameters = new DialogParameters<PeriodeForm> { { x => x.PeriodeId, item.Id } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PeriodeForm>("Modifier la période", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadPeriodes();
+    }
+
+    async Task ToggleActivated(Periode item)
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        item.Activated = !(item.Activated ?? false);
+        ctx.Periodes.Update(item);
+        await ctx.SaveChangesAsync();
+        Snackbar.Add(item.Activated == true ? "Période activée" : "Période clôturée", Severity.Info);
+        await LoadPeriodes();
+    }
+
+    async Task OnDeletePeriode(Periode item)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer la période N° {item.Id} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.Periodes.Remove(item);
+            await ctx.SaveChangesAsync();
+            await LoadPeriodes();
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       VERSEMENTS
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadVersements()
+    {
+        _versementLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var query = ctx.ApproExpenses.AsQueryable();
+        if (_versDateFrom.HasValue)
+            query = query.Where(e => e.CreationDate >= _versDateFrom.Value);
+        if (_versDateTo.HasValue)
+            query = query.Where(e => e.CreationDate <= _versDateTo.Value);
+        _versementData = await query.OrderByDescending(e => e.CreationDate).ToListAsync();
+        _versementLoading = false;
+    }
+
+    async Task OnAddVersement()
+    {
+        var parameters = new DialogParameters<ApproExpenseForm>();
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ApproExpenseForm>("Nouveau versement", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadVersements();
+    }
+
+    async Task OnEditVersement(ApproExpense item)
+    {
+        var parameters = new DialogParameters<ApproExpenseForm> { { x => x.ExpenseId, item.Id } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ApproExpenseForm>("Modifier le versement", parameters, options);
+        var result = await dialog.Result;
+        if (!result.Canceled) await LoadVersements();
+    }
+
+    async Task OnDeleteVersement(ApproExpense item)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer le versement N° {item.Id} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.ApproExpenses.Remove(item);
+            await ctx.SaveChangesAsync();
+            await LoadVersements();
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       GESTION FACTURES (ADMIN)
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadAdminFactures()
+    {
+        _factAdminLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var query = ctx.Facts.AsQueryable();
+        if (_factDateFrom.HasValue)
+        {
+            var from = DateOnly.FromDateTime(_factDateFrom.Value);
+            query = query.Where(f => f.Date >= from);
+        }
+        if (_factDateTo.HasValue)
+        {
+            var to = DateOnly.FromDateTime(_factDateTo.Value);
+            query = query.Where(f => f.Date <= to);
+        }
+        _factAdminData = await query.OrderByDescending(f => f.Date).ToListAsync();
+        _factAdminLoading = false;
+    }
+
+    async Task OnDeleteAdminFacture(Fact item)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer la facture N° {item.Id} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.Facts.Remove(item);
+            await ctx.SaveChangesAsync();
+            await LoadAdminFactures();
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       GESTION LIVRAISONS & COMMANDES (ADMIN)
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadLivraisonCommandes()
+    {
+        _livCmdLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var lQuery = ctx.Livraisons.AsQueryable();
+        var cQuery = ctx.Commandes.AsQueryable();
+        if (_livCmdDateFrom.HasValue)
+        {
+            lQuery = lQuery.Where(l => l.Date >= _livCmdDateFrom.Value);
+            cQuery = cQuery.Where(c => c.CreationDate >= _livCmdDateFrom.Value);
+        }
+        if (_livCmdDateTo.HasValue)
+        {
+            lQuery = lQuery.Where(l => l.Date <= _livCmdDateTo.Value);
+            cQuery = cQuery.Where(c => c.CreationDate <= _livCmdDateTo.Value);
+        }
+        _adminLivraisons = await lQuery.OrderByDescending(l => l.Date).ToListAsync();
+        _adminCommandes = await cQuery.OrderByDescending(c => c.CreationDate).ToListAsync();
+        _livCmdLoading = false;
+    }
+
+    async Task OnDeleteAdminLivraison(Livraison item)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer la livraison N° {item.LivraisonId} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.Livraisons.Remove(item);
+            await ctx.SaveChangesAsync();
+            await LoadLivraisonCommandes();
+        }
+    }
+
+    async Task OnDeleteAdminCommande(Commande item)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer la commande N° {item.CommandeId} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.Commandes.Remove(item);
+            await ctx.SaveChangesAsync();
+            await LoadLivraisonCommandes();
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       GESTION LOCALISATIONS
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadLocalisations()
+    {
+        _localisationsLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _localisations = await ctx.Localisations.OrderBy(l => l.DescriptionLocalisation).ToListAsync();
+        _localisationsLoading = false;
+    }
+
+    async Task OnAddLocalisation()
+    {
+        var dialog = await DialogService.ShowAsync<LocalisationDialog>("Ajouter une localisation",
+            new DialogParameters<LocalisationDialog>(),
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall });
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadLocalisations();
+        }
+    }
+
+    async Task OnEditLocalisation(Localisation item)
+    {
+        var dialog = await DialogService.ShowAsync<LocalisationDialog>("Modifier localisation",
+            new DialogParameters<LocalisationDialog> { { x => x.Model, item } },
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall });
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            await LoadLocalisations();
+        }
+    }
+
+    void OnViewLocalisation(Localisation item)
+    {
+        Navigation.NavigateTo($"/localisation/{item.IdLocalisation}");
+    }
+
+    async Task OnDeleteLocalisation(Localisation item)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer la localisation « {item.DescriptionLocalisation} » ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.Localisations.Remove(item);
+            await ctx.SaveChangesAsync();
+            Snackbar.Add("Localisation supprimée.", Severity.Success);
+            await LoadLocalisations();
+        }
+    }
+
+    class RolePermissionRow
+    {
+        public int FonctionId { get; set; }
+        public string FonctionLabel { get; set; } = string.Empty;
+        public bool CanRead { get; set; }
+        public bool CanWrite { get; set; }
+        public bool CanDelete { get; set; }
+    }
+
+    class UserActivityRow
+    {
+        public int ActivityId { get; set; }
+        public int FonctionId { get; set; }
+        public string FonctionLabel { get; set; } = string.Empty;
+        public string ActivityCode { get; set; } = string.Empty;
+        public string ActivityLabel { get; set; } = string.Empty;
+        public bool IsGranted { get; set; }
+    }
+}

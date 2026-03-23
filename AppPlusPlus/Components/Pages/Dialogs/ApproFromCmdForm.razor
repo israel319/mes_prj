@@ -1,0 +1,320 @@
+@* ──────────────────────────────────────────────────────────────
+   Dialog : Réceptionner des articles d'une commande interne.
+   Affiche la checklist des lignes commandées avec progression.
+   L'utilisateur coche, ajuste qté, PA, PV, localisation.
+   Crée les Appros + met à jour stock (Article.Qte, ArticleLocalisation).
+   ────────────────────────────────────────────────────────────── *@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_cmd == null)
+        {
+            <div class="d-flex flex-column align-items-center" style="padding:2rem;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+                <h6 class="mb-0">
+                    Commande N° @_cmd.Id — @(_cmd.Supplier?.SupplierName ?? _cmd.Description ?? "Commande interne")
+                </h6>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Localisation de stockage</label>
+                        <MudSelect T="int?" @bind-Value="_selectedLocalisation"
+                                   Placeholder="Sélectionner..."
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                            @foreach (var loc in _localisations)
+                            {
+                                <MudSelectItem T="int?" Value="@loc.IdLocalisation">@loc.DescriptionLocalisation</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fournisseur</label>
+                        <MudAutocomplete T="int?" @bind-Value="_selectedSupplier"
+                                         SearchFunc="@SearchSuppliers"
+                                         ToStringFunc="@(id => _suppliers.FirstOrDefault(s => s.SupplierId == id)?.SupplierName ?? "")"
+                                         Placeholder="Sélectionner..."
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
+                    </div>
+                </div>
+
+                <p class="mb-0 small text-muted">
+                    Cochez les articles à réceptionner et ajustez la quantité, PA et PV :
+                </p>
+
+                <MudDataGrid Items="@_lines" T="RecLine" Dense="true" Hover="true" Bordered="true" Elevation="0">
+                    <Columns>
+                        <TemplateColumn Title="">
+                            <CellTemplate>
+                                <MudCheckBox @bind-Value="context.Item.Selected" T="bool" Dense="true" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Article">
+                            <CellTemplate>
+                                @(context.Item.ArticleDesc ?? context.Item.ArticleId ?? "—")
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Commandé">
+                            <CellTemplate>
+                                <span style="text-align:center;display:block;">@((context.Item.QteOrder).ToString("N0"))</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Déjà reçu">
+                            <CellTemplate>
+                                <span style="text-align:center;display:block;">@((context.Item.QteReceived).ToString("N0"))</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="À recevoir">
+                            <CellTemplate>
+                                <MudNumericField @bind-Value="context.Item.QteReception" T="decimal" Min="0"
+                                                 Max="@(context.Item.QteRemaining)"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:80px;" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="PA">
+                            <CellTemplate>
+                                <MudNumericField @bind-Value="context.Item.PA" T="decimal?" Min="0"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:90px;" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="PV">
+                            <CellTemplate>
+                                <MudNumericField @bind-Value="context.Item.PV" T="decimal?" Min="0"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:90px;" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="mb-0 small">
+                        <strong>@_lines.Count(l => l.Selected)</strong> article(s) sélectionné(s)
+                    </p>
+                </div>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="OnSave" disabled="@(!_lines.Any(l => l.Selected && l.QteReception > 0))">
+            <i class="bi bi-box-arrow-in-down me-1"></i>Réceptionner en stock
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int CmdId { get; set; }
+
+    Cmd? _cmd;
+    List<RecLine> _lines = new();
+    List<Localisation> _localisations = new();
+    List<Supplier> _suppliers = new();
+    int? _selectedLocalisation;
+    int? _selectedSupplier;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _localisations = await ctx.Localisations.OrderBy(l => l.DescriptionLocalisation).ToListAsync();
+        _suppliers = await ctx.Suppliers.OrderBy(s => s.SupplierName).ToListAsync();
+
+        _cmd = await ctx.Cmds
+            .Include(c => c.Supplier)
+            .Include(c => c.Details)
+            .FirstOrDefaultAsync(c => c.Id == CmdId);
+
+        if (_cmd == null) return;
+
+        _selectedSupplier = _cmd.SupplierId;
+
+        // On utilise IdCmd + IdArticle pour retrouver les réceptions liées
+        var articleIds = _cmd.Details.Select(d => d.IdArticle).Where(a => a != null).Distinct().ToList();
+        var receivedMap = await ctx.Appros
+            .Where(a => a.IdCmd == CmdId && articleIds.Contains(a.IdArticle))
+            .GroupBy(a => a.IdArticle)
+            .Select(g => new { IdArticle = g.Key, Total = g.Sum(x => x.Qte) })
+            .ToDictionaryAsync(x => x.IdArticle, x => x.Total);
+
+        var articles = await ctx.Articles
+            .Where(a => articleIds.Contains(a.IdArticle))
+            .ToDictionaryAsync(a => a.IdArticle, a => a);
+
+        foreach (var d in _cmd.Details)
+        {
+            var received = d.IdArticle != null ? receivedMap.GetValueOrDefault(d.IdArticle) : 0;
+            var remaining = (decimal)(d.QteOrder ?? 0) - received;
+            if (remaining <= 0) continue;
+
+            var art = d.IdArticle != null && articles.TryGetValue(d.IdArticle, out var a) ? a : null;
+
+            _lines.Add(new RecLine
+            {
+                CmdDetailId = d.Id,
+                ArticleId = d.IdArticle,
+                ArticleDesc = art?.Description ?? d.IdArticle,
+                QteOrder = (decimal)(d.QteOrder ?? 0),
+                QteReceived = received,
+                QteRemaining = remaining,
+                QteReception = remaining,
+                PA = null,
+                PV = art != null ? (decimal)art.Price : null,
+                Selected = true
+            });
+        }
+    }
+
+    private Task<IEnumerable<int?>> SearchSuppliers(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(value))
+            return Task.FromResult(_suppliers.Select(s => (int?)s.SupplierId));
+        return Task.FromResult(_suppliers
+            .Where(s => s.SupplierName != null && s.SupplierName.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(s => (int?)s.SupplierId));
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnSave()
+    {
+        var selected = _lines.Where(l => l.Selected && l.QteReception > 0).ToList();
+        if (!selected.Any()) return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            foreach (var line in selected)
+            {
+                var appro = new Appro
+                {
+                    IdArticle = line.ArticleId!,
+                    IdCmd = CmdId,
+                    Qte = line.QteReception,
+                    PA = line.PA,
+                    PV = line.PV,
+                    Ben = (line.PV ?? 0) - (line.PA ?? 0),
+                    BenTotal = ((line.PV ?? 0) - (line.PA ?? 0)) * line.QteReception,
+                    Date = DateOnly.FromDateTime(DateTime.Today),
+                    DateSys = DateTime.Now,
+                    User = "Admin",
+                    Cumputer = Environment.MachineName,
+                    Commentaire = $"Réception Cmd N°{CmdId}",
+                    SupplierId = _selectedSupplier,
+                    LocalisationId = _selectedLocalisation
+                };
+                ctx.Appros.Add(appro);
+
+                var cmdDetail = await ctx.CmdDetails.FindAsync(line.CmdDetailId);
+                if (cmdDetail != null)
+                {
+                    cmdDetail.QteReceive = (cmdDetail.QteReceive ?? 0) + (double)line.QteReception;
+                }
+
+                var article = await ctx.Articles.FindAsync(line.ArticleId);
+                if (article != null)
+                {
+                    article.Qte = (article.Qte ?? 0) + (decimal)line.QteReception;
+
+                    if (line.PV.HasValue && line.PV.Value > 0)
+                        article.Price = (double)line.PV.Value;
+                }
+
+                if (_selectedLocalisation.HasValue && line.ArticleId != null)
+                {
+                    // ── Mettre à jour T_Stock ──
+                    var stock = await ctx.Stocks
+                        .FirstOrDefaultAsync(s => s.IdArticle == line.ArticleId
+                                                 && s.IdLocalisation == _selectedLocalisation.Value);
+                    decimal qteAvant = stock?.Qte ?? 0;
+                    decimal qteApres = qteAvant + line.QteReception;
+
+                    if (stock != null)
+                    {
+                        stock.Qte = qteApres;
+                        stock.DateSys = DateOnly.FromDateTime(DateTime.Today);
+                        stock.UserLogin = "Admin";
+                    }
+                    else
+                    {
+                        stock = new Stock
+                        {
+                            IdArticle = line.ArticleId,
+                            IdLocalisation = _selectedLocalisation.Value,
+                            Qte = line.QteReception,
+                            Seuil = 0,
+                            DateSys = DateOnly.FromDateTime(DateTime.Today),
+                            UserLogin = "Admin"
+                        };
+                        ctx.Stocks.Add(stock);
+                    }
+
+                    // ── Créer MouvementStock pour traçabilité ──
+                    ctx.MouvementsStock.Add(new MouvementStock
+                    {
+                        IdArticle = line.ArticleId,
+                        IdLocalisation = _selectedLocalisation.Value,
+                        TypeMouvement = TypesMouvement.ENTREE,
+                        Quantite = line.QteReception,
+                        QteAvant = qteAvant,
+                        QteApres = qteApres,
+                        DateMouvement = DateTime.Now,
+                        TypeDocument = TypesDocument.APPRO,
+                        IdDocument = appro.Id,
+                        Reference = $"Cmd N°{CmdId}",
+                        PrixUnitaire = line.PA,
+                        Observation = $"Réception depuis commande N°{CmdId}",
+                        CreePar = "Admin",
+                        DateCreation = DateTime.Now
+                    });
+                }
+            }
+
+            var cmd = await ctx.Cmds.Include(c => c.Details).FirstOrDefaultAsync(c => c.Id == CmdId);
+            if (cmd != null)
+            {
+                var cmdArticleIds = cmd.Details.Select(d => d.IdArticle).Where(a => a != null).ToList();
+                var totalReceived = await ctx.Appros
+                    .Where(a => a.IdCmd == CmdId && cmdArticleIds.Contains(a.IdArticle))
+                    .SumAsync(a => a.Qte)
+                    + selected.Sum(l => l.QteReception);
+
+                var totalOrder = cmd.Details.Sum(d => (decimal)(d.QteOrder ?? 0));
+
+                cmd.Status = totalReceived >= totalOrder ? 2 : 1;
+            }
+
+            await ctx.SaveChangesAsync();
+
+            Snackbar.Add($"{selected.Count} article(s) réceptionné(s) en stock", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(msg, Severity.Error);
+        }
+    }
+
+    class RecLine
+    {
+        public int CmdDetailId { get; set; }
+        public string? ArticleId { get; set; }
+        public string? ArticleDesc { get; set; }
+        public decimal QteOrder { get; set; }
+        public decimal QteReceived { get; set; }
+        public decimal QteRemaining { get; set; }
+        public decimal QteReception { get; set; }
+        public decimal? PA { get; set; }
+        public decimal? PV { get; set; }
+        public bool Selected { get; set; }
+    }
+}

@@ -1,0 +1,234 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column gap-3">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Login</label>
+                    <input type="text" class="form-control" @bind="_user.Login" maxlength="50" readonly="@_isEdit" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Mot de passe</label>
+                    <input type="password" class="form-control" @bind="_user.Password" />
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nom complet</label>
+                    <input type="text" class="form-control" @bind="_user.Name" maxlength="50" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="text" class="form-control" @bind="_user.Email" maxlength="50" />
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Rôle</label>
+                    <MudSelect T="int?" @bind-Value="_user.RoleId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                               Placeholder="Sélectionner un rôle">
+                        @foreach (var role in _roles)
+                        {
+                            <MudSelectItem T="int?" Value="@role.RoleId">@role.DescriptionRole</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Actif</label>
+                    <MudSwitch @bind-Value="_activated" T="bool" Color="Color.Primary" />
+                </div>
+            </div>
+
+            <!-- Localisations avec checkboxes -->
+            <div>
+                <label class="form-label">Localisations assignées</label>
+                <div class="border p-3" style="max-height:200px;overflow-y:auto;">
+                    @if (_localisations.Any())
+                    {
+                        @foreach (var loc in _localisations)
+                        {
+                            <div class="d-flex align-items-center mb-2">
+                                <MudCheckBox T="bool"
+                                             Value="@IsLocalisationSelected(loc.IdLocalisation)"
+                                             ValueChanged="@((bool val) => OnLocalisationToggle(loc.IdLocalisation, val))"
+                                             Color="Color.Primary" Dense="true" />
+                                <span class="ms-2">@loc.DescriptionLocalisation</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <span class="text-muted">Aucune localisation disponible</span>
+                    }
+                </div>
+                <small class="text-muted">@_selectedLocalisations.Count localisation(s) sélectionnée(s)</small>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="OnSubmit">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string? UserLogin { get; set; }
+
+    bool _isEdit;
+    bool _activated = true;
+    List<Role> _roles = new();
+    List<Localisation> _localisations = new();
+    HashSet<int> _selectedLocalisations = new();
+    User _user = new() { Activated = true };
+
+    void Cancel() => MudDialog.Close();
+
+    bool IsLocalisationSelected(int locId) => _selectedLocalisations.Contains(locId);
+
+    void OnLocalisationToggle(int locId, bool selected)
+    {
+        if (selected)
+            _selectedLocalisations.Add(locId);
+        else
+            _selectedLocalisations.Remove(locId);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _roles = await ctx.Roles
+            .Where(r => r.IsActive)
+            .OrderBy(r => r.DescriptionRole)
+            .ToListAsync();
+
+        _localisations = await ctx.Localisations
+            .OrderBy(l => l.DescriptionLocalisation)
+            .ToListAsync();
+
+        if (!string.IsNullOrEmpty(UserLogin))
+        {
+            _isEdit = true;
+            var existing = await ctx.Users.FindAsync(UserLogin);
+            if (existing != null)
+            {
+                _user = existing;
+                _activated = _user.Activated ?? true;
+
+                // Load existing user localisations
+                var userLocs = await ctx.UserLocalisations
+                    .Where(ul => ul.UserId == UserLogin && ul.Activate == true)
+                    .ToListAsync();
+
+                _selectedLocalisations = userLocs
+                    .Where(ul => ul.LocalisationId.HasValue)
+                    .Select(ul => ul.LocalisationId!.Value)
+                    .ToHashSet();
+            }
+        }
+        else if (_roles.Any())
+        {
+            _user.RoleId = _roles.First().RoleId;
+        }
+    }
+
+    async Task OnSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(_user.Login))
+        {
+            Snackbar.Add("Le login est obligatoire.", Severity.Warning);
+            return;
+        }
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _user.Activated = _activated;
+
+        if (_isEdit)
+        {
+            var existing = await ctx.Users.FirstOrDefaultAsync(u => u.Login == _user.Login);
+            if (existing is null)
+            {
+                MudDialog.Close();
+                return;
+            }
+
+            existing.Password = _user.Password;
+            existing.Name = _user.Name;
+            existing.Email = _user.Email;
+            existing.RoleId = _user.RoleId;
+            existing.Activated = _user.Activated;
+
+            // Update user localisations
+            var existingLocs = await ctx.UserLocalisations
+                .Where(ul => ul.UserId == _user.Login)
+                .ToListAsync();
+
+            // Deactivate removed localisations
+            foreach (var loc in existingLocs)
+            {
+                if (loc.LocalisationId.HasValue && !_selectedLocalisations.Contains(loc.LocalisationId.Value))
+                {
+                    loc.Activate = false;
+                    loc.EndDate = DateOnly.FromDateTime(DateTime.Today);
+                }
+            }
+
+            // Add or reactivate new localisations
+            foreach (var locId in _selectedLocalisations)
+            {
+                var existingLoc = existingLocs.FirstOrDefault(l => l.LocalisationId == locId);
+                if (existingLoc != null)
+                {
+                    existingLoc.Activate = true;
+                    existingLoc.EndDate = null;
+                }
+                else
+                {
+                    ctx.UserLocalisations.Add(new UserLocalisation
+                    {
+                        UserId = _user.Login,
+                        LocalisationId = locId,
+                        BeginDate = DateOnly.FromDateTime(DateTime.Today),
+                        Activate = true
+                    });
+                }
+            }
+        }
+        else
+        {
+            // Check if login already exists
+            var exists = await ctx.Users.AnyAsync(u => u.Login == _user.Login);
+            if (exists)
+            {
+                Snackbar.Add("Ce login existe déjà.", Severity.Error);
+                return;
+            }
+
+            ctx.Users.Add(_user);
+            await ctx.SaveChangesAsync();
+
+            // Add user localisations
+            foreach (var locId in _selectedLocalisations)
+            {
+                ctx.UserLocalisations.Add(new UserLocalisation
+                {
+                    UserId = _user.Login,
+                    LocalisationId = locId,
+                    BeginDate = DateOnly.FromDateTime(DateTime.Today),
+                    Activate = true
+                });
+            }
+        }
+
+        await ctx.SaveChangesAsync();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

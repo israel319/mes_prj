@@ -1,0 +1,247 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (!_loaded)
+        {
+            <div class="d-flex align-items-center justify-content-center" style="min-height:220px;">
+                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Chargement...</span></div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+                <div class="card card-body">
+                    <div class="d-flex flex-wrap align-items-end gap-3">
+                        <div class="d-flex flex-column gap-1" style="min-width:260px;">
+                            <span class="small" style="font-weight: 700;">Utilisateur</span>
+                            <span>@_userLogin</span>
+                        </div>
+
+                        <div class="d-flex flex-column gap-1" style="min-width:320px;">
+                            <span class="small" style="font-weight: 700;">Rôle</span>
+                            <MudSelect T="int?" Value="_selectedRoleId" ValueChanged="@(async (int? v) => { _selectedRoleId = v; await OnRoleChanged(); })"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                       Placeholder="Sélectionner un rôle" Style="width:320px;">
+                                @foreach (var role in _roles)
+                                {
+                                    <MudSelectItem T="int?" Value="@role.RoleId">@role.DescriptionRole</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mt-3">
+                        Les activités sont précochées automatiquement selon le rôle. Ensuite, coche/décoche ce que cet utilisateur peut faire ou voir.
+                    </div>
+                </div>
+
+                <div class="card card-body">
+                    <MudDataGrid Items="@_rows" T="UserAccessRow" Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                 Loading="@_loadingRows" Filterable="true" SortMode="SortMode.Single">
+                        <Columns>
+                            <PropertyColumn Property="x => x.FonctionLabel" Title="Fonction" />
+                            <PropertyColumn Property="x => x.ActivityLabel" Title="Activité" />
+                            <PropertyColumn Property="x => x.ActivityCode" Title="Code" />
+                            <TemplateColumn Title="Autorisé" Sortable="false" Filterable="false">
+                                <CellTemplate>
+                                    <MudCheckBox @bind-Value="context.Item.IsGranted" T="bool" Dense="true" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                </div>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="Save">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string? UserLogin { get; set; }
+
+    bool _loaded;
+    bool _loadingRows;
+    string _userLogin = string.Empty;
+    int? _selectedRoleId;
+
+    List<Role> _roles = new();
+    List<Activity> _activities = new();
+    List<UserAccessRow> _rows = new();
+
+    void Cancel() => MudDialog.Close();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(UserLogin))
+        {
+            MudDialog.Close();
+            return;
+        }
+
+        _userLogin = UserLogin;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var user = await ctx.Users.FirstOrDefaultAsync(u => u.Login == _userLogin);
+        if (user is null)
+        {
+            MudDialog.Close();
+            return;
+        }
+
+        _selectedRoleId = user.RoleId;
+
+        _roles = await ctx.Roles
+            .Where(r => r.IsActive)
+            .OrderBy(r => r.DescriptionRole)
+            .ToListAsync();
+
+        _activities = await ctx.Activities
+            .Include(a => a.Fonction)
+            .Where(a => a.IsActive)
+            .OrderBy(a => a.Fonction!.DescriptionFonction)
+            .ThenBy(a => a.DescriptionActivity)
+            .ToListAsync();
+
+        await LoadRows(useUserAssignmentsIfExists: true);
+        _loaded = true;
+    }
+
+    async Task OnRoleChanged()
+    {
+        await LoadRows(useUserAssignmentsIfExists: false);
+    }
+
+    async Task LoadRows(bool useUserAssignmentsIfExists)
+    {
+        _loadingRows = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var roleDefaults = await BuildRoleDefaultSet(ctx, _selectedRoleId);
+
+        var userAssignments = await ctx.UserActivities
+            .Where(ua => ua.UserLogin == _userLogin && ua.IsGranted)
+            .Select(ua => ua.ActivityId)
+            .ToListAsync();
+
+        var hasUserAssignments = userAssignments.Any();
+        var userSet = userAssignments.ToHashSet();
+
+        _rows = _activities.Select(a => new UserAccessRow
+        {
+            ActivityId = a.ActivityId,
+            FonctionLabel = a.Fonction?.DescriptionFonction ?? "-",
+            ActivityLabel = a.DescriptionActivity,
+            ActivityCode = a.Code,
+            IsGranted = useUserAssignmentsIfExists && hasUserAssignments
+                ? userSet.Contains(a.ActivityId)
+                : roleDefaults.Contains(a.ActivityId)
+        }).ToList();
+
+        _loadingRows = false;
+    }
+
+    static async Task<HashSet<int>> BuildRoleDefaultSet(AppDbContext ctx, int? roleId)
+    {
+        var result = new HashSet<int>();
+        if (!roleId.HasValue) return result;
+
+        var permissions = await ctx.Permissions
+            .Where(p => p.RoleId == roleId.Value)
+            .ToListAsync();
+
+        var activities = await ctx.Activities
+            .Where(a => a.IsActive)
+            .ToListAsync();
+
+        foreach (var p in permissions)
+        {
+            var functionActivities = activities.Where(a => a.FonctionId == p.FonctionId).ToList();
+
+            foreach (var activity in functionActivities)
+            {
+                var code = activity.Code.ToLowerInvariant();
+
+                if (code.EndsWith("_read") && p.CanRead)
+                    result.Add(activity.ActivityId);
+                else if ((code.EndsWith("_create") || code.EndsWith("_update")) && p.CanWrite)
+                    result.Add(activity.ActivityId);
+                else if (code.EndsWith("_delete") && p.CanDelete)
+                    result.Add(activity.ActivityId);
+            }
+        }
+
+        return result;
+    }
+
+    async Task Save()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var user = await ctx.Users.FirstOrDefaultAsync(u => u.Login == _userLogin);
+            if (user is null)
+            {
+                Snackbar.Add("Utilisateur introuvable.", Severity.Error);
+                return;
+            }
+
+            user.RoleId = _selectedRoleId;
+            await ctx.SaveChangesAsync();
+
+            var existing = await ctx.UserActivities
+                .Where(ua => ua.UserLogin == _userLogin)
+                .ToListAsync();
+
+            if (existing.Any())
+            {
+                ctx.UserActivities.RemoveRange(existing);
+                await ctx.SaveChangesAsync();
+            }
+
+            var selected = _rows
+                .Where(r => r.IsGranted)
+                .Select(r => new UserActivity
+                {
+                    UserLogin = _userLogin,
+                    ActivityId = r.ActivityId,
+                    IsGranted = true,
+                    AssignedDate = DateTime.Now
+                })
+                .ToList();
+
+            if (selected.Any())
+            {
+                await ctx.UserActivities.AddRangeAsync(selected);
+                await ctx.SaveChangesAsync();
+            }
+
+            Snackbar.Add("Rôle et activités enregistrés.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(message, Severity.Error);
+        }
+    }
+
+    class UserAccessRow
+    {
+        public int ActivityId { get; set; }
+        public string FonctionLabel { get; set; } = string.Empty;
+        public string ActivityLabel { get; set; } = string.Empty;
+        public string ActivityCode { get; set; } = string.Empty;
+        public bool IsGranted { get; set; }
+    }
+}

@@ -1,0 +1,332 @@
+@page "/localisation/{Id:int}"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>@AppSettings.AppName — @(_localisation?.DescriptionLocalisation ?? "Localisation")</PageTitle>
+
+@if (_loading)
+{
+    <div class="d-flex align-items-center justify-content-center" style="min-height:300px;">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Chargement…</span></div>
+    </div>
+}
+else if (_localisation == null)
+{
+    <div class="card mx-auto mt-4" style="max-width:720px;">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-exclamation-triangle" style="font-size:42px;color:#f59e0b;"></i>
+            <h5 class="fw-bold mt-3">Localisation introuvable</h5>
+            <p class="text-muted">Cette localisation n'existe pas ou a été supprimée.</p>
+            <button class="btn btn-primary mt-3" @onclick="@(() => Navigation.NavigateTo("/admin"))">
+                <i class="bi bi-arrow-left me-2"></i>Retour
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <!-- En-tête -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => Navigation.NavigateTo("/admin"))">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <div class="hub-icon" style="background:#d4f5ef;color:#00B193;">
+                <i class="bi bi-geo-alt"></i>
+            </div>
+            <div>
+                <h2 class="fw-bold mb-0 fs-4">@_localisation.DescriptionLocalisation</h2>
+                <small class="text-muted">Gestion du stock et des utilisateurs de cette localisation</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Résumé en cartes -->
+    <div class="row g-3 mb-2">
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-people" style="font-size:24px;color:#253C45;"></i>
+                    <h3 class="fw-bold mb-0 mt-2">@_users.Count</h3>
+                    <small class="text-muted">Utilisateurs</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-seam" style="font-size:24px;color:#00B193;"></i>
+                    <h3 class="fw-bold mb-0 mt-2">@_stockArticles.Count</h3>
+                    <small class="text-muted">Articles</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-circle" style="font-size:24px;color:#dc2626;"></i>
+                    <h3 class="fw-bold mb-0 mt-2" style="color:#dc2626;">@_stockArticles.Count(a => a.Qte <= 0)</h3>
+                    <small class="text-muted">En rupture</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-triangle" style="font-size:24px;color:#f59e0b;"></i>
+                    <h3 class="fw-bold mb-0 mt-2" style="color:#f59e0b;">@_stockArticles.Count(a => a.Qte > 0 && a.Qte <= a.Seuil)</h3>
+                    <small class="text-muted">Stock bas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onglets -->
+    <div class="card">
+        <ul class="nav nav-tabs px-3 pt-2">
+            <li class="nav-item">
+                <button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(() => _tab = 0)">
+                    <i class="bi bi-box-seam me-1"></i>Articles (@_stockArticles.Count)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(() => _tab = 1)">
+                    <i class="bi bi-people me-1"></i>Utilisateurs (@_users.Count)
+                </button>
+            </li>
+        </ul>
+
+        @if (_tab == 0)
+        {
+            <!-- Tab Articles -->
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <input type="text" class="form-control" placeholder="Rechercher un article..."
+                           style="max-width:300px;" @bind="_articleSearch" @bind:event="oninput" />
+                    <button class="btn btn-primary btn-sm" @onclick="OnAddArticle">
+                        <i class="bi bi-plus-lg me-1"></i>Nouvel article
+                    </button>
+                </div>
+
+                <MudDataGrid T="StockArticleView" Items="@FilteredArticles" Dense="true" Hover="true" Striped="true">
+                    <Columns>
+                        <PropertyColumn Property="x => x.IdArticle" Title="Code" />
+                        <PropertyColumn Property="x => x.Description" Title="Description" />
+                        <TemplateColumn Title="Stock" Sortable="true">
+                            <CellTemplate>
+                                @{
+                                    var qte = (int)context.Item.Qte;
+                                    var seuil = context.Item.Seuil;
+                                    var couleur = qte <= 0 ? "#dc2626" : qte <= seuil ? "#f59e0b" : "#16a34a";
+                                }
+                                <span style="font-weight:600;color:@couleur;">
+                                    @if (qte <= 0)
+                                    {
+                                        <i class="bi bi-exclamation-circle me-1"></i>
+                                    }
+                                    else if (qte <= seuil)
+                                    {
+                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                    }
+                                    @qte
+                                </span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <PropertyColumn Property="x => x.Seuil" Title="Seuil" />
+                        <PropertyColumn Property="x => x.Price" Title="Prix" Format="N0" />
+                        <TemplateColumn Title="État">
+                            <CellTemplate>
+                                @{
+                                    var qte = (int)context.Item.Qte;
+                                    var seuil = context.Item.Seuil;
+                                }
+                                @if (qte <= 0)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error">Rupture</MudChip>
+                                }
+                                else if (qte <= seuil)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stock bas</MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Actions" Sortable="false">
+                            <CellTemplate>
+                                <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart" Color="Color.Primary"
+                                               Size="Size.Small" OnClick="@(() => OnAppro(context.Item))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning"
+                                               Size="Size.Small" OnClick="@(() => OnEditArticle(context.Item))" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                    <PagerContent>
+                        <MudDataGridPager T="StockArticleView" />
+                    </PagerContent>
+                </MudDataGrid>
+            </div>
+        }
+        else
+        {
+            <!-- Tab Utilisateurs -->
+            <div class="card-body">
+                @if (_users.Any())
+                {
+                    <MudDataGrid T="User" Items="@_users" Dense="true" Hover="true" Striped="true">
+                        <Columns>
+                            <PropertyColumn Property="x => x.Login" Title="Login" />
+                            <PropertyColumn Property="x => x.Name" Title="Nom" />
+                            <PropertyColumn Property="x => x.Email" Title="Email" />
+                            <TemplateColumn Title="Rôle">
+                                <CellTemplate>
+                                    @(context.Item.Role?.DescriptionRole ?? "-")
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Statut">
+                                <CellTemplate>
+                                    @if (context.Item.Activated == true)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Actif</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Inactif</MudChip>
+                                    }
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="User" />
+                        </PagerContent>
+                    </MudDataGrid>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info">Aucun utilisateur assigné à cette localisation</MudAlert>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private bool _loading = true;
+    private int _tab;
+    private Localisation? _localisation;
+    private List<User> _users = new();
+    private List<StockArticleView> _stockArticles = new();
+    private string _articleSearch = "";
+
+    private IEnumerable<StockArticleView> FilteredArticles => string.IsNullOrWhiteSpace(_articleSearch)
+        ? _stockArticles
+        : _stockArticles.Where(a =>
+            (a.IdArticle?.Contains(_articleSearch, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (a.Description?.Contains(_articleSearch, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    // View model combining Stock + Article data
+    class StockArticleView
+    {
+        public int StockId { get; set; }
+        public string IdArticle { get; set; } = "";
+        public string Description { get; set; } = "";
+        public decimal Qte { get; set; }  // From Stock table
+        public int Seuil { get; set; }    // From Stock table
+        public double Price { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _localisation = await ctx.Localisations.FindAsync(Id);
+
+        if (_localisation != null)
+        {
+            // Get users via UserLocalisations (many-to-many)
+            var userIds = await ctx.UserLocalisations
+                .Where(ul => ul.LocalisationId == Id && ul.Activate == true)
+                .Select(ul => ul.UserId)
+                .ToListAsync();
+
+            _users = await ctx.Users
+                .Include(u => u.Role)
+                .Where(u => userIds.Contains(u.Login))
+                .OrderBy(u => u.Name)
+                .ToListAsync();
+
+            // Get stocks for this localisation with article info
+            var stocks = await ctx.Stocks
+                .Where(s => s.IdLocalisation == Id)
+                .ToListAsync();
+
+            var articleIds = stocks.Select(s => s.IdArticle).Distinct().ToList();
+            var articles = await ctx.Articles
+                .Where(a => articleIds.Contains(a.IdArticle))
+                .ToDictionaryAsync(a => a.IdArticle);
+
+            // Create StockArticleView combining Stock + Article data
+            _stockArticles = stocks
+                .Select(s =>
+                {
+                    var article = articles.GetValueOrDefault(s.IdArticle);
+                    return new StockArticleView
+                    {
+                        StockId = s.Id,
+                        IdArticle = s.IdArticle,
+                        Description = article?.Description ?? s.IdArticle,
+                        Qte = s.Qte,       // Stock quantity for THIS localisation
+                        Seuil = s.Seuil,   // Stock threshold for THIS localisation
+                        Price = article?.Price ?? 0
+                    };
+                })
+                .OrderBy(s => s.Description)
+                .ToList();
+        }
+
+        _loading = false;
+    }
+
+    private async Task OnAppro(StockArticleView article)
+    {
+        var parameters = new DialogParameters<ApproForm>
+        {
+            { x => x.ApproId, 0 },
+            { x => x.PreselectedArticleId, article.IdArticle },
+            { x => x.PreselectedLocalisationId, Id }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ApproForm>("Approvisionnement", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            await LoadData();
+        }
+    }
+
+    private void OnAddArticle()
+    {
+        Navigation.NavigateTo($"/gestion/article/nouveau?localisationId={Id}");
+    }
+
+    private void OnEditArticle(StockArticleView article)
+    {
+        Navigation.NavigateTo($"/gestion/article/modifier/{article.IdArticle}");
+    }
+}

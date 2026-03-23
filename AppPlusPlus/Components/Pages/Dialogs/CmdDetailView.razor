@@ -1,0 +1,154 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex align-items-center justify-content-center" style="min-height:200px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (_cmd is null)
+        {
+            <div class="alert alert-warning"><strong>Introuvable</strong> Cette commande n'existe pas.</div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+
+                <!-- ── En-tête ── -->
+                <div class="row g-3">
+                    <div class="col-sm-6 col-md-4">
+                        <small class="text-muted d-block">Fournisseur</small>
+                        <span class="fw-semibold">@(_cmd.Supplier?.SupplierName ?? "—")</span>
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <small class="text-muted d-block">Date commande</small>
+                        <span class="fw-semibold">@(_cmd.DateCommande?.ToString("dd/MM/yyyy") ?? "—")</span>
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <small class="text-muted d-block">Statut</small>
+                        @{
+                            var statusVal = _cmd.Status ?? 0;
+                            var label = statusVal switch
+                            {
+                                0 => "Nouvelle",
+                                1 => "En cours",
+                                2 => "Reçue",
+                                3 => "Annulée",
+                                _ => "—"
+                            };
+                        }
+                        <span class="badge @BadgeCss(statusVal)">@label</span>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_cmd.Description))
+                {
+                    <div class="d-flex flex-column gap-1">
+                        <small class="text-muted d-block">Description</small>
+                        <span>@_cmd.Description</span>
+                    </div>
+                }
+
+                <!-- ── Réception globale ── -->
+                @if (_totalOrder > 0)
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-semibold">Réception :</span>
+                        <div class="progress" style="flex:1;height:20px;">
+                            <div class="progress-bar @(_pctGlobal >= 100 ? "bg-success" : _pctGlobal > 0 ? "bg-warning" : "")" role="progressbar" style="width:@(_pctGlobal)%"></div>
+                        </div>
+                        <span class="fw-semibold">@_pctGlobal%</span>
+                    </div>
+                }
+
+                <!-- ── Articles ── -->
+                <h6 class="fw-semibold mt-1">Articles</h6>
+
+                <MudDataGrid Items="@_rows" T="CmdArticleRow" Dense="true" Hover="true" Bordered="true" Elevation="0">
+                    <Columns>
+                        <PropertyColumn Property="x => x.ArticleName" Title="Article" />
+                        <PropertyColumn Property="x => x.QteOrder" Title="Commandé" Format="N0" />
+                        <TemplateColumn Title="Reçu">
+                            <CellTemplate>
+                                <span style="@(context.Item.QteReceived >= context.Item.QteOrder && context.Item.QteOrder > 0 ? "color:var(--mud-palette-success);font-weight:600;" : "")">@context.Item.QteReceived.ToString("N0")</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Réception">
+                            <CellTemplate>
+                                @if (context.Item.QteOrder > 0)
+                                {
+                                    var pct = Math.Min(100, (int)(context.Item.QteReceived / context.Item.QteOrder * 100));
+                                    <div class="d-flex align-items-center gap-1">
+                                        <div class="progress" style="width:70px;height:16px;">
+                                            <div class="progress-bar @(pct >= 100 ? "bg-success" : pct > 0 ? "bg-warning" : "")" role="progressbar" style="width:@(pct)%"></div>
+                                        </div>
+                                        <small class="text-muted mb-0">@pct%</small>
+                                    </div>
+                                }
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int CmdId { get; set; }
+
+    bool _loading = true;
+    Cmd? _cmd;
+    List<CmdArticleRow> _rows = new();
+    decimal _totalOrder;
+    int _pctGlobal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _cmd = await ctx.Cmds
+            .Include(c => c.Supplier)
+            .Include(c => c.Details).ThenInclude(d => d.Article)
+            .FirstOrDefaultAsync(c => c.Id == CmdId);
+
+        if (_cmd != null)
+        {
+            _totalOrder = _cmd.Details.Sum(d => (decimal)(d.QteOrder ?? 0));
+            var totalReceived = _cmd.Details.Sum(d => (decimal)(d.QteReceive ?? 0));
+            _pctGlobal = _totalOrder > 0 ? Math.Min(100, (int)(totalReceived / _totalOrder * 100)) : 0;
+
+            _rows = _cmd.Details.Select(d => new CmdArticleRow
+            {
+                ArticleName = d.Article?.Description ?? d.IdArticle ?? "—",
+                QteOrder = (decimal)(d.QteOrder ?? 0),
+                QteReceived = (decimal)(d.QteReceive ?? 0)
+            }).ToList();
+        }
+        _loading = false;
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    static string BadgeCss(int status) => status switch
+    {
+        0 => "bg-light text-dark",
+        1 => "bg-warning text-dark",
+        2 => "bg-success",
+        3 => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    class CmdArticleRow
+    {
+        public string ArticleName { get; set; } = "";
+        public decimal QteOrder { get; set; }
+        public decimal QteReceived { get; set; }
+    }
+}

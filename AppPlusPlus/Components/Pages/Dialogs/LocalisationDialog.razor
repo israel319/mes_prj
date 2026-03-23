@@ -1,0 +1,80 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="@success" @bind-Errors="@errors">
+            <MudTextField @bind-Value="_model.DescriptionLocalisation"
+                          For="@(() => _model.DescriptionLocalisation)"
+                          Label="Description"
+                          Variant="Variant.Outlined"
+                          FullWidth="true"
+                          MaxLength="50"
+                          Required="true"
+                          RequiredError="La description est obligatoire"
+                          Class="mt-4" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="@(!success)">
+            @(_isEdit ? "Modifier" : "Ajouter")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public Localisation? Model { get; set; }
+
+    private Localisation _model = new();
+    private bool success;
+    private string[] errors = { };
+    private MudForm form = default!;
+    private bool _isEdit;
+
+    protected override void OnInitialized()
+    {
+        if (Model != null)
+        {
+            _isEdit = true;
+            _model = new Localisation
+            {
+                IdLocalisation = Model.IdLocalisation,
+                DescriptionLocalisation = Model.DescriptionLocalisation
+            };
+        }
+    }
+
+    private async Task Submit()
+    {
+        await form.Validate();
+        if (!success) return;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        if (_isEdit)
+        {
+            ctx.Localisations.Update(_model);
+            await ctx.SaveChangesAsync();
+            Snackbar.Add("Localisation modifiée.", Severity.Success);
+        }
+        else
+        {
+            ctx.Localisations.Add(_model);
+            await ctx.SaveChangesAsync();
+            Snackbar.Add("Localisation ajoutée.", Severity.Success);
+        }
+
+        MudDialog.Close();
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

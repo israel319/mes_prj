@@ -1,0 +1,228 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex flex-column align-items-center justify-content-center" style="min-height:200px;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (_fact is null)
+        {
+            <MudAlert Severity="Severity.Warning">
+                <strong>Introuvable</strong> Cette facture n'existe pas.
+            </MudAlert>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+
+                <!-- ── En-tête facture ── -->
+                <div class="row g-3">
+                    <div class="col-md-6 col-sm-12">
+                        <div class="d-flex flex-column gap-1">
+                            <div class="fd-label">Client</div>
+                            <div class="fd-value">@_fact.DescriptionName</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="d-flex flex-column gap-1">
+                            <div class="fd-label">Date</div>
+                            <div class="fd-value">@_fact.Date.ToString("dd/MM/yyyy")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="d-flex flex-column gap-1">
+                            <div class="fd-label">Status</div>
+                            <div>
+                                @{ var label = _fact.Status switch { 0 => "Brouillon", 1 => "Validée", 2 => "Payée", 3 => "Annulée", _ => "—" }; }
+                                <span class="badge @BadgeCss(_fact.Status)">@label</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_fact.Adresse) || !string.IsNullOrWhiteSpace(_fact.Email) || !string.IsNullOrWhiteSpace(_fact.Telephone))
+                {
+                    <div class="row g-3">
+                        @if (!string.IsNullOrWhiteSpace(_fact.Adresse))
+                        {
+                            <div class="col-md-4 col-sm-12">
+                                <div class="fd-label">Adresse</div>
+                                <div class="fd-value">@_fact.Adresse</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_fact.Email))
+                        {
+                            <div class="col-md-4 col-sm-12">
+                                <div class="fd-label">Email</div>
+                                <div class="fd-value">@_fact.Email</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_fact.Telephone))
+                        {
+                            <div class="col-md-4 col-sm-12">
+                                <div class="fd-label">Téléphone</div>
+                                <div class="fd-value">@_fact.Telephone</div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- ── Détails articles ── -->
+                <h6 class="fw-semibold mt-1">Articles</h6>
+
+                <MudDataGrid Items="@_details" T="DetailRow" Dense="true" Hover="true" Bordered="true" Elevation="0">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Article" Title="Article" />
+                        <TemplateColumn Title="Qté">
+                            <CellTemplate>
+                                <span style="text-align:center;display:block;">@context.Item.Qte.ToString("N0")</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="P.U.">
+                            <CellTemplate>
+                                <span style="text-align:right;display:block;">@context.Item.Pu.ToString("N2")</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Sous-total">
+                            <CellTemplate>
+                                <span style="text-align:right;display:block;">@context.Item.SousTotal.ToString("N2")</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Status">
+                            <CellTemplate>
+                                @{
+                                    var lbl = context.Item.Status switch
+                                    {
+                                        0 => "En attente",
+                                        1 => "Livré",
+                                        2 => "Annulé",
+                                        _ => "—"
+                                    };
+                                }
+                                <span class="badge @DetailBadgeCss(context.Item.Status)">@lbl</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+
+                <!-- ── Récapitulatif ── -->
+                <div class="card bg-body-secondary"><div class="card-body">
+                    <div class="d-flex flex-column gap-1">
+                        <div class="row">
+                            <div class="col-md-8"><span class="fd-label">Total articles</span></div>
+                            <div class="col-md-4 fw-medium" style="text-align:right;">@((_fact.Total ?? 0).ToString("N2"))</div>
+                        </div>
+                        @if (_fact.Reduction is not null and > 0)
+                        {
+                            var pctRed = _fact.Reduction ?? 0;
+                            var montantRed = (_fact.Total ?? 0) * pctRed / 100m;
+                            <div class="row">
+                                <div class="col-md-8"><span class="fd-label">Réduction (@(pctRed.ToString("0.##"))%)</span></div>
+                                <div class="col-md-4 text-end text-danger">-@montantRed.ToString("N2")</div>
+                            </div>
+                        }
+                        <div class="row border-top pt-2 mt-1">
+                            <div class="col-md-8"><strong>Total</strong></div>
+                            <div class="col-md-4 text-end fw-bold">
+                                @((_fact.TotalApresReduction ?? _fact.Total ?? 0).ToString("N2"))
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8"><span class="fd-label">Taux</span></div>
+                            <div class="col-md-4" style="text-align:right;">@(_fact.Taux.ToString("N0"))</div>
+                        </div>
+                    </div>
+                </div></div>
+
+                <!-- ── Infos système ── -->
+                <div class="row text-muted small">
+                    <div class="col-md-4">Utilisateur : @_fact.User</div>
+                    <div class="col-md-4">PC : @_fact.Cumputer</div>
+                    <div class="col-md-4">Créé le : @_fact.DateSys.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary btn-sm" @onclick="OnPrint">
+            <i class="bi bi-printer me-1"></i>Imprimer
+        </button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    .fd-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.3px; }
+    .fd-value { font-size: 14px; color: #1f2937; font-weight: 500; }
+</style>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int FactId { get; set; }
+
+    bool _loading = true;
+    Fact? _fact;
+    List<DetailRow> _details = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _fact = await ctx.Facts
+            .Include(f => f.Details).ThenInclude(d => d.Article)
+            .FirstOrDefaultAsync(f => f.Id == FactId);
+
+        if (_fact is not null)
+        {
+            _details = _fact.Details.Select(d => new DetailRow
+            {
+                Article = d.Article?.Description ?? d.IdArticle ?? "—",
+                Qte = d.Qte ?? 0,
+                Pu = d.Pu ?? 0,
+                SousTotal = (d.Qte ?? 0) * (d.Pu ?? 0),
+                Status = d.Status ?? 0
+            }).ToList();
+        }
+
+        _loading = false;
+    }
+
+    static string BadgeCss(int status) => status switch
+    {
+        0 => "bg-light text-dark",
+        1 => "bg-info",
+        2 => "bg-success",
+        3 => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    static string DetailBadgeCss(int status) => status switch
+    {
+        0 => "bg-light text-dark",
+        1 => "bg-success",
+        2 => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    class DetailRow
+    {
+        public string Article { get; set; } = "";
+        public double Qte { get; set; }
+        public double Pu { get; set; }
+        public double SousTotal { get; set; }
+        public int Status { get; set; }
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnPrint()
+    {
+        await JS.InvokeVoidAsync("open", $"/vente/facture/print/{FactId}", "_blank");
+    }
+}

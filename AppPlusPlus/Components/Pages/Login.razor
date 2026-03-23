@@ -1,0 +1,103 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@inject NavigationManager Nav
+
+<PageTitle>Connexion</PageTitle>
+
+<div class="min-vh-100 d-flex align-items-center justify-content-center p-3" style="background:#f8fafc;">
+    <div class="card shadow-sm border" style="max-width:420px;width:100%;">
+        <div class="card-body p-4">
+            <h3 class="fw-bold mb-1" style="color:#253C45;">Connexion</h3>
+            <p class="text-secondary small mb-2">Accédez à l'application avec votre compte.</p>
+
+            @if (_hasError)
+            {
+                <div class="alert alert-danger small py-2 px-3">
+                    Login ou mot de passe invalide.
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_alternateSessionUrl))
+            {
+                <div class="alert alert-info small py-2 px-3" style="line-height:1.45;">
+                    
+                    <div class="mt-1" style="word-break:break-all;">
+                        <a href="@_alternateSessionUrl" target="_blank" rel="noopener noreferrer" class="fw-semibold text-decoration-none">
+                            @_alternateSessionUrl
+                        </a>
+                    </div>
+                </div>
+            }
+
+            <form method="post" action="/auth/login">
+                <AntiforgeryToken />
+                <input type="hidden" name="returnUrl" value="@_returnUrl" />
+
+                <div class="mb-2">
+                    <label class="form-label small text-secondary mb-1">Login</label>
+                    <input name="login" required autocomplete="username" class="form-control" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small text-secondary mb-1">Mot de passe</label>
+                    <input name="password" type="password" required autocomplete="current-password" class="form-control" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                    Se connecter
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _returnUrl = "/";
+    private bool _hasError;
+    private string? _alternateSessionUrl;
+
+    protected override void OnInitialized()
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+
+        _hasError = query.ContainsKey("error");
+
+        if (query.TryGetValue("returnUrl", out var returnValue))
+        {
+            var candidate = returnValue.ToString();
+            if (!string.IsNullOrWhiteSpace(candidate) && candidate.StartsWith('/'))
+            {
+                _returnUrl = candidate;
+            }
+        }
+
+        _alternateSessionUrl = BuildAlternateSessionUrl(uri, _returnUrl);
+    }
+
+    private static string? BuildAlternateSessionUrl(Uri currentUri, string returnUrl)
+    {
+        string? alternateHost = currentUri.Host.ToLowerInvariant() switch
+        {
+            "localhost" => "127.0.0.1",
+            "127.0.0.1" => "localhost",
+            _ => null
+        };
+
+        if (alternateHost is null)
+        {
+            return null;
+        }
+
+        var builder = new UriBuilder(currentUri)
+        {
+            Host = alternateHost,
+            Path = "/login",
+            Query = string.IsNullOrWhiteSpace(returnUrl)
+                ? string.Empty
+                : $"returnUrl={Uri.EscapeDataString(returnUrl)}"
+        };
+
+        return builder.Uri.ToString();
+    }
+}

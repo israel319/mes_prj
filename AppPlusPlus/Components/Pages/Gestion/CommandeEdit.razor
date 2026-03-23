@@ -1,0 +1,309 @@
+@page "/commandes/nouveau"
+@page "/commandes/edit/{Id:int}"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@AppSettings.AppName — @(_isEdit ? "Modifier la commande" : "Nouvelle commande client")</PageTitle>
+
+<div style="display:flex;flex-direction:column;gap:1rem;max-width:900px;margin:0 auto;">
+    @* -- Titre + retour -- *@
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center" style="gap:10px;">
+            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="@GoBack" title="Retour">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <h5 style="font-weight:700;margin:0;">
+                @(_isEdit ? $"Commande N° {Id}" : "Nouvelle commande client")
+            </h5>
+        </div>
+        @if (_isEdit)
+        {
+            <span class="badge @_statusClass">@_statusLabel</span>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-body" style="display:flex;flex-direction:column;gap:1rem;">
+            @* -- Client + Description -- *@
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Client</label>
+                    <MudAutocomplete T="Customer" Value="_selectedCustomer"
+                                     ValueChanged="@OnCustomerSelected"
+                                     SearchFunc="@SearchCustomers"
+                                     ToStringFunc="@(c => c?.CustomerName ?? "")"
+                                     Placeholder="Sélectionner un client..." Style="width:100%;" />
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Description</label>
+                    <input type="text" @bind="_item.CommandeDescription" class="form-control" style="width:100%;" />
+                </div>
+            </div>
+
+            @* -- Articles -- *@
+            <div class="d-flex align-items-center justify-content-between mt-4">
+                <h6 style="font-weight:600;margin:0;">Articles</h6>
+                <button type="button" class="btn btn-primary btn-sm" @onclick="@AddLine">
+                    <i class="bi bi-plus-lg me-1"></i>Ajouter un article
+                </button>
+            </div>
+
+            @if (!_lines.Any())
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    Aucun article. Cliquez sur "Ajouter un article" pour commencer.
+                </MudAlert>
+            }
+            else
+            {
+                <MudDataGrid Items="@_lines" T="CmdeLine" Dense="true" Hover="true" Bordered="true" Elevation="0" Style="width:100%;">
+                    <Columns>
+                        <TemplateColumn T="CmdeLine" Title="Article">
+                            <CellTemplate>
+                                @{ var line = context.Item; }
+                                <MudAutocomplete T="string" Value="line.ArticleId"
+                                                 ValueChanged="@(val => { line.ArticleId = val; RecalcTotal(); })"
+                                                 SearchFunc="@SearchArticleIds"
+                                                 ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
+                                                 Placeholder="Sélectionner..." Style="width:100%;" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="CmdeLine" Title="Quantité" CellStyle="text-align:center;">
+                            <CellTemplate>
+                                @{ var line = context.Item; }
+                                <MudNumericField Value="line.Qte" T="decimal?" Min="0" Style="width:100%;"
+                                                 ValueChanged="@(val => { line.Qte = val; RecalcTotal(); })" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="CmdeLine" Title="Prix unitaire" CellStyle="text-align:end;">
+                            <CellTemplate>
+                                @{ var line = context.Item; }
+                                <MudNumericField Value="line.Pu" T="decimal?" Min="0" Style="width:100%;"
+                                                 ValueChanged="@(val => { line.Pu = val; RecalcTotal(); })" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="CmdeLine" Title="Sous-total" CellStyle="text-align:end;">
+                            <CellTemplate>
+                                @{ var line = context.Item; }
+                                <strong>@(((line.Qte ?? 0) * (line.Pu ?? 0)).ToString("N2"))</strong>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="CmdeLine" Title="" Sortable="false" CellStyle="text-align:center;">
+                            <CellTemplate>
+                                @{ var line = context.Item; }
+                                <button type="button" class="btn btn-danger btn-sm" @onclick="@(() => RemoveLine(line))" title="Retirer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            }
+
+            @* -- Total -- *@
+            <div class="d-flex justify-content-end mt-2">
+                <div class="card" style="background:#f8f9fa;padding:0.75rem 1.5rem;">
+                    <h5 style="font-weight:700;margin:0;">
+                        Total : @_total.ToString("N2")
+                    </h5>
+                </div>
+            </div>
+
+            @* -- Boutons -- *@
+            <div class="d-flex justify-content-end mt-4" style="gap:0.5rem;">
+                <button type="button" class="btn btn-secondary" @onclick="@GoBack">
+                    <i class="bi bi-x-lg me-1"></i>Annuler
+                </button>
+                <button type="button" class="btn btn-primary" @onclick="@OnSave" disabled="@_saving">
+                    <i class="bi bi-check-lg me-1"></i>Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? Id { get; set; }
+
+    bool _isEdit => Id.HasValue;
+    bool _saving;
+    Commande _item = new();
+    List<Customer> _customers = new();
+    List<Article> _articles = new();
+    List<CmdeLine> _lines = new();
+    decimal _total;
+
+    Customer? _selectedCustomer;
+    string _statusLabel = "";
+    string _statusClass = "bg-secondary";
+
+    void OnCustomerSelected(Customer? customer)
+    {
+        _selectedCustomer = customer;
+        _item.CustomerId = customer?.CustomerId;
+    }
+
+    async Task<IEnumerable<Customer>> SearchCustomers(string filter, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return _customers;
+
+        return _customers
+            .Where(c => c.CustomerName?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    Task<IEnumerable<string>> SearchArticleIds(string filter, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return Task.FromResult(_articles.Select(a => a.IdArticle).AsEnumerable());
+
+        return Task.FromResult(_articles
+            .Where(a => (a.Description?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false)
+                     || (a.IdArticle?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Select(a => a.IdArticle)
+            .AsEnumerable());
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _customers = await ctx.Customers.OrderBy(c => c.CustomerName).ToListAsync();
+        _articles = await ctx.Articles.OrderBy(a => a.Description).ToListAsync();
+
+        if (_isEdit)
+        {
+            var existing = await ctx.Commandes
+                .Include(c => c.Details)
+                .FirstOrDefaultAsync(c => c.CommandeId == Id!.Value);
+
+            if (existing != null)
+            {
+                _item = existing;
+                _selectedCustomer = _customers.FirstOrDefault(c => c.CustomerId == existing.CustomerId);
+                _lines = existing.Details.Select(d => new CmdeLine
+                {
+                    ExistingId = d.Id,
+                    ArticleId = d.ArticleId,
+                    Qte = d.Qte,
+                    Pu = d.Pu
+                }).ToList();
+
+                (_statusLabel, _statusClass) = (_item.Status ?? 0) switch
+                {
+                    0 => ("Nouvelle", "bg-secondary"),
+                    1 => ("En cours", "bg-warning text-dark"),
+                    2 => ("Livrée", "bg-info"),
+                    3 => ("Facturée", "bg-success"),
+                    _ => ("—", "bg-secondary")
+                };
+            }
+        }
+
+        RecalcTotal();
+    }
+
+    void AddLine()
+    {
+        _lines.Add(new CmdeLine());
+    }
+
+    void RemoveLine(CmdeLine line)
+    {
+        _lines.Remove(line);
+        RecalcTotal();
+    }
+
+    void RecalcTotal()
+    {
+        _total = _lines.Sum(l => (l.Qte ?? 0) * (l.Pu ?? 0));
+    }
+
+    void GoBack()
+    {
+        Nav.NavigateTo("/commandes");
+    }
+
+    async Task OnSave()
+    {
+        if (_item.CustomerId is null or 0)
+        {
+            Snackbar.Add("Le client est obligatoire", Severity.Warning);
+            return;
+        }
+
+        var validLines = _lines.Where(l => !string.IsNullOrEmpty(l.ArticleId) && (l.Qte ?? 0) > 0).ToList();
+        if (!validLines.Any())
+        {
+            Snackbar.Add("Ajoutez au moins un article", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            RecalcTotal();
+            _item.MontantTotal = _total;
+            _item.MontantRest = _total - _item.MontantPaye;
+            _item.UserLogin = "Admin";
+            _item.CreationDate ??= DateTime.Now;
+
+            if (_isEdit)
+            {
+                ctx.Commandes.Update(_item);
+
+                var oldDetails = await ctx.CommandeDetails
+                    .Where(d => d.CommandeId == Id!.Value).ToListAsync();
+                ctx.CommandeDetails.RemoveRange(oldDetails);
+            }
+            else
+            {
+                _item.Status = 0;
+                ctx.Commandes.Add(_item);
+            }
+
+            await ctx.SaveChangesAsync();
+
+            foreach (var line in validLines)
+            {
+                ctx.CommandeDetails.Add(new CommandeDetail
+                {
+                    CommandeId = _item.CommandeId,
+                    ArticleId = line.ArticleId,
+                    Qte = line.Qte,
+                    Pu = line.Pu,
+                    QteRest = line.Qte,
+                    QtePrise = 0,
+                    Status = 0
+                });
+            }
+
+            await ctx.SaveChangesAsync();
+
+            Snackbar.Add(_isEdit ? $"Commande N° {_item.CommandeId} mise à jour" : "Nouvelle commande créée", Severity.Success);
+            Nav.NavigateTo("/commandes");
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(msg, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    class CmdeLine
+    {
+        public int? ExistingId { get; set; }
+        public string? ArticleId { get; set; }
+        public decimal? Qte { get; set; }
+        public decimal? Pu { get; set; }
+    }
+}

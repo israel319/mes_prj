@@ -1,0 +1,255 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <div class="d-flex align-items-center justify-content-center" style="min-height:200px;">
+                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Chargement...</span></div>
+            </div>
+        }
+        else if (_cmd is null)
+        {
+            <div class="alert alert-warning"><strong>Introuvable</strong> Cette commande n'existe pas.</div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+
+                <!-- ── En-tête ── -->
+                <div class="row g-3">
+                    <div class="col-md-4 col-sm-6">
+                        <div class="text-muted small">Client</div>
+                        <div class="fw-semibold">@(_cmd.Customer?.CustomerName ?? "—")</div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="text-muted small">Date</div>
+                        <div class="fw-semibold">@(_cmd.CreationDate?.ToString("dd/MM/yyyy") ?? "—")</div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="text-muted small">Statut</div>
+                        @{
+                            var (label, style) = (_cmd.Status ?? 0) switch
+                            {
+                                0 => ("Nouvelle", "bg-light text-dark"),
+                                1 => ("En cours", "bg-warning text-dark"),
+                                2 => ("Livrée", "bg-info"),
+                                3 => ("Facturée", "bg-success"),
+                                _ => ("—", "bg-secondary")
+                            };
+                        }
+                        <span class="badge @style">@label</span>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_cmd.CommandeDescription))
+                {
+                    <div>
+                        <div class="text-muted small">Description</div>
+                        <div>@_cmd.CommandeDescription</div>
+                    </div>
+                }
+
+                <!-- ── Montants ── -->
+                <div class="row g-3">
+                    <div class="col-md-4 col-sm-6">
+                        <div class="text-muted small">Total</div>
+                        <div class="fw-bold fs-6">@_cmd.MontantTotal.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="text-muted small">Payé</div>
+                        <div style="font-weight:600;color:var(--mud-palette-success);">@_cmd.MontantPaye.ToString("N2")</div>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="text-muted small">Reste</div>
+                        <div style="font-weight:600;color:@(_cmd.MontantRest > 0 ? "var(--mud-palette-error)" : "var(--mud-palette-success)");">@_cmd.MontantRest.ToString("N2")</div>
+                    </div>
+                </div>
+
+                <!-- ── Articles ── -->
+                <h6 class="fw-semibold mt-1">Articles</h6>
+
+                <MudDataGrid Items="@_rows" T="VenteArticleRow" Dense="true" Hover="true" Bordered="true" Elevation="0">
+                    <Columns>
+                        <PropertyColumn Property="x => x.ArticleName" Title="Article" />
+                        <PropertyColumn Property="x => x.Qte" Title="Qté" Format="N0" />
+                        <PropertyColumn Property="x => x.Pu" Title="P.U." Format="N2" />
+                        <PropertyColumn Property="x => x.Montant" Title="Montant" Format="N2" />
+                        <TemplateColumn Title="Livré">
+                            <CellTemplate>
+                                <span style="@(context.Item.QteLivree >= context.Item.Qte && context.Item.Qte > 0 ? "color:var(--mud-palette-success);font-weight:600;" : context.Item.QteLivree > 0 ? "color:var(--mud-palette-warning);font-weight:600;" : "")">
+                                    @context.Item.QteLivree.ToString("N0") / @context.Item.Qte.ToString("N0")
+                                </span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+
+                <!-- ── Livraisons ── -->
+                @if (_livraisons.Any())
+                {
+                    <h6 class="fw-semibold mt-1">Livraisons (@_livraisons.Count)</h6>
+
+                    <MudDataGrid Items="@_livraisons" T="LivraisonRow" Dense="true" Hover="true" Bordered="true" Elevation="0">
+                        <Columns>
+                            <PropertyColumn Property="x => x.Id" Title="N°" />
+                            <PropertyColumn Property="x => x.Porteur" Title="Porteur" />
+                            <PropertyColumn Property="x => x.Montant" Title="Montant" Format="N2" />
+                            <PropertyColumn Property="x => x.Date" Title="Date" Format="dd/MM/yyyy" />
+                            <TemplateColumn Title="Facture">
+                                <CellTemplate>
+                                    @if (context.Item.FactureId.HasValue)
+                                    {
+                                        <span class="badge bg-info">@($"N° {context.Item.FactureId}")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-dark">Aucune</span>
+                                    }
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Paiement">
+                                <CellTemplate>
+                                    @if (context.Item.FactureId.HasValue)
+                                    {
+                                        <span style="font-weight:600;color:@(context.Item.TotalPaye >= context.Item.Montant && context.Item.Montant > 0 ? "var(--mud-palette-success)" : context.Item.TotalPaye > 0 ? "var(--mud-palette-warning)" : "var(--mud-palette-error)")">
+                                            @context.Item.TotalPaye.ToString("N2") / @context.Item.Montant.ToString("N2")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:#999;">—</span>
+                                    }
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Statut">
+                                <CellTemplate>
+                                    <span class="badge @context.Item.StatusStyle">@context.Item.StatusLabel</span>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int CommandeId { get; set; }
+
+    bool _loading = true;
+    Commande? _cmd;
+    List<VenteArticleRow> _rows = new();
+    List<LivraisonRow> _livraisons = new();
+    Dictionary<int, decimal> _deliveredQty = new();
+
+    void Cancel() => MudDialog.Close();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _cmd = await ctx.Commandes
+            .Include(c => c.Customer)
+            .Include(c => c.Details).ThenInclude(d => d.Article)
+            .Include(c => c.Livraisons).ThenInclude(l => l.Details)
+            .Include(c => c.Livraisons).ThenInclude(l => l.Fact).ThenInclude(f => f!.Payments)
+            .FirstOrDefaultAsync(c => c.CommandeId == CommandeId);
+
+        if (_cmd != null)
+        {
+            var detailIds = _cmd.Details.Select(d => d.Id).ToList();
+            if (detailIds.Any())
+            {
+                _deliveredQty = await ctx.LivraisonDetails
+                    .Where(ld => ld.CommandDetailId != null && detailIds.Contains(ld.CommandDetailId.Value))
+                    .GroupBy(ld => ld.CommandDetailId!.Value)
+                    .Select(g => new { Id = g.Key, Total = g.Sum(x => x.Qte ?? 0) })
+                    .ToDictionaryAsync(x => x.Id, x => x.Total);
+            }
+
+            _rows = _cmd.Details.Select(d =>
+            {
+                var qte = d.Qte ?? 0;
+                var livrQte = _deliveredQty.GetValueOrDefault(d.Id);
+                return new VenteArticleRow
+                {
+                    ArticleName = d.Article?.Description ?? d.ArticleId ?? "—",
+                    Qte = qte,
+                    Pu = d.Pu ?? 0,
+                    Montant = qte * (d.Pu ?? 0),
+                    QteLivree = livrQte
+                };
+            }).ToList();
+
+            _livraisons = _cmd.Livraisons
+                .OrderByDescending(l => l.Date)
+                .Select(l =>
+                {
+                    // Statut dynamique basé sur les paiements réels de la facture
+                    var fact = l.Fact;
+                    var montant = l.Details.Sum(d => d.MontantPaye ?? 0);
+                    int? factureId = fact?.Id;
+                    decimal totalPaye = fact?.Payments.Sum(p => p.Amount) ?? 0;
+                    string statusLabel; string statusStyle;
+                    if (fact != null)
+                    {
+                        if (totalPaye >= montant && montant > 0)
+                        { statusLabel = "Payée"; statusStyle = "bg-success"; }
+                        else if (totalPaye > 0)
+                        { statusLabel = "Partiel"; statusStyle = "bg-warning text-dark"; }
+                        else
+                        { statusLabel = "Non payée"; statusStyle = "bg-danger"; }
+                    }
+                    else
+                    {
+                        var s = l.Status ?? 0;
+                        (statusLabel, statusStyle) = s switch
+                        {
+                            0 => ("En attente", "bg-light text-dark"),
+                            1 => ("Livrée — Non facturée", "bg-info"),
+                            _ => ("—", "bg-secondary")
+                        };
+                    }
+                    return new LivraisonRow
+                    {
+                        Id = l.LivraisonId,
+                        Porteur = l.Porteur ?? "—",
+                        Montant = montant,
+                        Date = l.Date.HasValue ? DateOnly.FromDateTime(l.Date.Value) : null,
+                        FactureId = factureId,
+                        TotalPaye = totalPaye,
+                        StatusLabel = statusLabel,
+                        StatusStyle = statusStyle
+                    };
+                }).ToList();
+        }
+        _loading = false;
+    }
+
+    class VenteArticleRow
+    {
+        public string ArticleName { get; set; } = "";
+        public decimal Qte { get; set; }
+        public decimal Pu { get; set; }
+        public decimal Montant { get; set; }
+        public decimal QteLivree { get; set; }
+    }
+
+    class LivraisonRow
+    {
+        public int Id { get; set; }
+        public string Porteur { get; set; } = "";
+        public decimal Montant { get; set; }
+        public DateOnly? Date { get; set; }
+        public int? FactureId { get; set; }
+        public decimal TotalPaye { get; set; }
+        public string StatusLabel { get; set; } = "";
+        public string StatusStyle { get; set; } = "";
+    }
+}
