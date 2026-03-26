@@ -1,0 +1,456 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+@inject ILocalisationService LocalisationService
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column gap-3">
+
+            <!-- ── Section Client ── -->
+            <div class="card">
+                <div class="card-header fw-semibold">Client</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6 col-sm-12">
+                            <label class="form-label">Client / Nom *</label>
+                            <input type="text" class="form-control" @bind="_item.DescriptionName" />
+                        </div>
+                        <div class="col-md-6 col-sm-12">
+                            <label class="form-label">Adresse</label>
+                            <input type="text" class="form-control" @bind="_item.Adresse" />
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-6 col-sm-12">
+                            <label class="form-label">Email</label>
+                            <input type="text" class="form-control" @bind="_item.Email" />
+                        </div>
+                        <div class="col-md-6 col-sm-12">
+                            <label class="form-label">Téléphone</label>
+                            <input type="text" class="form-control" @bind="_item.Telephone" maxlength="13" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Section Facture ── -->
+            <div class="card">
+                <div class="card-header fw-semibold">Facture</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Date *</label>
+                            <MudDatePicker @bind-Date="_dateValue" DateFormat="dd/MM/yyyy"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Taux *</label>
+                            <MudNumericField @bind-Value="_item.Taux" T="decimal"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Réduction (%)</label>
+                            <div class="d-flex align-items-center gap-1">
+                                <MudSelect T="int?" Value="_selectedReductionId"
+                                           ValueChanged="@OnReductionChanged"
+                                           Placeholder="—" Clearable="true"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                           Style="flex:1;">
+                                    @foreach (var r in _reductions)
+                                    {
+                                        <MudSelectItem T="int?" Value="@r.Key">@r.Value</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudNumericField T="decimal?" Value="_item.Reduction"
+                                                 ValueChanged="@(v => { _item.Reduction = v; _selectedReductionId = null; Recalculer(); })"
+                                                 Min="0" Max="100" Placeholder="%"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Style="width:70px;" />
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <label class="form-label">Type</label>
+                            <MudSelect T="int?" @bind-Value="_item.Type"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                                @foreach (var t in _types)
+                                {
+                                    <MudSelectItem T="int?" Value="@((int?)t.Key)">@t.Value</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Section Lignes articles (T_Fact_Details) ── -->
+            <div class="card">
+                <div class="card-header fw-semibold">Articles</div>
+                <div class="card-body">
+                    <!-- Ajout rapide d'un article -->
+                    <div class="d-flex align-items-end gap-2 mb-2 flex-wrap">
+                        <div style="flex:2;min-width:160px;">
+                            <label class="form-label">Article</label>
+                            <MudAutocomplete T="string" @bind-Value="_selectedArticleId"
+                                             SearchFunc="@SearchArticles"
+                                             ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
+                                             Placeholder="Sélectionner…"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
+                        </div>
+                        <div style="width:80px;">
+                            <label class="form-label">Qté</label>
+                            <MudNumericField @bind-Value="_newQte" T="double" Min="1"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </div>
+                        <div style="width:100px;">
+                            <label class="form-label">P.U.</label>
+                            <MudNumericField @bind-Value="_newPu" T="double"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </div>
+                        <div style="flex:1;min-width:140px;">
+                            <label class="form-label">Localisation *</label>
+                            <MudSelect T="int?" @bind-Value="_newLocalisationId"
+                                       Placeholder="Choisir…"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                                @foreach (var loc in _localisations)
+                                {
+                                    <MudSelectItem T="int?" Value="@loc.IdLocalisation">@loc.DescriptionLocalisation</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </div>
+                        <button class="btn btn-primary btn-sm" @onclick="@AjouterLigne"
+                                style="margin-bottom:2px;">
+                            <i class="bi bi-plus-lg me-1"></i>Ajouter
+                        </button>
+                    </div>
+
+                    <!-- Grille des lignes -->
+                    <MudDataGrid Items="@_details" T="DetailLine" Dense="true" Hover="true" Bordered="true" Elevation="0"
+                                 Style="min-height:120px;">
+                        <Columns>
+                            <PropertyColumn Property="x => x.IdArticle" Title="Code" />
+                            <PropertyColumn Property="x => x.ArticleDescription" Title="Article" />
+                            <TemplateColumn Title="Qté">
+                                <CellTemplate>
+                                    <div class="d-flex align-items-center gap-1 justify-content-center">
+                                        <button class="btn btn-light btn-sm" @onclick="@(() => ChangeQte(context.Item, -1))" disabled="@(context.Item.Qte <= 1)">
+                                            <i class="bi bi-dash-lg"></i>
+                                        </button>
+                                        <MudNumericField Value="context.Item.Qte" T="double"
+                                                         Min="1" Style="width:55px;"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                         Immediate="true" ValueChanged="@(v => { context.Item.Qte = v; Recalculer(); })" />
+                                        <button class="btn btn-light btn-sm" @onclick="@(() => ChangeQte(context.Item, 1))">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="P.U.">
+                                <CellTemplate>
+                                    <span style="text-align:right;display:block;">@context.Item.Pu.ToString("N2")</span>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Total">
+                                <CellTemplate>
+                                    <strong style="text-align:right;display:block;">@context.Item.Total.ToString("N2")</strong>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn>
+                                <CellTemplate>
+                                    <button class="btn btn-link text-danger p-0 border-0 btn-sm" @onclick="@(() => SupprimerLigne(context.Item))">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                </div>
+            </div>
+
+            <!-- ── Totaux ── -->
+            <div class="card bg-body-secondary">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Description articles</label>
+                            <textarea class="form-control" @bind="_item.DescriptionArticle" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex flex-column gap-1" style="text-align:right;padding-top:8px;">
+                                <small>Sous-total : <strong>@_item.Total?.ToString("N2")</strong></small>
+                                @if ((_item.Reduction ?? 0) > 0)
+                                {
+                                    <small style="color:#dc2626;">
+                                        Réduction (@((_item.Reduction ?? 0).ToString("0.##"))%) : <strong>-@_item.TotalReduit?.ToString("N2")</strong>
+                                    </small>
+                                }
+                                else
+                                {
+                                    <small>Réduction : <strong>0,00</strong></small>
+                                }
+                                <h5 class="fw-bold mb-0">
+                                    Net à payer : @_item.TotalApresReduction?.ToString("N2")
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="OnSave">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int? FactId { get; set; }
+
+    Fact _item = new()
+    {
+        Taux = 2800,
+        Reduction = 0,
+        Status = 0,
+        Type = 0,
+    };
+    DateTime? _dateValue = DateTime.Today;
+
+    // ── Listes de référence ──
+    List<KeyValuePair<int, string>> _types = new()
+    {
+        new(0, "Facture"),
+        new(1, "Proforma"),
+    };
+    List<Article> _articles = new();
+    List<Localisation> _localisations = new();
+    List<KeyValuePair<int, string>> _reductions = new();
+    Dictionary<int, int> _reductionValues = new();
+    int? _selectedReductionId;
+
+    // ── Champs ajout rapide ──
+    string? _selectedArticleId;
+    double _newQte = 1;
+    double _newPu;
+    int? _newLocalisationId;
+
+    // ── Lignes de détail (T_Fact_Details) ──
+    List<DetailLine> _details = new();
+
+    // ── Auth / Localisation filtering ──
+    string _currentLogin = "";
+    bool _isAdmin;
+    List<int> _currentUserLocalisations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        // ── Résoudre l'utilisateur connecté ──
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = user.FindFirst("login")?.Value
+                ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+            _isAdmin = AppFunctions.Normalize(user.FindFirst(ClaimTypes.Role)?.Value) == "administrateur";
+
+            if (!_isAdmin && !string.IsNullOrEmpty(_currentLogin))
+            {
+                _currentUserLocalisations = await LocalisationService.GetUserLocalisationIdsAsync(_currentLogin, _isAdmin);
+            }
+        }
+
+        // ── Charger articles (filtrés par localisation pour non-admin) ──
+        if (_isAdmin || !_currentUserLocalisations.Any())
+        {
+            _articles = await ctx.Articles.OrderBy(a => a.Description).ToListAsync();
+        }
+        else
+        {
+            var articleIdsWithStock = await ctx.Stocks
+                .Where(s => _currentUserLocalisations.Contains(s.IdLocalisation))
+                .Select(s => s.IdArticle)
+                .Distinct()
+                .ToListAsync();
+
+            _articles = await ctx.Articles
+                .Where(a => articleIdsWithStock.Contains(a.IdArticle))
+                .OrderBy(a => a.Description)
+                .ToListAsync();
+        }
+
+        // ── Charger localisations (filtrées pour non-admin) ──
+        _localisations = await LocalisationService.GetFilteredLocalisationsAsync(_currentUserLocalisations, _isAdmin);
+
+        // ── Réductions ──
+        var reductionList = await ctx.Reductions.OrderBy(r => r.Valeur).ToListAsync();
+        _reductions = reductionList.Select(r => new KeyValuePair<int, string>(r.IdReduction, $"{r.DescriptionReduction} ({r.Valeur}%)")).ToList();
+        _reductionValues = reductionList.ToDictionary(r => r.IdReduction, r => r.Valeur ?? 0);
+
+        // ── Facture existante (mode édition) ──
+        if (FactId.HasValue)
+        {
+            var existing = await ctx.Facts.FindAsync(FactId.Value);
+            if (existing != null)
+            {
+                _item = existing;
+                _dateValue = _item.Date.ToDateTime(TimeOnly.MinValue);
+                var dbDetails = await ctx.FactDetails.Where(d => d.IdFact == FactId.Value).ToListAsync();
+                _details = dbDetails.Select(d => new DetailLine
+                {
+                    IdArticle = d.IdArticle,
+                    ArticleDescription = _articles.FirstOrDefault(a => a.IdArticle == d.IdArticle)?.Description ?? d.IdArticle,
+                    Pu = d.Pu ?? 0,
+                    Qte = d.Qte ?? 0,
+                    Localisationid = d.Localisationid,
+                }).ToList();
+            }
+        }
+
+        // ── Pré-sélectionner si une seule localisation ──
+        if (_currentUserLocalisations.Count == 1)
+        {
+            _newLocalisationId = _currentUserLocalisations[0];
+        }
+
+        Recalculer();
+    }
+
+    private Task<IEnumerable<string>> SearchArticles(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(value))
+            return Task.FromResult(_articles.Select(a => a.IdArticle));
+        return Task.FromResult(_articles
+            .Where(a => a.Description != null && a.Description.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(a => a.IdArticle));
+    }
+
+    void AjouterLigne()
+    {
+        if (string.IsNullOrEmpty(_selectedArticleId)) return;
+
+        if (!_newLocalisationId.HasValue)
+        {
+            Snackbar.Add("Veuillez sélectionner une localisation.", Severity.Warning);
+            return;
+        }
+
+        var existant = _details.FirstOrDefault(d => d.IdArticle == _selectedArticleId);
+        if (existant != null)
+        {
+            existant.Qte += _newQte;
+        }
+        else
+        {
+            var art = _articles.FirstOrDefault(a => a.IdArticle == _selectedArticleId);
+            if (art == null) return;
+
+            _details.Add(new DetailLine
+            {
+                IdArticle = art.IdArticle,
+                ArticleDescription = art.Description,
+                Pu = _newPu > 0 ? _newPu : art.Price,
+                Qte = _newQte,
+                Localisationid = _newLocalisationId,
+            });
+        }
+
+        _selectedArticleId = null;
+        _newQte = 1;
+        _newPu = 0;
+        Recalculer();
+    }
+
+    void ChangeQte(DetailLine d, int delta)
+    {
+        d.Qte = Math.Max(1, d.Qte + delta);
+        Recalculer();
+    }
+
+    void SupprimerLigne(DetailLine d)
+    {
+        _details.Remove(d);
+        Recalculer();
+    }
+
+    void OnReductionChanged(int? val)
+    {
+        _selectedReductionId = val;
+        if (_selectedReductionId.HasValue)
+        {
+            _item.Reduction = _reductionValues.GetValueOrDefault(_selectedReductionId.Value, 0);
+        }
+        else
+        {
+            _item.Reduction = 0;
+        }
+        Recalculer();
+    }
+
+    void Recalculer()
+    {
+        _item.Total = (decimal)_details.Sum(d => d.Total);
+        var pctReduction = (_item.Reduction ?? 0) / 100m;
+        _item.TotalReduit = _item.Total * pctReduction;
+        _item.TotalApresReduction = _item.Total - _item.TotalReduit;
+
+        _item.DescriptionArticle = string.Join(" | ",
+            _details.Select(d => $"{d.ArticleDescription} x{d.Qte}"));
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnSave()
+    {
+        _item.Date = DateOnly.FromDateTime(_dateValue ?? DateTime.Today);
+        _item.DateSys = DateTime.Now;
+        _item.User = _currentLogin;
+        _item.Cumputer = Environment.MachineName;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        if (FactId.HasValue)
+        {
+            ctx.Facts.Update(_item);
+            var oldDetails = await ctx.FactDetails.Where(d => d.IdFact == _item.Id).ToListAsync();
+            ctx.FactDetails.RemoveRange(oldDetails);
+        }
+        else
+        {
+            ctx.Facts.Add(_item);
+        }
+        await ctx.SaveChangesAsync();
+
+        foreach (var line in _details)
+        {
+            ctx.FactDetails.Add(new FactDetail
+            {
+                IdFact = _item.Id,
+                IdArticle = line.IdArticle,
+                Qte = line.Qte,
+                Pu = line.Pu,
+                Localisationid = line.Localisationid,
+            });
+        }
+        await ctx.SaveChangesAsync();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    class DetailLine
+    {
+        public string IdArticle { get; set; } = "";
+        public string ArticleDescription { get; set; } = "";
+        public double Qte { get; set; } = 1;
+        public double Pu { get; set; }
+        public int? Localisationid { get; set; }
+        public double Total => Pu * Qte;
+    }
+}

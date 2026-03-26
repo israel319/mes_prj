@@ -1,0 +1,83 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column gap-3">
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Taux</label>
+                    <MudNumericField @bind-Value="_taux.TauxValue" T="decimal" Format="N2"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Taux bas</label>
+                    <MudNumericField @bind-Value="_taux.RateLow" T="decimal?" Format="N2"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Taux haut</label>
+                    <MudNumericField @bind-Value="_taux.RateUp" T="decimal?" Format="N2"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+            </div>
+
+            <div>
+                <label class="form-label">Commentaire</label>
+                <textarea class="form-control" @bind="_taux.Comment" rows="2"></textarea>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="OnSubmit">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int? TauxId { get; set; }
+
+    Taux _taux = new();
+    string _currentLogin = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        if (authUser.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = authUser.FindFirst("login")?.Value
+                ?? authUser.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+        }
+
+        if (TauxId.HasValue)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var existing = await ctx.TauxChanges.FindAsync(TauxId.Value);
+            if (existing != null) _taux = existing;
+        }
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnSubmit()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _taux.UserLogin = _currentLogin;
+        _taux.DateSys = DateOnly.FromDateTime(DateTime.Now);
+        if (TauxId.HasValue)
+            ctx.TauxChanges.Update(_taux);
+        else
+            ctx.TauxChanges.Add(_taux);
+        await ctx.SaveChangesAsync();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

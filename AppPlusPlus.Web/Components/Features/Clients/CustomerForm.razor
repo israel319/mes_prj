@@ -1,0 +1,120 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+
+<EditForm Model="@_customer" OnValidSubmit="@OnSubmit">
+    <MudDialog>
+        <DialogContent>
+            <div class="d-flex flex-column gap-3">
+
+                <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--bs-border-color);">
+                    <div class="d-flex flex-column gap-1">
+                        <div class="fw-medium">Client permanent</div>
+                        <small class="text-muted">
+                            @(_isPermanent ? "Client avec compte (permanent)" : "Client passager (sans compte)")
+                        </small>
+                    </div>
+                    <MudSwitch @bind-Value="_isPermanent" T="bool" />
+                </div>
+
+                <label class="form-label">Nom / Description</label>
+                <input type="text" class="form-control" @bind="_customer.CustomerName" maxlength="50"
+                       placeholder="Nom du client" style="@(_showError ? "border-color:var(--bs-danger);" : "")" />
+                @if (_showError)
+                {
+                    <small class="text-danger">Obligatoire</small>
+                }
+
+                <label class="form-label">Contact</label>
+                <input type="text" class="form-control" @bind="_customer.Contact" maxlength="50" />
+
+                @if (_isPermanent)
+                {
+                    <label class="form-label">Email</label>
+                    <input type="text" class="form-control" @bind="_customer.Email" maxlength="50" />
+
+                    <label class="form-label">Adresse</label>
+                    <input type="text" class="form-control" @bind="_customer.Adress" maxlength="50" />
+                }
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+            <button type="submit" class="btn btn-primary" disabled="@_saving">
+                <i class="bi bi-check-lg me-1"></i>@(_saving ? "Enregistrement..." : "Enregistrer")
+            </button>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int? CustomerId { get; set; }
+
+    Customer _customer = new() { CreationDate = DateOnly.FromDateTime(DateTime.Today) };
+    bool _isPermanent = true;
+    bool _saving;
+    bool _showError;
+    string _currentLogin = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        if (authUser.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = authUser.FindFirst("login")?.Value
+                ?? authUser.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+        }
+
+        if (CustomerId.HasValue)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var existing = await ctx.Customers.FindAsync(CustomerId.Value);
+            if (existing != null)
+            {
+                _customer = existing;
+                _isPermanent = _customer.IsPermanent ?? true;
+            }
+        }
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnSubmit()
+    {
+        _showError = string.IsNullOrWhiteSpace(_customer.CustomerName);
+        if (_showError) return;
+
+        try
+        {
+            _saving = true;
+            _customer.IsPermanent = _isPermanent;
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            if (CustomerId.HasValue)
+            {
+                ctx.Customers.Update(_customer);
+            }
+            else
+            {
+                _customer.UserLogin = _currentLogin;
+                ctx.Customers.Add(_customer);
+            }
+            await ctx.SaveChangesAsync();
+            Snackbar.Add("Client enregistré", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.InnerException?.Message ?? ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

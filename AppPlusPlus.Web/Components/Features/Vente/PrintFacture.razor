@@ -1,0 +1,322 @@
+@page "/vente/facture/print/{IdFacture:int}"
+@page "/vente/facture/print/{IdFacture:int}/{AutoPrint:bool}"
+@rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IJSRuntime JS
+@inject IShopProfileService ShopProfileService
+@inject INumberToWordsConverter NumberToWords
+
+<PageTitle>Facture N°@IdFacture</PageTitle>
+
+@if (_loading)
+{
+    <div style="display:flex;justify-content:center;align-items:center;height:60vh;">
+        <p>Chargement...</p>
+    </div>
+}
+else if (_facture == null)
+{
+    <div style="display:flex;justify-content:center;align-items:center;height:60vh;">
+        <p style="color:red;font-size:1.2rem;">Facture N°@IdFacture introuvable.</p>
+    </div>
+}
+else
+{
+    <div class="print-container">
+        <!-- Bouton imprimer (masqué à l'impression) -->
+        <div class="no-print" style="text-align:right;margin-bottom:16px;">
+            <button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer;border:1px solid #333;background:#fff;">
+                Imprimer
+            </button>
+            <button onclick="window.close()" style="padding:8px 24px;font-size:14px;cursor:pointer;border:1px solid #999;background:#fff;margin-left:8px;">
+                Fermer
+            </button>
+        </div>
+
+        <!-- En-tête -->
+        <div class="print-header" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+            <div class="print-header-left">
+                <h1 class="print-title" style="margin:0;font-size:24px;font-weight:800;">FACTURE</h1>
+                <p style="margin:4px 0;color:#555;">N° <strong>@_facture.Id.ToString("D6")</strong></p>
+                <p style="margin:2px 0;color:#555;">Date : <strong>@_facture.Date.ToString("dd/MM/yyyy")</strong></p>
+                <p style="margin:2px 0;color:#555;">Type : <strong>@(_facture.Type == 1 ? "Proforma" : "Facture")</strong></p>
+                <p style="margin:2px 0;color:#555;">Devise : <strong>@(_facture.Money?.DescriptionMonais ?? "CDF")</strong></p>
+            </div>
+            <div class="print-header-right" style="text-align:right;">
+                @if (!string.IsNullOrWhiteSpace(_shopPhotoSrc))
+                {
+                    <img src="@_shopPhotoSrc" alt="Photo shop" style="max-width:96px;max-height:72px;object-fit:contain;margin-bottom:6px;" />
+                }
+                <h2 class="print-shop-name" style="margin:0;font-size:18px;font-weight:700;">@_shopName</h2>
+                @if (!string.IsNullOrWhiteSpace(_shopAdresse1))
+                {
+                    <p class="print-shop-address" style="margin:8px 0 2px 0;color:#555;font-size:13px;max-width:280px;line-height:1.4;">@_shopAdresse1</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(_shopAdresse2))
+                {
+                    <p class="print-shop-address" style="margin:2px 0;color:#555;font-size:13px;max-width:280px;line-height:1.4;">@_shopAdresse2</p>
+                }
+            </div>
+        </div>
+
+        <!-- Client (masqué si anonyme) -->
+        @if (!string.IsNullOrEmpty(_facture.DescriptionName) && _facture.DescriptionName != "Client Anonyme")
+        {
+            <div style="background:#f8f8f8;padding:12px 16px;margin-bottom:20px;border:1px solid #eee;">
+                <p style="margin:0 0 4px;font-weight:600;font-size:14px;">Client</p>
+                <p style="margin:2px 0;">@_facture.DescriptionName</p>
+                @if (!string.IsNullOrEmpty(_facture.Adresse))
+                {
+                    <p style="margin:2px 0;color:#555;font-size:13px;">@_facture.Adresse</p>
+                }
+                @if (!string.IsNullOrEmpty(_facture.Telephone))
+                {
+                    <p style="margin:2px 0;color:#555;font-size:13px;">Tél : @_facture.Telephone</p>
+                }
+                @if (!string.IsNullOrEmpty(_facture.Email))
+                {
+                    <p style="margin:2px 0;color:#555;font-size:13px;">Email : @_facture.Email</p>
+                }
+            </div>
+        }
+
+        <!-- Tableau des articles -->
+        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:14px;">
+            <thead>
+                <tr style="background:#333;color:#fff;">
+                    <th style="padding:8px 12px;text-align:left;">#</th>
+                    <th style="padding:8px 12px;text-align:left;">Désignation</th>
+                    <th style="padding:8px 12px;text-align:right;">P.U.</th>
+                    <th style="padding:8px 12px;text-align:center;">Qté</th>
+                    <th style="padding:8px 12px;text-align:right;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int idx = 0; }
+                @foreach (var d in _details)
+                {
+                    idx++;
+                    var lineTotal = (d.Pu ?? 0) * (d.Qte ?? 0);
+                    <tr style="border-bottom:1px solid #ddd;">
+                        <td style="padding:6px 12px;">@idx</td>
+                        <td style="padding:6px 12px;">@(d.Article?.Description ?? d.IdArticle)</td>
+                        <td style="padding:6px 12px;text-align:right;">@(MontantPrint((decimal)(d.Pu ?? 0)).ToString("N2")) @_deviseLabel</td>
+                        <td style="padding:6px 12px;text-align:center;">@((d.Qte ?? 0).ToString("N0"))</td>
+                        <td style="padding:6px 12px;text-align:right;font-weight:600;">@(MontantPrint((decimal)lineTotal).ToString("N2")) @_deviseLabel</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Totaux -->
+        <div style="display:flex;justify-content:flex-end;">
+            <div style="width:300px;">
+                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
+                    <span>Sous-total</span>
+                    <strong>@(MontantPrint(_facture.Total ?? 0).ToString("N2")) @_deviseLabel</strong>
+                </div>
+                @if ((_facture.Reduction ?? 0) > 0)
+                {
+                    var redMontant = (_facture.Total ?? 0) * (_facture.Reduction ?? 0) / 100m;
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
+                        <span>Réduction (@((_facture.Reduction ?? 0))%)</span>
+                        <strong style="color:#c00;">-@(MontantPrint(redMontant).ToString("N2")) @_deviseLabel</strong>
+                    </div>
+                }
+                <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:18px;font-weight:800;border-top:2px solid #333;margin-top:4px;">
+                    <span>Net à payer</span>
+                    <span>@(MontantPrint(_facture.TotalApresReduction ?? _facture.Total ?? 0).ToString("N2")) @_deviseLabel</span>
+                </div>
+                <div style="padding:4px 0;font-size:11px;color:#555;font-style:italic;text-align:right;">
+                    @(string.IsNullOrEmpty(_facture.MontantEnLettres)
+                        ? NumberToWords.Convert(
+                            MontantPrint(_facture.TotalApresReduction ?? _facture.Total ?? 0),
+                            _isUsd ? "dollars" : "francs",
+                            _isUsd ? "cents" : "centimes")
+                        : _facture.MontantEnLettres)
+                </div>
+                @if (!_isUsd && _facture.Taux > 0)
+                {
+                    var enUsd = Math.Round((_facture.TotalApresReduction ?? _facture.Total ?? 0) / _facture.Taux, 2);
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;color:#555;font-size:13px;">
+                        <span>Équiv. USD (taux @_facture.Taux.ToString("N0"))</span>
+                        <span>@enUsd.ToString("N2") $</span>
+                    </div>
+                }
+                @if (_isUsd && _facture.Taux > 0)
+                {
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;color:#555;font-size:13px;">
+                        <span>Équiv. FC (taux @_facture.Taux.ToString("N0"))</span>
+                        <span>@((_facture.TotalApresReduction ?? _facture.Total ?? 0).ToString("N2")) FC</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <div style="margin-top:40px;text-align:center;font-size:12px;color:#888;border-top:1px solid #ddd;padding-top:12px;">
+            <p style="margin:2px 0;">Merci pour votre confiance !</p>
+        </div>
+    </div>
+}
+
+<style>
+    .print-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 32px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #222;
+    }
+
+    .print-header {
+        gap: 24px;
+    }
+
+    .print-header-left {
+        flex: 1 1 52%;
+        min-width: 0;
+    }
+
+    .print-header-right {
+        flex: 0 0 34%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    @@media print {
+        @@page {
+            size: A5 portrait;
+            margin: 8mm;
+        }
+
+        .no-print { display: none !important; }
+        .rz-header,
+        .tb,
+        .breadcrumb-bar,
+        nav,
+        header,
+        footer {
+            display: none !important;
+        }
+
+        body {
+            margin: 0 !important;
+            background: #fff !important;
+        }
+
+        body * {
+            visibility: hidden;
+        }
+
+        .print-container,
+        .print-container * {
+            visibility: visible;
+        }
+
+        .print-container {
+            position: static !important;
+            transform: none !important;
+            width: auto !important;
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box;
+            background: #fff;
+        }
+
+        .print-header {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) minmax(42mm, 1fr);
+            gap: 6mm;
+            align-items: start;
+        }
+
+        .print-title {
+            font-size: 18px !important;
+            line-height: 1.1;
+        }
+
+        .print-shop-name {
+            font-size: 16px !important;
+            line-height: 1.2;
+            margin-bottom: 4px !important;
+        }
+
+        .print-shop-address {
+            max-width: none !important;
+            font-size: 11px !important;
+            line-height: 1.25 !important;
+        }
+
+        .print-container table {
+            font-size: 12px !important;
+        }
+
+        .print-container th,
+        .print-container td {
+            padding-left: 6px !important;
+            padding-right: 6px !important;
+        }
+    }
+</style>
+
+@code {
+    [Parameter] public int IdFacture { get; set; }
+    [Parameter] public bool AutoPrint { get; set; }
+
+    bool _loading = true;
+    bool _printed;
+    Fact? _facture;
+    List<FactDetail> _details = new();
+    string _shopName = "App++";
+    string? _shopPhotoSrc;
+    string? _shopAdresse1;
+    string? _shopAdresse2;
+
+    bool _isUsd => _facture?.Money?.DescriptionMonais == "USD";
+    string _deviseLabel => _isUsd ? "$" : "FC";
+
+    /// <summary>Convertit un montant FC en devise de la facture.</summary>
+    decimal MontantPrint(decimal montantFC) =>
+        _isUsd && _facture!.Taux > 0
+            ? Math.Round(montantFC / _facture.Taux, 2)
+            : montantFC;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var shopProfile = await ShopProfileService.GetAsync();
+        _shopName = shopProfile.AppNameSetting?.Value ?? "App++";
+        _shopPhotoSrc = shopProfile.PhotoShop;
+        _shopAdresse1 = shopProfile.Adresse1;
+        _shopAdresse2 = shopProfile.Adresse2;
+
+        _facture = await ctx.Facts
+            .Include(f => f.Money)
+            .FirstOrDefaultAsync(f => f.Id == IdFacture);
+
+        if (_facture != null)
+        {
+            _details = await ctx.FactDetails
+                .Include(d => d.Article)
+                .Where(d => d.IdFact == IdFacture)
+                .ToListAsync();
+        }
+
+        _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_loading && AutoPrint && !_printed && _facture != null)
+        {
+            _printed = true;
+            await Task.Delay(300); // Petit délai pour le rendu complet
+            await JS.InvokeVoidAsync("eval", "window.print();");
+        }
+    }
+}

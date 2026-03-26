@@ -1,0 +1,352 @@
+@page "/settings"
+@rendermode InteractiveServer
+@using MudBlazor
+@inject ISnackbar Snackbar
+@inject IShopProfileService ShopProfileService
+
+<PageTitle>@AppSettings.AppName — Paramètres</PageTitle>
+
+<!-- En-tête -->
+<div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+    <div class="hub-icon" style="background:#e8edef;color:#253C45;">
+        <i class="ti ti-adjustments fs-4"></i>
+    </div>
+    <div>
+        <h2 class="fw-bold mb-0 fs-5">Paramètres</h2>
+        <small class="text-muted">Configuration générale, notifications, apparence et confidentialité</small>
+    </div>
+</div>
+
+<!-- Général -->
+<div class="card mb-2">
+    <div class="card-header d-flex align-items-center gap-2 py-2">
+        <i class="ti ti-settings"></i>
+        <h6 class="mb-0 fw-semibold">Général</h6>
+    </div>
+    <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex align-items-center justify-content-between py-2">
+            <div>
+                <div class="fw-medium">Langue de l'application</div>
+                <small class="text-muted">Choisir la langue d'affichage</small>
+            </div>
+            <MudSelect @bind-Value="_settings.Langue" T="string" Style="width:200px;" Margin="Margin.Dense" Dense="true">
+                @foreach (var l in _langues)
+                {
+                    <MudSelectItem T="string" Value="l">@l</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+        <div class="list-group-item d-flex align-items-center justify-content-between py-2">
+            <div>
+                <div class="fw-medium">Fuseau horaire</div>
+                <small class="text-muted">Définir votre fuseau horaire local</small>
+            </div>
+            <MudSelect @bind-Value="_settings.Fuseau" T="string" Style="width:260px;" Margin="Margin.Dense" Dense="true">
+                @foreach (var f in _fuseaux)
+                {
+                    <MudSelectItem T="string" Value="f">@f</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Format de date</div>
+                <small class="text-muted">Personnaliser l'affichage des dates</small>
+            </div>
+            <MudSelect @bind-Value="_settings.FormatDate" T="string" Style="width:200px;">
+                @foreach (var df in _dateFormats)
+                {
+                    <MudSelectItem T="string" Value="df">@df</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </div>
+</div>
+
+<!-- Profil du shop / Facture -->
+<div class="card mb-2">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="ti ti-building-store"></i>
+        <div>
+            <h6 class="mb-0 fw-semibold">Profil du shop / Facture</h6>
+            <small class="text-muted">Informations enregistrées dans `T_Profile` et utilisées lors de l'impression des factures.</small>
+        </div>
+    </div>
+    <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Nom du shop</div>
+                <small class="text-muted">Stocké dans `T_AppSettings` et affiché dans l'interface ainsi que sur la facture</small>
+            </div>
+            <input type="text" @bind="_settings.AppName" maxlength="50" class="form-control" style="width:240px;" placeholder="App++" />
+        </div>
+        <div class="list-group-item py-3">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+                <div>
+                    <div class="fw-medium">Photo / logo du shop</div>
+                    <small class="text-muted">Upload un fichier image ou colle une URL / base64</small>
+                </div>
+                <div style="width:360px;">
+                    <label class="logo-upload-zone @(_logoUploading ? "uploading" : "")">
+                        <InputFile OnChange="@OnLogoFileSelected" accept="image/*" style="display:none;" />
+                        @if (_logoUploading)
+                        {
+                            <i class="ti ti-hourglass" style="font-size:1.1rem;"></i>
+                            <span>Chargement…</span>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(_settings.PhotoShop))
+                        {
+                            <img src="@_settings.PhotoShop" alt="Logo" style="max-height:70px;max-width:200px;object-fit:contain;" />
+                            <span style="font-size:0.75rem;color:var(--bs-secondary-color);">Cliquer pour changer</span>
+                        }
+                        else
+                        {
+                            <i class="ti ti-photo-plus" style="font-size:2rem;color:var(--bs-secondary-color);"></i>
+                            <span style="font-size:0.8rem;color:var(--bs-secondary-color);">Cliquer pour uploader<br/><em>PNG, JPG, WEBP — max 2 Mo</em></span>
+                        }
+                    </label>
+                    @if (!string.IsNullOrWhiteSpace(_logoError))
+                    {
+                        <small class="text-danger d-block">@_logoError</small>
+                    }
+                    <input type="text" @bind="_settings.PhotoShop" class="form-control" style="font-size:0.78rem;"
+                           placeholder="ou coller une URL https://…" />
+                    @if (!string.IsNullOrWhiteSpace(_settings.PhotoShop))
+                    {
+                        <button class="btn btn-danger btn-sm mt-1" @onclick="@(() => { _settings.PhotoShop = null; _logoError = null; })"><i class="ti ti-trash me-1"></i>Supprimer</button>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Adresse ligne 1</div>
+                <small class="text-muted">Affichée en bas de la facture</small>
+            </div>
+            <input type="text" @bind="_settings.Adresse1" maxlength="250" class="form-control" style="width:360px;" placeholder="Ex: Avenue ..., Ville ..." />
+        </div>
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Adresse ligne 2</div>
+                <small class="text-muted">Complément d'adresse affiché en bas de la facture</small>
+            </div>
+            <input type="text" @bind="_settings.Adresse2" maxlength="250" class="form-control" style="width:360px;" placeholder="Ex: Commune, Référence..." />
+        </div>
+    </div>
+</div>
+
+<!-- Notifications -->
+<div class="card mb-2">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="ti ti-bell"></i>
+        <h6 class="mb-0 fw-semibold">Notifications</h6>
+    </div>
+    <div class="list-group list-group-flush">
+        @foreach (var notif in _notifSettings)
+        {
+            <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+                <div>
+                    <div class="fw-medium">@notif.Title</div>
+                    <small class="text-muted">@notif.Description</small>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           checked="@notif.Enabled"
+                           @onchange="@((ChangeEventArgs e) => notif.Enabled = (bool)(e.Value ?? false))" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Apparence -->
+<div class="card mb-2">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="ti ti-palette"></i>
+        <h6 class="mb-0 fw-semibold">Apparence</h6>
+    </div>
+    <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Thème</div>
+                <small class="text-muted">Choisir le thème de l'interface</small>
+            </div>
+            <MudSelect @bind-Value="_settings.Theme" T="string" Style="width:200px;">
+                @foreach (var t in _themes)
+                {
+                    <MudSelectItem T="string" Value="t">@t</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Sidebar compacte</div>
+                <small class="text-muted">Réduire la largeur de la barre latérale</small>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" @bind="_settings.SidebarCompacte" />
+            </div>
+        </div>
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Densité d'affichage</div>
+                <small class="text-muted">Ajuster l'espacement des éléments</small>
+            </div>
+            <MudSelect @bind-Value="_settings.Densite" T="string" Style="width:200px;">
+                @foreach (var dens in _densites)
+                {
+                    <MudSelectItem T="string" Value="dens">@dens</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </div>
+</div>
+
+<!-- Données & Confidentialité -->
+<div class="card mb-2">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="ti ti-shield-lock"></i>
+        <h6 class="mb-0 fw-semibold">Données &amp; Confidentialité</h6>
+    </div>
+    <div class="list-group list-group-flush">
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Sauvegarde automatique</div>
+                <small class="text-muted">Sauvegarder automatiquement les formulaires en cours</small>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" @bind="_settings.AutoSave" />
+            </div>
+        </div>
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Collecte de données analytiques</div>
+                <small class="text-muted">Aider à améliorer l'app en partageant des données d'usage anonymes</small>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" @bind="_settings.Analytics" />
+            </div>
+        </div>
+        <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+            <div>
+                <div class="fw-medium">Rétention des logs</div>
+                <small class="text-muted">Durée de conservation des journaux d'activité</small>
+            </div>
+            <MudSelect @bind-Value="_settings.RetentionLogs" T="string" Style="width:200px;">
+                @foreach (var r in _retentionOptions)
+                {
+                    <MudSelectItem T="string" Value="r">@r</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="d-flex align-items-center justify-content-between">
+    <button class="btn btn-outline-danger"><i class="ti ti-refresh me-1"></i>Réinitialiser</button>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary">Annuler</button>
+        <button class="btn btn-primary" @onclick="@OnSave"><i class="ti ti-device-floppy me-1"></i>Enregistrer les paramètres</button>
+    </div>
+</div>
+
+@code {
+    class SettingsModel
+    {
+        public string AppName { get; set; } = "App++";
+        public string? PhotoShop { get; set; }
+        public string? Adresse1 { get; set; }
+        public string? Adresse2 { get; set; }
+        public string Langue { get; set; } = "Français";
+        public string Fuseau { get; set; } = "Europe/Paris (UTC+1)";
+        public string FormatDate { get; set; } = "DD/MM/YYYY";
+        public string Theme { get; set; } = "Clair";
+        public bool SidebarCompacte { get; set; }
+        public string Densite { get; set; } = "Normal";
+        public bool AutoSave { get; set; } = true;
+        public bool Analytics { get; set; }
+        public string RetentionLogs { get; set; } = "30 jours";
+    }
+
+    class NotifSetting
+    {
+        public string Title { get; set; } = "";
+        public string Description { get; set; } = "";
+        public bool Enabled { get; set; }
+    }
+
+    SettingsModel _settings = new();
+    bool   _logoUploading;
+    string? _logoError;
+
+    async Task OnLogoFileSelected(InputFileChangeEventArgs e)
+    {
+        _logoError = null;
+        var file = e.File;
+        if (file.Size > 2 * 1024 * 1024)
+        {
+            _logoError = "Le fichier est trop grand (max 2 Mo).";
+            return;
+        }
+        if (!file.ContentType.StartsWith("image/"))
+        {
+            _logoError = "Seuls les fichiers image sont acceptés.";
+            return;
+        }
+        _logoUploading = true;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+            _settings.PhotoShop = $"data:{file.ContentType};base64,{base64}";
+        }
+        catch (Exception ex)
+        {
+            _logoError = $"Erreur lors du chargement : {ex.Message}";
+        }
+        finally
+        {
+            _logoUploading = false;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings.AppName = AppSettings.AppName;
+
+        var profile = await ShopProfileService.GetAsync();
+        _settings.PhotoShop = profile.PhotoShop;
+        _settings.Adresse1 = profile.Adresse1;
+        _settings.Adresse2 = profile.Adresse2;
+    }
+
+    List<NotifSetting> _notifSettings = new()
+    {
+        new() { Title = "Notifications par email",  Description = "Recevoir les alertes importantes par email",       Enabled = true },
+        new() { Title = "Notifications push",       Description = "Recevoir des notifications dans le navigateur",    Enabled = true },
+        new() { Title = "Son de notification",       Description = "Jouer un son lors d'une nouvelle notification",    Enabled = false },
+        new() { Title = "Résumé quotidien",          Description = "Email récapitulatif chaque matin à 8h",           Enabled = true },
+    };
+
+    List<string> _langues = new() { "Français", "English", "Español", "Deutsch" };
+    List<string> _fuseaux = new() { "Europe/Paris (UTC+1)", "Europe/London (UTC+0)", "America/New_York (UTC-5)", "Asia/Tokyo (UTC+9)" };
+    List<string> _dateFormats = new() { "DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD" };
+    List<string> _themes = new() { "Clair", "Sombre", "Système" };
+    List<string> _densites = new() { "Compact", "Normal", "Confortable" };
+    List<string> _retentionOptions = new() { "7 jours", "30 jours", "90 jours", "1 an", "Illimité" };
+
+    async Task OnSave()
+    {
+        // Sauvegarder le nom de l'application
+        if (!string.IsNullOrWhiteSpace(_settings.AppName))
+        {
+            await AppSettings.SetAsync(IAppSettingsService.KEY_APP_NAME, _settings.AppName.Trim());
+        }
+
+        await ShopProfileService.SaveAsync(_settings.PhotoShop, _settings.Adresse1, _settings.Adresse2);
+        Snackbar.Add("Les paramètres ont été enregistrés avec succès.", Severity.Success);
+    }
+}

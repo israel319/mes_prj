@@ -1,0 +1,180 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column gap-3">
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Code article</label>
+                    <input type="text" class="form-control" @bind="_article.IdArticle" maxlength="100" readonly="@_isEdit" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-control" @bind="_article.Description" maxlength="50" />
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Catégorie</label>
+                    <MudSelect T="int" @bind-Value="_article.IdCategory" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        @foreach (var cat in _categories)
+                        {
+                            <MudSelectItem T="int" Value="@cat.IdCategory">@cat.DescriptionCategory</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Type</label>
+                    <MudSelect T="int" @bind-Value="_article.IdType" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        @foreach (var t in _types)
+                        {
+                            <MudSelectItem T="int" Value="@t.IdType">@t.DescriptionType</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Marque</label>
+                    <MudSelect T="int" @bind-Value="_article.IdMarque" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        @foreach (var m in _marques)
+                        {
+                            <MudSelectItem T="int" Value="@m.IdMarque">@m.DescriptionMarque</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Mesure</label>
+                    <MudSelect T="int" @bind-Value="_article.IdMesure" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        @foreach (var m in _mesures)
+                        {
+                            <MudSelectItem T="int" Value="@m.IdMesure">@m.DescriptionMesure</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Monnaie</label>
+                    <MudSelect T="int" @bind-Value="_article.IdMonais" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        @foreach (var m in _monnaies)
+                        {
+                            <MudSelectItem T="int" Value="@m.IdMonais">@m.DescriptionMonais</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Prix</label>
+                    <MudNumericField @bind-Value="_article.Price" T="double" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Quantité</label>
+                    <MudNumericField @bind-Value="_article.Qte" T="decimal?" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Seuil alerte</label>
+                    <MudNumericField @bind-Value="_article.Soeuil" T="int" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Transférable</label>
+                    <MudCheckBox @bind-Value="_article.IsTransferable" T="bool?" Dense="true" />
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Description I</label>
+                    <input type="text" class="form-control" @bind="_article.DescriptionI" maxlength="50" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Description II</label>
+                    <input type="text" class="form-control" @bind="_article.DescriptionII" maxlength="50" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Description III</label>
+                    <input type="text" class="form-control" @bind="_article.DescriptionIII" maxlength="50" />
+                </div>
+            </div>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="OnSubmit">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public string? ArticleId { get; set; }
+
+    bool _isEdit;
+    Article _article = new();
+
+    List<ArticleCategory> _categories = new();
+    List<ArticleType> _types = new();
+    List<ArticleMarque> _marques = new();
+    List<Mesure> _mesures = new();
+    List<Money> _monnaies = new();
+    List<Localisation> _localisations = new();
+    string _currentLogin = "";
+
+    void Cancel() => MudDialog.Close();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        if (authUser.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = authUser.FindFirst("login")?.Value
+                ?? authUser.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+        }
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _categories = await ctx.ArticleCategories.OrderBy(c => c.DescriptionCategory).ToListAsync();
+        _types = await ctx.ArticleTypes.OrderBy(t => t.DescriptionType).ToListAsync();
+        _marques = await ctx.ArticleMarques.OrderBy(m => m.DescriptionMarque).ToListAsync();
+        _mesures = await ctx.Mesures.OrderBy(m => m.DescriptionMesure).ToListAsync();
+        _monnaies = await ctx.Moneys.OrderBy(m => m.DescriptionMonais).ToListAsync();
+        _localisations = await ctx.Localisations.OrderBy(l => l.DescriptionLocalisation).ToListAsync();
+
+        if (!string.IsNullOrEmpty(ArticleId))
+        {
+            _isEdit = true;
+            var existing = await ctx.Articles.FindAsync(ArticleId);
+            if (existing != null) _article = existing;
+        }
+    }
+
+    async Task OnSubmit()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _article.User = _currentLogin;
+        _article.DateSys = DateOnly.FromDateTime(DateTime.Today);
+        _article.Cumputer = Environment.MachineName;
+        if (_isEdit)
+        {
+            ctx.Articles.Attach(_article);
+            ctx.Entry(_article).State = EntityState.Modified;
+            ctx.Entry(_article).Property(a => a.Id).IsModified = false;
+            ctx.Entry(_article).Property(a => a.TotalPrice).IsModified = false;
+        }
+        else
+        {
+            ctx.Articles.Add(_article);
+        }
+        await ctx.SaveChangesAsync();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

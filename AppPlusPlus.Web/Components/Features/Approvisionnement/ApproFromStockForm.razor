@@ -1,0 +1,365 @@
+@* ──────────────────────────────────────────────────────────────
+   Dialog : Approvisionner depuis le stock d'une commande interne.
+   Permet de prélever des articles réceptionnés via cette commande
+   pour les transférer vers une localisation de destination.
+   Le stock est lu directement depuis T_Stock (BD).
+   Après prélèvement, le stock source est décrémenté et destination incrémenté.
+   Des MouvementStock sont créés pour la traçabilité.
+   ────────────────────────────────────────────────────────────── *@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject MudBlazor.ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog>
+    <DialogContent>
+        @if (_cmd == null)
+        {
+            <div class="d-flex flex-column align-items-center" style="padding:2rem;">
+                <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Chargement...</span></div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+                <h6 class="mb-0">
+                    Approvisionner depuis Commande N° @_cmd.Id
+                    @if (!string.IsNullOrWhiteSpace(_cmd.Supplier?.SupplierName))
+                    {
+                        <span> — @_cmd.Supplier.SupplierName</span>
+                    }
+                </h6>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Localisation destination</label>
+                        <MudSelect @bind-Value="_destLocalisation" T="int?" Placeholder="Sélectionner la destination..."
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Style="width:100%;">
+                            @foreach (var loc in _localisations)
+                            {
+                                <MudSelectItem T="int?" Value="@loc.IdLocalisation">@loc.DescriptionLocalisation</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Commentaire</label>
+                        <input type="text" class="form-control" @bind="_comment" placeholder="Motif du prélèvement..." />
+                    </div>
+                </div>
+
+                <p class="mb-0 small text-muted">
+                    Articles de cette commande — stock restant (Reçu − déjà transféré) :
+                </p>
+
+                <MudDataGrid Items="@_lines" T="StockLine" Dense="true" Hover="true" Bordered="true" Elevation="0" Style="width:100%;">
+                    <Columns>
+                        <TemplateColumn T="StockLine" Title="">
+                            <CellTemplate>
+                                <MudCheckBox @bind-Value="context.Item.Selected" T="bool" Dense="true" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="StockLine" Title="Article">
+                            <CellTemplate>
+                                @(context.Item.ArticleDesc ?? context.Item.ArticleId ?? "—")
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="StockLine" Title="Commandé">
+                            <CellTemplate>
+                                <span class="badge bg-info">@context.Item.QteCommandee.ToString("N0")</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="StockLine" Title="Reçu">
+                            <CellTemplate>
+                                <span class="badge bg-success">@context.Item.QteRecue.ToString("N0")</span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="StockLine" Title="Restant">
+                            <CellTemplate>
+                                <strong>@(context.Item.StockActuel.ToString("N0"))</strong>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="StockLine" Title="Localisation">
+                            <CellTemplate>
+                                @(context.Item.SourceLocalisation ?? "—")
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn T="StockLine" Title="Qté à prélever">
+                            <CellTemplate>
+                                <MudNumericField @bind-Value="context.Item.QtePrelevement" T="decimal" Min="0"
+                                                 Max="@(context.Item.StockActuel)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Style="width:100px;" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="mb-0 small">
+                        <strong>@_lines.Count(l => l.Selected && l.QtePrelevement > 0)</strong> article(s) à transférer
+                    </p>
+                </div>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="@(() => MudDialog.Close())">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="@OnSave" disabled="@(!CanSave)">
+            <i class="bi bi-box-arrow-up me-1"></i>Prélever
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public int SourceCmdId { get; set; }
+
+    Cmd? _cmd;
+    List<StockLine> _lines = new();
+    List<Localisation> _localisations = new();
+    int? _destLocalisation;
+    string? _comment;
+    string _currentLogin = "";
+
+    bool CanSave => _destLocalisation.HasValue && _lines.Any(l => l.Selected && l.QtePrelevement > 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        if (authUser.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = authUser.FindFirst("login")?.Value
+                ?? authUser.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+        }
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _localisations = await ctx.Localisations.OrderBy(l => l.DescriptionLocalisation).ToListAsync();
+
+        // 1. Charger la commande avec ses détails
+        _cmd = await ctx.Cmds
+            .Include(c => c.Supplier)
+            .Include(c => c.Details)
+            .FirstOrDefaultAsync(c => c.Id == SourceCmdId);
+
+        if (_cmd == null) return;
+
+        // 2. Récupérer les articles de cette commande (ceux qui ont été reçus)
+        var cmdDetails = _cmd.Details.Where(d => d.IdArticle != null && (d.QteReceive ?? 0) > 0).ToList();
+        if (!cmdDetails.Any()) return;
+
+        var detailIds = cmdDetails.Select(d => d.Id).ToList();
+        var articleIds = cmdDetails.Select(d => d.IdArticle!).Distinct().ToList();
+
+        // 3. Lire les descriptions des articles + stock global
+        var articles = await ctx.Articles
+            .Where(a => articleIds.Contains(a.IdArticle))
+            .ToDictionaryAsync(a => a.IdArticle, a => a);
+
+        // 4. Calculer ce qui a DÉJÀ été transféré depuis chaque CmdDetail (StatusId = 1)
+        //    On utilise IdCmd + IdArticle pour retrouver les transferts liés
+        var transferredByArticle = await ctx.Appros
+            .Where(a => a.IdCmd == SourceCmdId && a.StatusId == 1)
+            .GroupBy(a => a.IdArticle)
+            .Select(g => new { IdArticle = g.Key, Total = g.Sum(x => x.Qte) })
+            .ToDictionaryAsync(x => x.IdArticle, x => x.Total);
+
+        // 5. Construire les lignes : Stock commande = QteReceive − déjà transféré
+        //    N'afficher QUE les articles ayant encore du stock disponible
+        foreach (var detail in cmdDetails)
+        {
+            var artId = detail.IdArticle!;
+            var desc = articles.GetValueOrDefault(artId)?.Description ?? artId;
+            var qteCmd = (decimal)(detail.QteOrder ?? 0);
+            var qteRecue = (decimal)(detail.QteReceive ?? 0);
+            var dejaTransfere = transferredByArticle.GetValueOrDefault(artId);
+            var stockDispo = qteRecue - dejaTransfere;
+
+            // Lire le stock global de l'article dans Article.Qte
+            var stockGlobal = articles.GetValueOrDefault(artId)?.Qte ?? 0;
+
+            // Localisation actuelle de l'article (informative) - depuis T_Stock
+            var stockLoc = await ctx.Stocks
+                .Where(s => s.IdArticle == artId && s.Qte > 0)
+                .FirstOrDefaultAsync();
+            var locName = stockLoc != null
+                ? _localisations.FirstOrDefault(l => l.IdLocalisation == stockLoc.IdLocalisation)?.DescriptionLocalisation ?? "—"
+                : "Non assigné";
+
+            if (stockDispo <= 0) continue; // Tout a déjà été transféré — on ne l'affiche pas
+
+            _lines.Add(new StockLine
+            {
+                CmdDetailId = detail.Id,
+                ArticleId = artId,
+                ArticleDesc = desc,
+                QteCommandee = qteCmd,
+                QteRecue = qteRecue,
+                StockActuel = stockDispo,
+                SourceLocalisationId = stockLoc?.IdLocalisation,
+                SourceLocalisation = locName,
+                QtePrelevement = 0,
+                Selected = false
+            });
+        }
+    }
+
+    async Task OnSave()
+    {
+        if (!_destLocalisation.HasValue) return;
+        var selected = _lines.Where(l => l.Selected && l.QtePrelevement > 0).ToList();
+        if (!selected.Any()) return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var now = DateTime.Now;
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var userName = _currentLogin;
+            int count = 0;
+
+            foreach (var line in selected)
+            {
+                var commentaire = _comment ?? $"Prélèvement depuis Cmd N°{SourceCmdId}";
+
+                // Si l'article a une localisation source, décrémenter le stock source
+                if (line.SourceLocalisationId.HasValue)
+                {
+                    // Vérifier que source ≠ destination
+                    if (line.SourceLocalisationId.Value == _destLocalisation.Value)
+                    {
+                        Snackbar.Add($"L'article {line.ArticleDesc} est déjà dans cette localisation.", Severity.Warning);
+                        continue;
+                    }
+
+                    // ── Décrémenter Stock SOURCE ──
+                    var srcStock = await ctx.Stocks
+                        .FirstOrDefaultAsync(s => s.IdArticle == line.ArticleId
+                                                 && s.IdLocalisation == line.SourceLocalisationId.Value);
+                    if (srcStock != null && srcStock.Qte >= line.QtePrelevement)
+                    {
+                        decimal srcQteAvant = srcStock.Qte;
+                        srcStock.Qte -= line.QtePrelevement;
+                        if (srcStock.Qte < 0) srcStock.Qte = 0;
+
+                        // MouvementStock SORTIE (source)
+                        ctx.MouvementsStock.Add(new MouvementStock
+                        {
+                            IdArticle = line.ArticleId!,
+                            IdLocalisation = line.SourceLocalisationId.Value,
+                            TypeMouvement = TypesMouvement.SORTIE,
+                            Quantite = line.QtePrelevement,
+                            QteAvant = srcQteAvant,
+                            QteApres = srcStock.Qte,
+                            DateMouvement = now,
+                            TypeDocument = TypesDocument.TRANSFERT,
+                            IdDocument = SourceCmdId,
+                            IdLocalisationSource = line.SourceLocalisationId.Value,
+                            IdLocalisationDest = _destLocalisation.Value,
+                            Reference = $"Transfert Cmd N°{SourceCmdId}",
+                            Observation = commentaire,
+                            CreePar = userName,
+                            DateCreation = now
+                        });
+                    }
+                }
+
+                // ── Incrémenter Stock DESTINATION ──
+                var destStock = await ctx.Stocks
+                    .FirstOrDefaultAsync(s => s.IdArticle == line.ArticleId
+                                             && s.IdLocalisation == _destLocalisation.Value);
+                decimal destQteAvant = destStock?.Qte ?? 0;
+                decimal destQteApres = destQteAvant + line.QtePrelevement;
+
+                if (destStock != null)
+                {
+                    destStock.Qte = destQteApres;
+                    destStock.DateSys = today;
+                    destStock.UserLogin = userName;
+                }
+                else
+                {
+                    destStock = new Stock
+                    {
+                        IdArticle = line.ArticleId!,
+                        IdLocalisation = _destLocalisation.Value,
+                        Qte = line.QtePrelevement,
+                        Seuil = 0,
+                        DateSys = today,
+                        UserLogin = userName
+                    };
+                    ctx.Stocks.Add(destStock);
+                }
+
+                // MouvementStock ENTREE (destination)
+                ctx.MouvementsStock.Add(new MouvementStock
+                {
+                    IdArticle = line.ArticleId!,
+                    IdLocalisation = _destLocalisation.Value,
+                    TypeMouvement = TypesMouvement.ENTREE,
+                    Quantite = line.QtePrelevement,
+                    QteAvant = destQteAvant,
+                    QteApres = destQteApres,
+                    DateMouvement = now,
+                    TypeDocument = TypesDocument.TRANSFERT,
+                    IdDocument = SourceCmdId,
+                    IdLocalisationSource = line.SourceLocalisationId,
+                    IdLocalisationDest = _destLocalisation.Value,
+                    Reference = $"Transfert Cmd N°{SourceCmdId}",
+                    Observation = commentaire,
+                    CreePar = userName,
+                    DateCreation = now
+                });
+
+                // Créer un Appro pour traçabilité (StatusId = 1 → transfert interne)
+                ctx.Appros.Add(new Appro
+                {
+                    IdArticle = line.ArticleId!,
+                    IdCmd = SourceCmdId,
+                    Qte = line.QtePrelevement,
+                    PA = 0,
+                    PV = 0,
+                    Ben = 0,
+                    BenTotal = 0,
+                    Date = today,
+                    DateSys = now,
+                    User = userName,
+                    Cumputer = Environment.MachineName,
+                    Commentaire = commentaire,
+                    LocalisationId = _destLocalisation.Value,
+                    StatusId = 1
+                });
+
+                count++;
+            }
+
+            await ctx.SaveChangesAsync();
+
+            Snackbar.Add($"{count} article(s) transféré(s)", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(msg, Severity.Error);
+        }
+    }
+
+    class StockLine
+    {
+        public int CmdDetailId { get; set; }
+        public string? ArticleId { get; set; }
+        public string? ArticleDesc { get; set; }
+        public decimal QteCommandee { get; set; }
+        public decimal QteRecue { get; set; }
+        public decimal StockActuel { get; set; }
+        public int? SourceLocalisationId { get; set; }
+        public string? SourceLocalisation { get; set; }
+        public decimal QtePrelevement { get; set; }
+        public bool Selected { get; set; }
+    }
+}

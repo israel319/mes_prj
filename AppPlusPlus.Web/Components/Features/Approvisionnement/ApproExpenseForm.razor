@@ -1,0 +1,124 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject AuthenticationStateProvider AuthStateProvider
+
+<EditForm Model="@_item" OnValidSubmit="@OnSubmit">
+    <MudDialog>
+        <DialogContent>
+            <div class="d-flex flex-column gap-3">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Source</label>
+                        <MudSelect T="int" @bind-Value="_item.SourceId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                            @foreach (var s in _sources)
+                            {
+                                <MudSelectItem T="int" Value="@s.Id">@s.Sources</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Caisse</label>
+                        <MudSelect T="int?" @bind-Value="_item.CaisseId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                            @foreach (var c in _caisses)
+                            {
+                                <MudSelectItem T="int?" Value="@c.CaisseId">@c.Description</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                </div>
+
+                <label class="form-label">Description</label>
+                <input type="text" class="form-control" @bind="_item.Description" maxlength="200" />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Devise</label>
+                        <MudSelect T="int?" @bind-Value="_item.CurrencyId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                            @foreach (var m in _monnaies)
+                            {
+                                <MudSelectItem T="int?" Value="@m.IdMonais">@m.DescriptionMonais</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Montant USD</label>
+                        <MudNumericField @bind-Value="_item.AmountUSD" T="decimal?" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Montant CDF</label>
+                        <MudNumericField @bind-Value="_item.AmountCDF" T="decimal?" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Déposeur</label>
+                        <input type="text" class="form-control" @bind="_item.Depositeur" maxlength="100" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Commentaire</label>
+                        <input type="text" class="form-control" @bind="_item.Comment" maxlength="200" />
+                    </div>
+                </div>
+            </div>
+        </DialogContent>
+        <DialogActions>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg me-1"></i>Enregistrer
+            </button>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int? ExpenseId { get; set; }
+
+    ApproExpense _item = new();
+    List<ExpenseSource> _sources = new();
+    List<Caisse> _caisses = new();
+    List<Money> _monnaies = new();
+    string _currentLogin = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        if (authUser.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = authUser.FindFirst("login")?.Value
+                ?? authUser.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+        }
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _sources = await ctx.ExpenseSources.ToListAsync();
+        _caisses = await ctx.Caisses.ToListAsync();
+        _monnaies = await ctx.Moneys.ToListAsync();
+
+        if (ExpenseId.HasValue)
+        {
+            var existing = await ctx.ApproExpenses.FindAsync(ExpenseId.Value);
+            if (existing != null) _item = existing;
+        }
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnSubmit()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _item.UserLogin = _currentLogin;
+        _item.CreationDate = DateTime.Now;
+        if (ExpenseId.HasValue)
+            ctx.ApproExpenses.Update(_item);
+        else
+            ctx.ApproExpenses.Add(_item);
+        await ctx.SaveChangesAsync();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

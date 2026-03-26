@@ -1,0 +1,388 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column gap-3" style="min-width:680px;">
+
+            @* ── Fournisseur ── *@
+            <div class="row g-2 align-items-end">
+                <div class="col">
+                    <label class="form-label">Fournisseur</label>
+                    <MudAutocomplete T="int?" @bind-Value="_item.SupplierId"
+                                     SearchFunc="@SearchSuppliers"
+                                     ToStringFunc="@(id => _suppliers.FirstOrDefault(s => s.SupplierId == id)?.SupplierName ?? "")"
+                                     Placeholder="Sélectionner un fournisseur..."
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
+                </div>
+                <div class="col-sm-1">
+                    <button class="btn btn-outline-secondary" @onclick="@OnCreateSupplier"
+                            title="Créer un fournisseur" style="height:40px;">
+                        <i class="bi bi-person-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            @* ── Nouveau fournisseur (section visible si on clique +) ── *@
+            @if (_showNewSupplier)
+            {
+                <div class="card bg-body-secondary">
+                    <div class="card-body p-3">
+                        <div class="fw-semibold mb-2">Nouveau fournisseur</div>
+                        <div class="row g-2">
+                            <div class="col-md-5">
+                                <label class="form-label">Nom *</label>
+                                <input type="text" class="form-control" @bind="_newSupplierName" placeholder="Nom du fournisseur" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Contact</label>
+                                <input type="text" class="form-control" @bind="_newSupplierContact" placeholder="Téléphone" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Email</label>
+                                <input type="text" class="form-control" @bind="_newSupplierEmail" placeholder="email" />
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end gap-1">
+                                <button class="btn btn-primary btn-sm" @onclick="@OnSaveNewSupplier" title="Enregistrer">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button class="btn btn-light btn-sm" @onclick="@(() => _showNewSupplier = false)" title="Annuler">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @* ── Date ── *@
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Date commande</label>
+                    <MudDatePicker @bind-Date="_dateCommande" DateFormat="dd/MM/yyyy"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+                <div class="col-md-6">
+                    @if (CmdId.HasValue)
+                    {
+                        <label class="form-label">Statut</label>
+                        <span class="badge @StatusCss(_item.Status)" style="font-size:0.85rem; padding:4px 12px;">
+                            @StatusLabel(_item.Status)
+                        </span>
+                    }
+                </div>
+            </div>
+
+            @* ── Articles commandés ── *@
+            <h6 class="fw-semibold mt-1">Articles commandés (@_lines.Count)</h6>
+
+            <MudDataGrid Items="@_lines" T="CmdLine" Dense="true" Hover="true" Bordered="true" Elevation="0">
+                <Columns>
+                    <TemplateColumn Title="Article">
+                        <CellTemplate>
+                            <MudAutocomplete T="string" Value="context.Item.IdArticle"
+                                             SearchFunc="@SearchArticles"
+                                             ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
+                                             Placeholder="Sélectionner un article..."
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                             ValueChanged="@(val => OnArticleSelected(context.Item, val))" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Stock actuel">
+                        <CellTemplate>
+                            <span class="badge @(context.Item.StockActuel > 0 ? "bg-success" : "bg-light text-dark")">
+                                @((context.Item.StockActuel ?? 0).ToString("N0"))
+                            </span>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="Qté commandée">
+                        <CellTemplate>
+                            <MudNumericField @bind-Value="context.Item.QteOrder" T="double?" Min="0"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        </CellTemplate>
+                    </TemplateColumn>
+                    @if (CmdId.HasValue)
+                    {
+                        <TemplateColumn Title="Reçu">
+                            <CellTemplate>
+                                <span class="text-success">
+                                    @((context.Item.QteReceived ?? 0).ToString("N0"))
+                                </span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    }
+                    <TemplateColumn>
+                        <CellTemplate>
+                            <button class="btn btn-link text-danger p-0 border-0 btn-sm" @onclick="@(() => RemoveLine(context.Item))" title="Retirer">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+
+            <button class="btn btn-light btn-sm" @onclick="@AddLine" style="align-self:flex-start;">
+                <i class="bi bi-plus-lg me-1"></i> Ajouter un article
+            </button>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="OnSave">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int? CmdId { get; set; }
+
+    Cmd _item = new();
+    DateTime? _dateCommande = DateTime.Today;
+
+    List<Supplier> _suppliers = new();
+    List<Article> _articles = new();
+    List<CmdLine> _lines = new();
+
+    bool _showNewSupplier;
+    string? _newSupplierName;
+    string? _newSupplierContact;
+    string? _newSupplierEmail;
+    string _currentLogin = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        if (authUser.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = authUser.FindFirst("login")?.Value
+                ?? authUser.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+        }
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _suppliers = await ctx.Suppliers.OrderBy(s => s.SupplierName).ToListAsync();
+        _articles = await ctx.Articles.OrderBy(a => a.Description).ToListAsync();
+
+        if (CmdId.HasValue)
+        {
+            var existing = await ctx.Cmds
+                .Include(c => c.Details)
+                .FirstOrDefaultAsync(c => c.Id == CmdId.Value);
+
+            if (existing != null)
+            {
+                _item = existing;
+                _dateCommande = _item.DateCommande?.ToDateTime(TimeOnly.MinValue);
+
+                _lines = existing.Details.Select(d =>
+                {
+                    var art = _articles.FirstOrDefault(a => a.IdArticle == d.IdArticle);
+                    return new CmdLine
+                    {
+                        ExistingId = d.Id,
+                        IdArticle = d.IdArticle,
+                        QteOrder = d.QteOrder,
+                        QteReceived = d.QteReceive,
+                        StockActuel = art?.Qte
+                    };
+                }).ToList();
+            }
+        }
+        else
+        {
+            _lines.Add(new CmdLine());
+        }
+    }
+
+    private Task<IEnumerable<int?>> SearchSuppliers(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(value))
+            return Task.FromResult(_suppliers.Select(s => (int?)s.SupplierId));
+        return Task.FromResult(_suppliers
+            .Where(s => s.SupplierName != null && s.SupplierName.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(s => (int?)s.SupplierId));
+    }
+
+    private Task<IEnumerable<string>> SearchArticles(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(value))
+            return Task.FromResult(_articles.Select(a => a.IdArticle));
+        return Task.FromResult(_articles
+            .Where(a => a.Description != null && a.Description.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(a => a.IdArticle));
+    }
+
+    void AddLine()
+    {
+        _lines.Add(new CmdLine());
+        StateHasChanged();
+    }
+
+    void RemoveLine(CmdLine line)
+    {
+        _lines.Remove(line);
+        StateHasChanged();
+    }
+
+    void OnCreateSupplier()
+    {
+        _showNewSupplier = true;
+        _newSupplierName = null;
+        _newSupplierContact = null;
+        _newSupplierEmail = null;
+    }
+
+    async Task OnSaveNewSupplier()
+    {
+        if (string.IsNullOrWhiteSpace(_newSupplierName))
+        {
+            Snackbar.Add("Le nom du fournisseur est obligatoire", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var supplier = new Supplier
+            {
+                SupplierName = _newSupplierName.Trim(),
+                Contact = _newSupplierContact?.Trim(),
+                Email = _newSupplierEmail?.Trim(),
+                UserLogin = _currentLogin,
+                CreationDate = DateOnly.FromDateTime(DateTime.Today)
+            };
+            ctx.Suppliers.Add(supplier);
+            await ctx.SaveChangesAsync();
+
+            _suppliers = await ctx.Suppliers.OrderBy(s => s.SupplierName).ToListAsync();
+            _item.SupplierId = supplier.SupplierId;
+            _showNewSupplier = false;
+
+            Snackbar.Add($"Fournisseur créé : {supplier.SupplierName}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(msg, Severity.Error);
+        }
+    }
+
+    void OnArticleSelected(CmdLine line, string val)
+    {
+        line.IdArticle = val;
+        if (val is string artId)
+        {
+            var art = _articles.FirstOrDefault(a => a.IdArticle == artId);
+            line.StockActuel = art?.Qte;
+        }
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnSave()
+    {
+        var validLines = _lines.Where(l => !string.IsNullOrEmpty(l.IdArticle) && (l.QteOrder ?? 0) > 0).ToList();
+
+        if (!validLines.Any())
+        {
+            Snackbar.Add("Ajoutez au moins un article avec une quantité > 0", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            _item.DateCommande = DateOnly.FromDateTime(_dateCommande ?? DateTime.Today);
+            _item.User = _currentLogin;
+            _item.DateSys = DateTime.Now;
+            _item.Cumputer = Environment.MachineName;
+
+            if (!CmdId.HasValue)
+            {
+                _item.Status = 0;
+                ctx.Cmds.Add(_item);
+            }
+            else
+            {
+                ctx.Cmds.Update(_item);
+
+                var oldDetails = await ctx.CmdDetails
+                    .Where(d => d.IdCmd == CmdId.Value && (d.QteReceive ?? 0) == 0)
+                    .ToListAsync();
+                ctx.CmdDetails.RemoveRange(oldDetails);
+            }
+
+            await ctx.SaveChangesAsync();
+
+            foreach (var line in validLines)
+            {
+                if (line.ExistingId.HasValue && (line.QteReceived ?? 0) > 0)
+                {
+                    var detail = await ctx.CmdDetails.FindAsync(line.ExistingId.Value);
+                    if (detail != null)
+                    {
+                        detail.QteOrder = line.QteOrder;
+                        detail.IdArticle = line.IdArticle;
+                    }
+                }
+                else
+                {
+                    ctx.CmdDetails.Add(new CmdDetail
+                    {
+                        IdCmd = _item.Id,
+                        IdArticle = line.IdArticle,
+                        QteOrder = line.QteOrder,
+                        QteReceive = 0,
+                        DateSys = DateOnly.FromDateTime(DateTime.Today),
+                        User = _currentLogin,
+                        Cumputer = Environment.MachineName
+                    });
+                }
+            }
+
+            await ctx.SaveChangesAsync();
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(msg, Severity.Error);
+        }
+    }
+
+    static string StatusLabel(int? s) => s switch
+    {
+        0 => "Nouvelle",
+        1 => "En cours",
+        2 => "Reçue",
+        3 => "Annulée",
+        _ => "—"
+    };
+
+    static string StatusCss(int? s) => s switch
+    {
+        0 => "bg-info",
+        1 => "bg-warning text-dark",
+        2 => "bg-success",
+        3 => "bg-danger",
+        _ => "bg-light text-dark"
+    };
+
+    class CmdLine
+    {
+        public int? ExistingId { get; set; }
+        public string? IdArticle { get; set; }
+        public double? QteOrder { get; set; }
+        public double? QteReceived { get; set; }
+        public decimal? StockActuel { get; set; }
+    }
+}

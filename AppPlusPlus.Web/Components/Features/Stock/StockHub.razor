@@ -1,0 +1,862 @@
+@page "/stock"
+@using MudBlazor
+@rendermode InteractiveServer
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICatalogueService CatalogueService
+@inject ILocalisationService LocalisationService
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+
+<PageTitle>@AppSettings.AppName — Articles</PageTitle>
+
+@if (!_loaded)
+{
+    <div class="d-flex align-items-center justify-content-center" style="min-height:200px;">
+        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Chargement…</span></div>
+    </div>
+}
+else
+{
+    <div>
+        <!-- En-tête hub -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between mb-2 hub-header">
+            <div class="d-flex align-items-center gap-3">
+                <div class="hub-icon" style="background:#d4f5ef;color:#00B193;">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <div>
+                    <h2 class="fw-bold mb-0 fs-5">Stock & Référentiel</h2>
+                    <small class="text-muted">Catalogue, approvisionnements, transformations et paramètres articles</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Onglets Bootstrap -->
+        <div class="card hub-tabs-shell">
+            <ul class="nav nav-tabs">
+                <li class="nav-item"><button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(async () => await OnTabChange(0))"><i class="bi bi-grid me-1"></i>Catalogue</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(async () => await OnTabChange(1))"><i class="bi bi-cart-plus me-1"></i>Approvisionnement</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 2 ? "active" : "")" @onclick="@(async () => await OnTabChange(2))"><i class="bi bi-arrow-left-right me-1"></i>Transformation</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 3 ? "active" : "")" @onclick="@(async () => await OnTabChange(3))"><i class="bi bi-sliders me-1"></i>Paramètres</button></li>
+            </ul>
+
+            @* ══════════════════ CATALOGUE ══════════════════ *@
+            @if (_tab == 0)
+            {
+                <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                        <h5 class="fw-bold mb-0">Catalogue articles : @_articlesFiltered.Count</h5>
+                        <button class="btn btn-primary btn-sm" @onclick="@(() => Navigation.NavigateTo("/gestion/article/nouveau"))">
+                            <i class="bi bi-plus-lg me-1"></i> Nouvel article
+                        </button>
+                    </div>
+
+                    <input type="text" class="form-control mb-1" placeholder="Rechercher un article..." @bind="_artSearch" @bind:event="oninput"
+                           @onchange="@(e => OnArticleSearchChanged(e.Value?.ToString() ?? ""))" />
+                    <small class="text-muted d-block mb-2">Cliquez sur un article pour voir les détails et stocks par localisation</small>
+
+                    <MudDataGrid T="ArticleView" Items="@_articlesFiltered" Loading="@_artLoading"
+                                 Dense="true" Hover="true" RowClick="@OnArticleRowClick" RowStyle="cursor:pointer;">
+                        <Columns>
+                            <PropertyColumn Property="@(x => x.IdArticle)" Title="Code" />
+                            <PropertyColumn Property="@(x => x.Description)" Title="Description" />
+                            <PropertyColumn Property="@(x => x.Price)" Title="Prix" Format="N0" />
+                            <TemplateColumn Title="Localisations">
+                                <CellTemplate>
+                                    <span class="badge bg-info">@context.Item.LocationCount loc.</span>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="Stock total">
+                                <CellTemplate>
+                                    @{
+                                        var qteTotal = context.Item.TotalStock;
+                                        var hasRupture = context.Item.HasRupture;
+                                        var hasLow = context.Item.HasLowStock;
+                                        var couleur = hasRupture ? "#dc2626" : hasLow ? "#f59e0b" : "#16a34a";
+                                    }
+                                    <span style="color:@couleur;font-weight:600;">
+                                        @if (hasRupture)
+                                        {
+                                            <i class="bi bi-exclamation-circle me-1"></i>
+                                        }
+                                        else if (hasLow)
+                                        {
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                        }
+                                        @qteTotal
+                                    </span>
+                                </CellTemplate>
+                            </TemplateColumn>
+                            <TemplateColumn Title="État">
+                                <CellTemplate>
+                                    @if (context.Item.HasRupture)
+                                    {
+                                        <span class="badge bg-danger">Rupture</span>
+                                    }
+                                    else if (context.Item.HasLowStock)
+                                    {
+                                        <span class="badge bg-warning text-dark">Stock bas</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">OK</span>
+                                    }
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                </div>
+            }
+
+            @* ══════════════════ APPROVISIONNEMENT ══════════════════ *@
+            @if (_tab == 1)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-end gap-2 mb-2">
+                        <button class="btn btn-primary btn-sm" @onclick="@OnAddAppro">
+                            <i class="bi bi-plus-lg me-1"></i> Nouvel appro
+                        </button>
+                    </div>
+                    <MudDataGrid T="ApproRow" Items="@_approData" Loading="@_approLoading"
+                                 Dense="true" Hover="true">
+                        <Columns>
+                            <PropertyColumn Property="@(x => x.Id)" Title="N°" />
+                            <PropertyColumn Property="@(x => x.ArticleName)" Title="Article" />
+                            <PropertyColumn Property="@(x => x.Qte)" Title="Qté" Format="N2" Align="Align.Center" />
+                            <PropertyColumn Property="@(x => x.PA)" Title="PA" Format="N2" Align="Align.End" />
+                            <PropertyColumn Property="@(x => x.PV)" Title="PV" Format="N2" Align="Align.End" />
+                            <PropertyColumn Property="@(x => x.Ben)" Title="Bén." Format="N2" Align="Align.End" />
+                            <PropertyColumn Property="@(x => x.Date)" Title="Date" Format="dd/MM/yyyy" />
+                            <PropertyColumn Property="@(x => x.User)" Title="Utilisateur" />
+                            <TemplateColumn Title="Actions" Align="Align.Center" Sortable="false" Filterable="false">
+                                <CellTemplate>
+                                    @{ var a = context.Item; }
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditAppro(a.Id))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteAppro(a))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                </div>
+            }
+
+            @* ══════════════════ TRANSFORMATION ══════════════════ *@
+            @if (_tab == 2)
+            {
+                <div class="card-body">
+                    <div class="d-flex justify-content-end gap-2 mb-2">
+                        <button class="btn btn-primary btn-sm" @onclick="@OnAddTrans">
+                            <i class="bi bi-plus-lg me-1"></i> Nouvelle transformation
+                        </button>
+                    </div>
+                    <MudDataGrid T="Transformation" Items="@_transData" Loading="@_transLoading"
+                                 Dense="true" Hover="true">
+                        <Columns>
+                            <PropertyColumn Property="@(x => x.TransformationId)" Title="N°" />
+                            <PropertyColumn Property="@(x => x.FromArticleId)" Title="Article source" />
+                            <PropertyColumn Property="@(x => x.Qte)" Title="Qté" Format="N2" Align="Align.Center" />
+                            <PropertyColumn Property="@(x => x.ToArticleId)" Title="Article dest." />
+                            <PropertyColumn Property="@(x => x.ToQte)" Title="Qté dest." Format="N2" Align="Align.Center" />
+                            <PropertyColumn Property="@(x => x.Date)" Title="Date" Format="dd/MM/yyyy" />
+                            <PropertyColumn Property="@(x => x.UserLogin)" Title="Utilisateur" />
+                            <TemplateColumn Title="Actions" Align="Align.Center" Sortable="false" Filterable="false">
+                                <CellTemplate>
+                                    @{ var t = context.Item; }
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditTrans(t))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteTrans(t))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                </div>
+            }
+
+            @* ══════════════════ PARAMÈTRES ══════════════════ *@
+            @if (_tab == 3)
+            {
+                <div class="card-body">
+                <h5 class="fw-bold mb-2">Paramètre article</h5>
+
+                <!-- Catégorie -->
+                <div class="card mb-2">
+                    <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-semibold mb-0">Catégorie article</h6>
+                        <button class="btn btn-primary btn-sm" @onclick="@InsertCategory"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
+                    </div>
+                    <MudDataGrid T="ArticleCategory" Items="@_categories" Dense="true"
+                                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
+                                 CommittedItemChanges="@OnUpdateCategory" ReadOnly="false">
+                        <Columns>
+                            <PropertyColumn Property="@(x => x.IdCategory)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.DescriptionCategory)" Title="Description" />
+                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                                <CellTemplate>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteCategory(context.Item))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div class="card mb-2">
+                    <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-semibold mb-0">Type article</h6>
+                        <button class="btn btn-primary btn-sm" @onclick="@InsertType"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
+                    </div>
+                    <MudDataGrid T="ArticleType" Items="@_types" Dense="true"
+                                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
+                                 CommittedItemChanges="@OnUpdateType" ReadOnly="false">
+                        <Columns>
+                            <PropertyColumn Property="@(x => x.IdType)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.DescriptionType)" Title="Description" />
+                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                                <CellTemplate>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteType(context.Item))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                    </div>
+                </div>
+
+                <!-- Marque -->
+                <div class="card mb-2">
+                    <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-semibold mb-0">Marque article</h6>
+                        <button class="btn btn-primary btn-sm" @onclick="@InsertMarque"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
+                    </div>
+                    <MudDataGrid T="ArticleMarque" Items="@_marques" Dense="true"
+                                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
+                                 CommittedItemChanges="@OnUpdateMarque" ReadOnly="false">
+                        <Columns>
+                            <PropertyColumn Property="@(x => x.IdMarque)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.DescriptionMarque)" Title="Description" />
+                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                                <CellTemplate>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteMarque(context.Item))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                    </div>
+                </div>
+
+                <!-- Mesure -->
+                <div class="card mb-2">
+                    <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-semibold mb-0">Mesure</h6>
+                        <button class="btn btn-primary btn-sm" @onclick="@InsertMesure"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
+                    </div>
+                    <MudDataGrid T="Mesure" Items="@_mesures" Dense="true"
+                                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
+                                 CommittedItemChanges="@OnUpdateMesure" ReadOnly="false">
+                        <Columns>
+                            <PropertyColumn Property="@(x => x.IdMesure)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.DescriptionMesure)" Title="Description" />
+                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                                <CellTemplate>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteMesure(context.Item))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                    </div>
+                </div>
+
+                <!-- Localisation -->
+                <div class="card mb-2">
+                    <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-semibold mb-0">Localisation</h6>
+                        <button class="btn btn-primary btn-sm" @onclick="@InsertLocalisation"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
+                    </div>
+                    <MudDataGrid T="Localisation" Items="@_localisations" Dense="true"
+                                 EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
+                                 CommittedItemChanges="@OnUpdateLocalisation" ReadOnly="false">
+                        <Columns>
+                            <PropertyColumn Property="@(x => x.IdLocalisation)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.DescriptionLocalisation)" Title="Description" />
+                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                                <CellTemplate>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteLocalisation(context.Item))" />
+                                </CellTemplate>
+                            </TemplateColumn>
+                        </Columns>
+                    </MudDataGrid>
+                    </div>
+                </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    /* ── Hub ── */
+    int _tab;
+    bool _loaded;
+    List<int> _currentUserLocalisations = new();
+
+    /* ── Données de référence (partagées Catalogue + Paramètres) ── */
+    List<ArticleCategory> _categories = new();
+    List<ArticleType> _types = new();
+    List<ArticleMarque> _marques = new();
+    List<Mesure> _mesures = new();
+    List<Localisation> _localisations = new();
+
+    /* ── Catalogue ── */
+    bool _artLoading;
+    string _artSearch = "";
+    List<ArticleView> _articleViews = new();
+    List<ArticleView> _articlesFiltered = new();
+    List<Article> _articles = new();
+    List<Stock> _allStocks = new();
+
+    /* ── Approvisionnement ── */
+    bool _approLoading;
+    List<ApproRow> _approData = new();
+
+    /* ── Transformation ── */
+    bool _transLoading;
+    List<Transformation> _transData = new();
+
+    /* ════════════════════════════════════════════════════════════
+       INIT
+       ════════════════════════════════════════════════════════════ */
+
+    protected override async Task OnInitializedAsync()
+    {
+        _artLoading = true;
+
+        // Fetch user's assigned localisations via service
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var login = user.FindFirst("login")?.Value
+                ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            var isAdmin = AppFunctions.Normalize(user.FindFirst(ClaimTypes.Role)?.Value) == "administrateur";
+
+            if (!string.IsNullOrEmpty(login))
+            {
+                _currentUserLocalisations = await LocalisationService.GetUserLocalisationIdsAsync(login, isAdmin);
+            }
+        }
+
+        // Load reference data via CatalogueService
+        _categories = await CatalogueService.GetArticleCategoriesAsync();
+        _types = await CatalogueService.GetArticleTypesAsync();
+        _marques = await CatalogueService.GetArticleMarquesAsync();
+        _mesures = await CatalogueService.GetMesuresAsync();
+        _localisations = (await LocalisationService.GetAllLocalisationsAsync()).ToList();
+
+        // Load all articles for reference
+        _articles = await CatalogueService.GetArticlesAsync();
+        _articles = _articles.OrderBy(a => a.Description).ToList();
+
+        // Load stocks
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var stocksQuery = ctx.Stocks.AsQueryable();
+
+        // Filter by user's localisations if not admin
+        if (_currentUserLocalisations.Any())
+        {
+            stocksQuery = stocksQuery.Where(s => _currentUserLocalisations.Contains(s.IdLocalisation));
+        }
+
+        _allStocks = await stocksQuery.ToListAsync();
+
+        // Create ArticleView list - grouped by article (unique articles)
+        var articleIds = _allStocks.Select(s => s.IdArticle).Distinct().ToList();
+        _articleViews = _articles
+            .Where(a => articleIds.Contains(a.IdArticle))
+            .Select(a =>
+            {
+                var articleStocks = _allStocks.Where(s => s.IdArticle == a.IdArticle).ToList();
+                return new ArticleView
+                {
+                    IdArticle = a.IdArticle,
+                    Description = a.Description ?? a.IdArticle,
+                    DescriptionI = a.DescriptionI,
+                    Price = a.Price,
+                    IdMarque = a.IdMarque,
+                    IdCategory = a.IdCategory,
+                    IdType = a.IdType,
+                    IdMesure = a.IdMesure,
+                    LocationCount = articleStocks.Count,
+                    TotalStock = (int)articleStocks.Sum(s => s.Qte),
+                    HasRupture = articleStocks.Any(s => s.Qte <= 0),
+                    HasLowStock = articleStocks.Any(s => s.Qte > 0 && s.Qte <= s.Seuil)
+                };
+            })
+            .OrderBy(a => a.Description)
+            .ToList();
+
+        _articlesFiltered = _articleViews;
+        _artLoading = false;
+
+        await Task.WhenAll(LoadAppros(), LoadTransformations());
+        _loaded = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // L'onglet reste à 0 par défaut - pas de restauration automatique
+        // L'utilisateur navigue manuellement entre les onglets
+        await Task.CompletedTask;
+    }
+
+    async Task OnTabChange(int tabIndex)
+    {
+        _tab = tabIndex;
+        try
+        {
+            await JS.InvokeVoidAsync("tabNavigation.saveTab", "stock", tabIndex);
+        }
+        catch { }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       CATALOGUE
+       ════════════════════════════════════════════════════════════ */
+
+    void OnArticleSearchChanged(string value)
+    {
+        _artSearch = value ?? "";
+        if (string.IsNullOrWhiteSpace(_artSearch))
+        {
+            _articlesFiltered = _articleViews;
+        }
+        else
+        {
+            var q = _artSearch.Trim();
+            _articlesFiltered = _articleViews
+                .Where(a => a.IdArticle.Contains(q, StringComparison.OrdinalIgnoreCase)
+                         || a.Description.Contains(q, StringComparison.OrdinalIgnoreCase)
+                         || (a.DescriptionI ?? "").Contains(q, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    async Task OnArticleRowClick(DataGridRowClickEventArgs<ArticleView> args)
+    {
+        // Ouvrir le dialogue de détail de l'article
+        await ShowArticleDetailDialog(args.Item.IdArticle);
+    }
+
+    async Task ShowArticleDetailDialog(string articleId)
+    {
+        var article = _articles.FirstOrDefault(a => a.IdArticle == articleId);
+        if (article == null) return;
+
+        // Get stocks for this article
+        var articleStocks = _allStocks
+            .Where(s => s.IdArticle == articleId)
+            .Select(s => new StockLocationInfo
+            {
+                StockId = s.Id,
+                IdLocalisation = s.IdLocalisation,
+                LocalisationName = _localisations.FirstOrDefault(l => l.IdLocalisation == s.IdLocalisation)?.DescriptionLocalisation ?? "?",
+                Qte = (int)s.Qte,
+                Seuil = s.Seuil
+            })
+            .OrderBy(s => s.LocalisationName)
+            .ToList();
+
+        var parameters = new DialogParameters
+        {
+            { "Article", article },
+            { "Stocks", articleStocks },
+            { "Localisations", _localisations }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ArticleDetailDialog>(article.Description ?? article.IdArticle, parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            // Refresh data after dialog action
+            await RefreshArticleData();
+        }
+    }
+
+    async Task RefreshArticleData()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var stocksQuery = ctx.Stocks.AsQueryable();
+        if (_currentUserLocalisations.Any())
+        {
+            stocksQuery = stocksQuery.Where(s => _currentUserLocalisations.Contains(s.IdLocalisation));
+        }
+        _allStocks = await stocksQuery.ToListAsync();
+        _articles = await ctx.Articles.OrderBy(a => a.Description).ToListAsync();
+
+        // Rebuild ArticleViews
+        var articleIds = _allStocks.Select(s => s.IdArticle).Distinct().ToList();
+        _articleViews = _articles
+            .Where(a => articleIds.Contains(a.IdArticle))
+            .Select(a =>
+            {
+                var articleStocks = _allStocks.Where(s => s.IdArticle == a.IdArticle).ToList();
+                return new ArticleView
+                {
+                    IdArticle = a.IdArticle,
+                    Description = a.Description ?? a.IdArticle,
+                    DescriptionI = a.DescriptionI,
+                    Price = a.Price,
+                    IdMarque = a.IdMarque,
+                    IdCategory = a.IdCategory,
+                    IdType = a.IdType,
+                    IdMesure = a.IdMesure,
+                    LocationCount = articleStocks.Count,
+                    TotalStock = (int)articleStocks.Sum(s => s.Qte),
+                    HasRupture = articleStocks.Any(s => s.Qte <= 0),
+                    HasLowStock = articleStocks.Any(s => s.Qte > 0 && s.Qte <= s.Seuil)
+                };
+            })
+            .OrderBy(a => a.Description)
+            .ToList();
+
+        _articlesFiltered = _articleViews;
+        StateHasChanged();
+    }
+
+    async Task OnDeleteArticle(Article item)
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirmation",
+            $"Supprimer l'article « {item.Description} » ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.Articles.Remove(item);
+            await ctx.SaveChangesAsync();
+            _articles.Remove(item);
+            _articleViews = _articleViews.Where(a => a.IdArticle != item.IdArticle).ToList();
+            _articlesFiltered = _articlesFiltered.Where(a => a.IdArticle != item.IdArticle).ToList();
+            Snackbar.Add("Article supprimé", Severity.Success);
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       APPROVISIONNEMENT
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadAppros()
+    {
+        _approLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var approsQuery = ctx.Appros.AsQueryable();
+
+        // Filter by user's localisations if not admin
+        if (_currentUserLocalisations.Any())
+        {
+            approsQuery = approsQuery.Where(a => a.LocalisationId.HasValue && _currentUserLocalisations.Contains(a.LocalisationId.Value));
+        }
+
+        var appros = await approsQuery.OrderByDescending(a => a.Date).ToListAsync();
+
+        var articleIds = appros.Select(a => a.IdArticle).Distinct().ToList();
+        var artDict = await ctx.Articles
+            .Where(a => articleIds.Contains(a.IdArticle))
+            .ToDictionaryAsync(a => a.IdArticle, a => a.Description ?? a.IdArticle);
+
+        _approData = appros.Select(a => new ApproRow
+        {
+            Id = a.Id,
+            ArticleName = artDict.GetValueOrDefault(a.IdArticle, a.IdArticle),
+            Qte = a.Qte,
+            PA = a.PA ?? 0,
+            PV = a.PV ?? 0,
+            Ben = a.Ben ?? 0,
+            Date = a.Date,
+            User = a.User
+        }).ToList();
+
+        _approLoading = false;
+    }
+
+    async Task OnAddAppro()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var parameters = new DialogParameters { ["ApproId"] = 0 };
+        var dialog = await DialogService.ShowAsync<ApproForm>("Nouvel approvisionnement", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadAppros();
+    }
+
+    async Task OnEditAppro(int approId)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var parameters = new DialogParameters { ["ApproId"] = approId };
+        var dialog = await DialogService.ShowAsync<ApproForm>("Modifier l'appro", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadAppros();
+    }
+
+    async Task OnDeleteAppro(ApproRow item)
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirmation",
+            $"Supprimer l'appro N° {item.Id} ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var entity = await ctx.Appros.FindAsync(item.Id);
+            if (entity != null)
+            {
+                ctx.Appros.Remove(entity);
+                await ctx.SaveChangesAsync();
+            }
+            _approData.Remove(item);
+            Snackbar.Add("Appro supprimé", Severity.Success);
+        }
+    }
+
+    class ApproRow
+    {
+        public int Id { get; set; }
+        public string ArticleName { get; set; } = "";
+        public decimal Qte { get; set; }
+        public decimal PA { get; set; }
+        public decimal PV { get; set; }
+        public decimal Ben { get; set; }
+        public DateOnly Date { get; set; }
+        public string User { get; set; } = "";
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TRANSFORMATION
+       ════════════════════════════════════════════════════════════ */
+
+    async Task LoadTransformations()
+    {
+        _transLoading = true;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var transQuery = ctx.Transformations.AsQueryable();
+
+        // Filter by user's localisations if not admin
+        if (_currentUserLocalisations.Any())
+        {
+            transQuery = transQuery.Where(t =>
+                (t.FromLocalisationId.HasValue && _currentUserLocalisations.Contains(t.FromLocalisationId.Value)) ||
+                (t.ToLocalisationId.HasValue && _currentUserLocalisations.Contains(t.ToLocalisationId.Value)));
+        }
+
+        _transData = await transQuery.OrderByDescending(t => t.Date).ToListAsync();
+        _transLoading = false;
+    }
+
+    async Task OnAddTrans()
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var parameters = new DialogParameters();
+        var dialog = await DialogService.ShowAsync<TransformationForm>("Nouvelle transformation", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadTransformations();
+    }
+
+    async Task OnEditTrans(Transformation item)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var parameters = new DialogParameters { ["TransformationId"] = item.TransformationId };
+        var dialog = await DialogService.ShowAsync<TransformationForm>("Modifier la transformation", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadTransformations();
+    }
+
+    async Task OnDeleteTrans(Transformation item)
+    {
+        var confirm = await DialogService.ShowMessageBox("Confirmation",
+            $"Supprimer la transformation N° {item.TransformationId} ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            ctx.Transformations.Remove(item);
+            await ctx.SaveChangesAsync();
+            _transData.Remove(item);
+            Snackbar.Add("Transformation supprimée", Severity.Success);
+        }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       PARAMÈTRES — CATÉGORIE
+       ════════════════════════════════════════════════════════════ */
+
+    async Task InsertCategory()
+    {
+        var item = new ArticleCategory { DescriptionCategory = "Nouvelle catégorie" };
+        await CatalogueService.AddCategoryAsync(item);
+        _categories.Add(item);
+        Snackbar.Add("Catégorie ajoutée — cliquez sur modifier pour renommer", Severity.Success);
+    }
+
+    async Task OnUpdateCategory(ArticleCategory item)
+    {
+        await CatalogueService.UpdateCategoryAsync(item);
+        Snackbar.Add("Catégorie modifiée", Severity.Success);
+    }
+
+    async Task DeleteCategory(ArticleCategory item)
+    {
+        if (await Confirmer($"Supprimer « {item.DescriptionCategory} » ?"))
+        {
+            await CatalogueService.DeleteCategoryAsync(item);
+            _categories.Remove(item);
+            Snackbar.Add("Catégorie supprimée", Severity.Success);
+        }
+    }
+
+    /* ── PARAMÈTRES — TYPE ── */
+
+    async Task InsertType()
+    {
+        var item = new ArticleType { DescriptionType = "Nouveau type" };
+        await CatalogueService.AddTypeAsync(item);
+        _types.Add(item);
+        Snackbar.Add("Type ajouté — cliquez sur modifier pour renommer", Severity.Success);
+    }
+
+    async Task OnUpdateType(ArticleType item)
+    {
+        await CatalogueService.UpdateTypeAsync(item);
+        Snackbar.Add("Type modifié", Severity.Success);
+    }
+
+    async Task DeleteType(ArticleType item)
+    {
+        if (await Confirmer($"Supprimer « {item.DescriptionType} » ?"))
+        {
+            await CatalogueService.DeleteTypeAsync(item);
+            _types.Remove(item);
+            Snackbar.Add("Type supprimé", Severity.Success);
+        }
+    }
+
+    /* ── PARAMÈTRES — MARQUE ── */
+
+    async Task InsertMarque()
+    {
+        var item = new ArticleMarque { DescriptionMarque = "Nouvelle marque" };
+        await CatalogueService.AddMarqueAsync(item);
+        _marques.Add(item);
+        Snackbar.Add("Marque ajoutée — cliquez sur modifier pour renommer", Severity.Success);
+    }
+
+    async Task OnUpdateMarque(ArticleMarque item)
+    {
+        await CatalogueService.UpdateMarqueAsync(item);
+        Snackbar.Add("Marque modifiée", Severity.Success);
+    }
+
+    async Task DeleteMarque(ArticleMarque item)
+    {
+        if (await Confirmer($"Supprimer « {item.DescriptionMarque} » ?"))
+        {
+            await CatalogueService.DeleteMarqueAsync(item);
+            _marques.Remove(item);
+            Snackbar.Add("Marque supprimée", Severity.Success);
+        }
+    }
+
+    /* ── PARAMÈTRES — MESURE ── */
+
+    async Task InsertMesure()
+    {
+        var item = new Mesure { DescriptionMesure = "Nouvelle mesure" };
+        await CatalogueService.AddMesureAsync(item);
+        _mesures.Add(item);
+        Snackbar.Add("Mesure ajoutée — cliquez sur modifier pour renommer", Severity.Success);
+    }
+
+    async Task OnUpdateMesure(Mesure item)
+    {
+        await CatalogueService.UpdateMesureAsync(item);
+        Snackbar.Add("Mesure modifiée", Severity.Success);
+    }
+
+    async Task DeleteMesure(Mesure item)
+    {
+        if (await Confirmer($"Supprimer « {item.DescriptionMesure} » ?"))
+        {
+            await CatalogueService.DeleteMesureAsync(item);
+            _mesures.Remove(item);
+            Snackbar.Add("Mesure supprimée", Severity.Success);
+        }
+    }
+
+    /* ── PARAMÈTRES — LOCALISATION ── */
+
+    async Task InsertLocalisation()
+    {
+        var item = new Localisation { DescriptionLocalisation = "Nouvelle localisation" };
+        await CatalogueService.AddLocalisationAsync(item);
+        _localisations.Add(item);
+        Snackbar.Add("Localisation ajoutée — cliquez sur modifier pour renommer", Severity.Success);
+    }
+
+    async Task OnUpdateLocalisation(Localisation item)
+    {
+        await CatalogueService.UpdateLocalisationAsync(item);
+        Snackbar.Add("Localisation modifiée", Severity.Success);
+    }
+
+    async Task DeleteLocalisation(Localisation item)
+    {
+        if (await Confirmer($"Supprimer « {item.DescriptionLocalisation} » ?"))
+        {
+            await CatalogueService.DeleteLocalisationAsync(item);
+            _localisations.Remove(item);
+            Snackbar.Add("Localisation supprimée", Severity.Success);
+        }
+    }
+
+    /* ── Utilitaire ── */
+    async Task<bool> Confirmer(string message)
+    {
+        var result = await DialogService.ShowMessageBox("Confirmation", message,
+            yesText: "Supprimer", cancelText: "Annuler");
+        return result == true;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       CLASSES INTERNES
+       ════════════════════════════════════════════════════════════ */
+
+    class ArticleView
+    {
+        public string IdArticle { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string? DescriptionI { get; set; }
+        public double Price { get; set; }
+        public int IdMarque { get; set; }
+        public int IdCategory { get; set; }
+        public int IdType { get; set; }
+        public int IdMesure { get; set; }
+        public int LocationCount { get; set; }
+        public int TotalStock { get; set; }
+        public bool HasRupture { get; set; }
+        public bool HasLowStock { get; set; }
+    }
+}

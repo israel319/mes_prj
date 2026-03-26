@@ -1,0 +1,378 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column gap-3" style="min-width:650px;">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Commande (optionnel)</label>
+                    <MudSelect T="int?" Value="_item.CommandeId"
+                               ValueChanged="@OnCommandeChanged"
+                               Placeholder="Aucune commande liée…"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        @foreach (var cmd in _commandeOptions)
+                        {
+                            <MudSelectItem T="int?" Value="@cmd.Key">@cmd.Value</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Client</label>
+                    <MudAutocomplete T="int?" @bind-Value="_item.ClientId"
+                                     SearchFunc="@SearchCustomers"
+                                     ToStringFunc="@(id => _customerOptions.FirstOrDefault(c => c.CustomerId == id)?.CustomerName ?? "")"
+                                     Placeholder="Sélectionner un client..."
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Porteur (livreur)</label>
+                    <input type="text" class="form-control" @bind="_item.Porteur" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Date</label>
+                    <MudDatePicker @bind-Date="_dateValue" DateFormat="dd/MM/yyyy"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </div>
+            </div>
+
+            @* ── Lignes articles ── *@
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <h6 class="fw-semibold" style="margin:0;">Articles</h6>
+                <button class="btn btn-light btn-sm" @onclick="@AddLine">
+                    <i class="bi bi-plus-lg me-1"></i> Ajouter un article
+                </button>
+            </div>
+
+            @if (!_lines.Any())
+            {
+                <MudAlert Severity="Severity.Info">
+                    Aucun article. Cliquez sur "Ajouter un article".
+                </MudAlert>
+            }
+            else
+            {
+                <MudDataGrid Items="@_lines" T="LivLine" Dense="true" Hover="true" Bordered="true" Elevation="0">
+                    <Columns>
+                        <TemplateColumn Title="Article">
+                            <CellTemplate>
+                                <MudAutocomplete T="string" Value="context.Item.ArticleId"
+                                                 ValueChanged="@(val => { context.Item.ArticleId = val; OnArticleLineChanged(context.Item); })"
+                                                 SearchFunc="@SearchArticles"
+                                                 ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
+                                                 Placeholder="Sélectionner..."
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Dispo">
+                            <CellTemplate>
+                                <span class="badge @(context.Item.StockDispo > 0 ? "bg-success" : "bg-danger")">
+                                    @context.Item.StockDispo.ToString("N0")
+                                </span>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Quantité">
+                            <CellTemplate>
+                                <MudNumericField T="decimal?" Value="context.Item.Qte"
+                                                 ValueChanged="@(v => { context.Item.Qte = v; RecalcTotal(); })"
+                                                 Min="0" Max="@context.Item.StockDispo"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Prix unitaire">
+                            <CellTemplate>
+                                <MudNumericField Value="@context.Item.Pu" T="decimal?" ReadOnly="true"
+                                                 Variant="Variant.Filled" Margin="Margin.Dense" />
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="Sous-total">
+                            <CellTemplate>
+                                <strong>@(((context.Item.Qte ?? 0) * (context.Item.Pu ?? 0)).ToString("N2"))</strong>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn>
+                            <CellTemplate>
+                                <button class="btn btn-link text-danger p-0 border-0 btn-sm" @onclick="@(() => RemoveLine(context.Item))">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+
+                <div class="d-flex justify-content-end">
+                    <div class="card" style="background:#f8f9fa;">
+                        <div class="card-body py-2 px-3">
+                            <span class="fw-bold">Total : @_total.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
+        <button type="button" class="btn btn-primary" @onclick="OnSave">
+            <i class="bi bi-check-lg me-1"></i>Enregistrer
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int? LivraisonId { get; set; }
+
+    Livraison _item = new() { Date = DateTime.Now };
+    DateTime? _dateValue;
+    List<Customer> _customerOptions = new();
+    List<KeyValuePair<int, string>> _commandeOptions = new();
+    List<Commande> _commandes = new();
+    List<Article> _articles = new();
+    List<LivLine> _lines = new();
+    decimal _total;
+    string _currentLogin = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        if (authUser.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = authUser.FindFirst("login")?.Value
+                ?? authUser.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+        }
+
+        _dateValue = _item.Date;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        _customerOptions = await ctx.Customers.OrderBy(c => c.CustomerName).ToListAsync();
+        _articles = await ctx.Articles.OrderBy(a => a.Description).ToListAsync();
+
+        _commandes = await ctx.Commandes
+            .Include(c => c.Customer)
+            .OrderByDescending(c => c.CreationDate)
+            .ToListAsync();
+        _commandeOptions = _commandes
+            .Select(c => new KeyValuePair<int, string>(c.CommandeId,
+                $"C-{c.CommandeId} — {c.Customer?.CustomerName ?? "?"} ({c.MontantTotal:N0})"))
+            .ToList();
+
+        if (LivraisonId.HasValue)
+        {
+            var existing = await ctx.Livraisons
+                .Include(l => l.Details)
+                .FirstOrDefaultAsync(l => l.LivraisonId == LivraisonId.Value);
+
+            if (existing != null)
+            {
+                _item = existing;
+                _dateValue = _item.Date;
+                _lines = existing.Details.Select(d =>
+                {
+                    var art = _articles.FirstOrDefault(a => a.IdArticle == d.ArticleId);
+                    return new LivLine
+                    {
+                        ExistingId = d.Id,
+                        ArticleId = d.ArticleId,
+                        Qte = d.Qte,
+                        Pu = d.MontantPaye.HasValue && d.Qte.HasValue && d.Qte > 0
+                            ? d.MontantPaye.Value / d.Qte.Value
+                            : 0,
+                        StockDispo = (art?.Qte ?? 0) + (d.Qte ?? 0)
+                    };
+                }).ToList();
+            }
+        }
+
+        RecalcTotal();
+    }
+
+    private Task<IEnumerable<int?>> SearchCustomers(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(value))
+            return Task.FromResult(_customerOptions.Select(c => (int?)c.CustomerId));
+        return Task.FromResult(_customerOptions
+            .Where(c => c.CustomerName != null && c.CustomerName.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(c => (int?)c.CustomerId));
+    }
+
+    private Task<IEnumerable<string>> SearchArticles(string value, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(value))
+            return Task.FromResult(_articles.Select(a => a.IdArticle));
+        return Task.FromResult(_articles
+            .Where(a => a.Description != null && a.Description.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .Select(a => a.IdArticle));
+    }
+
+    void OnCommandeChanged(int? val)
+    {
+        _item.CommandeId = val;
+        if (val is int cmdId)
+        {
+            var cmd = _commandes.FirstOrDefault(c => c.CommandeId == cmdId);
+            if (cmd != null) _item.ClientId = cmd.CustomerId;
+
+            if (!_lines.Any())
+                _ = LoadCommandeArticles(cmdId);
+        }
+    }
+
+    async Task LoadCommandeArticles(int cmdId)
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var details = await ctx.CommandeDetails
+            .Where(d => d.CommandeId == cmdId)
+            .ToListAsync();
+
+        var articleIds = details.Where(d => d.ArticleId != null).Select(d => d.ArticleId!).Distinct().ToList();
+        var stockMap = await ctx.Articles
+            .Where(a => articleIds.Contains(a.IdArticle))
+            .ToDictionaryAsync(a => a.IdArticle, a => a.Qte ?? 0);
+
+        _lines = details.Select(d =>
+        {
+            var stock = d.ArticleId != null ? stockMap.GetValueOrDefault(d.ArticleId) : 0;
+            var qte = d.QteRest ?? d.Qte;
+            if (qte > stock) qte = stock;
+            return new LivLine
+            {
+                ArticleId = d.ArticleId,
+                Qte = qte,
+                Pu = d.Pu,
+                StockDispo = stock
+            };
+        }).ToList();
+
+        RecalcTotal();
+        StateHasChanged();
+    }
+
+    void AddLine() => _lines.Add(new LivLine());
+
+    void RemoveLine(LivLine line)
+    {
+        _lines.Remove(line);
+        RecalcTotal();
+    }
+
+    void RecalcTotal()
+    {
+        _total = _lines.Sum(l => (l.Qte ?? 0) * (l.Pu ?? 0));
+    }
+
+    void OnArticleLineChanged(LivLine line)
+    {
+        var art = _articles.FirstOrDefault(a => a.IdArticle == line.ArticleId);
+        if (art != null)
+        {
+            line.Pu = (decimal?)art.Price;
+            line.StockDispo = art.Qte ?? 0;
+        }
+        else
+        {
+            line.Pu = 0;
+            line.StockDispo = 0;
+        }
+        line.Qte = null;
+        RecalcTotal();
+    }
+
+    void Cancel() => MudDialog.Close();
+
+    async Task OnSave()
+    {
+        var validLines = _lines.Where(l => !string.IsNullOrEmpty(l.ArticleId) && (l.Qte ?? 0) > 0).ToList();
+
+        foreach (var line in validLines)
+        {
+            if ((line.Qte ?? 0) > line.StockDispo)
+            {
+                var artName = _articles.FirstOrDefault(a => a.IdArticle == line.ArticleId)?.Description ?? line.ArticleId;
+                Snackbar.Add($"{artName} : stock={line.StockDispo:N0}, demandé={line.Qte:N0}", Severity.Warning);
+                return;
+            }
+        }
+
+        if (!validLines.Any())
+        {
+            Snackbar.Add("Ajoutez au moins un article avec une quantité > 0.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            _item.Date = _dateValue;
+            _item.UserLogin = _currentLogin;
+            _item.DateSys = DateTime.Now;
+            _item.Status ??= 0;
+
+            if (LivraisonId.HasValue)
+            {
+                ctx.Livraisons.Update(_item);
+
+                var oldDetails = await ctx.LivraisonDetails.Where(d => d.LivraisonId == LivraisonId.Value).ToListAsync();
+                ctx.LivraisonDetails.RemoveRange(oldDetails);
+            }
+            else
+            {
+                ctx.Livraisons.Add(_item);
+            }
+
+            await ctx.SaveChangesAsync();
+
+            foreach (var line in validLines)
+            {
+                ctx.LivraisonDetails.Add(new LivraisonDetail
+                {
+                    LivraisonId = _item.LivraisonId,
+                    ArticleId = line.ArticleId,
+                    Qte = line.Qte,
+                    MontantPaye = (line.Qte ?? 0) * (line.Pu ?? 0),
+                    Date = DateTime.Now,
+                    UserLogin = _currentLogin,
+                    CreationDate = DateTime.Now
+                });
+
+                var article = await ctx.Articles.FindAsync(line.ArticleId);
+                if (article != null)
+                {
+                    article.Qte = (article.Qte ?? 0) - (line.Qte ?? 0);
+                    if (article.Qte < 0) article.Qte = 0;
+                }
+            }
+
+            await ctx.SaveChangesAsync();
+
+            Snackbar.Add(LivraisonId.HasValue
+                ? "Livraison mise à jour"
+                : $"Livraison N° {_item.LivraisonId} créée • {validLines.Count} article(s)", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add(msg, Severity.Error);
+        }
+    }
+
+    class LivLine
+    {
+        public int? ExistingId { get; set; }
+        public string? ArticleId { get; set; }
+        public decimal? Qte { get; set; }
+        public decimal? Pu { get; set; }
+        public decimal StockDispo { get; set; }
+    }
+}
