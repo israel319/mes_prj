@@ -95,7 +95,7 @@ else
                                 </TemplateColumn>
                                 <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
                                     <CellTemplate>
-                                        <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnManageUserAccess(context.Item))" Title="Gérer accès" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnManageUserAccess(context.Item))" title="Gérer accès" />
                                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditUser(context.Item))" />
                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteUser(context.Item))" />
                                     </CellTemplate>
@@ -109,318 +109,6 @@ else
                 </div>
             }
 
-            @if (false)
-            {
-            @* ══════════════════ ACCÈS UTILISATEURS ══════════════════ *@
-            <div class="card-body">
-                <div class="d-flex flex-column gap-3">
-                    <div class="card mb-2"><div class="card-body">
-                        <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
-                            <div class="d-flex gap-3 flex-wrap">
-                                <div class="d-flex flex-column gap-1" style="min-width:280px;">
-                                    <label class="form-label fw-bold">Utilisateur</label>
-                                    <MudSelect T="string" Value="_selectedUserLogin"
-                                               ValueChanged="@(async val => { _selectedUserLogin = val; await OnSelectedUserChanged(); })"
-                                               Placeholder="Sélectionner un utilisateur"
-                                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:280px;">
-                                        @foreach (var u in _userData)
-                                        {
-                                            <MudSelectItem T="string" Value="@u.Login">@u.Login</MudSelectItem>
-                                        }
-                                    </MudSelect>
-                                </div>
-
-                                <div class="d-flex flex-column gap-1" style="min-width:280px;">
-                                    <label class="form-label fw-bold">Rôle de l'utilisateur</label>
-                                    <MudSelect T="int?" Value="_selectedUserRoleId"
-                                               ValueChanged="@(async val => { _selectedUserRoleId = val; await OnSelectedUserRoleChanged(); })"
-                                               Placeholder="Sélectionner un rôle"
-                                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:280px;">
-                                        @foreach (var r in _roleData)
-                                        {
-                                            <MudSelectItem T="int?" Value="@((int?)r.RoleId)">@r.DescriptionRole</MudSelectItem>
-                                        }
-                                    </MudSelect>
-                                </div>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-light" @onclick="@LoadUserAccessRows"><i class="bi bi-arrow-clockwise me-1"></i>Actualiser</button>
-                                <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(_selectedUserLogin))" @onclick="@SaveUserAccess"><i class="bi bi-floppy me-1"></i>Enregistrer accès utilisateur</button>
-                            </div>
-                        </div>
-
-                        <div class="alert alert-info mt-3 d-flex align-items-center gap-2">
-                            <i class="bi bi-info-circle" style="font-size:18px;"></i>
-                            Les activités sont gérées par rôle : si vous modifiez les permissions ci-dessous, tous les utilisateurs ayant ce rôle seront impactés.
-                        </div>
-                    </div></div>
-
-                    @if (string.IsNullOrWhiteSpace(_selectedUserLogin))
-                    {
-                        <div class="card mb-2"><div class="card-body">
-                            <span class="text-muted">Sélectionnez un utilisateur pour gérer ses activités.</span>
-                        </div></div>
-                    }
-                    else
-                    {
-                        <div class="card mb-2"><div class="card-body">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div>
-                                    <h6 class="fw-bold">Activités visibles pour @(_selectedUserLogin)</h6>
-                                    <p class="text-muted mb-0">
-                                        Cochez les droits autorisés (Lecture, Écriture, Suppression).
-                                    </p>
-                                </div>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info">
-                                    @(_roleData.FirstOrDefault(r => r.RoleId == _selectedUserRoleId)?.DescriptionRole ?? "Sans rôle")
-                                </MudChip>
-                            </div>
-
-                            <MudDataGrid Items="@_userAccessRows" T="RolePermissionRow" Loading="@_userAccessLoading"
-                                         Dense="true" Hover="true" Bordered="true" Elevation="0"
-                                         RowsPerPage="10" Style="width:100%;">
-                                <Columns>
-                                    <PropertyColumn Property="x => x.FonctionLabel" Title="Fonction" />
-                                    <TemplateColumn Title="Lecture" Sortable="false" Filterable="false">
-                                        <CellTemplate>
-                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanRead" Dense="true" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="Écriture" Sortable="false" Filterable="false">
-                                        <CellTemplate>
-                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanWrite" Dense="true" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="Suppression" Sortable="false" Filterable="false">
-                                        <CellTemplate>
-                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanDelete" Dense="true" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                </Columns>
-                                <PagerContent>
-                                    <MudDataGridPager T="RolePermissionRow" />
-                                </PagerContent>
-                            </MudDataGrid>
-                        </div></div>
-                    }
-                </div>
-            </div>
-
-            @* ══════════════════ RÔLES & PERMISSIONS ══════════════════ *@
-            <div class="card-body">
-                <div class="d-flex flex-column gap-3">
-                    <div class="card mb-2"><div class="card-body">
-                        <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
-                            <div class="d-flex flex-column gap-1" style="min-width:320px;">
-                                <label class="form-label fw-bold">Rôle à configurer</label>
-                                <MudSelect T="int?" Value="_selectedRoleId"
-                                           ValueChanged="@(async val => { _selectedRoleId = val; await OnSelectedRoleChanged(); })"
-                                           Placeholder="Sélectionner un rôle"
-                                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:320px;">
-                                    @foreach (var r in _roleData)
-                                    {
-                                        <MudSelectItem T="int?" Value="@((int?)r.RoleId)">@r.DescriptionRole</MudSelectItem>
-                                    }
-                                </MudSelect>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-info" disabled="@(!_selectedRoleId.HasValue)" @onclick="@ApplyDefaultPermissions" title="Appliquer les permissions par défaut basées sur le nom du rôle">
-                                    <i class="bi bi-magic me-1"></i>Permissions par défaut
-                                </button>
-                                <button class="btn btn-light" @onclick="@(() => LoadRolePermissions())"><i class="bi bi-arrow-clockwise me-1"></i>Actualiser</button>
-                                <button class="btn btn-primary" disabled="@(!_selectedRoleId.HasValue)" @onclick="@SaveRolePermissions"><i class="bi bi-floppy me-1"></i>Enregistrer les permissions</button>
-                            </div>
-                        </div>
-                    </div></div>
-
-                    @if (!_selectedRoleId.HasValue)
-                    {
-                        <div class="card mb-2"><div class="card-body">
-                            <span class="text-muted">Aucun rôle disponible pour le moment.</span>
-                        </div></div>
-                    }
-                    else
-                    {
-                        <div class="card mb-2"><div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div>
-                                    <h6 class="fw-bold">Fonctions du rôle</h6>
-                                    <p class="text-muted mb-0">
-                                        Active les accès selon le rôle sélectionné. Un utilisateur hérite automatiquement des fonctions de son rôle.
-                                    </p>
-                                </div>
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info">
-                                    @(_roleData.FirstOrDefault(r => r.RoleId == _selectedRoleId)?.DescriptionRole ?? "Rôle")
-                                </MudChip>
-                            </div>
-
-                            <MudDataGrid Items="@_rolePermissionRows" T="RolePermissionRow" Loading="@_rolePermissionLoading"
-                                         Dense="true" Hover="true" Bordered="true" Elevation="0"
-                                         RowsPerPage="10" Style="width:100%;">
-                                <Columns>
-                                    <PropertyColumn Property="x => x.FonctionLabel" Title="Fonction" />
-                                    <TemplateColumn Title="Lecture" Sortable="false" Filterable="false">
-                                        <CellTemplate>
-                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanRead" Dense="true" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="Écriture" Sortable="false" Filterable="false">
-                                        <CellTemplate>
-                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanWrite" Dense="true" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="Suppression" Sortable="false" Filterable="false">
-                                        <CellTemplate>
-                                            <MudCheckBox T="bool" @bind-Value="context.Item.CanDelete" Dense="true" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                </Columns>
-                                <PagerContent>
-                                    <MudDataGridPager T="RolePermissionRow" />
-                                </PagerContent>
-                            </MudDataGrid>
-                        </div></div>
-                    }
-                </div>
-            </div>
-
-            @* ══════════════════ RÉFÉRENTIEL ACTIVITÉS ══════════════════ *@
-            <div class="card-body">
-                <div class="d-flex flex-column gap-3">
-                    <div class="card mb-2"><div class="card-body">
-                        <div class="d-flex align-items-end gap-3 flex-wrap">
-                            <div class="d-flex flex-column gap-1" style="min-width:250px;">
-                                <label class="form-label fw-bold">Fonction</label>
-                                <MudSelect T="int?" @bind-Value="_newActivityFonctionId"
-                                           Placeholder="Choisir une fonction"
-                                           Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:250px;">
-                                    @foreach (var f in _fonctionData)
-                                    {
-                                        <MudSelectItem T="int?" Value="@((int?)f.IdFonction)">@f.DescriptionFonction</MudSelectItem>
-                                    }
-                                </MudSelect>
-                            </div>
-
-                            <div class="d-flex flex-column gap-1" style="min-width:260px;">
-                                <label class="form-label fw-bold">Code activité</label>
-                                <input type="text" @bind="_newActivityCode" class="form-control" placeholder="ex: vente_read" style="width:260px;" />
-                            </div>
-
-                            <div class="d-flex flex-column gap-1" style="min-width:360px;">
-                                <label class="form-label fw-bold">Description</label>
-                                <input type="text" @bind="_newActivityLabel" class="form-control" placeholder="ex: Consulter Vente" style="width:360px;" />
-                            </div>
-
-                            <button class="btn btn-primary" @onclick="@AddActivity"><i class="bi bi-plus-lg me-1"></i>Ajouter activité</button>
-                        </div>
-                    </div></div>
-
-                    <div class="card"><div class="card-body p-0">
-                        <MudDataGrid Items="@_activityData" T="Activity" Loading="@_activityLoading"
-                                     Dense="true" Hover="true" Bordered="true" Elevation="0"
-                                     Filterable="true" RowsPerPage="12"
-                                     Style="width:100%;">
-                            <Columns>
-                                <PropertyColumn Property="x => x.ActivityId" Title="#" />
-                                <TemplateColumn Title="Fonction">
-                                    <CellTemplate>@context.Item.Fonction?.DescriptionFonction</CellTemplate>
-                                </TemplateColumn>
-                                <PropertyColumn Property="x => x.Code" Title="Code" />
-                                <PropertyColumn Property="x => x.DescriptionActivity" Title="Activité" />
-                                <TemplateColumn Title="Actif">
-                                    <CellTemplate>
-                                        <MudChip T="string" Size="Size.Small"
-                                                 Color="@(context.Item.IsActive ? Color.Success : Color.Default)">
-                                            @(context.Item.IsActive ? "Oui" : "Non")
-                                        </MudChip>
-                                    </CellTemplate>
-                                </TemplateColumn>
-                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                    <CellTemplate>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Sync" Color="Color.Default" Size="Size.Small" OnClick="@(() => ToggleActivityState(context.Item))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteActivity(context.Item))" />
-                                    </CellTemplate>
-                                </TemplateColumn>
-                            </Columns>
-                            <PagerContent>
-                                <MudDataGridPager T="Activity" />
-                            </PagerContent>
-                        </MudDataGrid>
-                    </div></div>
-                </div>
-            </div>
-
-            @* ══════════════════ ACTIVITÉS UTILISATEUR ══════════════════ *@
-            <div class="card-body">
-                <div class="d-flex flex-column gap-3">
-                    <div class="card mb-2"><div class="card-body">
-                        <div class="d-flex align-items-end justify-content-between flex-wrap gap-3">
-                            <div class="d-flex gap-3 flex-wrap">
-                                <div class="d-flex flex-column gap-1" style="min-width:260px;">
-                                    <label class="form-label fw-bold">Utilisateur</label>
-                                    <MudSelect T="string" Value="_selectedActivityUserLogin"
-                                               ValueChanged="@(async val => { _selectedActivityUserLogin = val; await OnActivityUserChanged(); })"
-                                               Placeholder="Choisir un utilisateur"
-                                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:260px;">
-                                        @foreach (var u in _userData)
-                                        {
-                                            <MudSelectItem T="string" Value="@u.Login">@u.Login</MudSelectItem>
-                                        }
-                                    </MudSelect>
-                                </div>
-
-                                <div class="d-flex flex-column gap-1" style="min-width:260px;">
-                                    <label class="form-label fw-bold">Filtrer par fonction</label>
-                                    <MudSelect T="int?" Value="_activityFilterFonctionId"
-                                               ValueChanged="@(val => { _activityFilterFonctionId = val; ApplyActivityUserFilter(); })"
-                                               Placeholder="Toutes les fonctions"
-                                               Clearable="true"
-                                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:260px;">
-                                        @foreach (var f in _fonctionData)
-                                        {
-                                            <MudSelectItem T="int?" Value="@((int?)f.IdFonction)">@f.DescriptionFonction</MudSelectItem>
-                                        }
-                                    </MudSelect>
-                                </div>
-                            </div>
-
-                            <button class="btn btn-primary" disabled="@(string.IsNullOrWhiteSpace(_selectedActivityUserLogin))" @onclick="@SaveUserActivities"><i class="bi bi-floppy me-1"></i>Enregistrer activités</button>
-                        </div>
-                    </div></div>
-
-                    @if (string.IsNullOrWhiteSpace(_selectedActivityUserLogin))
-                    {
-                        <div class="card mb-2"><div class="card-body">
-                            <span class="text-muted">Sélectionnez un utilisateur pour définir ses activités.</span>
-                        </div></div>
-                    }
-                    else
-                    {
-                        <div class="card"><div class="card-body p-0">
-                            <MudDataGrid Items="@_userActivityRows" T="UserActivityRow" Loading="@_userActivitiesLoading"
-                                         Dense="true" Hover="true" Bordered="true" Elevation="0"
-                                         RowsPerPage="12" Style="width:100%;">
-                                <Columns>
-                                    <PropertyColumn Property="x => x.FonctionLabel" Title="Fonction" />
-                                    <PropertyColumn Property="x => x.ActivityCode" Title="Code" />
-                                    <PropertyColumn Property="x => x.ActivityLabel" Title="Activité" />
-                                    <TemplateColumn Title="Autorisé" Sortable="false" Filterable="false">
-                                        <CellTemplate>
-                                            <MudCheckBox T="bool" @bind-Value="context.Item.IsGranted" Dense="true" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                </Columns>
-                                <PagerContent>
-                                    <MudDataGridPager T="UserActivityRow" />
-                                </PagerContent>
-                            </MudDataGrid>
-                        </div></div>
-                    }
-                </div>
-            </div>
-            }
 
             @* ══════════════════ FOURNISSEURS ══════════════════ *@
             @if (_tab == 1)
@@ -450,9 +138,9 @@ else
                                     <CellTemplate>
                                         <div class="d-flex gap-0 justify-content-center">
                                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                           OnClick="@(() => OnEditSupplier(context.Item))" Title="Modifier" />
+                                                           OnClick="@(() => OnEditSupplier(context.Item))" title="Modifier" />
                                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                           OnClick="@(() => OnDeleteSupplier(context.Item))" Title="Supprimer" />
+                                                           OnClick="@(() => OnDeleteSupplier(context.Item))" title="Supprimer" />
                                         </div>
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -879,7 +567,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<UserForm>("Nouvel utilisateur", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result?.Canceled == false)
         {
             await LoadUsers();
             await InitializeUserAccessPanel();
@@ -892,7 +580,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<UserForm>("Modifier l'utilisateur", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result?.Canceled == false)
         {
             await LoadUsers();
             await InitializeUserAccessPanel();
@@ -906,7 +594,7 @@ else
         var dialog = await DialogService.ShowAsync<UserAccessForm>($"Accès utilisateur — {item.Login}", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result?.Canceled == false)
         {
             await LoadUsers();
         }
@@ -1446,7 +1134,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<SupplierForm>("Nouveau fournisseur", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadSuppliers();
+        if (result?.Canceled == false) await LoadSuppliers();
     }
 
     async Task OnEditSupplier(Supplier s)
@@ -1455,7 +1143,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<SupplierForm>($"Modifier — {s.SupplierName}", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadSuppliers();
+        if (result?.Canceled == false) await LoadSuppliers();
     }
 
     async Task OnDeleteSupplier(Supplier s)
@@ -1476,7 +1164,7 @@ else
             {
                 ctx.Suppliers.Remove(entity);
                 await ctx.SaveChangesAsync();
-                Snackbar.Add(s.SupplierName, Severity.Success);
+                Snackbar.Add(s.SupplierName ?? string.Empty, Severity.Success);
                 await LoadSuppliers();
             }
         }
@@ -1505,7 +1193,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<TauxForm>("Nouveau taux", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadTaux();
+        if (result?.Canceled == false) await LoadTaux();
     }
 
     async Task OnEditTaux(Taux item)
@@ -1514,7 +1202,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<TauxForm>("Modifier le taux", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadTaux();
+        if (result?.Canceled == false) await LoadTaux();
     }
 
     async Task OnDeleteTaux(Taux item)
@@ -1551,7 +1239,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<PeriodeForm>("Nouvelle période", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadPeriodes();
+        if (result?.Canceled == false) await LoadPeriodes();
     }
 
     async Task OnEditPeriode(Periode item)
@@ -1560,7 +1248,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<PeriodeForm>("Modifier la période", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadPeriodes();
+        if (result?.Canceled == false) await LoadPeriodes();
     }
 
     async Task ToggleActivated(Periode item)
@@ -1612,7 +1300,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<ApproExpenseForm>("Nouveau versement", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadVersements();
+        if (result?.Canceled == false) await LoadVersements();
     }
 
     async Task OnEditVersement(ApproExpense item)
@@ -1621,7 +1309,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<ApproExpenseForm>("Modifier le versement", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadVersements();
+        if (result?.Canceled == false) await LoadVersements();
     }
 
     async Task OnDeleteVersement(ApproExpense item)
@@ -1754,7 +1442,7 @@ else
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall });
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result?.Canceled == false)
         {
             await LoadLocalisations();
         }
@@ -1767,7 +1455,7 @@ else
             new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall });
 
         var result = await dialog.Result;
-        if (!result.Canceled)
+        if (result?.Canceled == false)
         {
             await LoadLocalisations();
         }

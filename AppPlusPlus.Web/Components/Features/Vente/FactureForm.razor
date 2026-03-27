@@ -308,7 +308,7 @@
                 _details = dbDetails.Select(d => new DetailLine
                 {
                     IdArticle = d.IdArticle,
-                    ArticleDescription = _articles.FirstOrDefault(a => a.IdArticle == d.IdArticle)?.Description ?? d.IdArticle,
+                    ArticleDescription = _articles.FirstOrDefault(a => a.IdArticle == d.IdArticle)?.Description ?? d.IdArticle ?? "",
                     Pu = d.Pu ?? 0,
                     Qte = d.Qte ?? 0,
                     Localisationid = d.Localisationid,

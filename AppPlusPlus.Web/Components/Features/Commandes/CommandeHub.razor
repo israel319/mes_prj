@@ -99,19 +99,19 @@ else
                                     <div @onclick:stopPropagation="true">
                                     <div class="d-flex gap-0 justify-content-center">
                                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                       OnClick="@(() => OnEditCmd(context.Item.Cmd))" Title="Modifier" />
+                                                       OnClick="@(() => OnEditCmd(context.Item.Cmd))" title="Modifier" />
                                         @if (context.Item.HasRemaining)
                                         {
                                             <MudIconButton Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Small"
-                                                           OnClick="@(() => OnReceptionner(context.Item.Cmd))" Title="Réceptionner en stock" />
+                                                           OnClick="@(() => OnReceptionner(context.Item.Cmd))" title="Réceptionner en stock" />
                                         }
                                         @if (context.Item.HasStock)
                                         {
                                             <MudIconButton Icon="@Icons.Material.Filled.Output" Color="Color.Info" Size="Size.Small"
-                                                           OnClick="@(() => OnApprovisionnerDepuisStock(context.Item.Cmd))" Title="Approvisionner depuis ce stock" />
+                                                           OnClick="@(() => OnApprovisionnerDepuisStock(context.Item.Cmd))" title="Approvisionner depuis ce stock" />
                                         }
                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                       OnClick="@(() => OnDeleteCmd(context.Item.Cmd))" Title="Supprimer" />
+                                                       OnClick="@(() => OnDeleteCmd(context.Item.Cmd))" title="Supprimer" />
                                     </div>
                                     </div>
                                 </CellTemplate>
@@ -187,14 +187,14 @@ else
                                     <div @onclick:stopPropagation="true">
                                     <div class="d-flex gap-0 justify-content-center">
                                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                       OnClick="@(() => OnEditVente(context.Item))" Title="Modifier" />
+                                                       OnClick="@(() => OnEditVente(context.Item))" title="Modifier" />
                                         @if (HasRemainingToDeliver(context.Item))
                                         {
                                             <MudIconButton Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Success" Size="Size.Small"
-                                                           OnClick="@(() => OnLivrer(context.Item))" Title="Créer une livraison" />
+                                                           OnClick="@(() => OnLivrer(context.Item))" title="Créer une livraison" />
                                         }
                                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                       OnClick="@(() => OnDeleteVente(context.Item))" Title="Supprimer" />
+                                                       OnClick="@(() => OnDeleteVente(context.Item))" title="Supprimer" />
                                     </div>
                                     </div>
                                 </CellTemplate>
@@ -312,7 +312,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<CmdForm>("Nouvelle commande interne", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadCmd();
+        if (result is not null && !result.Canceled) await LoadCmd();
     }
 
     async Task OnEditCmd(Cmd item)
@@ -321,7 +321,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<CmdForm>("Modifier la commande", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadCmd();
+        if (result is not null && !result.Canceled) await LoadCmd();
     }
 
     async Task OnReceptionner(Cmd item)
@@ -331,7 +331,7 @@ else
         var dialog = await DialogService.ShowAsync<ApproFromCmdForm>(
             $"Réception — Commande N° {item.Id}", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadCmd();
+        if (result is not null && !result.Canceled) await LoadCmd();
     }
 
     async Task OnApprovisionnerDepuisStock(Cmd item)
@@ -341,7 +341,7 @@ else
         var dialog = await DialogService.ShowAsync<ApproFromStockForm>(
             $"Approvisionner depuis Commande N° {item.Id}", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadCmd();
+        if (result is not null && !result.Canceled) await LoadCmd();
     }
 
     async Task OnDeleteCmd(Cmd item)
@@ -409,7 +409,7 @@ else
         var dialog = await DialogService.ShowAsync<LivraisonChecklistForm>(
             $"Livraison — Commande N° {cmd.CommandeId}", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadVentes();
+        if (result is not null && !result.Canceled) await LoadVentes();
     }
 
     /* ════════════════════════════════════════════════════════════
@@ -429,7 +429,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<CustomerForm>("Nouveau client", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadClients();
+        if (result is not null && !result.Canceled) await LoadClients();
     }
 
     async Task EditClient(Customer c)
@@ -438,7 +438,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
         var dialog = await DialogService.ShowAsync<CustomerForm>("Modifier le client", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadClients();
+        if (result is not null && !result.Canceled) await LoadClients();
     }
 
     async Task DeleteClient(Customer c)

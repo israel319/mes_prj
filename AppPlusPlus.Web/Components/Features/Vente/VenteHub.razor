@@ -177,19 +177,19 @@ else
                                         {
                                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
                                                            OnClick="@(() => Navigation.NavigateTo($"/vente/facturation/{context.Item.Id}"))"
-                                                           Title="Modifier le brouillon" />
+                                                           title="Modifier le brouillon" />
                                         }
                                         @if ((context.Item.DisplayStatus == 1 || context.Item.DisplayStatus == 4) && _canFacturationWrite)
                                         {
                                             <MudIconButton Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Small"
                                                            OnClick="@(() => OnPayerFacture(context.Item))"
-                                                           Title="Enregistrer un paiement" />
+                                                           title="Enregistrer un paiement" />
                                         }
                                         else if (context.Item.DisplayStatus == 2)
                                         {
                                             <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small"
                                                            OnClick="@(() => OnPayerFacture(context.Item))"
-                                                           Title="Historique paiements" />
+                                                           title="Historique paiements" />
                                         }
                                         @if (_canFacturationDelete)
                                         {
@@ -288,22 +288,22 @@ else
                                             @if ((context.Item.Status ?? 0) == 0 && _canLivraisonWrite)
                                             {
                                                 <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Info" Size="Size.Small"
-                                                               OnClick="@(() => OnMarquerLivree(context.Item))" Title="Marquer comme livrée" />
+                                                               OnClick="@(() => OnMarquerLivree(context.Item))" title="Marquer comme livrée" />
                                             }
                                             @if ((context.Item.Status ?? 0) <= 1 && context.Item.Fact == null && _canLivraisonWrite)
                                             {
                                                 <MudIconButton Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Small"
-                                                               OnClick="@(() => OnPayerLivraison(context.Item))" Title="Payer → génère la facture" />
+                                                               OnClick="@(() => OnPayerLivraison(context.Item))" title="Payer → génère la facture" />
                                             }
                                             @if (_canLivraisonWrite)
                                             {
                                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                               OnClick="@(() => OnEditLivraison(context.Item))" Title="Modifier" />
+                                                               OnClick="@(() => OnEditLivraison(context.Item))" title="Modifier" />
                                             }
                                             @if (_canLivraisonDelete)
                                             {
                                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                               OnClick="@(() => OnDeleteLivraison(context.Item))" Title="Supprimer"
+                                                               OnClick="@(() => OnDeleteLivraison(context.Item))" title="Supprimer"
                                                                Disabled="@(context.Item.Fact != null)" />
                                             }
                                         </div>
@@ -428,7 +428,7 @@ else
                                         {
                                             <MudIconButton Icon="@Icons.Material.Filled.Payments" Color="Color.Primary" Size="Size.Small"
                                                            OnClick="@(() => OnPayerPaiement(context.Item))"
-                                                           Title="Enregistrer un paiement" />
+                                                           title="Enregistrer un paiement" />
                                         }
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -707,7 +707,7 @@ else
             $"Paiement — Facture N°{row.Id}", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is not null && !result.Canceled)
             await LoadFactures();
     }
 
@@ -782,7 +782,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<LivraisonForm>("Nouvelle livraison", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadLivraisons();
+        if (result is not null && !result.Canceled) await LoadLivraisons();
     }
 
     async Task OnEditLivraison(Livraison item)
@@ -797,7 +797,7 @@ else
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<LivraisonForm>("Modifier la livraison", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadLivraisons();
+        if (result is not null && !result.Canceled) await LoadLivraisons();
     }
 
     async Task OnMarquerLivree(Livraison item)
@@ -900,7 +900,7 @@ else
         var dialog = await DialogService.ShowAsync<PaiementForm>(
             $"Paiement — Facture F-{fv.Facture.Id}", parameters, options);
         var result = await dialog.Result;
-        if (!result.Canceled) await LoadPaiements();
+        if (result is not null && !result.Canceled) await LoadPaiements();
     }
 
     /* ════════════════════════════════════════════════════════════
@@ -972,7 +972,7 @@ else
             $"Clôture — {selectedLocName}", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (result is not null && !result.Canceled)
         {
             await LoadClotures();
             await LoadFactures();

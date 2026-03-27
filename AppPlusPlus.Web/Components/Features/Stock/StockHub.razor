@@ -127,13 +127,13 @@ else
                         <Columns>
                             <PropertyColumn Property="@(x => x.Id)" Title="N°" />
                             <PropertyColumn Property="@(x => x.ArticleName)" Title="Article" />
-                            <PropertyColumn Property="@(x => x.Qte)" Title="Qté" Format="N2" Align="Align.Center" />
-                            <PropertyColumn Property="@(x => x.PA)" Title="PA" Format="N2" Align="Align.End" />
-                            <PropertyColumn Property="@(x => x.PV)" Title="PV" Format="N2" Align="Align.End" />
-                            <PropertyColumn Property="@(x => x.Ben)" Title="Bén." Format="N2" Align="Align.End" />
+                            <PropertyColumn Property="@(x => x.Qte)" Title="Qté" Format="N2" align="Align.Center" />
+                            <PropertyColumn Property="@(x => x.PA)" Title="PA" Format="N2" align="Align.End" />
+                            <PropertyColumn Property="@(x => x.PV)" Title="PV" Format="N2" align="Align.End" />
+                            <PropertyColumn Property="@(x => x.Ben)" Title="Bén." Format="N2" align="Align.End" />
                             <PropertyColumn Property="@(x => x.Date)" Title="Date" Format="dd/MM/yyyy" />
                             <PropertyColumn Property="@(x => x.User)" Title="Utilisateur" />
-                            <TemplateColumn Title="Actions" Align="Align.Center" Sortable="false" Filterable="false">
+                            <TemplateColumn Title="Actions" align="Align.Center" Sortable="false" Filterable="false">
                                 <CellTemplate>
                                     @{ var a = context.Item; }
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditAppro(a.Id))" />
@@ -159,12 +159,12 @@ else
                         <Columns>
                             <PropertyColumn Property="@(x => x.TransformationId)" Title="N°" />
                             <PropertyColumn Property="@(x => x.FromArticleId)" Title="Article source" />
-                            <PropertyColumn Property="@(x => x.Qte)" Title="Qté" Format="N2" Align="Align.Center" />
+                            <PropertyColumn Property="@(x => x.Qte)" Title="Qté" Format="N2" align="Align.Center" />
                             <PropertyColumn Property="@(x => x.ToArticleId)" Title="Article dest." />
-                            <PropertyColumn Property="@(x => x.ToQte)" Title="Qté dest." Format="N2" Align="Align.Center" />
+                            <PropertyColumn Property="@(x => x.ToQte)" Title="Qté dest." Format="N2" align="Align.Center" />
                             <PropertyColumn Property="@(x => x.Date)" Title="Date" Format="dd/MM/yyyy" />
                             <PropertyColumn Property="@(x => x.UserLogin)" Title="Utilisateur" />
-                            <TemplateColumn Title="Actions" Align="Align.Center" Sortable="false" Filterable="false">
+                            <TemplateColumn Title="Actions" align="Align.Center" Sortable="false" Filterable="false">
                                 <CellTemplate>
                                     @{ var t = context.Item; }
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditTrans(t))" />
@@ -193,7 +193,7 @@ else
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
                                  CommittedItemChanges="@OnUpdateCategory" ReadOnly="false">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdCategory)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdCategory)" Title="N°" isEditable="false" />
                             <PropertyColumn Property="@(x => x.DescriptionCategory)" Title="Description" />
                             <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
                                 <CellTemplate>
@@ -217,7 +217,7 @@ else
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
                                  CommittedItemChanges="@OnUpdateType" ReadOnly="false">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdType)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdType)" Title="N°" isEditable="false" />
                             <PropertyColumn Property="@(x => x.DescriptionType)" Title="Description" />
                             <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
                                 <CellTemplate>
@@ -241,7 +241,7 @@ else
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
                                  CommittedItemChanges="@OnUpdateMarque" ReadOnly="false">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdMarque)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdMarque)" Title="N°" isEditable="false" />
                             <PropertyColumn Property="@(x => x.DescriptionMarque)" Title="Description" />
                             <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
                                 <CellTemplate>
@@ -265,7 +265,7 @@ else
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
                                  CommittedItemChanges="@OnUpdateMesure" ReadOnly="false">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdMesure)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdMesure)" Title="N°" isEditable="false" />
                             <PropertyColumn Property="@(x => x.DescriptionMesure)" Title="Description" />
                             <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
                                 <CellTemplate>
@@ -289,7 +289,7 @@ else
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
                                  CommittedItemChanges="@OnUpdateLocalisation" ReadOnly="false">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdLocalisation)" Title="N°" IsEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdLocalisation)" Title="N°" isEditable="false" />
                             <PropertyColumn Property="@(x => x.DescriptionLocalisation)" Title="Description" />
                             <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
                                 <CellTemplate>

@@ -22,8 +22,8 @@ public static class DependencyInjection
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
         services.AddScoped<ILocalisationService, LocalisationService>();
-        services.AddSingleton<IAppSettingsService, AppSettingsAppService>();
-        services.AddSingleton<IShopProfileService, ShopProfileAppService>();
+        services.AddScoped<IAppSettingsService, AppSettingsAppService>();
+        services.AddScoped<IShopProfileService, ShopProfileAppService>();
         services.AddScoped<ICatalogueService, CatalogueService>();
         services.AddScoped<IStockService, StockService>();
         services.AddScoped<IApproService, ApproService>();

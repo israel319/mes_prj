@@ -452,7 +452,7 @@ else
         if (normalizedPath.StartsWith("/commandes"))
             return CanRead(AppFunctions.CommandesClients) || CanRead(AppFunctions.CommandesInternes);
 
-        var requiredFunction = GetRequiredFunction(path);
+        var requiredFunction = GetRequiredFunction(path ?? "/");
         return string.IsNullOrWhiteSpace(requiredFunction) || CanRead(requiredFunction);
     }
 
