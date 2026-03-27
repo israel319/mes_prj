@@ -73,9 +73,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(AppPlusPlus.Client._Imports).Assembly);
+    .AddInteractiveServerRenderMode();
 
 app.MapPost("/auth/login", async (
     [FromForm] string login,
