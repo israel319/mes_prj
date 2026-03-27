@@ -14,4 +14,9 @@ public interface ICmdService
     Task<List<Cmd>> GetCmdsWithDetailsAsync();
 
     Task DeleteCmdAsync(int cmdId);
+
+    /// <summary>
+    /// Loads a single Cmd with Supplier and Details.Article loaded (for detail views).
+    /// </summary>
+    Task<Cmd?> GetCmdWithDetailsAsync(int cmdId);
 }

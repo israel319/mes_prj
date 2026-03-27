@@ -1,5 +1,5 @@
 @using MudBlazor
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICmdService CmdService
 
 <MudDialog>
     <DialogContent>
@@ -112,11 +112,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-        _cmd = await ctx.Cmds
-            .Include(c => c.Supplier)
-            .Include(c => c.Details).ThenInclude(d => d.Article)
-            .FirstOrDefaultAsync(c => c.Id == CmdId);
+        _cmd = await CmdService.GetCmdWithDetailsAsync(CmdId);
 
         if (_cmd != null)
         {

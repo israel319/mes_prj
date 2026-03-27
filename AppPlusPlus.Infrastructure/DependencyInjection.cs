@@ -50,7 +50,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         // ── Query Services ──
-        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IDashboardService, QueryServices.DashboardService>();
         services.AddScoped<IFacturationService, FacturationQueryService>();
         services.AddScoped<ILivraisonService, LivraisonQueryService>();
         services.AddScoped<IClotureService, ClotureQueryService>();

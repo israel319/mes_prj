@@ -36,4 +36,13 @@ public interface ICatalogueService
     Task AddLocalisationAsync(Domain.Entities.Administration.Localisation localisation);
     Task UpdateLocalisationAsync(Domain.Entities.Administration.Localisation localisation);
     Task DeleteLocalisationAsync(Domain.Entities.Administration.Localisation localisation);
+
+    // Article CRUD
+    Task<Article?> GetArticleByIdAsync(string id);
+    Task AddArticleAsync(Article article);
+    Task UpdateArticleAsync(Article article);
+    Task DeleteArticleAsync(string articleId);
+
+    // Localisation (read)
+    Task<Domain.Entities.Administration.Localisation?> GetLocalisationByIdAsync(int id);
 }

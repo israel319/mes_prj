@@ -1,8 +1,7 @@
 @page "/vente/facture/print/{IdFacture:int}"
 @page "/vente/facture/print/{IdFacture:int}/{AutoPrint:bool}"
 @rendermode InteractiveServer
-@using Microsoft.EntityFrameworkCore
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IFacturationService FacturationService
 @inject IJSRuntime JS
 @inject IShopProfileService ShopProfileService
 @inject INumberToWordsConverter NumberToWords
@@ -287,24 +286,17 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-
         var shopProfile = await ShopProfileService.GetAsync();
         _shopName = shopProfile.AppNameSetting?.Value ?? "App++";
         _shopPhotoSrc = shopProfile.PhotoShop;
         _shopAdresse1 = shopProfile.Adresse1;
         _shopAdresse2 = shopProfile.Adresse2;
 
-        _facture = await ctx.Facts
-            .Include(f => f.Money)
-            .FirstOrDefaultAsync(f => f.Id == IdFacture);
-
-        if (_facture != null)
+        var fact = await FacturationService.GetFactureWithDetailsAsync(IdFacture);
+        if (fact != null)
         {
-            _details = await ctx.FactDetails
-                .Include(d => d.Article)
-                .Where(d => d.IdFact == IdFacture)
-                .ToListAsync();
+            _facture = fact;
+            _details = fact.Details.ToList();
         }
 
         _loading = false;

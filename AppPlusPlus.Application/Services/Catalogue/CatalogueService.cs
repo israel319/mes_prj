@@ -79,4 +79,25 @@ public class CatalogueService : ICatalogueService
 
     public async Task DeleteLocalisationAsync(Domain.Entities.Administration.Localisation localisation)
         => await _lookupRepo.DeleteLocalisationAsync(localisation);
+
+    // Article CRUD
+    public async Task<Article?> GetArticleByIdAsync(string id)
+        => await _catalogueRepo.GetByArticleIdAsync(id);
+
+    public async Task AddArticleAsync(Article article)
+        => await _catalogueRepo.AddAsync(article);
+
+    public async Task UpdateArticleAsync(Article article)
+        => await _catalogueRepo.UpdateAsync(article);
+
+    public async Task DeleteArticleAsync(string articleId)
+    {
+        var article = await _catalogueRepo.GetByArticleIdAsync(articleId);
+        if (article != null)
+            await _catalogueRepo.DeleteAsync(article);
+    }
+
+    // Localisation (read)
+    public async Task<Domain.Entities.Administration.Localisation?> GetLocalisationByIdAsync(int id)
+        => await _lookupRepo.GetLocalisationByIdAsync(id);
 }

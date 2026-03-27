@@ -12,7 +12,8 @@ public class CmdRepository : RepositoryBase<Cmd>, ICmdRepository
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
         return await ctx.Cmds
-            .Include(c => c.Details)
+            .Include(c => c.Supplier)
+            .Include(c => c.Details).ThenInclude(d => d.Article)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 

@@ -1,4 +1,5 @@
 using AppPlusPlus.Application.DTOs.Vente;
+using AppPlusPlus.Domain.Entities.Vente;
 using AppPlusPlus.Domain.Interfaces.Repositories;
 
 namespace AppPlusPlus.Application.Services.Vente;
@@ -46,5 +47,11 @@ public class FacturationService : IFacturationService
     {
         // Stub: real implementation is in Infrastructure.
         return Task.FromResult(new List<FactureViewDto>());
+    }
+
+    public async Task<Fact?> GetFactureWithDetailsAsync(int factId)
+    {
+        // Stub: delegates to repository. Real implementation is in Infrastructure.
+        return await _factureRepo.GetWithDetailsAsync(factId);
     }
 }

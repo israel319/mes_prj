@@ -1,7 +1,7 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IFinanceService FinanceService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <MudDialog>
@@ -60,8 +60,7 @@
 
         if (TauxId.HasValue)
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var existing = await ctx.TauxChanges.FindAsync(TauxId.Value);
+            var existing = await FinanceService.GetTauxByIdAsync(TauxId.Value);
             if (existing != null) _taux = existing;
         }
     }
@@ -70,14 +69,12 @@
 
     async Task OnSubmit()
     {
-        await using var ctx = await DbFactory.CreateDbContextAsync();
         _taux.UserLogin = _currentLogin;
         _taux.DateSys = DateOnly.FromDateTime(DateTime.Now);
         if (TauxId.HasValue)
-            ctx.TauxChanges.Update(_taux);
+            await FinanceService.UpdateTauxAsync(_taux);
         else
-            ctx.TauxChanges.Add(_taux);
-        await ctx.SaveChangesAsync();
+            await FinanceService.AddTauxAsync(_taux);
         MudDialog.Close(DialogResult.Ok(true));
     }
 }

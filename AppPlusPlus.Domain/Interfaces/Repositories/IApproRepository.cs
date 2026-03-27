@@ -10,4 +10,11 @@ public interface IApproRepository : IRepository<Appro>
     Task<List<Appro>> GetByLocalisationAsync(int localisationId);
     Task<List<Appro>> GetByUserAsync(string userLogin);
     Task<List<ApproDetail>> GetDetailsByApproIdAsync(int approId);
+
+    // Transformations
+    Task<Transformation?> GetTransformationByIdAsync(int id);
+    Task<List<Transformation>> GetTransformationsByLocalisationAsync(int localisationId);
+    Task AddTransformationAsync(Transformation transformation);
+    Task UpdateTransformationAsync(Transformation transformation);
+    Task DeleteTransformationAsync(int id);
 }

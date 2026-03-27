@@ -1,4 +1,5 @@
 using AppPlusPlus.Domain.Entities.Approvisionnement;
+using AppPlusPlus.Domain.Entities.Finance;
 using AppPlusPlus.Domain.Interfaces.Repositories;
 
 namespace AppPlusPlus.Application.Services.Approvisionnement;
@@ -6,10 +7,12 @@ namespace AppPlusPlus.Application.Services.Approvisionnement;
 public class ApproService : IApproService
 {
     private readonly IApproRepository _approRepo;
+    private readonly IFinanceRepository _financeRepo;
 
-    public ApproService(IApproRepository approRepo)
+    public ApproService(IApproRepository approRepo, IFinanceRepository financeRepo)
     {
         _approRepo = approRepo;
+        _financeRepo = financeRepo;
     }
 
     public async Task<List<Appro>> GetApprosByLocalisationsAsync(List<int> localisationIds)
@@ -30,4 +33,13 @@ public class ApproService : IApproService
         if (appro != null)
             await _approRepo.DeleteAsync(appro);
     }
+
+    public async Task<ApproExpense?> GetApproExpenseByIdAsync(int id)
+        => await _financeRepo.GetApproExpenseByIdAsync(id);
+
+    public async Task AddApproExpenseAsync(ApproExpense expense)
+        => await _financeRepo.AddApproExpenseAsync(expense);
+
+    public async Task UpdateApproExpenseAsync(ApproExpense expense)
+        => await _financeRepo.UpdateApproExpenseAsync(expense);
 }

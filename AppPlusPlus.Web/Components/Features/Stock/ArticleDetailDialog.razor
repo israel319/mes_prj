@@ -1,5 +1,5 @@
 @using MudBlazor
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IStockService StockService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -160,20 +160,7 @@
         {
             try
             {
-                await using var ctx = await DbFactory.CreateDbContextAsync();
-
-                // First remove all stocks for this article
-                var stocks = await ctx.Stocks.Where(s => s.IdArticle == Article.IdArticle).ToListAsync();
-                ctx.Stocks.RemoveRange(stocks);
-
-                // Then remove the article
-                var article = await ctx.Articles.FindAsync(Article.IdArticle);
-                if (article != null)
-                {
-                    ctx.Articles.Remove(article);
-                }
-
-                await ctx.SaveChangesAsync();
+                await StockService.DeleteArticleWithStocksAsync(Article.IdArticle);
                 Snackbar.Add("Article supprimé", Severity.Success);
                 MudDialog?.Close(DialogResult.Ok(true));
             }
@@ -207,8 +194,7 @@
     {
         if (Article == null) return;
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-        var stocks = await ctx.Stocks.Where(s => s.IdArticle == Article.IdArticle).ToListAsync();
+        var stocks = await StockService.GetStocksByArticleAsync(Article.IdArticle);
         var locs = Localisations ?? new List<Localisation>();
 
         Stocks = stocks

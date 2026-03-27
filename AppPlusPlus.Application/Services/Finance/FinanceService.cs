@@ -24,4 +24,22 @@ public class FinanceService : IFinanceService
         // For now return versements for today as a placeholder
         return await _financeRepo.GetVersementsByDateAsync(DateOnly.FromDateTime(DateTime.Today));
     }
+
+    public async Task<Taux?> GetTauxByIdAsync(int id)
+        => await _financeRepo.GetTauxByIdAsync(id);
+
+    public async Task AddTauxAsync(Taux taux)
+        => await _financeRepo.AddTauxAsync(taux);
+
+    public async Task UpdateTauxAsync(Taux taux)
+        => await _financeRepo.UpdateTauxAsync(taux);
+
+    public async Task<Periode?> GetPeriodeByIdAsync(int id)
+        => await _financeRepo.GetPeriodeByIdAsync(id);
+
+    public async Task AddPeriodeAsync(Periode periode)
+        => await _financeRepo.AddPeriodeAsync(periode);
+
+    public async Task UpdatePeriodeAsync(Periode periode)
+        => await _financeRepo.UpdatePeriodeAsync(periode);
 }

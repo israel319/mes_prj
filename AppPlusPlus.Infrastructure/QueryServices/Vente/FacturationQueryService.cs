@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using AppPlusPlus.Application.DTOs.Vente;
 using AppPlusPlus.Application.Services.Vente;
+using AppPlusPlus.Domain.Entities.Vente;
 using AppPlusPlus.Infrastructure.Persistence;
 
 namespace AppPlusPlus.Infrastructure.QueryServices.Vente;
@@ -126,5 +127,14 @@ public class FacturationQueryService : IFacturationService
                 Payments = f.Payments?.OrderByDescending(p => p.Date).ToList() ?? new()
             };
         }).ToList();
+    }
+
+    public async Task<Fact?> GetFactureWithDetailsAsync(int factId)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Facts
+            .Include(f => f.Money)
+            .Include(f => f.Details).ThenInclude(d => d.Article)
+            .FirstOrDefaultAsync(f => f.Id == factId);
     }
 }

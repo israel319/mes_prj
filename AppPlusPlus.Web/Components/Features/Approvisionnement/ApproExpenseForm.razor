@@ -1,7 +1,8 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IApproService ApproService
+@inject ILookupService LookupService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <EditForm Model="@_item" OnValidSubmit="@OnSubmit">
@@ -95,14 +96,13 @@
                 ?? "";
         }
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-        _sources = await ctx.ExpenseSources.ToListAsync();
-        _caisses = await ctx.Caisses.ToListAsync();
-        _monnaies = await ctx.Moneys.ToListAsync();
+        _sources = await LookupService.GetExpenseSourcesAsync();
+        _caisses = await LookupService.GetCaissesAsync();
+        _monnaies = await LookupService.GetMoneysAsync();
 
         if (ExpenseId.HasValue)
         {
-            var existing = await ctx.ApproExpenses.FindAsync(ExpenseId.Value);
+            var existing = await ApproService.GetApproExpenseByIdAsync(ExpenseId.Value);
             if (existing != null) _item = existing;
         }
     }
@@ -111,14 +111,12 @@
 
     async Task OnSubmit()
     {
-        await using var ctx = await DbFactory.CreateDbContextAsync();
         _item.UserLogin = _currentLogin;
         _item.CreationDate = DateTime.Now;
         if (ExpenseId.HasValue)
-            ctx.ApproExpenses.Update(_item);
+            await ApproService.UpdateApproExpenseAsync(_item);
         else
-            ctx.ApproExpenses.Add(_item);
-        await ctx.SaveChangesAsync();
+            await ApproService.AddApproExpenseAsync(_item);
         MudDialog.Close(DialogResult.Ok(true));
     }
 }

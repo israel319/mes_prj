@@ -10,6 +10,9 @@ using AppPlusPlus.Application.Services.Commandes;
 using AppPlusPlus.Application.Services.Finance;
 using AppPlusPlus.Application.Services.Dashboard;
 using AppPlusPlus.Application.Services.Rapports;
+using AppPlusPlus.Application.Services.Clients;
+using AppPlusPlus.Application.Services.Fournisseurs;
+using AppPlusPlus.Application.Services.Shared;
 
 namespace AppPlusPlus.Application;
 
@@ -35,6 +38,9 @@ public static class DependencyInjection
         services.AddScoped<IFinanceService, FinanceService>();
         // IDashboardService is registered in Infrastructure (query service needs DbContext)
         services.AddScoped<IRapportService, RapportService>();
+        services.AddScoped<ICustomerService, CustomerService>();
+        services.AddScoped<ISupplierService, SupplierService>();
+        services.AddScoped<ILookupService, LookupService>();
 
         return services;
     }

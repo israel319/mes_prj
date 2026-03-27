@@ -19,4 +19,9 @@ public interface IFacturationService
     /// Loads enriched facture views for the Paiements tab (status 1-2 only).
     /// </summary>
     Task<List<FactureViewDto>> GetPaiementsAsync(List<int> localisationIds, string login);
+
+    /// <summary>
+    /// Loads a single facture with its details and their articles (for detail/print views).
+    /// </summary>
+    Task<Fact?> GetFactureWithDetailsAsync(int factId);
 }

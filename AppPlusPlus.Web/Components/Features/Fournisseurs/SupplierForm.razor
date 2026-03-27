@@ -1,7 +1,7 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ISupplierService SupplierService
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
 
@@ -75,8 +75,7 @@
 
         if (SupplierId.HasValue)
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var existing = await ctx.Suppliers.FindAsync(SupplierId.Value);
+            var existing = await SupplierService.GetByIdAsync(SupplierId.Value);
             if (existing != null) _item = existing;
         }
     }
@@ -93,20 +92,18 @@
 
         try
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
             _item.UserLogin = _currentLogin;
 
             if (SupplierId.HasValue)
             {
-                ctx.Suppliers.Update(_item);
+                await SupplierService.UpdateAsync(_item);
             }
             else
             {
                 _item.CreationDate = DateOnly.FromDateTime(DateTime.Today);
-                ctx.Suppliers.Add(_item);
+                await SupplierService.AddAsync(_item);
             }
 
-            await ctx.SaveChangesAsync();
             Snackbar.Add(_item.SupplierName, Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }

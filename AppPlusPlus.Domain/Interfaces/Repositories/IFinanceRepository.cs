@@ -13,12 +13,15 @@ public interface IFinanceRepository
 
     // Taux
     Task<Taux?> GetCurrentTauxAsync();
+    Task<Taux?> GetTauxByIdAsync(int id);
     Task<List<Taux>> GetAllTauxAsync();
     Task<List<Taux>> GetTauxByDateRangeAsync(DateOnly from, DateOnly to);
     Task AddTauxAsync(Taux taux);
+    Task UpdateTauxAsync(Taux taux);
 
     // Periode
     Task<Periode?> GetActivePeriodeAsync();
+    Task<Periode?> GetPeriodeByIdAsync(int id);
     Task<List<Periode>> GetAllPeriodesAsync();
     Task AddPeriodeAsync(Periode periode);
     Task UpdatePeriodeAsync(Periode periode);
@@ -30,9 +33,11 @@ public interface IFinanceRepository
     Task AddVersementAsync(Versement versement);
 
     // ApproExpense
+    Task<ApproExpense?> GetApproExpenseByIdAsync(int id);
     Task<List<ApproExpense>> GetApproExpensesAsync();
     Task<List<ApproExpense>> GetApproExpensesByCaisseAsync(int caisseId);
     Task AddApproExpenseAsync(ApproExpense expense);
+    Task UpdateApproExpenseAsync(ApproExpense expense);
 
     // UserCaisse
     Task<List<UserCaisse>> GetUserCaissesAsync(string userLogin);

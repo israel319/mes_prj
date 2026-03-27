@@ -1,7 +1,9 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ITransformationService TransformationService
+@inject ICatalogueService CatalogueService
+@inject ILocalisationService LocalisationService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <MudDialog>
@@ -103,13 +105,12 @@
                 ?? "";
         }
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-        _articles = await ctx.Articles.OrderBy(a => a.Description).ToListAsync();
-        _localisations = await ctx.Localisations.OrderBy(l => l.DescriptionLocalisation).ToListAsync();
+        _articles = (await CatalogueService.GetArticlesAsync()).OrderBy(a => a.Description).ToList();
+        _localisations = (await LocalisationService.GetAllLocalisationsAsync()).OrderBy(l => l.DescriptionLocalisation).ToList();
 
         if (TransformationId.HasValue)
         {
-            var existing = await ctx.Transformations.FindAsync(TransformationId.Value);
+            var existing = await TransformationService.GetByIdAsync(TransformationId.Value);
             if (existing != null)
             {
                 _item = existing;
@@ -120,16 +121,14 @@
 
     async Task OnSubmit()
     {
-        await using var ctx = await DbFactory.CreateDbContextAsync();
         _item.Date = _dateValue ?? DateTime.Now;
         _item.UserLogin = _currentLogin;
         _item.DateSys = DateTime.Now;
         _item.Computer = Environment.MachineName;
         if (TransformationId.HasValue)
-            ctx.Transformations.Update(_item);
+            await TransformationService.UpdateAsync(_item);
         else
-            ctx.Transformations.Add(_item);
-        await ctx.SaveChangesAsync();
+            await TransformationService.AddAsync(_item);
         MudDialog.Close(DialogResult.Ok(true));
     }
 }

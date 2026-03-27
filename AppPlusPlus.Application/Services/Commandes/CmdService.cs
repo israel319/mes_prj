@@ -76,4 +76,7 @@ public class CmdService : ICmdService
         if (cmd != null)
             await _cmdRepo.DeleteAsync(cmd);
     }
+
+    public async Task<Cmd?> GetCmdWithDetailsAsync(int cmdId)
+        => await _cmdRepo.GetWithDetailsAsync(cmdId);
 }

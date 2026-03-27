@@ -72,12 +72,31 @@ public class FinanceRepository : IFinanceRepository
         await ctx.SaveChangesAsync();
     }
 
+    public async Task<Taux?> GetTauxByIdAsync(int id)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.TauxChanges.FindAsync(id);
+    }
+
+    public async Task UpdateTauxAsync(Taux taux)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        ctx.TauxChanges.Update(taux);
+        await ctx.SaveChangesAsync();
+    }
+
     // ── Periode ──
 
     public async Task<Periode?> GetActivePeriodeAsync()
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
         return await ctx.Periodes.FirstOrDefaultAsync(p => p.Activated == true);
+    }
+
+    public async Task<Periode?> GetPeriodeByIdAsync(int id)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Periodes.FindAsync(id);
     }
 
     public async Task<List<Periode>> GetAllPeriodesAsync()
@@ -148,6 +167,19 @@ public class FinanceRepository : IFinanceRepository
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
         ctx.ApproExpenses.Add(expense);
+        await ctx.SaveChangesAsync();
+    }
+
+    public async Task<ApproExpense?> GetApproExpenseByIdAsync(int id)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.ApproExpenses.FindAsync(id);
+    }
+
+    public async Task UpdateApproExpenseAsync(ApproExpense expense)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        ctx.ApproExpenses.Update(expense);
         await ctx.SaveChangesAsync();
     }
 

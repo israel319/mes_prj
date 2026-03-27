@@ -1,7 +1,7 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICustomerService CustomerService
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
 
@@ -73,8 +73,7 @@
 
         if (CustomerId.HasValue)
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var existing = await ctx.Customers.FindAsync(CustomerId.Value);
+            var existing = await CustomerService.GetByIdAsync(CustomerId.Value);
             if (existing != null)
             {
                 _customer = existing;
@@ -94,17 +93,15 @@
         {
             _saving = true;
             _customer.IsPermanent = _isPermanent;
-            await using var ctx = await DbFactory.CreateDbContextAsync();
             if (CustomerId.HasValue)
             {
-                ctx.Customers.Update(_customer);
+                await CustomerService.UpdateAsync(_customer);
             }
             else
             {
                 _customer.UserLogin = _currentLogin;
-                ctx.Customers.Add(_customer);
+                await CustomerService.AddAsync(_customer);
             }
-            await ctx.SaveChangesAsync();
             Snackbar.Add("Client enregistré", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
         }

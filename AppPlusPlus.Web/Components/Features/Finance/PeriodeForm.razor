@@ -1,7 +1,7 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IFinanceService FinanceService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <MudDialog>
@@ -63,8 +63,7 @@
 
         if (PeriodeId.HasValue)
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var existing = await ctx.Periodes.FindAsync(PeriodeId.Value);
+            var existing = await FinanceService.GetPeriodeByIdAsync(PeriodeId.Value);
             if (existing != null)
             {
                 _periode = existing;
@@ -79,17 +78,15 @@
 
     async Task OnSubmit()
     {
-        await using var ctx = await DbFactory.CreateDbContextAsync();
         _periode.Activated = _activated;
         _periode.FromDate = _fromDate;
         _periode.ToDate = _toDate;
         _periode.UserLogin = _currentLogin;
         _periode.DateSys = DateOnly.FromDateTime(DateTime.Now);
         if (PeriodeId.HasValue)
-            ctx.Periodes.Update(_periode);
+            await FinanceService.UpdatePeriodeAsync(_periode);
         else
-            ctx.Periodes.Add(_periode);
-        await ctx.SaveChangesAsync();
+            await FinanceService.AddPeriodeAsync(_periode);
         MudDialog.Close(DialogResult.Ok(true));
     }
 }

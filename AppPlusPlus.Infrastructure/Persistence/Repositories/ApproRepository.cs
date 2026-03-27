@@ -60,4 +60,46 @@ public class ApproRepository : RepositoryBase<Appro>, IApproRepository
             .Where(d => d.IdAppro == approId)
             .ToListAsync();
     }
+
+    // ── Transformations ──
+
+    public async Task<Transformation?> GetTransformationByIdAsync(int id)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Transformations.FindAsync(id);
+    }
+
+    public async Task<List<Transformation>> GetTransformationsByLocalisationAsync(int localisationId)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Transformations
+            .Where(t => t.FromLocalisationId == localisationId || t.ToLocalisationId == localisationId)
+            .OrderByDescending(t => t.Date)
+            .ToListAsync();
+    }
+
+    public async Task AddTransformationAsync(Transformation transformation)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        ctx.Transformations.Add(transformation);
+        await ctx.SaveChangesAsync();
+    }
+
+    public async Task UpdateTransformationAsync(Transformation transformation)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        ctx.Transformations.Update(transformation);
+        await ctx.SaveChangesAsync();
+    }
+
+    public async Task DeleteTransformationAsync(int id)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        var entity = await ctx.Transformations.FindAsync(id);
+        if (entity != null)
+        {
+            ctx.Transformations.Remove(entity);
+            await ctx.SaveChangesAsync();
+        }
+    }
 }

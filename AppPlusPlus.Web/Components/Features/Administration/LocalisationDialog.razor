@@ -1,5 +1,5 @@
 @using MudBlazor
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICatalogueService CatalogueService
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -55,18 +55,14 @@
         await form.Validate();
         if (!success) return;
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-
         if (_isEdit)
         {
-            ctx.Localisations.Update(_model);
-            await ctx.SaveChangesAsync();
+            await CatalogueService.UpdateLocalisationAsync(_model);
             Snackbar.Add("Localisation modifiée.", Severity.Success);
         }
         else
         {
-            ctx.Localisations.Add(_model);
-            await ctx.SaveChangesAsync();
+            await CatalogueService.AddLocalisationAsync(_model);
             Snackbar.Add("Localisation ajoutée.", Severity.Success);
         }
 
