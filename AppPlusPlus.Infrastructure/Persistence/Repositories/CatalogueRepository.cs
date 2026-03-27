@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using AppPlusPlus.Domain.Entities.Catalogue;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Infrastructure.Persistence.Repositories;
 
@@ -12,6 +12,18 @@ public class CatalogueRepository : RepositoryBase<Article>, ICatalogueRepository
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
         return await ctx.Articles.FirstOrDefaultAsync(a => a.IdArticle == articleId);
+    }
+
+    public async Task<bool> ArticleExistsAsync(string articleCode)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Articles.AnyAsync(a => a.IdArticle == articleCode);
+    }
+
+    public async Task<bool> ArticleDescriptionExistsAsync(string description)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Articles.AnyAsync(a => a.Description == description);
     }
 
     public async Task<List<Article>> GetArticlesWithStockAsync(List<int> localisationIds)

@@ -1,7 +1,7 @@
-@using MudBlazor
-@using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICustomerService CustomerService
+@inject ICatalogueService CatalogueService
+@inject ICommandeService CommandeService
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
 
@@ -97,16 +97,12 @@
                 ?? "";
         }
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-
-        _customers = await ctx.Customers.OrderBy(c => c.CustomerName).ToListAsync();
-        _articles = await ctx.Articles.OrderBy(a => a.Description).ToListAsync();
+        _customers = await CustomerService.GetAllAsync();
+        _articles = await CatalogueService.GetArticlesAsync();
 
         if (CommandeId.HasValue)
         {
-            var existing = await ctx.Commandes
-                .Include(c => c.Details)
-                .FirstOrDefaultAsync(c => c.CommandeId == CommandeId.Value);
+            var existing = await CommandeService.GetCommandeWithDetailsAsync(CommandeId.Value);
 
             if (existing != null)
             {
@@ -164,47 +160,29 @@
 
         try
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-
             RecalcTotal();
             _item.MontantTotal = _total;
             _item.MontantRest = _total - _item.MontantPaye;
             _item.UserLogin = _currentLogin;
             _item.CreationDate ??= DateTime.Now;
 
-            if (CommandeId.HasValue)
-            {
-                ctx.Commandes.Update(_item);
-
-                // Supprimer les anciennes lignes
-                var oldDetails = await ctx.CommandeDetails
-                    .Where(d => d.CommandeId == CommandeId.Value).ToListAsync();
-                ctx.CommandeDetails.RemoveRange(oldDetails);
-            }
-            else
+            if (!CommandeId.HasValue)
             {
                 _item.Status = 0; // Nouvelle
-                ctx.Commandes.Add(_item);
             }
 
-            await ctx.SaveChangesAsync(); // Obtenir CommandeId si nouveau
-
-            // Ajouter les lignes articles
-            foreach (var line in validLines)
+            var details = validLines.Select(line => new CommandeDetail
             {
-                ctx.CommandeDetails.Add(new CommandeDetail
-                {
-                    CommandeId = _item.CommandeId,
-                    ArticleId = line.ArticleId,
-                    Qte = line.Qte,
-                    Pu = line.Pu,
-                    QteRest = line.Qte, // tout reste à livrer
-                    QtePrise = 0,
-                    Status = 0
-                });
-            }
+                CommandeId = _item.CommandeId,
+                ArticleId = line.ArticleId,
+                Qte = line.Qte,
+                Pu = line.Pu,
+                QteRest = line.Qte, // tout reste à livrer
+                QtePrise = 0,
+                Status = 0
+            }).ToList();
 
-            await ctx.SaveChangesAsync();
+            await CommandeService.SaveCommandeAsync(_item, details);
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)

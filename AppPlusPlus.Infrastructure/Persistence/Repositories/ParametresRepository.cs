@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using AppPlusPlus.Domain.Entities.Parametres;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Infrastructure.Persistence.Repositories;
 

@@ -4,7 +4,7 @@ using AppPlusPlus.Domain.Entities.Finance;
 using AppPlusPlus.Domain.Entities.Vente;
 using AppPlusPlus.Domain.Entities.Administration;
 using AppPlusPlus.Domain.Entities.Approvisionnement;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Infrastructure.Persistence.Repositories;
 

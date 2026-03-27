@@ -1,4 +1,4 @@
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Application.Services.Parametres;
 

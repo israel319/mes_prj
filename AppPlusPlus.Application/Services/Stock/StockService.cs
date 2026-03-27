@@ -1,4 +1,5 @@
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.DTOs.Stock;
+using AppPlusPlus.Application.Interfaces.Repositories;
 using StockEntity = AppPlusPlus.Domain.Entities.Stock.Stock;
 
 namespace AppPlusPlus.Application.Services.Stock;
@@ -35,5 +36,23 @@ public class StockService : IStockService
         var article = await _catalogueRepo.GetByArticleIdAsync(articleId);
         if (article != null)
             await _catalogueRepo.DeleteAsync(article);
+    }
+
+    public async Task<List<StockArticleDto>> GetStockArticleViewAsync(int localisationId)
+    {
+        // GetByLocalisationAsync includes Article navigation
+        var stocks = await _stockRepo.GetByLocalisationAsync(localisationId);
+
+        return stocks
+            .Select(s => new StockArticleDto
+            {
+                IdArticle = s.IdArticle,
+                Description = s.Article?.Description ?? s.IdArticle,
+                Qte = s.Qte,
+                Seuil = s.Seuil,
+                Price = s.Article?.Price ?? 0
+            })
+            .OrderBy(dto => dto.Description)
+            .ToList();
     }
 }

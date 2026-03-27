@@ -1,6 +1,6 @@
 using AppPlusPlus.Domain.Entities.Fournisseurs;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface ISupplierRepository : IRepository<Supplier>
 {

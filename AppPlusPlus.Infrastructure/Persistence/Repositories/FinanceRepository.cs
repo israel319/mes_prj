@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using AppPlusPlus.Domain.Entities.Finance;
 using AppPlusPlus.Domain.Entities.Approvisionnement;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Infrastructure.Persistence.Repositories;
 
@@ -120,6 +120,13 @@ public class FinanceRepository : IFinanceRepository
     }
 
     // ── Versement ──
+
+    public async Task<bool> VersementExistsAsync(DateOnly date, int localisationId)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Versements.AnyAsync(v =>
+            v.DateCloture == date && v.LocalisationId == localisationId);
+    }
 
     public async Task<List<Versement>> GetVersementsByDateAsync(DateOnly date)
     {

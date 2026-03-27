@@ -1,4 +1,4 @@
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface IRepository<T> where T : class
 {

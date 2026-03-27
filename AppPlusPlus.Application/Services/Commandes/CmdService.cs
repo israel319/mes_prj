@@ -1,6 +1,6 @@
 using AppPlusPlus.Application.DTOs.Commandes;
 using AppPlusPlus.Domain.Entities.CommandesInternes;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Application.Services.Commandes;
 

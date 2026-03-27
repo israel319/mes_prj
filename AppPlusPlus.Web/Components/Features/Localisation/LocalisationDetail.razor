@@ -1,7 +1,9 @@
 @page "/localisation/{Id:int}"
 @rendermode InteractiveServer
-@using MudBlazor
-@inject IDbContextFactory<AppDbContext> DbFactory
+@using AppPlusPlus.Application.DTOs.Stock
+@inject ILocalisationService LocalisationService
+@inject IUserAdminService UserAdminService
+@inject IStockService StockService
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -112,7 +114,7 @@ else
                     </button>
                 </div>
 
-                <MudDataGrid T="StockArticleView" Items="@FilteredArticles" Dense="true" Hover="true" Striped="true">
+                <MudDataGrid T="StockArticleDto" Items="@FilteredArticles" Dense="true" Hover="true" Striped="true">
                     <Columns>
                         <PropertyColumn Property="x => x.IdArticle" Title="Code" />
                         <PropertyColumn Property="x => x.Description" Title="Description" />
@@ -168,7 +170,7 @@ else
                         </TemplateColumn>
                     </Columns>
                     <PagerContent>
-                        <MudDataGridPager T="StockArticleView" />
+                        <MudDataGridPager T="StockArticleDto" />
                     </PagerContent>
                 </MudDataGrid>
             </div>
@@ -224,25 +226,14 @@ else
     private int _tab;
     private Localisation? _localisation;
     private List<User> _users = new();
-    private List<StockArticleView> _stockArticles = new();
+    private List<StockArticleDto> _stockArticles = new();
     private string _articleSearch = "";
 
-    private IEnumerable<StockArticleView> FilteredArticles => string.IsNullOrWhiteSpace(_articleSearch)
+    private IEnumerable<StockArticleDto> FilteredArticles => string.IsNullOrWhiteSpace(_articleSearch)
         ? _stockArticles
         : _stockArticles.Where(a =>
             (a.IdArticle?.Contains(_articleSearch, StringComparison.OrdinalIgnoreCase) ?? false) ||
             (a.Description?.Contains(_articleSearch, StringComparison.OrdinalIgnoreCase) ?? false));
-
-    // View model combining Stock + Article data
-    class StockArticleView
-    {
-        public int StockId { get; set; }
-        public string IdArticle { get; set; } = "";
-        public string Description { get; set; } = "";
-        public decimal Qte { get; set; }  // From Stock table
-        public int Seuil { get; set; }    // From Stock table
-        public double Price { get; set; }
-    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -252,57 +243,19 @@ else
     private async Task LoadData()
     {
         _loading = true;
-        await using var ctx = await DbFactory.CreateDbContextAsync();
 
-        _localisation = await ctx.Localisations.FindAsync(Id);
+        _localisation = await LocalisationService.GetLocalisationByIdAsync(Id);
 
         if (_localisation != null)
         {
-            // Get users via UserLocalisations (many-to-many)
-            var userIds = await ctx.UserLocalisations
-                .Where(ul => ul.LocalisationId == Id && ul.Activate == true)
-                .Select(ul => ul.UserId)
-                .ToListAsync();
-
-            _users = await ctx.Users
-                .Include(u => u.Role)
-                .Where(u => userIds.Contains(u.Login))
-                .OrderBy(u => u.Name)
-                .ToListAsync();
-
-            // Get stocks for this localisation with article info
-            var stocks = await ctx.Stocks
-                .Where(s => s.IdLocalisation == Id)
-                .ToListAsync();
-
-            var articleIds = stocks.Select(s => s.IdArticle).Distinct().ToList();
-            var articles = await ctx.Articles
-                .Where(a => articleIds.Contains(a.IdArticle))
-                .ToDictionaryAsync(a => a.IdArticle);
-
-            // Create StockArticleView combining Stock + Article data
-            _stockArticles = stocks
-                .Select(s =>
-                {
-                    var article = articles.GetValueOrDefault(s.IdArticle);
-                    return new StockArticleView
-                    {
-                        StockId = s.Id,
-                        IdArticle = s.IdArticle,
-                        Description = article?.Description ?? s.IdArticle,
-                        Qte = s.Qte,       // Stock quantity for THIS localisation
-                        Seuil = s.Seuil,   // Stock threshold for THIS localisation
-                        Price = article?.Price ?? 0
-                    };
-                })
-                .OrderBy(s => s.Description)
-                .ToList();
+            _users = await UserAdminService.GetUsersByLocalisationAsync(Id);
+            _stockArticles = await StockService.GetStockArticleViewAsync(Id);
         }
 
         _loading = false;
     }
 
-    private async Task OnAppro(StockArticleView article)
+    private async Task OnAppro(StockArticleDto article)
     {
         var parameters = new DialogParameters<ApproForm>
         {
@@ -325,7 +278,7 @@ else
         Navigation.NavigateTo($"/gestion/article/nouveau?localisationId={Id}");
     }
 
-    private void OnEditArticle(StockArticleView article)
+    private void OnEditArticle(StockArticleDto article)
     {
         Navigation.NavigateTo($"/gestion/article/modifier/{article.IdArticle}");
     }

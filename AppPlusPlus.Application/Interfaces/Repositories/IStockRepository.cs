@@ -1,6 +1,6 @@
 using AppPlusPlus.Domain.Entities.Stock;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface IStockRepository : IRepository<Stock>
 {

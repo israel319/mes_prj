@@ -1,6 +1,6 @@
 using AppPlusPlus.Domain.Entities.Commandes;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface ICommandeRepository : IRepository<Commande>
 {
@@ -37,4 +37,16 @@ public interface ICommandeRepository : IRepository<Commande>
     /// Only updates Status, MontantPaye, and MontantRest columns.
     /// </summary>
     Task UpdateCommandeStatusBatchAsync(List<Commande> commandes);
+
+    /// <summary>
+    /// Returns a commande with all navigation properties loaded for detail view:
+    /// Customer, Details.Article, Livraisons.Details, Livraisons.Fact.Payments.
+    /// </summary>
+    Task<Commande?> GetWithAllNavigationsAsync(int commandeId);
+
+    /// <summary>
+    /// Saves a commande with its details. If CommandeId == 0, inserts a new record;
+    /// otherwise updates the existing commande and replaces its details.
+    /// </summary>
+    Task SaveCommandeWithDetailsAsync(Commande commande, List<CommandeDetail> details);
 }

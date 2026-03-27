@@ -4,7 +4,7 @@ using AppPlusPlus.Domain.Entities.Vente;
 using AppPlusPlus.Domain.Entities.Administration;
 using AppPlusPlus.Domain.Entities.Approvisionnement;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface ILookupRepository
 {

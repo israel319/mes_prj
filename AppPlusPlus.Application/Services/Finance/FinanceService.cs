@@ -1,5 +1,5 @@
 using AppPlusPlus.Domain.Entities.Finance;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Application.Services.Finance;
 

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using AppPlusPlus.Domain.Interfaces;
+using AppPlusPlus.Application.Interfaces;
 
 namespace AppPlusPlus.Infrastructure.Persistence.Repositories;
 

@@ -1,5 +1,5 @@
-@using MudBlazor
-@inject IDbContextFactory<AppDbContext> DbFactory
+@using AppPlusPlus.Application.DTOs.Finance
+@inject IClotureService ClotureService
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -112,32 +112,13 @@
     protected override async Task OnInitializedAsync()
     {
         _loading = true;
-        await using var ctx = await DbFactory.CreateDbContextAsync();
 
-        // Vérifier si clôture existe déjà pour cette date et localisation
-        _dejaCloture = await ctx.Versements.AnyAsync(v =>
-            v.DateCloture == _dateCloture &&
-            v.LocalisationId == LocalisationId);
-
-        // Factures payées du jour pour cette localisation
-        var factures = await ctx.Facts
-            .Include(f => f.Details)
-            .Where(f => f.Status == 2
-                && f.Date == _dateCloture
-                && f.Details.Any(d => d.Localisationid.HasValue && d.Localisationid.Value == LocalisationId))
-            .ToListAsync();
-        _nbFactures = factures.Count;
-        _totalFactures = factures.Sum(f => f.TotalApresReduction ?? f.Total ?? 0);
-
-        // Paiements du jour pour cette localisation
-        var paiements = await ctx.Payments
-            .Include(p => p.Fact).ThenInclude(f => f!.Details)
-            .Where(p => p.Date == _dateCloture
-                && p.Fact != null
-                && p.Fact.Details.Any(d => d.Localisationid.HasValue && d.Localisationid.Value == LocalisationId))
-            .ToListAsync();
-        _nbPaiements = paiements.Count;
-        _totalPaiements = paiements.Sum(p => p.Amount);
+        var summary = await ClotureService.GetClotureSummaryAsync(_dateCloture, LocalisationId);
+        _dejaCloture = summary.DejaClotureExiste;
+        _nbFactures = summary.NbFactures;
+        _totalFactures = summary.TotalFactures;
+        _nbPaiements = summary.NbPaiements;
+        _totalPaiements = summary.TotalPaiements;
 
         // Total = on prend le montant des paiements (plus précis car inclut les partiels)
         _montantTotal = _totalPaiements > 0 ? _totalPaiements : _totalFactures;
@@ -154,11 +135,7 @@
 
         try
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-
-            var existe = await ctx.Versements.AnyAsync(v =>
-                v.DateCloture == _dateCloture &&
-                v.LocalisationId == LocalisationId);
+            var existe = await ClotureService.ClotureExistsAsync(_dateCloture, LocalisationId);
 
             if (existe)
             {
@@ -180,8 +157,7 @@
                 DateSys = DateTime.Now
             };
 
-            ctx.Versements.Add(versement);
-            await ctx.SaveChangesAsync();
+            await ClotureService.CreateClotureAsync(versement);
 
             Snackbar.Add($"Clôture enregistrée — {_montantTotal:N2} vers {_modeVersement}", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));

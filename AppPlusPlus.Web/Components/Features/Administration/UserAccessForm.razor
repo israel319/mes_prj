@@ -1,5 +1,4 @@
-@using MudBlazor
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IUserAdminService UserAdminService
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -89,9 +88,7 @@
 
         _userLogin = UserLogin;
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-
-        var user = await ctx.Users.FirstOrDefaultAsync(u => u.Login == _userLogin);
+        var user = await UserAdminService.GetUserByLoginAsync(_userLogin);
         if (user is null)
         {
             MudDialog.Close();
@@ -100,17 +97,8 @@
 
         _selectedRoleId = user.RoleId;
 
-        _roles = await ctx.Roles
-            .Where(r => r.IsActive)
-            .OrderBy(r => r.DescriptionRole)
-            .ToListAsync();
-
-        _activities = await ctx.Activities
-            .Include(a => a.Fonction)
-            .Where(a => a.IsActive)
-            .OrderBy(a => a.Fonction!.DescriptionFonction)
-            .ThenBy(a => a.DescriptionActivity)
-            .ToListAsync();
+        _roles = await UserAdminService.GetActiveRolesAsync();
+        _activities = await UserAdminService.GetActiveActivitiesWithFonctionAsync();
 
         await LoadRows(useUserAssignmentsIfExists: true);
         _loaded = true;
@@ -124,14 +112,10 @@
     async Task LoadRows(bool useUserAssignmentsIfExists)
     {
         _loadingRows = true;
-        await using var ctx = await DbFactory.CreateDbContextAsync();
 
-        var roleDefaults = await BuildRoleDefaultSet(ctx, _selectedRoleId);
+        var roleDefaults = await UserAdminService.GetRoleDefaultActivityIdsAsync(_selectedRoleId);
 
-        var userAssignments = await ctx.UserActivities
-            .Where(ua => ua.UserLogin == _userLogin && ua.IsGranted)
-            .Select(ua => ua.ActivityId)
-            .ToListAsync();
+        var userAssignments = await UserAdminService.GetUserGrantedActivityIdsAsync(_userLogin);
 
         var hasUserAssignments = userAssignments.Any();
         var userSet = userAssignments.ToHashSet();
@@ -150,81 +134,16 @@
         _loadingRows = false;
     }
 
-    static async Task<HashSet<int>> BuildRoleDefaultSet(AppDbContext ctx, int? roleId)
-    {
-        var result = new HashSet<int>();
-        if (!roleId.HasValue) return result;
-
-        var permissions = await ctx.Permissions
-            .Where(p => p.RoleId == roleId.Value)
-            .ToListAsync();
-
-        var activities = await ctx.Activities
-            .Where(a => a.IsActive)
-            .ToListAsync();
-
-        foreach (var p in permissions)
-        {
-            var functionActivities = activities.Where(a => a.FonctionId == p.FonctionId).ToList();
-
-            foreach (var activity in functionActivities)
-            {
-                var code = activity.Code.ToLowerInvariant();
-
-                if (code.EndsWith("_read") && p.CanRead)
-                    result.Add(activity.ActivityId);
-                else if ((code.EndsWith("_create") || code.EndsWith("_update")) && p.CanWrite)
-                    result.Add(activity.ActivityId);
-                else if (code.EndsWith("_delete") && p.CanDelete)
-                    result.Add(activity.ActivityId);
-            }
-        }
-
-        return result;
-    }
-
     async Task Save()
     {
         try
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-
-            var user = await ctx.Users.FirstOrDefaultAsync(u => u.Login == _userLogin);
-            if (user is null)
-            {
-                Snackbar.Add("Utilisateur introuvable.", Severity.Error);
-                return;
-            }
-
-            user.RoleId = _selectedRoleId;
-            await ctx.SaveChangesAsync();
-
-            var existing = await ctx.UserActivities
-                .Where(ua => ua.UserLogin == _userLogin)
-                .ToListAsync();
-
-            if (existing.Any())
-            {
-                ctx.UserActivities.RemoveRange(existing);
-                await ctx.SaveChangesAsync();
-            }
-
-            var selected = _rows
+            var grantedIds = _rows
                 .Where(r => r.IsGranted)
-                .Select(r => new UserActivity
-                {
-                    UserLogin = _userLogin,
-                    ActivityId = r.ActivityId,
-                    IsGranted = true,
-                    AssignedDate = DateTime.Now
-                })
+                .Select(r => r.ActivityId)
                 .ToList();
 
-            if (selected.Any())
-            {
-                await ctx.UserActivities.AddRangeAsync(selected);
-                await ctx.SaveChangesAsync();
-            }
+            await UserAdminService.SaveUserAccessAsync(_userLogin, _selectedRoleId, grantedIds);
 
             Snackbar.Add("Rôle et activités enregistrés.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));

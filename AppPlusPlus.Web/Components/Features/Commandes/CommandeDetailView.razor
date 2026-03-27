@@ -1,5 +1,4 @@
-@using MudBlazor
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICommandeService CommandeService
 
 <MudDialog>
     <DialogContent>
@@ -147,87 +146,37 @@
     Commande? _cmd;
     List<VenteArticleRow> _rows = new();
     List<LivraisonRow> _livraisons = new();
-    Dictionary<int, decimal> _deliveredQty = new();
 
     void Cancel() => MudDialog.Close();
 
     protected override async Task OnInitializedAsync()
     {
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-        _cmd = await ctx.Commandes
-            .Include(c => c.Customer)
-            .Include(c => c.Details).ThenInclude(d => d.Article)
-            .Include(c => c.Livraisons).ThenInclude(l => l.Details)
-            .Include(c => c.Livraisons).ThenInclude(l => l.Fact).ThenInclude(f => f!.Payments)
-            .FirstOrDefaultAsync(c => c.CommandeId == CommandeId);
+        var dto = await CommandeService.GetCommandeDetailViewAsync(CommandeId);
 
-        if (_cmd != null)
+        if (dto != null)
         {
-            var detailIds = _cmd.Details.Select(d => d.Id).ToList();
-            if (detailIds.Any())
-            {
-                _deliveredQty = await ctx.LivraisonDetails
-                    .Where(ld => ld.CommandDetailId != null && detailIds.Contains(ld.CommandDetailId.Value))
-                    .GroupBy(ld => ld.CommandDetailId!.Value)
-                    .Select(g => new { Id = g.Key, Total = g.Sum(x => x.Qte ?? 0) })
-                    .ToDictionaryAsync(x => x.Id, x => x.Total);
-            }
+            _cmd = dto.Commande;
 
-            _rows = _cmd.Details.Select(d =>
+            _rows = dto.ArticleRows.Select(r => new VenteArticleRow
             {
-                var qte = d.Qte ?? 0;
-                var livrQte = _deliveredQty.GetValueOrDefault(d.Id);
-                return new VenteArticleRow
-                {
-                    ArticleName = d.Article?.Description ?? d.ArticleId ?? "—",
-                    Qte = qte,
-                    Pu = d.Pu ?? 0,
-                    Montant = qte * (d.Pu ?? 0),
-                    QteLivree = livrQte
-                };
+                ArticleName = r.ArticleName,
+                Qte = r.Qte,
+                Pu = r.PU,
+                Montant = r.Montant,
+                QteLivree = r.QteLivree
             }).ToList();
 
-            _livraisons = _cmd.Livraisons
-                .OrderByDescending(l => l.Date)
-                .Select(l =>
-                {
-                    // Statut dynamique basé sur les paiements réels de la facture
-                    var fact = l.Fact;
-                    var montant = l.Details.Sum(d => d.MontantPaye ?? 0);
-                    int? factureId = fact?.Id;
-                    decimal totalPaye = fact?.Payments.Sum(p => p.Amount) ?? 0;
-                    string statusLabel; string statusStyle;
-                    if (fact != null)
-                    {
-                        if (totalPaye >= montant && montant > 0)
-                        { statusLabel = "Payée"; statusStyle = "bg-success"; }
-                        else if (totalPaye > 0)
-                        { statusLabel = "Partiel"; statusStyle = "bg-warning text-dark"; }
-                        else
-                        { statusLabel = "Non payée"; statusStyle = "bg-danger"; }
-                    }
-                    else
-                    {
-                        var s = l.Status ?? 0;
-                        (statusLabel, statusStyle) = s switch
-                        {
-                            0 => ("En attente", "bg-light text-dark"),
-                            1 => ("Livrée — Non facturée", "bg-info"),
-                            _ => ("—", "bg-secondary")
-                        };
-                    }
-                    return new LivraisonRow
-                    {
-                        Id = l.LivraisonId,
-                        Porteur = l.Porteur ?? "—",
-                        Montant = montant,
-                        Date = l.Date.HasValue ? DateOnly.FromDateTime(l.Date.Value) : null,
-                        FactureId = factureId,
-                        TotalPaye = totalPaye,
-                        StatusLabel = statusLabel,
-                        StatusStyle = statusStyle
-                    };
-                }).ToList();
+            _livraisons = dto.LivraisonRows.Select(r => new LivraisonRow
+            {
+                Id = r.LivraisonId,
+                Porteur = r.Porteur,
+                Montant = r.Montant,
+                Date = r.Date.HasValue ? DateOnly.FromDateTime(r.Date.Value) : null,
+                FactureId = r.FactureId,
+                TotalPaye = r.TotalPaye,
+                StatusLabel = r.StatusLabel,
+                StatusStyle = r.StatusStyle
+            }).ToList();
         }
         _loading = false;
     }

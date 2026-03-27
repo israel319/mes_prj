@@ -1,6 +1,6 @@
 using AppPlusPlus.Application.DTOs.Commandes;
 using AppPlusPlus.Domain.Entities.Commandes;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Application.Services.Commandes;
 
@@ -105,5 +105,96 @@ public class CommandeService : ICommandeService
             if ((d.Qte ?? 0) - livree > 0) return true;
         }
         return false;
+    }
+
+    public async Task<Commande?> GetCommandeWithDetailsAsync(int commandeId)
+    {
+        return await _commandeRepo.GetWithDetailsAsync(commandeId);
+    }
+
+    public async Task SaveCommandeAsync(Commande commande, List<CommandeDetail> details)
+    {
+        await _commandeRepo.SaveCommandeWithDetailsAsync(commande, details);
+    }
+
+    public async Task<CommandeDetailViewDto?> GetCommandeDetailViewAsync(int commandeId)
+    {
+        var cmd = await _commandeRepo.GetWithAllNavigationsAsync(commandeId);
+        if (cmd is null)
+            return null;
+
+        // Compute delivered quantities
+        var detailIds = cmd.Details.Select(d => d.Id).ToList();
+        var deliveredQty = detailIds.Any()
+            ? await _commandeRepo.GetDeliveredQtyByDetailIdsAsync(detailIds)
+            : new Dictionary<int, decimal>();
+
+        // Map article rows
+        var articleRows = cmd.Details.Select(d =>
+        {
+            var qte = d.Qte ?? 0;
+            var livrQte = deliveredQty.GetValueOrDefault(d.Id);
+            return new CommandeArticleRow
+            {
+                ArticleName = d.Article?.Description ?? d.ArticleId ?? "—",
+                Qte = qte,
+                PU = d.Pu ?? 0,
+                Montant = qte * (d.Pu ?? 0),
+                QteLivree = livrQte
+            };
+        }).ToList();
+
+        // Map livraison rows
+        var livraisonRows = cmd.Livraisons
+            .OrderByDescending(l => l.Date)
+            .Select(l =>
+            {
+                var fact = l.Fact;
+                var montant = l.Details.Sum(d => d.MontantPaye ?? 0);
+                int? factureId = fact?.Id;
+                decimal totalPaye = fact?.Payments.Sum(p => p.Amount) ?? 0;
+
+                string statusLabel;
+                string statusStyle;
+
+                if (fact != null)
+                {
+                    if (totalPaye >= montant && montant > 0)
+                    { statusLabel = "Payée"; statusStyle = "bg-success"; }
+                    else if (totalPaye > 0)
+                    { statusLabel = "Partiel"; statusStyle = "bg-warning text-dark"; }
+                    else
+                    { statusLabel = "Non payée"; statusStyle = "bg-danger"; }
+                }
+                else
+                {
+                    var s = l.Status ?? 0;
+                    (statusLabel, statusStyle) = s switch
+                    {
+                        0 => ("En attente", "bg-light text-dark"),
+                        1 => ("Livrée — Non facturée", "bg-info"),
+                        _ => ("—", "bg-secondary")
+                    };
+                }
+
+                return new CommandeLivraisonRow
+                {
+                    LivraisonId = l.LivraisonId,
+                    Porteur = l.Porteur ?? "—",
+                    Montant = montant,
+                    Date = l.Date,
+                    FactureId = factureId,
+                    TotalPaye = totalPaye,
+                    StatusLabel = statusLabel,
+                    StatusStyle = statusStyle
+                };
+            }).ToList();
+
+        return new CommandeDetailViewDto
+        {
+            Commande = cmd,
+            ArticleRows = articleRows,
+            LivraisonRows = livraisonRows
+        };
     }
 }

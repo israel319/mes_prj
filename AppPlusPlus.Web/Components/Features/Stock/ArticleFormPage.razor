@@ -4,7 +4,10 @@
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICatalogueService CatalogueService
+@inject ILookupService LookupService
+@inject ILocalisationService LocalisationService
+@inject IStockService StockService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
@@ -183,14 +186,12 @@
                 ?? "";
         }
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-
-        _categories = await ctx.ArticleCategories.OrderBy(c => c.DescriptionCategory).ToListAsync();
-        _types = await ctx.ArticleTypes.OrderBy(t => t.DescriptionType).ToListAsync();
-        _marques = await ctx.ArticleMarques.OrderBy(m => m.DescriptionMarque).ToListAsync();
-        _mesures = await ctx.Mesures.OrderBy(m => m.DescriptionMesure).ToListAsync();
-        _monnaies = await ctx.Moneys.OrderBy(m => m.DescriptionMonais).ToListAsync();
-        _localisations = await ctx.Localisations.OrderBy(l => l.DescriptionLocalisation).ToListAsync();
+        _categories = await CatalogueService.GetArticleCategoriesAsync();
+        _types = await CatalogueService.GetArticleTypesAsync();
+        _marques = await CatalogueService.GetArticleMarquesAsync();
+        _mesures = await CatalogueService.GetMesuresAsync();
+        _monnaies = await LookupService.GetMoneysAsync();
+        _localisations = await LocalisationService.GetAllLocalisationsAsync();
 
         // Pre-select from query param if present
         var uri = new Uri(Navigation.Uri);
@@ -202,16 +203,14 @@
 
         if (!string.IsNullOrEmpty(IdArticle))
         {
-            var existing = await ctx.Articles.FirstOrDefaultAsync(a => a.IdArticle == IdArticle);
+            var existing = await CatalogueService.GetArticleByIdAsync(IdArticle);
             if (existing != null)
             {
                 _isEdit = true;
                 _article = existing;
 
                 // Load article stocks from T_Stock
-                _articleStocks = await ctx.Stocks
-                    .Where(s => s.IdArticle == IdArticle)
-                    .ToListAsync();
+                _articleStocks = await StockService.GetStocksByArticleAsync(IdArticle);
             }
         }
     }
@@ -232,16 +231,10 @@
         _article.User = _currentLogin;
         _article.Cumputer = Environment.MachineName;
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-
         if (_isEdit)
         {
             _article.DateEditing = DateOnly.FromDateTime(DateTime.Today);
-            ctx.Articles.Attach(_article);
-            ctx.Entry(_article).State = EntityState.Modified;
-            ctx.Entry(_article).Property(a => a.Id).IsModified = false;
-            ctx.Entry(_article).Property(a => a.TotalPrice).IsModified = false;
-            await ctx.SaveChangesAsync();
+            await CatalogueService.UpdateArticleAsync(_article);
             Snackbar.Add($"Article « {_article.Description} » mis à jour.", Severity.Success);
         }
         else
@@ -253,7 +246,7 @@
             }
 
             // Check if article code already exists
-            var exists = await ctx.Articles.AnyAsync(a => a.IdArticle == _article.IdArticle);
+            var exists = await CatalogueService.ArticleExistsAsync(_article.IdArticle);
             if (exists)
             {
                 Snackbar.Add($"Le code article « {_article.IdArticle} » existe déjà.", Severity.Warning);
@@ -261,7 +254,7 @@
             }
 
             // Check if article description already exists
-            var descExists = await ctx.Articles.AnyAsync(a => a.Description == _article.Description);
+            var descExists = await CatalogueService.ArticleDescriptionExistsAsync(_article.Description);
             if (descExists)
             {
                 Snackbar.Add($"Un article avec la description « {_article.Description} » existe déjà.", Severity.Warning);
@@ -286,23 +279,8 @@
                 User = _article.User,
                 Cumputer = _article.Cumputer
             };
-            ctx.Articles.Add(newArticle);
 
-            // Create Stock entries for each selected localisation
-            foreach (var locId in _selectedLocalisations)
-            {
-                ctx.Stocks.Add(new Stock
-                {
-                    IdArticle = _article.IdArticle,
-                    IdLocalisation = locId,
-                    Qte = 0,
-                    Seuil = _article.Soeuil,
-                    DateSys = DateOnly.FromDateTime(DateTime.Today),
-                    UserLogin = _article.User
-                });
-            }
-
-            await ctx.SaveChangesAsync();
+            await CatalogueService.CreateArticleWithStocksAsync(newArticle, _selectedLocalisations.ToList());
             Snackbar.Add($"Article créé et associé à {_selectedLocalisations.Count} localisation(s).", Severity.Success);
         }
 

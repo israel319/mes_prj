@@ -1,5 +1,6 @@
 using AppPlusPlus.Domain.Entities.Catalogue;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
+using StockEntity = AppPlusPlus.Domain.Entities.Stock.Stock;
 
 namespace AppPlusPlus.Application.Services.Catalogue;
 
@@ -7,11 +8,16 @@ public class CatalogueService : ICatalogueService
 {
     private readonly ICatalogueRepository _catalogueRepo;
     private readonly ILookupRepository _lookupRepo;
+    private readonly IStockRepository _stockRepo;
 
-    public CatalogueService(ICatalogueRepository catalogueRepo, ILookupRepository lookupRepo)
+    public CatalogueService(
+        ICatalogueRepository catalogueRepo,
+        ILookupRepository lookupRepo,
+        IStockRepository stockRepo)
     {
         _catalogueRepo = catalogueRepo;
         _lookupRepo = lookupRepo;
+        _stockRepo = stockRepo;
     }
 
     // Articles
@@ -95,6 +101,33 @@ public class CatalogueService : ICatalogueService
         var article = await _catalogueRepo.GetByArticleIdAsync(articleId);
         if (article != null)
             await _catalogueRepo.DeleteAsync(article);
+    }
+
+    public async Task<bool> ArticleExistsAsync(string articleCode)
+        => await _catalogueRepo.ArticleExistsAsync(articleCode);
+
+    public async Task<bool> ArticleDescriptionExistsAsync(string description)
+        => await _catalogueRepo.ArticleDescriptionExistsAsync(description);
+
+    public async Task CreateArticleWithStocksAsync(Article article, List<int> localisationIds)
+    {
+        // 1) Create the article
+        await _catalogueRepo.AddAsync(article);
+
+        // 2) Create a Stock entry for each localisation (Qte=0, Seuil=0)
+        foreach (var locId in localisationIds)
+        {
+            var stock = new StockEntity
+            {
+                IdArticle = article.IdArticle,
+                IdLocalisation = locId,
+                Qte = 0,
+                Seuil = 0,
+                DateSys = DateOnly.FromDateTime(DateTime.Today),
+                UserLogin = article.User
+            };
+            await _stockRepo.AddAsync(stock);
+        }
     }
 
     // Localisation (read)

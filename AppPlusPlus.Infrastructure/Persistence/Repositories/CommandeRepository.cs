@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using AppPlusPlus.Domain.Entities.Commandes;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Infrastructure.Persistence.Repositories;
 
@@ -137,6 +137,51 @@ public class CommandeRepository : RepositoryBase<Commande>, ICommandeRepository
             ctx.Entry(cmd).Property(c => c.MontantPaye).IsModified = true;
             ctx.Entry(cmd).Property(c => c.MontantRest).IsModified = true;
         }
+        await ctx.SaveChangesAsync();
+    }
+
+    public async Task<Commande?> GetWithAllNavigationsAsync(int commandeId)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Commandes
+            .Include(c => c.Customer)
+            .Include(c => c.Details).ThenInclude(d => d.Article)
+            .Include(c => c.Livraisons).ThenInclude(l => l.Details)
+            .Include(c => c.Livraisons).ThenInclude(l => l.Fact).ThenInclude(f => f!.Payments)
+            .FirstOrDefaultAsync(c => c.CommandeId == commandeId);
+    }
+
+    public async Task SaveCommandeWithDetailsAsync(Commande commande, List<CommandeDetail> details)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+
+        if (commande.CommandeId == 0)
+        {
+            // New commande
+            foreach (var d in details)
+                commande.Details.Add(d);
+
+            ctx.Commandes.Add(commande);
+        }
+        else
+        {
+            // Update existing commande
+            ctx.Commandes.Update(commande);
+
+            // Replace details: remove old, add new
+            var existingDetails = await ctx.CommandeDetails
+                .Where(d => d.CommandeId == commande.CommandeId)
+                .ToListAsync();
+
+            ctx.CommandeDetails.RemoveRange(existingDetails);
+
+            foreach (var d in details)
+            {
+                d.CommandeId = commande.CommandeId;
+                ctx.CommandeDetails.Add(d);
+            }
+        }
+
         await ctx.SaveChangesAsync();
     }
 }

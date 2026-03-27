@@ -1,6 +1,6 @@
 using AppPlusPlus.Domain.Entities.Approvisionnement;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface IApproRepository : IRepository<Appro>
 {

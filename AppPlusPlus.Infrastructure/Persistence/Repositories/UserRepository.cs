@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using AppPlusPlus.Domain.Entities.Administration;
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Infrastructure.Persistence.Repositories;
 
@@ -69,6 +69,86 @@ public class UserRepository : RepositoryBase<User>, IUserRepository
         {
             ctx.UserLocalisations.Add(new UserLocalisation { UserId = login, LocalisationId = locId });
         }
+        await ctx.SaveChangesAsync();
+    }
+
+    public async Task<User?> GetWithRoleAsync(string login)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Login == login);
+    }
+
+    public async Task<List<User>> GetByLocalisationAsync(int localisationId)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        return await ctx.UserLocalisations
+            .Where(ul => ul.LocalisationId == localisationId && ul.Activate == true)
+            .Include(ul => ul.User)
+            .Where(ul => ul.User != null)
+            .Select(ul => ul.User!)
+            .ToListAsync();
+    }
+
+    public async Task ReplaceUserActivitiesAsync(string login, List<int> activityIds)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        var existing = await ctx.UserActivities.Where(ua => ua.UserLogin == login).ToListAsync();
+        ctx.UserActivities.RemoveRange(existing);
+        foreach (var actId in activityIds)
+        {
+            ctx.UserActivities.Add(new UserActivity
+            {
+                UserLogin = login,
+                ActivityId = actId,
+                IsGranted = true,
+                AssignedDate = DateTime.Now
+            });
+        }
+        await ctx.SaveChangesAsync();
+    }
+
+    public async Task UpdateUserLocalisationsAsync(string login, HashSet<int> newLocalisationIds)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        var existing = await ctx.UserLocalisations
+            .Where(ul => ul.UserId == login)
+            .ToListAsync();
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        // Deactivate localisations that are no longer in the new set
+        foreach (var ul in existing.Where(ul => ul.Activate == true))
+        {
+            if (ul.LocalisationId.HasValue && !newLocalisationIds.Contains(ul.LocalisationId.Value))
+            {
+                ul.Activate = false;
+                ul.EndDate = today;
+            }
+        }
+
+        // Determine which localisation IDs already have an active record
+        var activeLocIds = existing
+            .Where(ul => ul.Activate == true && ul.LocalisationId.HasValue)
+            .Select(ul => ul.LocalisationId!.Value)
+            .ToHashSet();
+
+        // Add new localisations that don't already exist as active
+        foreach (var locId in newLocalisationIds)
+        {
+            if (!activeLocIds.Contains(locId))
+            {
+                ctx.UserLocalisations.Add(new UserLocalisation
+                {
+                    UserId = login,
+                    LocalisationId = locId,
+                    BeginDate = today,
+                    Activate = true
+                });
+            }
+        }
+
         await ctx.SaveChangesAsync();
     }
 }

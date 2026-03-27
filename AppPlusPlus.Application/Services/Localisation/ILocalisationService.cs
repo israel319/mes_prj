@@ -21,4 +21,9 @@ public interface ILocalisationService
     /// Returns every localisation, ordered by description.
     /// </summary>
     Task<List<Domain.Entities.Administration.Localisation>> GetAllLocalisationsAsync();
+
+    /// <summary>
+    /// Returns a single localisation by its ID, or null if not found.
+    /// </summary>
+    Task<Domain.Entities.Administration.Localisation?> GetLocalisationByIdAsync(int id);
 }

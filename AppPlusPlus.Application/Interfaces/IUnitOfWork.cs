@@ -1,4 +1,4 @@
-namespace AppPlusPlus.Domain.Interfaces;
+namespace AppPlusPlus.Application.Interfaces;
 
 public interface IUnitOfWork : IDisposable
 {

@@ -1,6 +1,6 @@
 using AppPlusPlus.Domain.Entities.Administration;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface IRoleRepository : IRepository<Role>
 {

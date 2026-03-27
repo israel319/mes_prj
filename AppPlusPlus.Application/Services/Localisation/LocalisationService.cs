@@ -1,4 +1,4 @@
-using AppPlusPlus.Domain.Interfaces.Repositories;
+using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Application.Services.Localisation;
 
@@ -48,4 +48,8 @@ public class LocalisationService : ILocalisationService
         var all = await _lookupRepo.GetAllLocalisationsAsync();
         return all.OrderBy(l => l.DescriptionLocalisation).ToList();
     }
+
+    /// <inheritdoc />
+    public async Task<Domain.Entities.Administration.Localisation?> GetLocalisationByIdAsync(int id)
+        => await _lookupRepo.GetLocalisationByIdAsync(id);
 }

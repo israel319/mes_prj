@@ -1,10 +1,12 @@
 using AppPlusPlus.Domain.Entities.Catalogue;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface ICatalogueRepository : IRepository<Article>
 {
     Task<Article?> GetByArticleIdAsync(string articleId);
+    Task<bool> ArticleExistsAsync(string articleCode);
+    Task<bool> ArticleDescriptionExistsAsync(string description);
     Task<List<Article>> GetArticlesWithStockAsync(List<int> localisationIds);
     Task<List<ArticleType>> GetAllTypesAsync();
     Task<List<ArticleMarque>> GetAllMarquesAsync();

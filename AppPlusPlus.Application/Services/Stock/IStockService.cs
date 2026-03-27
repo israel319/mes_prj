@@ -1,3 +1,4 @@
+using AppPlusPlus.Application.DTOs.Stock;
 using StockEntity = AppPlusPlus.Domain.Entities.Stock.Stock;
 
 namespace AppPlusPlus.Application.Services.Stock;
@@ -10,4 +11,10 @@ public interface IStockService
 
     Task DeleteArticleWithStocksAsync(string articleId);
     Task<List<StockEntity>> GetStocksByArticleAsync(string articleId);
+
+    /// <summary>
+    /// Returns a flat list of stock + article info for a single localisation,
+    /// combining Stock.Qte/Seuil with Article.Description.
+    /// </summary>
+    Task<List<StockArticleDto>> GetStockArticleViewAsync(int localisationId);
 }

@@ -1,7 +1,7 @@
 using AppPlusPlus.Domain.Entities.Vente;
 using AppPlusPlus.Domain.Enums;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface IFactureRepository : IRepository<Fact>
 {

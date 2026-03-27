@@ -1,9 +1,8 @@
 @page "/commandes"
 @rendermode InteractiveServer
-@using MudBlazor
 @inject ICmdService CmdService
 @inject ICommandeService CommandeService
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICustomerService CustomerService
 @inject MudBlazor.IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -414,14 +413,13 @@ else
     }
 
     /* ════════════════════════════════════════════════════════════
-       CLIENTS (simple CRUD via DbFactory — until CustomerService is built)
+       CLIENTS
        ════════════════════════════════════════════════════════════ */
 
     async Task LoadClients()
     {
         _clientLoading = true;
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-        _clientData = await ctx.Customers.OrderBy(c => c.CustomerName).ToListAsync();
+        _clientData = await CustomerService.GetAllAsync();
         _clientLoading = false;
     }
 
@@ -452,9 +450,7 @@ else
             cancelText: "Annuler");
         if (confirm == true)
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            ctx.Customers.Remove(c);
-            await ctx.SaveChangesAsync();
+            await CustomerService.DeleteAsync(c.CustomerId);
             _clientData.Remove(c);
             Snackbar.Add("Client supprimé", Severity.Success);
         }

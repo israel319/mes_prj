@@ -1,7 +1,7 @@
-@using MudBlazor
-@using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject ICatalogueService CatalogueService
+@inject ILookupService LookupService
+@inject ILocalisationService LocalisationService
 @inject AuthenticationStateProvider AuthStateProvider
 
 <MudDialog>
@@ -141,40 +141,34 @@
                 ?? "";
         }
 
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-        _categories = await ctx.ArticleCategories.OrderBy(c => c.DescriptionCategory).ToListAsync();
-        _types = await ctx.ArticleTypes.OrderBy(t => t.DescriptionType).ToListAsync();
-        _marques = await ctx.ArticleMarques.OrderBy(m => m.DescriptionMarque).ToListAsync();
-        _mesures = await ctx.Mesures.OrderBy(m => m.DescriptionMesure).ToListAsync();
-        _monnaies = await ctx.Moneys.OrderBy(m => m.DescriptionMonais).ToListAsync();
-        _localisations = await ctx.Localisations.OrderBy(l => l.DescriptionLocalisation).ToListAsync();
+        _categories = await CatalogueService.GetArticleCategoriesAsync();
+        _types = await CatalogueService.GetArticleTypesAsync();
+        _marques = await CatalogueService.GetArticleMarquesAsync();
+        _mesures = await CatalogueService.GetMesuresAsync();
+        _monnaies = await LookupService.GetMoneysAsync();
+        _localisations = await LocalisationService.GetAllLocalisationsAsync();
 
         if (!string.IsNullOrEmpty(ArticleId))
         {
             _isEdit = true;
-            var existing = await ctx.Articles.FindAsync(ArticleId);
+            var existing = await CatalogueService.GetArticleByIdAsync(ArticleId);
             if (existing != null) _article = existing;
         }
     }
 
     async Task OnSubmit()
     {
-        await using var ctx = await DbFactory.CreateDbContextAsync();
         _article.User = _currentLogin;
         _article.DateSys = DateOnly.FromDateTime(DateTime.Today);
         _article.Cumputer = Environment.MachineName;
         if (_isEdit)
         {
-            ctx.Articles.Attach(_article);
-            ctx.Entry(_article).State = EntityState.Modified;
-            ctx.Entry(_article).Property(a => a.Id).IsModified = false;
-            ctx.Entry(_article).Property(a => a.TotalPrice).IsModified = false;
+            await CatalogueService.UpdateArticleAsync(_article);
         }
         else
         {
-            ctx.Articles.Add(_article);
+            await CatalogueService.AddArticleAsync(_article);
         }
-        await ctx.SaveChangesAsync();
         MudDialog.Close(DialogResult.Ok(true));
     }
 }

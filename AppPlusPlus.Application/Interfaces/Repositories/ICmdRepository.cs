@@ -1,6 +1,6 @@
 using AppPlusPlus.Domain.Entities.CommandesInternes;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface ICmdRepository : IRepository<Cmd>
 {

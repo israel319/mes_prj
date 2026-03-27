@@ -5,9 +5,8 @@ using AppPlusPlus.Infrastructure.Persistence;
 using AppPlusPlus.Infrastructure.Persistence.Repositories;
 using AppPlusPlus.Infrastructure.ExternalServices;
 using AppPlusPlus.Infrastructure.Identity;
-using AppPlusPlus.Domain.Interfaces;
-using AppPlusPlus.Domain.Interfaces.Repositories;
 using AppPlusPlus.Application.Interfaces;
+using AppPlusPlus.Application.Interfaces.Repositories;
 using AppPlusPlus.Application.Services.Dashboard;
 using AppPlusPlus.Application.Services.Vente;
 using AppPlusPlus.Application.Services.Commandes;
@@ -52,6 +51,7 @@ public static class DependencyInjection
         // ── Query Services ──
         services.AddScoped<IDashboardService, QueryServices.DashboardService>();
         services.AddScoped<IFacturationService, FacturationQueryService>();
+        services.AddScoped<IPaymentService, PaymentQueryService>();
         services.AddScoped<ILivraisonService, LivraisonQueryService>();
         services.AddScoped<IClotureService, ClotureQueryService>();
 

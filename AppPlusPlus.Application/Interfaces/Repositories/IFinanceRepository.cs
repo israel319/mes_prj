@@ -1,7 +1,7 @@
 using AppPlusPlus.Domain.Entities.Finance;
 using AppPlusPlus.Domain.Entities.Approvisionnement;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface IFinanceRepository
 {
@@ -27,6 +27,7 @@ public interface IFinanceRepository
     Task UpdatePeriodeAsync(Periode periode);
 
     // Versement
+    Task<bool> VersementExistsAsync(DateOnly date, int localisationId);
     Task<List<Versement>> GetVersementsByDateAsync(DateOnly date);
     Task<List<Versement>> GetVersementsByLocalisationAsync(int localisationId);
     Task<List<Versement>> GetVersementsByDateRangeAsync(DateOnly from, DateOnly to);

@@ -1,6 +1,6 @@
 using AppPlusPlus.Domain.Entities.Clients;
 
-namespace AppPlusPlus.Domain.Interfaces.Repositories;
+namespace AppPlusPlus.Application.Interfaces.Repositories;
 
 public interface ICustomerRepository : IRepository<Customer>
 {

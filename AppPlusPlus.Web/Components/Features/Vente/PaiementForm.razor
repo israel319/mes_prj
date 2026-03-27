@@ -1,7 +1,6 @@
-@using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
-@inject IDbContextFactory<AppDbContext> DbFactory
+@inject IPaymentService PaymentService
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
 
@@ -76,47 +75,8 @@
 
         try
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            using var tx = await ctx.Database.BeginTransactionAsync();
-
-            // 1) Insérer le paiement
-            var payment = new Payment
-            {
-                IdFact = FactId,
-                Date = DateOnly.FromDateTime(DateTime.Today),
-                Amount = _montant,
-                Note = $"{_mode}" + (string.IsNullOrWhiteSpace(_note) ? "" : $" — {_note}"),
-                DateSys = DateTime.Now,
-                User = _currentLogin
-            };
-            ctx.Payments.Add(payment);
-            await ctx.SaveChangesAsync();
-
-            // 2) Mettre à jour la commande
-            var commande = await ctx.Commandes.FindAsync(CommandeId);
-            if (commande != null)
-            {
-                commande.MontantPaye += _montant;
-                commande.MontantRest = commande.MontantTotal - commande.MontantPaye;
-                if (commande.MontantRest < 0) commande.MontantRest = 0;
-            }
-
-            // 3) Mettre à jour le statut de la facture
-            var facture = await ctx.Facts.FindAsync(FactId);
-            if (facture != null)
-            {
-                var totalPaye = await ctx.Payments
-                    .Where(p => p.IdFact == FactId)
-                    .SumAsync(p => p.Amount);
-
-                if (totalPaye >= (facture.TotalApresReduction ?? facture.Total ?? 0))
-                    facture.Status = 2; // Payée
-                else
-                    facture.Status = 1; // Validée (paiement partiel)
-            }
-
-            await ctx.SaveChangesAsync();
-            await tx.CommitAsync();
+            var note = $"{_mode}" + (string.IsNullOrWhiteSpace(_note) ? "" : $" — {_note}");
+            await PaymentService.RecordPaymentAsync(FactId, CommandeId, _montant, _mode, note, _currentLogin);
 
             Snackbar.Add($"{_montant:N2} — {_mode}", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));

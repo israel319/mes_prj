@@ -43,6 +43,18 @@ public interface ICatalogueService
     Task UpdateArticleAsync(Article article);
     Task DeleteArticleAsync(string articleId);
 
+    /// <summary>Returns true if an article with the given code already exists.</summary>
+    Task<bool> ArticleExistsAsync(string articleCode);
+
+    /// <summary>Returns true if an article with the given description already exists.</summary>
+    Task<bool> ArticleDescriptionExistsAsync(string description);
+
+    /// <summary>
+    /// Creates an article and initialises Stock entries (Qte=0, Seuil=0)
+    /// for each of the supplied localisation IDs.
+    /// </summary>
+    Task CreateArticleWithStocksAsync(Article article, List<int> localisationIds);
+
     // Localisation (read)
     Task<Domain.Entities.Administration.Localisation?> GetLocalisationByIdAsync(int id);
 }
