@@ -31,8 +31,7 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
-    .AddInteractiveWebAssemblyComponents();
+    .AddInteractiveServerComponents();
 
 // Détails des erreurs Blazor Server (visible dans F12 Console)
 builder.Services.AddServerSideBlazor().AddCircuitOptions(o => o.DetailedErrors = true);
@@ -56,7 +55,7 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.UseWebAssemblyDebugging();
+    // Development-only middleware
 }
 else
 {
