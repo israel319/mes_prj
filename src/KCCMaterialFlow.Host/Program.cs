@@ -165,13 +165,6 @@ try
             $"BonsSortie_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
     }).RequireAuthorization();
 
-    app.MapGet("/api/export/historique", async (KCCMaterialFlow.Host.Services.IExcelExportService exportService, CancellationToken ct) =>
-    {
-        var bytes = await exportService.ExportHistoriqueAsync(ct);
-        return Results.File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"Historique_{DateTime.Now:yyyyMMdd_HHmm}.xlsx");
-    }).RequireAuthorization();
-
     Log.Information("KCC Material Flow démarré avec succès");
     app.Run();
 }

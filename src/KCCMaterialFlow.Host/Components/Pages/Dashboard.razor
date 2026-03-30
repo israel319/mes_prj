@@ -122,7 +122,7 @@
                         <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin: 0;">Derniers bons d'entrée créés</RadzenText>
                     </RadzenStack>
                     <RadzenButton Text="Voir tout" Icon="arrow_forward" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
-                                  Size="ButtonSize.Small" Click="@(() => NavigateTo("/liste-bons/bem"))" />
+                                  Size="ButtonSize.Small" Click="@(() => NavigateTo("/liste-bons/bem"))" class="kcc-link-button" />
                 </RadzenStack>
 
                 @if (isLoading)
@@ -168,7 +168,7 @@
                         <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin: 0;">Derniers bons de sortie créés</RadzenText>
                     </RadzenStack>
                     <RadzenButton Text="Voir tout" Icon="arrow_forward" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
-                                  Size="ButtonSize.Small" Click="@(() => NavigateTo("/liste-bons/bsm"))" />
+                                  Size="ButtonSize.Small" Click="@(() => NavigateTo("/liste-bons/bsm"))" class="kcc-link-button" />
                 </RadzenStack>
 
                 @if (isLoading)

@@ -86,12 +86,6 @@
                         <span>Prêts</span>
                     </a>
                 }
-                <a href="/historique" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("historique")">
-                    <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    <span>Historique</span>
-                </a>
                 @if (CanScan)
                 {
                     <a href="/securite/scanner" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("scanner")">
@@ -164,7 +158,6 @@
             "approbations" => path.StartsWith("/mes-approbations") || path.StartsWith("/liste-rejets"),
             "nouveau" => path.Contains("/nouveau"),
             "prets" => path.StartsWith("/bon-sortie/prets"),
-            "historique" => path.StartsWith("/historique"),
             "scanner" => path.StartsWith("/securite"),
             "admin" => path.StartsWith("/admin"),
             _ => false

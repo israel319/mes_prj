@@ -934,3 +934,61 @@ body {
         order: 1;
     }
 }
+
+/* =============================================
+   Boutons Light + Text : visibilité améliorée
+   (correctif global — ces boutons étaient trop grisés)
+   ============================================= */
+
+/* Bouton Light Text — couleur lisible au lieu de gris pâle */
+.rz-button.rz-variant-text.rz-light,
+.rz-button.rz-variant-text.rz-shade-light,
+.rz-button.rz-variant-text.rz-light.rz-shade-default {
+    color: var(--kcc-text-body) !important;
+}
+
+.rz-button.rz-variant-text.rz-light:hover,
+.rz-button.rz-variant-text.rz-shade-light:hover,
+.rz-button.rz-variant-text.rz-light.rz-shade-default:hover {
+    color: var(--kcc-primary-dark) !important;
+    background-color: var(--kcc-primary-light) !important;
+}
+
+/* Icônes d'action dans les DataGrid (ex: oeil visibility) */
+.rz-button.rz-variant-text.rz-light .rz-button-icon-left,
+.rz-button.rz-variant-text.rz-shade-light .rz-button-icon-left {
+    color: inherit !important;
+}
+
+/* Liens "Voir tout" — style plus visible façon lien */
+.kcc-link-button {
+    color: var(--kcc-primary) !important;
+    font-weight: 500 !important;
+}
+
+.kcc-link-button:hover {
+    color: var(--kcc-primary-dark) !important;
+    background-color: var(--kcc-primary-light) !important;
+    text-decoration: none !important;
+}
+
+/* Bouton Effacer — style discret mais lisible */
+.kcc-btn-clear {
+    color: var(--kcc-text-muted) !important;
+    font-weight: 500 !important;
+}
+
+.kcc-btn-clear:hover {
+    color: var(--kcc-accent) !important;
+    background-color: var(--kcc-accent-light) !important;
+}
+
+/* Boutons d'action DataGrid — icône bien visible */
+.kcc-action-btn {
+    color: var(--kcc-primary) !important;
+}
+
+.kcc-action-btn:hover {
+    color: var(--kcc-primary-dark) !important;
+    background-color: var(--kcc-primary-light) !important;
+}
