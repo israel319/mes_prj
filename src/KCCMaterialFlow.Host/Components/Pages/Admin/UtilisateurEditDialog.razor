@@ -1,5 +1,3 @@
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @inject IUtilisateurService UtilisateurService
 @inject IDepartementService DepartementService
 @inject IRoleService RoleService
@@ -102,7 +100,7 @@
                 <RadzenColumn Size="12" SizeMD="6">
                     <RadzenFormField Text="Rôle principal *" Style="width: 100%;">
                         <RadzenDropDown TValue="int" Data="@roles" @bind-Value="@model.IdRole"
-                                        TextProperty="NomRole" ValueProperty="IdRole"
+                                        TextProperty="NomRole" ValueProperty="Id"
                                         AllowClear="false" Style="width: 100%;">
                             <Template Context="role">
                                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
@@ -180,7 +178,7 @@
                 isEditMode = true;
                 model = new Utilisateur
                 {
-                    IdUtilisateur = Utilisateur.IdUtilisateur,
+                    Id = Utilisateur.Id,
                     Login = Utilisateur.Login,
                     NomComplet = Utilisateur.NomComplet,
                     Email = Utilisateur.Email,
@@ -200,7 +198,7 @@
                 var defaultRole = roles.FirstOrDefault(r => r.CodeRole.Equals("Demandeur", StringComparison.OrdinalIgnoreCase))
                                 ?? roles.FirstOrDefault(r => r.NiveauPriorite == roles.Min(x => x.NiveauPriorite))
                                 ?? roles.FirstOrDefault();
-                model.IdRole = defaultRole?.IdRole ?? 0;
+                model.IdRole = defaultRole?.Id ?? 0;
                 model.EstActif = true;
                 model.DateCreation = DateTime.Now;
             }

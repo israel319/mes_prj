@@ -1,5 +1,3 @@
-@using TypeMaterielEntity = KCCMaterialFlow.Module.Shared.Entities.TypeMateriel
-@using KCCMaterialFlow.Module.Shared.Services
 @inject ITypeMaterielService TypeMaterielService
 @inject DialogService DialogService
 
@@ -136,7 +134,7 @@
             isEditMode = true;
             model = new TypeMaterielEntity
             {
-                IdTypeMateriel = TypeMateriel.IdTypeMateriel,
+                Id = TypeMateriel.Id,
                 CodeType = TypeMateriel.CodeType,
                 NomType = TypeMateriel.NomType,
                 Description = TypeMateriel.Description,

@@ -1,6 +1,6 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -58,7 +58,7 @@ public class RoleService : IRoleService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var role = await context.Set<Role>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.IdRole == id, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
         if (role != null)
             _cache.Set(cacheKey, role, CacheDuration);
@@ -96,10 +96,10 @@ public class RoleService : IRoleService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var existing = await context.Set<Role>()
-            .FirstOrDefaultAsync(r => r.IdRole == role.IdRole, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == role.Id, cancellationToken);
 
         if (existing == null)
-            throw new InvalidOperationException($"Rôle {role.IdRole} non trouvé");
+            throw new InvalidOperationException($"Rôle {role.Id} non trouvé");
 
         if (existing.EstSysteme)
             throw new InvalidOperationException("Les rôles système ne peuvent pas être modifiés");
@@ -122,7 +122,7 @@ public class RoleService : IRoleService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var role = await context.Set<Role>()
-            .FirstOrDefaultAsync(r => r.IdRole == id, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
         if (role == null)
             return false;
@@ -145,7 +145,7 @@ public class RoleService : IRoleService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await context.Set<UtilisateurRole>()
             .AsNoTracking()
-            .Where(ur => ur.IdUtilisateur == userId)
+            .Where(ur => ur.Id == userId)
             .Include(ur => ur.Role)
             .Where(ur => ur.Role != null && ur.Role.EstActif)
             .Select(ur => ur.Role!)
@@ -157,7 +157,7 @@ public class RoleService : IRoleService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var exists = await context.Set<UtilisateurRole>()
-            .AnyAsync(ur => ur.IdUtilisateur == userId && ur.IdRole == roleId, cancellationToken);
+            .AnyAsync(ur => ur.Id == userId && ur.Id == roleId, cancellationToken);
 
         if (exists)
             return false;
@@ -181,7 +181,7 @@ public class RoleService : IRoleService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var userRole = await context.Set<UtilisateurRole>()
-            .FirstOrDefaultAsync(ur => ur.IdUtilisateur == userId && ur.IdRole == roleId, cancellationToken);
+            .FirstOrDefaultAsync(ur => ur.Id == userId && ur.Id == roleId, cancellationToken);
 
         if (userRole == null)
             return false;
@@ -200,7 +200,7 @@ public class RoleService : IRoleService
             .Where(r => r.CodeRole.ToUpper() == code.ToUpper());
 
         if (excludeId.HasValue)
-            query = query.Where(r => r.IdRole != excludeId.Value);
+            query = query.Where(r => r.Id != excludeId.Value);
 
         return await query.AnyAsync(cancellationToken);
     }

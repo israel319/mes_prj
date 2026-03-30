@@ -1,5 +1,5 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace KCCMaterialFlow.Infrastructure.Performance;
@@ -85,10 +85,10 @@ public static class CompiledQueries
     /// <summary>
     /// Récupère un type de matériel par son code
     /// </summary>
-    public static readonly Func<KCCMaterialFlowDbContext, string, Task<TypeMateriel?>> 
+    public static readonly Func<KCCMaterialFlowDbContext, string, Task<TypeMaterielEntity?>>
         GetTypeMaterielByCode = EF.CompileAsyncQuery(
             (KCCMaterialFlowDbContext ctx, string code) =>
-                ctx.Set<TypeMateriel>()
+                ctx.Set<TypeMaterielEntity>()
                     .AsNoTracking()
                     .FirstOrDefault(t => t.CodeType == code));
 

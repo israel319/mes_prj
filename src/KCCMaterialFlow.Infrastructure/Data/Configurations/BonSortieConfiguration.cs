@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonSortie.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -17,7 +17,7 @@ public class BonSortieConfiguration : IEntityTypeConfiguration<BonSortie>
         // Table unique pour toute la hiérarchie des bons de sortie (TPH)
         builder.ToTable("T_BonsSortie", "dbo");
 
-        builder.HasKey(b => b.IdBon);
+        builder.HasKey(b => b.Id);
 
         // Discriminateur pour TPH - distingue les types de sortie
         builder.HasDiscriminator<string>("TypeSortie")
@@ -25,7 +25,7 @@ public class BonSortieConfiguration : IEntityTypeConfiguration<BonSortie>
             .HasValue<BonSortieInterne>("Interne")
             .HasValue<Pret>("Pret");
 
-        builder.Property(b => b.IdBon)
+        builder.Property(b => b.Id)
             .HasColumnName("IdBon")
             .ValueGeneratedOnAdd();
 
@@ -109,24 +109,28 @@ public class BonSortieConfiguration : IEntityTypeConfiguration<BonSortie>
 
         // Relations - Navigation vers les collections propres au module BonSortie
         builder.HasMany(b => b.Materiels)
-            .WithOne(m => m.BonSortie)
-            .HasForeignKey(m => m.BonSortieId)
+            .WithOne()
+            .HasForeignKey(m => m.BonId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(b => b.Approbations)
-            .WithOne(a => a.BonSortie)
-            .HasForeignKey(a => a.BonSortieId)
+            .WithOne()
+            .HasForeignKey(a => a.BonId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(b => b.Itineraires)
-            .WithOne(i => i.BonSortie)
-            .HasForeignKey(i => i.BonSortieId)
+            .WithOne()
+            .HasForeignKey(i => i.BonId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(b => b.Historiques)
-            .WithOne(h => h.BonSortie)
-            .HasForeignKey(h => h.BonSortieId)
+            .WithOne()
+            .HasForeignKey(h => h.BonId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // ===== Ignorer les propriétés non mappées =====
+        builder.Ignore(b => b.Statut);
+        builder.Ignore(b => b.DomainEvents);
 
         // Index unique sur le numéro de référence
         builder.HasIndex(b => b.NumeroReference)

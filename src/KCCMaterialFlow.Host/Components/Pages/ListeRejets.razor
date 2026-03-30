@@ -1,8 +1,5 @@
 @page "/liste-rejets"
 @attribute [Authorize]
-@using KCCMaterialFlow.Application.Interfaces
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @using KCCMaterialFlow.Host.Components.Dialogs
 @inject INotificationRejetService NotificationRejetService
 @inject ICurrentUserService CurrentUserService
@@ -27,16 +24,16 @@
 
     @* STATS *@
     <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem">
-        <RadzenCard Style="padding: 0.5rem 1rem;">
+        <RadzenCard Style="padding: 0.75rem 1.25rem; background: var(--kcc-accent-light);">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                <RadzenText TextStyle="TextStyle.Body2">Total:</RadzenText>
-                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 700; color: #ef4444;">@rejets.Count</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Total:</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 700; color: var(--kcc-accent); margin: 0;">@rejets.Count</RadzenText>
             </RadzenStack>
         </RadzenCard>
-        <RadzenCard Style="padding: 0.5rem 1rem;">
+        <RadzenCard Style="padding: 0.75rem 1.25rem; background: var(--kcc-warning-light);">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                <RadzenText TextStyle="TextStyle.Body2">Non lus:</RadzenText>
-                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 700; color: #ef4444;">@rejets.Count(r => !r.EstLue)</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Non lus:</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 700; color: var(--kcc-warning); margin: 0;">@rejets.Count(r => !r.EstLue)</RadzenText>
             </RadzenStack>
         </RadzenCard>
     </RadzenStack>
@@ -78,7 +75,7 @@
                         <Template Context="rejet">
                             @if (!rejet.EstLue)
                             {
-                                <RadzenBadge Text="●" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                                <RadzenBadge Text="●" BadgeStyle="BadgeStyle.Danger" />
                             }
                         </Template>
                     </RadzenDataGridColumn>
@@ -88,7 +85,7 @@
                                 <strong style="@(!rejet.EstLue ? "color: var(--kcc-slate);" : "")">@rejet.NumeroReference</strong>
                                 @if (!rejet.EstLue)
                                 {
-                                    <RadzenBadge Text="Nouveau" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                                    <RadzenBadge Text="Nouveau" BadgeStyle="BadgeStyle.Danger" />
                                 }
                             </RadzenStack>
                         </Template>
@@ -107,7 +104,7 @@
                         <Template Context="rejet">
                             <RadzenBadge Text="@rejet.BonType" 
                                          BadgeStyle="@(rejet.BonType == "BEM" ? BadgeStyle.Info : BadgeStyle.Success)" 
-                                         IsPill="true" />
+                                         />
                         </Template>
                     </RadzenDataGridColumn>
                 </Columns>
@@ -202,7 +199,7 @@
                 { "Notification", rejet },
                 { "OnMarkedAsRead", EventCallback.Factory.Create(this, async () => 
                     {
-                        await NotificationRejetService.MarquerCommeLueAsync(rejet.IdNotificationRejet);
+                        await NotificationRejetService.MarquerCommeLueAsync(rejet.Id);
                         rejet.EstLue = true;
                         rejet.DateLecture = DateTime.Now;
                         DialogService.Close();
@@ -213,14 +210,17 @@
             },
             new DialogOptions
             {
-                Width = "550px",
-                CloseDialogOnOverlayClick = true
+                Width = "860px",
+                Height = "460px",
+                CloseDialogOnOverlayClick = true,
+                ShowClose = false,
+                CssClass = "kcc-dialog-clean"
             });
 
         // Si le rejet n'était pas lu et que le user l'a ouvert, le marquer comme lu
         if (!rejet.EstLue)
         {
-            await NotificationRejetService.MarquerCommeLueAsync(rejet.IdNotificationRejet);
+            await NotificationRejetService.MarquerCommeLueAsync(rejet.Id);
             rejet.EstLue = true;
             rejet.DateLecture = DateTime.Now;
             StateHasChanged();
@@ -229,7 +229,7 @@
 
     private async Task MarkAllAsRead()
     {
-        var nonLus = rejets.Where(r => !r.EstLue).Select(r => r.IdNotificationRejet).ToList();
+        var nonLus = rejets.Where(r => !r.EstLue).Select(r => r.Id).ToList();
         if (nonLus.Any())
         {
             await NotificationRejetService.MarquerCommeLuesAsync(nonLus);

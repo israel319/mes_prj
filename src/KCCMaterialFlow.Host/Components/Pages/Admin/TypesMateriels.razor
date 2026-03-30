@@ -1,7 +1,5 @@
 @page "/admin/types-materiels"
 @attribute [Authorize(Roles = "Admin")]
-@using TypeMaterielEntity = KCCMaterialFlow.Module.Shared.Entities.TypeMateriel
-@using KCCMaterialFlow.Module.Shared.Services
 @using Microsoft.AspNetCore.Authorization
 @inject ITypeMaterielService TypeMaterielService
 @inject IAuditLogService AuditLogService
@@ -11,16 +9,12 @@
 
 <PageTitle>Administration - Types de Matériel</PageTitle>
 
-<div style="padding: 1.5rem;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    <AdminNav />
     <RadzenStack Gap="1.5rem">
         @* En-tête *@
         <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
             <RadzenColumn>
-                <RadzenBreadCrumb>
-                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
-                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
-                    <RadzenBreadCrumbItem Text="Types de Matériel" Icon="category" />
-                </RadzenBreadCrumb>
                 <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
                     <RadzenIcon Icon="category" Style="margin-right: 0.5rem; vertical-align: middle;" />
                     Gestion des Types de Matériel
@@ -60,111 +54,109 @@
                             PagerHorizontalAlign="HorizontalAlign.Center"
                             Style="border: none;">
                 <Columns>
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Ordre" Title="#" Width="60px" TextAlign="TextAlign.Center" />
-                    
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="CodeType" Title="Code" Width="150px">
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Ordre" Title="#" Width="50px" TextAlign="TextAlign.Center" />
+
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="CodeType" Title="Code" Width="220px">
                         <Template Context="type">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 @if (!string.IsNullOrEmpty(type.Icone))
                                 {
-                                    <RadzenIcon Icon="@type.Icone" Style="@($"color: {type.Couleur ?? "#666"}")" />
+                                    <div style="width: 28px; height: 28px; background: @(type.Couleur ?? "#6c757d");
+                                                display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <RadzenIcon Icon="@type.Icone" Style="color: #fff; font-size: 14px;" />
+                                    </div>
                                 }
-                                <RadzenBadge Text="@type.CodeType" 
-                                             Style="@($"background-color: {type.Couleur ?? "#6c757d"}; color: white;")" 
-                                             IsPill="true" />
-                            </RadzenStack>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.8rem; color: #1a1a1a;">@type.CodeType</div>
+                                    <div style="font-size: 0.72rem; color: #666;">@type.NomType</div>
+                                </div>
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="NomType" Title="Nom" Width="200px" />
-                    
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Categorie" Title="Catégorie" Width="150px">
+
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Categorie" Title="Catégorie" Width="130px">
                         <Template Context="type">
                             @if (!string.IsNullOrEmpty(type.Categorie))
                             {
-                                <RadzenBadge Text="@type.Categorie" BadgeStyle="BadgeStyle.Light" IsPill="true" />
+                                <span style="font-size: 0.78rem; color: #374151;">@type.Categorie</span>
                             }
                             else
                             {
-                                <span style="color: #999;">-</span>
+                                <span style="color: #999;">—</span>
                             }
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Approbations" Width="150px">
+
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Approbations" Width="140px">
                         <Template Context="type">
-                            <RadzenStack Gap="0">
-                                <RadzenText TextStyle="TextStyle.Caption">
-                                    @type.NiveauxApprobation niveau(x)
-                                </RadzenText>
-                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem">
-                                    @if (type.RequiertApprobationDepartement)
-                                    {
-                                        <RadzenBadge Text="Dept" BadgeStyle="BadgeStyle.Info" IsPill="true" Style="font-size: 0.6rem;" />
-                                    }
-                                    @if (type.RequiertApprobationDirection)
-                                    {
-                                        <RadzenBadge Text="Dir" BadgeStyle="BadgeStyle.Warning" IsPill="true" Style="font-size: 0.6rem;" />
-                                    }
-                                </RadzenStack>
-                            </RadzenStack>
+                            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                <span style="font-size: 0.78rem; font-weight: 600; color: #374151;">@type.NiveauxApprobation</span>
+                                <span style="font-size: 0.72rem; color: #666;">niveau(x)</span>
+                            </div>
+                            <div style="display: flex; gap: 0.25rem; margin-top: 0.15rem;">
+                                @if (type.RequiertApprobationDepartement)
+                                {
+                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(59,130,246,0.1); color: #2563eb;">Dept</span>
+                                }
+                                @if (type.RequiertApprobationDirection)
+                                {
+                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(245,158,11,0.1); color: #d97706;">Dir</span>
+                                }
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Validité" Width="120px">
+
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Validité" Width="110px">
                         <Template Context="type">
-                            <RadzenStack Gap="0">
-                                <RadzenText TextStyle="TextStyle.Caption">
-                                    Défaut: @type.DureeValiditeDefautJours j
-                                </RadzenText>
-                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
-                                    Max: @type.DureeMaximumJours j
-                                </RadzenText>
-                            </RadzenStack>
+                            <div style="font-size: 0.78rem; color: #374151;">@type.DureeValiditeDefautJours j <span style="color: #999;">/ max @type.DureeMaximumJours j</span></div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Requis" Width="120px">
                         <Template Context="type">
-                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" Wrap="FlexWrap.Wrap">
+                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
                                 @if (type.NumeroSerieObligatoire)
                                 {
-                                    <RadzenBadge Text="N° série" BadgeStyle="BadgeStyle.Secondary" IsPill="true" Style="font-size: 0.6rem;" />
+                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: #f3f4f6; color: #374151;">N° série</span>
                                 }
                                 @if (type.PhotoObligatoire)
                                 {
-                                    <RadzenBadge Text="Photo" BadgeStyle="BadgeStyle.Secondary" IsPill="true" Style="font-size: 0.6rem;" />
+                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: #f3f4f6; color: #374151;">Photo</span>
                                 }
-                            </RadzenStack>
+                                @if (!type.NumeroSerieObligatoire && !type.PhotoObligatoire)
+                                {
+                                    <span style="color: #999;">—</span>
+                                }
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="EstActif" Title="Statut" Width="90px" TextAlign="TextAlign.Center">
+
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="EstActif" Title="Statut" Width="80px" TextAlign="TextAlign.Center">
                         <Template Context="type">
                             @if (type.EstActif)
                             {
-                                <RadzenBadge Text="Actif" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                                <span style="font-size: 0.72rem; font-weight: 600; color: #059669;">Actif</span>
                             }
                             else
                             {
-                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                                <span style="font-size: 0.72rem; font-weight: 600; color: #dc2626;">Inactif</span>
                             }
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+
+                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Actions" Width="90px" TextAlign="TextAlign.Center" Sortable="false">
                         <Template Context="type">
                             <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
                                 <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                                               Click="@(() => ShowEditDialog(type))" title="Modifier" />
                                 @if (type.EstActif)
                                 {
-                                    <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                    <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
                                                   Click="@(() => ToggleStatus(type))" title="Désactiver" />
                                 }
                                 else
                                 {
-                                    <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                    <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
                                                   Click="@(() => ToggleStatus(type))" title="Activer" />
                                 }
                             </RadzenStack>
@@ -259,7 +251,7 @@
         {
             try
             {
-                await TypeMaterielService.DeleteAsync(type.IdTypeMateriel);
+                await TypeMaterielService.DeleteAsync(type.Id);
                 
                 await AuditLogService.LogAsync(
                     CurrentUserService.GetUserLogin(),
@@ -267,7 +259,7 @@
                     type.EstActif ? "Deactivate" : "Activate",
                     "TypeMateriel",
                     $"Type {type.NomType} {(type.EstActif ? "désactivé" : "activé")}",
-                    type.IdTypeMateriel.ToString(),
+                    type.Id.ToString(),
                     "TypeMateriel");
                 
                 await LoadDataAsync();

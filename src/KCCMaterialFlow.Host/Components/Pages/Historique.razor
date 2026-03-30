@@ -1,13 +1,11 @@
 @page "/historique"
 @attribute [Authorize]
-@using KCCMaterialFlow.Module.BonEntree.Services
-@using KCCMaterialFlow.Module.BonSortie.Services
-@using KCCMaterialFlow.Module.BonEntree.Repositories
-@using BEMEntities = KCCMaterialFlow.Module.BonEntree.Entities
-@using BSMEntities = KCCMaterialFlow.Module.BonSortie.Entities
 @using ClosedXML.Excel
-@using KCCMaterialFlow.Module.Shared.Services
-@using KCCMaterialFlow.Module.Shared.Entities
+@using BonEntreeEntity = KCCMaterialFlow.Domain.Entities.BonEntree
+@using BonSortieEntity = KCCMaterialFlow.Domain.Entities.BonSortie
+@using BonSortieExterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieExterne
+@using BonSortieInterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieInterne
+@using PretEntity = KCCMaterialFlow.Domain.Entities.Pret
 
 @inject ICurrentUserService CurrentUserService
 @inject IBonEntreeService BonEntreeService
@@ -155,7 +153,7 @@
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="BonSummary" Property="NbActions" Title="Actions" Width="80px" TextAlign="TextAlign.Center">
                                 <Template Context="bon">
-                                    <RadzenBadge Text="@bon.NbActions.ToString()" BadgeStyle="BadgeStyle.Light" IsPill="true" />
+                                    <RadzenBadge Text="@bon.NbActions.ToString()" BadgeStyle="BadgeStyle.Light" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -224,7 +222,7 @@
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="BonSummary" Property="TypeBon" Title="Type" Width="100px">
                                 <Template Context="bon">
-                                    <RadzenBadge Text="@bon.TypeBon" BadgeStyle="BadgeStyle.Secondary" IsPill="true" />
+                                    <RadzenBadge Text="@bon.TypeBon" BadgeStyle="BadgeStyle.Secondary" />
                                 </Template>
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="BonSummary" Property="NomDemandeur" Title="Demandeur" Width="150px" />
@@ -248,7 +246,7 @@
                             </RadzenDataGridColumn>
                             <RadzenDataGridColumn TItem="BonSummary" Property="NbActions" Title="Actions" Width="80px" TextAlign="TextAlign.Center">
                                 <Template Context="bon">
-                                    <RadzenBadge Text="@bon.NbActions.ToString()" BadgeStyle="BadgeStyle.Light" IsPill="true" />
+                                    <RadzenBadge Text="@bon.NbActions.ToString()" BadgeStyle="BadgeStyle.Light" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -328,8 +326,8 @@
             var bemResult = await BonEntreeService.GetListAsync(new BonEntreeFilter { Take = 5000 });
             var bsmResult = await BonSortieService.GetListAsync(new BonSortieFilter { Take = 5000 });
 
-            IEnumerable<BEMEntities.BonEntree> visibleBEM;
-            IEnumerable<BSMEntities.BonSortie> visibleBSM;
+            IEnumerable<BonEntreeEntity> visibleBEM;
+            IEnumerable<BonSortieEntity> visibleBSM;
 
             // Vérifier si l'utilisateur est Identification (cas spécial : ne voit QUE ce qu'il a approuvé)
             var isIdentification = userRoles.Any(r => r.Equals("Identification", StringComparison.OrdinalIgnoreCase));
@@ -348,7 +346,7 @@
                     .ToList();
 
                 visibleBSM = bsmResult.Items
-                    .Where(b => b.Historiques.Any(h => h.UtilisateurLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)))
+                    .Where(b => b.Historiques.Any(h => h.ActionBy.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
             }
             else if (isApprover)
@@ -359,22 +357,22 @@
                     .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
                                 b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase))
                     .ToList();
-                foreach (var b in myBEM) myBEMIds.Add(b.IdBon);
+                foreach (var b in myBEM) myBEMIds.Add(b.Id);
 
                 // Ajouter les bons en attente au niveau de l'utilisateur
                 var pendingBEM = await BonEntreeService.GetPendingApprovalsAsync();
                 foreach (var bon in pendingBEM)
                 {
-                    if (!myBEMIds.Contains(bon.IdBon))
+                    if (!myBEMIds.Contains(bon.Id))
                     {
                         myBEM.Add(bon);
-                        myBEMIds.Add(bon.IdBon);
+                        myBEMIds.Add(bon.Id);
                     }
                 }
 
                 // Ajouter aussi les bons déjà traités par ce rôle (historique visible)
                 var allBEM = bemResult.Items
-                    .Where(b => !myBEMIds.Contains(b.IdBon) &&
+                    .Where(b => !myBEMIds.Contains(b.Id) &&
                                 b.Historiques.Any(h => h.ActionBy.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
                 foreach (var b in allBEM) myBEM.Add(b);
@@ -387,22 +385,22 @@
                                 b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
                                 b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase))
                     .ToList();
-                foreach (var b in myBSM) myBSMIds.Add(b.IdBon);
+                foreach (var b in myBSM) myBSMIds.Add(b.Id);
 
                 var pendingBSM = await BonSortieService.GetPendingApprovalsAsync();
                 foreach (var bon in pendingBSM)
                 {
-                    if (!myBSMIds.Contains(bon.IdBon))
+                    if (!myBSMIds.Contains(bon.Id))
                     {
                         myBSM.Add(bon);
-                        myBSMIds.Add(bon.IdBon);
+                        myBSMIds.Add(bon.Id);
                     }
                 }
 
                 // Ajouter les bons déjà traités par cet utilisateur
                 var allBSM = bsmResult.Items
-                    .Where(b => !myBSMIds.Contains(b.IdBon) &&
-                                b.Historiques.Any(h => h.UtilisateurLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)))
+                    .Where(b => !myBSMIds.Contains(b.Id) &&
+                                b.Historiques.Any(h => h.ActionBy.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)))
                     .ToList();
                 foreach (var b in allBSM) myBSM.Add(b);
 
@@ -454,7 +452,7 @@
                 var derniere = details.First();
                 return new BonSummary
                 {
-                    BonId = bon.IdBon,
+                    BonId = bon.Id,
                     NumeroReference = bon.NumeroReference,
                     TypeBon = "BEM",
                     NomDemandeur = bon.NomDemandeur,
@@ -473,13 +471,13 @@
             bsmSummaryItems = visibleBSM.Select(bon =>
             {
                 var details = bon.Historiques
-                    .OrderByDescending(h => h.DateAction)
+                    .OrderByDescending(h => h.ActionDate)
                     .Select(h => new HistoriqueDetail
                     {
-                        Action = h.TypeAction,
-                        ActionPar = h.UtilisateurNom ?? h.UtilisateurLogin,
-                        DateAction = h.DateAction,
-                        Commentaire = h.Description ?? "",
+                        Action = h.ActionDescription,
+                        ActionPar = h.ActionByNom ?? h.ActionBy,
+                        DateAction = h.ActionDate,
+                        Commentaire = h.Comment ?? "",
                         StatutAvant = h.StatutAvant,
                         StatutApres = h.StatutApres
                     })
@@ -502,7 +500,7 @@
                 var derniere = details.First();
                 return new BonSummary
                 {
-                    BonId = bon.IdBon,
+                    BonId = bon.Id,
                     NumeroReference = bon.NumeroReference,
                     TypeBon = GetTypeBSM(bon),
                     NomDemandeur = bon.NomDemandeur,
@@ -665,11 +663,11 @@
         }
     }
 
-    private static string GetTypeBSM(BSMEntities.BonSortie bon) => bon switch
+    private static string GetTypeBSM(BonSortieEntity bon) => bon switch
     {
-        BSMEntities.Pret => "Prêt",
-        BSMEntities.BonSortieExterne => "Externe",
-        BSMEntities.BonSortieInterne => "Interne",
+        PretEntity => "Prêt",
+        BonSortieExterneEntity => "Externe",
+        BonSortieInterneEntity => "Interne",
         _ => "Sortie"
     };
 

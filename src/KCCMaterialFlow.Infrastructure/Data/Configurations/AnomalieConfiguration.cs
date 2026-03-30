@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.Securite.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -14,9 +14,9 @@ public class AnomalieConfiguration : IEntityTypeConfiguration<Anomalie>
     {
         builder.ToTable("T_Anomalies", "dbo");
 
-        builder.HasKey(a => a.IdAnomalie);
+        builder.HasKey(a => a.Id);
 
-        builder.Property(a => a.IdAnomalie)
+        builder.Property(a => a.Id)
             .HasColumnName("IdAnomalie")
             .ValueGeneratedOnAdd();
 
@@ -88,13 +88,13 @@ public class AnomalieConfiguration : IEntityTypeConfiguration<Anomalie>
             .HasColumnName("ActionsCorrectives")
             .HasMaxLength(2000);
 
-        // FK vers ScanEvenement
+        // FK vers ScanEvenement (using nav property to avoid shadow FK)
         builder.HasOne(a => a.ScanEvenement)
             .WithMany(s => s.Anomalies)
             .HasForeignKey(a => a.ScanId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // FK vers Barriere
+        // FK vers Barriere (using nav property to avoid shadow FK)
         builder.HasOne(a => a.Barriere)
             .WithMany()
             .HasForeignKey(a => a.BarriereId)

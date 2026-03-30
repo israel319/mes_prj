@@ -1,7 +1,7 @@
 using System.DirectoryServices.AccountManagement;
 using System.Runtime.Versioning;
 using System.Security.Principal;
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 

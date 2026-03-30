@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using QRCoder;
@@ -125,6 +125,25 @@ public class QRCodeService : IQRCodeService
                 ErrorMessage = "Erreur système lors de la validation"
             };
         }
+    }
+
+    /// <inheritdoc />
+    public Task<(string data, string base64, string hash)> GenerateAsync(string data, CancellationToken ct = default)
+    {
+        var base64Image = GenerateQRCode(data);
+        using var hmac = new HMACSHA256(_secretKey);
+        var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
+        var hash = Convert.ToBase64String(hashBytes);
+        return Task.FromResult((data, base64Image, hash));
+    }
+
+    /// <inheritdoc />
+    public Task<bool> ValidateAsync(string qrCodeData, string expectedHash, CancellationToken ct = default)
+    {
+        using var hmac = new HMACSHA256(_secretKey);
+        var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(qrCodeData));
+        var computedHash = Convert.ToBase64String(hashBytes);
+        return Task.FromResult(computedHash == expectedHash);
     }
 
     /// <inheritdoc />

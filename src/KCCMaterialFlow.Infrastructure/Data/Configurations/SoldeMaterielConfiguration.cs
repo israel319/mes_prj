@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -13,10 +13,10 @@ public class SoldeMaterielConfiguration : IEntityTypeConfiguration<SoldeMateriel
     {
         builder.ToTable("T_SoldesMateriels", "dbo");
 
-        builder.HasKey(s => s.IdSoldeMateriel);
+        builder.HasKey(s => s.Id);
 
         // Mapping temporaire : la colonne BD est encore "Id" (sera renommée par Phase1_PK_Rename.sql)
-        builder.Property(s => s.IdSoldeMateriel).HasColumnName("Id");
+        builder.Property(s => s.Id).HasColumnName("Id");
 
         builder.Property(s => s.MaterielEntreeId)
             .IsRequired();

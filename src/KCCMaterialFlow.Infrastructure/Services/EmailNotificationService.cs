@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -9,7 +9,7 @@ namespace KCCMaterialFlow.Infrastructure.Services;
 /// <summary>
 /// Service d'envoi d'emails via SMTP
 /// </summary>
-public class EmailNotificationService : IEmailNotificationService
+public class EmailNotificationService : IEmailNotificationService, IEmailService
 {
     private readonly string _smtpHost;
     private readonly int _smtpPort;
@@ -410,5 +410,24 @@ public class EmailNotificationService : IEmailNotificationService
                 bonType, numeroReference, ex.Message);
             // Ne pas propager l'exception pour ne pas bloquer le workflow de rejet
         }
+    }
+
+    // --- IEmailService implementation ---
+
+    async Task IEmailService.SendAsync(string to, string subject, string body, CancellationToken ct)
+    {
+        await SendEmailAsync(to, subject, body, null, ct);
+    }
+
+    async Task IEmailService.SendRejectionNotificationAsync(string bonNumero, string motif, string rejectedBy, CancellationToken ct)
+    {
+        await SendRejectionNotificationAsync(
+            bonType: "BEM",
+            numeroReference: bonNumero,
+            etapeRejet: "Approbation",
+            approbateurNom: rejectedBy,
+            motifRejet: motif,
+            demandeurNom: string.Empty,
+            cancellationToken: ct);
     }
 }

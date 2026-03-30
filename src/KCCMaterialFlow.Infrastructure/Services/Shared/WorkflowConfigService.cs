@@ -1,7 +1,7 @@
 using KCCMaterialFlow.Infrastructure.Data;
 using KCCMaterialFlow.Domain.Enums;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using DomainTypeMateriel = KCCMaterialFlow.Domain.Enums.TypeMateriel;

@@ -1,6 +1,6 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -20,6 +20,97 @@ public class ActiviteService : IActiviteService
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
     private const string CacheKeyAllActivites = "Activites_All";
     private const string CacheKeyUserPrefix = "Activites_User_";
+
+    /// <summary>
+    /// Mapping statique : chaque rôle -> ses activités par défaut.
+    /// Quand un rôle est assigné à un utilisateur, ces activités sont automatiquement ajoutées.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> RoleDefaultActivites = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ADMIN"] = [
+            // Toutes les activités
+            "BEM_CREER", "BEM_MODIFIER", "BEM_SOUMETTRE", "BEM_APPROUVER", "BEM_REJETER", "BEM_RETOURNER", "BEM_SUPPRIMER", "BEM_IMPRIMER",
+            "BSM_CREER", "BSM_MODIFIER", "BSM_SOUMETTRE", "BSM_APPROUVER", "BSM_REJETER", "BSM_RETOURNER", "BSM_SUPPRIMER", "BSM_IMPRIMER",
+            "PRET_RETOUR", "PRET_EXTENSION",
+            "SEC_SCANNER", "SEC_CONFIRMER_PASSAGE", "SEC_SIGNALER_ANOMALIE", "SEC_TRAITER_ANOMALIE", "SEC_REOUVRIR_ANOMALIE", "SEC_VOIR_HISTORIQUE",
+            "SEC_GERER_BARRIERES", "SEC_GERER_ITINERAIRES", "SEC_GERER_AGENTS",
+            "ADMIN_UTILISATEURS", "ADMIN_ROLES", "ADMIN_DEPARTEMENTS", "ADMIN_TYPES_MATERIELS", "ADMIN_STATUTS", "ADMIN_PARAMETRES", "ADMIN_AUDIT", "ADMIN_ACTIVITES",
+            "VOIR_TOUS_BONS", "VOIR_APPROBATIONS", "EXPORT_EXCEL", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD"
+        ],
+        ["APPROBATEUR"] = [
+            // Création bons + Approuver/Rejeter + Consultation
+            "BEM_CREER", "BEM_MODIFIER", "BEM_SOUMETTRE", "BEM_SUPPRIMER", "BEM_APPROUVER", "BEM_REJETER", "BEM_IMPRIMER",
+            "BSM_CREER", "BSM_MODIFIER", "BSM_SOUMETTRE", "BSM_SUPPRIMER", "BSM_APPROUVER", "BSM_REJETER", "BSM_IMPRIMER",
+            "VOIR_TOUS_BONS", "VOIR_APPROBATIONS", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD", "EXPORT_EXCEL"
+        ],
+        ["SUPERVISEUR"] = [
+            // Idem Approbateur
+            "BEM_CREER", "BEM_MODIFIER", "BEM_SOUMETTRE", "BEM_SUPPRIMER", "BEM_APPROUVER", "BEM_REJETER", "BEM_IMPRIMER",
+            "BSM_CREER", "BSM_MODIFIER", "BSM_SOUMETTRE", "BSM_SUPPRIMER", "BSM_APPROUVER", "BSM_REJETER", "BSM_IMPRIMER",
+            "VOIR_TOUS_BONS", "VOIR_APPROBATIONS", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD", "EXPORT_EXCEL"
+        ],
+        ["GM"] = [
+            // Idem Approbateur
+            "BEM_CREER", "BEM_MODIFIER", "BEM_SOUMETTRE", "BEM_SUPPRIMER", "BEM_APPROUVER", "BEM_REJETER", "BEM_IMPRIMER",
+            "BSM_CREER", "BSM_MODIFIER", "BSM_SOUMETTRE", "BSM_SUPPRIMER", "BSM_APPROUVER", "BSM_REJETER", "BSM_IMPRIMER",
+            "VOIR_TOUS_BONS", "VOIR_APPROBATIONS", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD", "EXPORT_EXCEL"
+        ],
+        ["OPJ"] = [
+            // Approbation BEM+BSM + Anomalies sécurité + Consultation + Voir tous bons
+            "BEM_APPROUVER", "BEM_REJETER", "BEM_IMPRIMER",
+            "BSM_APPROUVER", "BSM_REJETER", "BSM_IMPRIMER",
+            "SEC_SIGNALER_ANOMALIE", "SEC_TRAITER_ANOMALIE", "SEC_REOUVRIR_ANOMALIE", "SEC_VOIR_HISTORIQUE",
+            "VOIR_TOUS_BONS", "VOIR_APPROBATIONS", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD", "EXPORT_EXCEL"
+        ],
+        ["IT"] = [
+            // Création bons + Approuver/Rejeter + Administration + Consultation + Voir tous bons
+            "BEM_CREER", "BEM_MODIFIER", "BEM_SOUMETTRE", "BEM_SUPPRIMER", "BEM_APPROUVER", "BEM_REJETER", "BEM_IMPRIMER",
+            "BSM_CREER", "BSM_MODIFIER", "BSM_SOUMETTRE", "BSM_SUPPRIMER", "BSM_APPROUVER", "BSM_REJETER", "BSM_IMPRIMER",
+            "ADMIN_UTILISATEURS", "ADMIN_ROLES", "ADMIN_PARAMETRES", "ADMIN_AUDIT", "ADMIN_ACTIVITES",
+            "VOIR_TOUS_BONS", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD", "EXPORT_EXCEL"
+        ],
+        ["AGENT_SECURITE"] = [
+            // Scanner, Confirmer passage, Signaler anomalie, Historique scans
+            "SEC_SCANNER", "SEC_CONFIRMER_PASSAGE", "SEC_SIGNALER_ANOMALIE", "SEC_VOIR_HISTORIQUE"
+        ],
+        ["BARRIERE"] = [
+            // Scanner + Gestion barrières/agents
+            "SEC_SCANNER", "SEC_CONFIRMER_PASSAGE", "SEC_SIGNALER_ANOMALIE", "SEC_VOIR_HISTORIQUE",
+            "SEC_GERER_BARRIERES", "SEC_GERER_AGENTS"
+        ],
+        ["IDENTIFICATION"] = [
+            // Imprimer + Scanner + Consultation + Approuver/Rejeter BEM+BSM + Voir tous bons + Historique
+            "BEM_APPROUVER", "BEM_REJETER", "BEM_IMPRIMER",
+            "BSM_APPROUVER", "BSM_REJETER", "BSM_IMPRIMER",
+            "SEC_SCANNER", "SEC_CONFIRMER_PASSAGE", "SEC_VOIR_HISTORIQUE",
+            "VOIR_TOUS_BONS", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD"
+        ],
+        ["INVESTIGATION"] = [
+            // Anomalies (signaler/traiter/réouvrir) + Consultation + Export
+            "SEC_SIGNALER_ANOMALIE", "SEC_TRAITER_ANOMALIE", "SEC_REOUVRIR_ANOMALIE", "SEC_VOIR_HISTORIQUE",
+            "VOIR_TOUS_BONS", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD", "EXPORT_EXCEL"
+        ],
+        ["ENVIRONNEMENT"] = [
+            // Approbation BEM+BSM + Consultation
+            "BEM_APPROUVER", "BEM_REJETER", "BEM_IMPRIMER",
+            "BSM_APPROUVER", "BSM_REJETER", "BSM_IMPRIMER",
+            "VOIR_TOUS_BONS", "VOIR_APPROBATIONS", "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD"
+        ],
+        ["UTILISATEUR"] = [
+            // Demandeur standard : créer, modifier, soumettre, supprimer, imprimer ses propres bons + Prêts + Historique
+            "BEM_CREER", "BEM_MODIFIER", "BEM_SOUMETTRE", "BEM_SUPPRIMER", "BEM_IMPRIMER",
+            "BSM_CREER", "BSM_MODIFIER", "BSM_SOUMETTRE", "BSM_SUPPRIMER", "BSM_IMPRIMER",
+            "PRET_RETOUR", "PRET_EXTENSION",
+            "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD"
+        ],
+        ["DEMANDEUR"] = [
+            // Idem UTILISATEUR
+            "BEM_CREER", "BEM_MODIFIER", "BEM_SOUMETTRE", "BEM_SUPPRIMER", "BEM_IMPRIMER",
+            "BSM_CREER", "BSM_MODIFIER", "BSM_SOUMETTRE", "BSM_SUPPRIMER", "BSM_IMPRIMER",
+            "PRET_RETOUR", "PRET_EXTENSION",
+            "VOIR_HISTORIQUE", "VOIR_TABLEAU_BORD"
+        ]
+    };
 
     public ActiviteService(
         IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory,
@@ -55,7 +146,7 @@ public class ActiviteService : IActiviteService
     public async Task<Activite?> GetActiviteByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var all = await GetAllActivitesAsync(cancellationToken);
-        return all.FirstOrDefault(a => a.IdActivite == id);
+        return all.FirstOrDefault(a => a.Id == id);
     }
 
     public async Task<Activite?> GetActiviteByCodeAsync(string codeActivite, CancellationToken cancellationToken = default)
@@ -84,7 +175,7 @@ public class ActiviteService : IActiviteService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var activites = await context.Set<UtilisateurActivite>()
             .AsNoTracking()
-            .Where(ua => ua.IdUtilisateur == idUtilisateur && ua.EstActif)
+            .Where(ua => ua.Id == idUtilisateur && ua.EstActif)
             .Include(ua => ua.Activite)
             .Where(ua => ua.Activite != null && ua.Activite.EstActif)
             .Select(ua => ua.Activite!)
@@ -101,7 +192,7 @@ public class ActiviteService : IActiviteService
     public async Task<IReadOnlyList<int>> GetActiviteIdsForUserAsync(int idUtilisateur, CancellationToken cancellationToken = default)
     {
         var activites = await GetActivitesForUserAsync(idUtilisateur, cancellationToken);
-        return activites.Select(a => a.IdActivite).ToList();
+        return activites.Select(a => a.Id).ToList();
     }
 
     public async Task UpdateUserActivitesAsync(int idUtilisateur, IEnumerable<int> activiteIds, string? attribueParLogin = null, CancellationToken cancellationToken = default)
@@ -112,13 +203,13 @@ public class ActiviteService : IActiviteService
 
         // Récupérer les assignations existantes
         var existing = await context.Set<UtilisateurActivite>()
-            .Where(ua => ua.IdUtilisateur == idUtilisateur)
+            .Where(ua => ua.Id == idUtilisateur)
             .ToListAsync(cancellationToken);
 
-        var existingIds = existing.Select(ua => ua.IdActivite).ToHashSet();
+        var existingIds = existing.Select(ua => ua.Id).ToHashSet();
 
         // Supprimer celles qui ne sont plus sélectionnées
-        var toRemove = existing.Where(ua => !newIds.Contains(ua.IdActivite)).ToList();
+        var toRemove = existing.Where(ua => !newIds.Contains(ua.Id)).ToList();
         if (toRemove.Count > 0)
         {
             context.Set<UtilisateurActivite>().RemoveRange(toRemove);
@@ -153,7 +244,7 @@ public class ActiviteService : IActiviteService
 
         // Vérifier si l'assignation existe déjà
         var exists = await context.Set<UtilisateurActivite>()
-            .AnyAsync(ua => ua.IdUtilisateur == idUtilisateur && ua.IdActivite == idActivite, cancellationToken);
+            .AnyAsync(ua => ua.Id == idUtilisateur && ua.Id == idActivite, cancellationToken);
 
         if (exists)
         {
@@ -182,7 +273,7 @@ public class ActiviteService : IActiviteService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var entry = await context.Set<UtilisateurActivite>()
-            .FirstOrDefaultAsync(ua => ua.IdUtilisateur == idUtilisateur && ua.IdActivite == idActivite, cancellationToken);
+            .FirstOrDefaultAsync(ua => ua.Id == idUtilisateur && ua.Id == idActivite, cancellationToken);
 
         if (entry == null)
         {
@@ -216,5 +307,78 @@ public class ActiviteService : IActiviteService
         var cacheKey = $"{CacheKeyUserPrefix}{idUtilisateur}";
         _cache.Remove(cacheKey);
         _logger.LogDebug("Cache activités invalidé pour l'utilisateur {IdUtilisateur}", idUtilisateur);
+    }
+
+    public IReadOnlyList<string> GetDefaultActiviteCodesForRole(string roleCode)
+    {
+        if (string.IsNullOrWhiteSpace(roleCode))
+            return [];
+
+        return RoleDefaultActivites.TryGetValue(roleCode, out var codes)
+            ? codes
+            : [];
+    }
+
+    public async Task<int> SyncActivitesFromRolesAsync(int idUtilisateur, IEnumerable<string> roleCodes, string? attribueParLogin = null, CancellationToken cancellationToken = default)
+    {
+        // Collecter toutes les activités par défaut de tous les rôles
+        var requiredCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var roleCode in roleCodes)
+        {
+            if (RoleDefaultActivites.TryGetValue(roleCode, out var defaults))
+            {
+                foreach (var code in defaults)
+                    requiredCodes.Add(code);
+            }
+        }
+
+        if (requiredCodes.Count == 0)
+        {
+            _logger.LogDebug("Aucune activité par défaut pour les rôles de l'utilisateur {IdUtilisateur}", idUtilisateur);
+            return 0;
+        }
+
+        // Récupérer les IDs des activités requises
+        var allActivites = await GetAllActivitesAsync(cancellationToken);
+        var requiredIds = allActivites
+            .Where(a => requiredCodes.Contains(a.CodeActivite))
+            .Select(a => a.Id)
+            .ToHashSet();
+
+        // Récupérer les activités actuelles de l'utilisateur
+        await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var existingIds = await context.Set<UtilisateurActivite>()
+            .Where(ua => ua.Id == idUtilisateur)
+            .Select(ua => ua.Id)
+            .ToHashSetAsync(cancellationToken);
+
+        // Ajouter seulement celles qui manquent (ne retire rien)
+        var toAdd = requiredIds.Except(existingIds).ToList();
+        if (toAdd.Count == 0)
+        {
+            _logger.LogDebug("Toutes les activités par défaut déjà assignées à l'utilisateur {IdUtilisateur}", idUtilisateur);
+            return 0;
+        }
+
+        foreach (var activiteId in toAdd)
+        {
+            context.Set<UtilisateurActivite>().Add(new UtilisateurActivite
+            {
+                IdUtilisateur = idUtilisateur,
+                IdActivite = activiteId,
+                DateAttribution = DateTime.Now,
+                AttribueParLogin = attribueParLogin ?? "SYSTEM_ROLE_SYNC",
+                EstActif = true
+            });
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        InvalidateUserCache(idUtilisateur);
+
+        _logger.LogInformation(
+            "Synchronisation rôles->activités : {Count} activités ajoutées pour l'utilisateur {IdUtilisateur}",
+            toAdd.Count, idUtilisateur);
+
+        return toAdd.Count;
     }
 }

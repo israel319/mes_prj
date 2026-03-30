@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -13,10 +13,10 @@ public class NotificationRejetConfiguration : IEntityTypeConfiguration<Notificat
     {
         builder.ToTable("T_NotificationsRejet", "dbo");
 
-        builder.HasKey(n => n.IdNotificationRejet);
+        builder.HasKey(n => n.Id);
 
         // Mapping temporaire : la colonne BD est encore "Id" (sera renommée par Phase1_PK_Rename.sql)
-        builder.Property(n => n.IdNotificationRejet).HasColumnName("Id");
+        builder.Property(n => n.Id).HasColumnName("Id");
 
         builder.Property(n => n.BonType)
             .IsRequired()

@@ -1,5 +1,3 @@
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @inject IRoleService RoleService
 @inject IPermissionService PermissionService
 @inject DialogService DialogService
@@ -58,8 +56,8 @@
                     @foreach (var perm in group)
                     {
                         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                            <RadzenCheckBox Value="@IsPermissionSelected(perm.IdPermission)" TValue="bool"
-                                            ValueChanged="@(val => TogglePermission(perm.IdPermission, val))" />
+                            <RadzenCheckBox Value="@IsPermissionSelected(perm.Id)" TValue="bool"
+                                            ValueChanged="@(val => TogglePermission(perm.Id, val))" />
                             <RadzenLabel Text="@perm.CodePermission" Style="margin-left: 0.25rem; font-weight: 500;" />
                             <RadzenText TextStyle="TextStyle.Caption" Style="color: #666; margin-left: 0.5rem;">
                                 @perm.NomPermission
@@ -107,7 +105,7 @@
             isEditMode = true;
             model = new Role
             {
-                IdRole = Role.IdRole,
+                Id = Role.Id,
                 CodeRole = Role.CodeRole,
                 NomRole = Role.NomRole,
                 Description = Role.Description,
@@ -118,8 +116,8 @@
             };
             
             // Charger les permissions existantes du rôle
-            var rolePerms = await PermissionService.GetPermissionsForRoleAsync(Role.IdRole);
-            selectedPermissionIds = rolePerms.Select(p => p.IdPermission).ToHashSet();
+            var rolePerms = await PermissionService.GetPermissionsForRoleAsync(Role.Id);
+            selectedPermissionIds = rolePerms.Select(p => p.Id).ToHashSet();
         }
         else
         {
@@ -149,13 +147,13 @@
             {
                 await RoleService.UpdateAsync(model);
                 // Mettre à jour les permissions du rôle
-                await PermissionService.UpdateRolePermissionsAsync(model.IdRole, selectedPermissionIds);
+                await PermissionService.UpdateRolePermissionsAsync(model.Id, selectedPermissionIds);
             }
             else
             {
                 var created = await RoleService.CreateAsync(model);
                 // Attribuer les permissions au nouveau rôle
-                await PermissionService.UpdateRolePermissionsAsync(created.IdRole, selectedPermissionIds);
+                await PermissionService.UpdateRolePermissionsAsync(created.Id, selectedPermissionIds);
             }
             
             DialogService.Close(true);

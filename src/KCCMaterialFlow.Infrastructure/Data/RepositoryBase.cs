@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace KCCMaterialFlow.Infrastructure.Data;

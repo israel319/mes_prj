@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,7 +13,8 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
     {
         builder.ToTable("T_Roles", "dbo");
 
-        builder.HasKey(r => r.IdRole);
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Id).HasColumnName("IdRole").ValueGeneratedOnAdd();
 
         builder.Property(r => r.CodeRole)
             .IsRequired()
@@ -37,7 +38,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.HasData(
             new Role
             {
-                IdRole = 1,
+                Id = 1,
                 CodeRole = "ADMIN",
                 NomRole = "Administrateur",
                 Description = "Accès complet au système",
@@ -48,7 +49,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
             },
             new Role
             {
-                IdRole = 2,
+                Id = 2,
                 CodeRole = "APPROBATEUR",
                 NomRole = "Approbateur",
                 Description = "Peut approuver les bons de son département",
@@ -59,7 +60,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
             },
             new Role
             {
-                IdRole = 3,
+                Id = 3,
                 CodeRole = "AGENT_SECURITE",
                 NomRole = "Agent de sécurité",
                 Description = "Peut scanner et contrôler les entrées/sorties",
@@ -70,7 +71,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
             },
             new Role
             {
-                IdRole = 4,
+                Id = 4,
                 CodeRole = "UTILISATEUR",
                 NomRole = "Utilisateur",
                 Description = "Utilisateur standard - peut créer des bons",
@@ -92,7 +93,8 @@ public class UtilisateurRoleConfiguration : IEntityTypeConfiguration<Utilisateur
     {
         builder.ToTable("T_UtilisateurRoles", "dbo");
 
-        builder.HasKey(ur => ur.IdUtilisateurRole);
+        builder.HasKey(ur => ur.Id);
+        builder.Property(ur => ur.Id).HasColumnName("IdUtilisateurRole").ValueGeneratedOnAdd();
 
         builder.Property(ur => ur.AttribueParLogin)
             .HasMaxLength(100);

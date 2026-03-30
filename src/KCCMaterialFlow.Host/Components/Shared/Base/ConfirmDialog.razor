@@ -1,0 +1,64 @@
+@namespace KCCMaterialFlow.Host.Components.Shared.Base
+@using Radzen
+@using Radzen.Blazor
+
+@* Modal de confirmation *@
+
+<RadzenDialog>
+    <div class="confirm-dialog">
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <div class="text-center mb-3">
+                <RadzenIcon Icon="@Icon" Style="@($"font-size: 3rem; color: {IconColor};")" />
+            </div>
+        }
+
+        <h5 class="text-center mb-3">@Title</h5>
+
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <p class="text-center text-muted">@Message</p>
+        }
+
+        @ChildContent
+
+        <div class="d-flex justify-content-center gap-2 mt-4">
+            <RadzenButton Text="@CancelText"
+                          ButtonStyle="ButtonStyle.Light"
+                          Click="@HandleCancel"
+                          Disabled="@IsProcessing" />
+            <RadzenButton Text="@ConfirmText"
+                          ButtonStyle="@ConfirmButtonStyle"
+                          Click="@HandleConfirm"
+                          IsBusy="@IsProcessing"
+                          BusyText="@ProcessingText" />
+        </div>
+    </div>
+</RadzenDialog>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Confirmation";
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string? Icon { get; set; } = "help_outline";
+    [Parameter] public string IconColor { get; set; } = "var(--rz-warning)";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public string ConfirmText { get; set; } = "Confirmer";
+    [Parameter] public string CancelText { get; set; } = "Annuler";
+    [Parameter] public string ProcessingText { get; set; } = "Traitement...";
+    [Parameter] public ButtonStyle ConfirmButtonStyle { get; set; } = ButtonStyle.Primary;
+
+    [Parameter] public bool IsProcessing { get; set; }
+
+    [Parameter] public EventCallback<bool> OnClose { get; set; }
+
+    private async Task HandleConfirm()
+    {
+        await OnClose.InvokeAsync(true);
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnClose.InvokeAsync(false);
+    }
+}

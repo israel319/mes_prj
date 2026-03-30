@@ -1,0 +1,378 @@
+@page "/bon-entree/{Id:int}/edit"
+@page "/bon-entree/{Id:int}/modifier"
+@attribute [Authorize]
+@using KCCMaterialFlow.Application.Common.Interfaces
+@using KCCMaterialFlow.Domain.Entities
+@inject IBonEntreeService BonEntreeService
+@inject IReferenceDataService ReferenceDataService
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Modifier Bon d'Entrée - KCC Material Flow</PageTitle>
+
+<div style="background: var(--rz-base-100); min-height: 100vh; padding: 2rem 1rem;">
+    <div style="max-width: 860px; margin: 0 auto;">
+        @if (isLoading)
+        {
+            <RadzenCard Style="text-align: center; padding: 3rem;">
+                <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Large" />
+                <RadzenText TextStyle="TextStyle.Body1" Style="margin-top: 1rem;">Chargement...</RadzenText>
+            </RadzenCard>
+        }
+        else if (bon == null)
+        {
+            <RadzenCard Style="text-align: center; padding: 3rem;">
+                <RadzenIcon Icon="error_outline" Style="font-size: 64px; color: var(--rz-danger);" />
+                <RadzenText TextStyle="TextStyle.H6" Style="margin-top: 1rem;">Bon d'entrée non trouvé</RadzenText>
+                <RadzenButton Text="Retour" Click="GoBack" Style="margin-top: 1rem;" />
+            </RadzenCard>
+        }
+        else if (bon.StatutActuel != "Draft")
+        {
+            <RadzenCard Style="text-align: center; padding: 3rem;">
+                <RadzenIcon Icon="lock" Style="font-size: 64px; color: var(--rz-warning);" />
+                <RadzenText TextStyle="TextStyle.H6" Style="margin-top: 1rem;">Ce bon ne peut plus être modifié</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2">Seuls les bons en brouillon peuvent être modifiés.</RadzenText>
+                <RadzenButton Text="Retour" Click="GoBack" Style="margin-top: 1rem;" />
+            </RadzenCard>
+        }
+        else
+        {
+            @* === HEADER === *@
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween"
+                         Style="margin-bottom: 1.25rem;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenButton Icon="arrow_back" Variant="Variant.Text" Click="GoBack" />
+                    <RadzenText TextStyle="TextStyle.H5" Style="font-weight: 700;">Modifier @bon.NumeroReference</RadzenText>
+                </RadzenStack>
+                <RadzenBadge Text="Brouillon" BadgeStyle="BadgeStyle.Light" />
+            </RadzenStack>
+
+            @* === INFO BANNER === *@
+            <RadzenCard Variant="Variant.Flat" Style="margin-bottom: 1.25rem; padding: 0.75rem 1.5rem; background: var(--rz-base-200);">
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--rz-text-secondary-color);">
+                    <strong>Type :</strong> Bon d'Entrée Matériel &nbsp;|&nbsp;
+                    <strong>Créé le :</strong> @bon.DateCreation.ToString("dd/MM/yyyy à HH:mm")
+                </RadzenText>
+            </RadzenCard>
+
+            <EditForm Model="@request" OnValidSubmit="@HandleSubmit">
+                <DataAnnotationsValidator />
+
+                @* === SECTION: Compagnie === *@
+                <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
+                    <RadzenStack Style="padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--rz-base-200);">
+                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0;">Informations Compagnie</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0" Style="padding: 0.25rem 1.5rem 1rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Nom Compagnie *</RadzenText>
+                            <RadzenDropDown @bind-Value="@selectedCompagnieId" Data="@compagnies"
+                                            TextProperty="Nom" ValueProperty="Id"
+                                            Placeholder="Sélectionner une compagnie"
+                                            AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                            Change="@OnCompagnieChanged" Style="flex: 1;" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">N° Contrat (PO)</RadzenText>
+                            <RadzenDropDown @bind-Value="@selectedContratId" Data="@contratsFiltered"
+                                            TextProperty="PoNumber" ValueProperty="Id"
+                                            Placeholder="Sélectionner un contrat"
+                                            AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                            Change="@OnContratChanged" Style="flex: 1;"
+                                            Disabled="@(selectedCompagnieId == null)" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Email Contractant</RadzenText>
+                            <RadzenTextBox @bind-Value="request.EmailContractant" Style="flex: 1;" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Site Manager *</RadzenText>
+                            <RadzenTextBox @bind-Value="request.SiteManager" Style="flex: 1;" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Département Hôte *</RadzenText>
+                            <RadzenTextBox @bind-Value="request.HostDepartment" Style="flex: 1;" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Style="padding: 0.65rem 0;">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color); padding-top: 0.5rem;">Motif sur site *</RadzenText>
+                            <RadzenTextArea @bind-Value="request.ReasonOnSite" Rows="2" Style="flex: 1;" />
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+
+                @* === SECTION: Escorteur === *@
+                <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
+                    <RadzenStack Style="padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--rz-base-200);">
+                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0;">Détail de l'Escorteur</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0" Style="padding: 0.25rem 1.5rem 1rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Nom Escorteur *</RadzenText>
+                            <RadzenTextBox @bind-Value="request.NomEscorteur" Style="flex: 1;" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Fonction</RadzenText>
+                            <RadzenTextBox @bind-Value="request.FonctionEscorteur" Style="flex: 1;" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0;">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Date Expiration *</RadzenText>
+                            <RadzenDatePicker @bind-Value="request.DateExpiration" DateFormat="dd/MM/yyyy" Style="flex: 1;" />
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+
+                @* === SECTION: Trajet === *@
+                <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
+                    <RadzenStack Style="padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--rz-base-200);">
+                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0;">Trajet</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0" Style="padding: 0.25rem 1.5rem 1rem;">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">FROM (Provenance)</RadzenText>
+                            <RadzenTextBox @bind-Value="request.Provenance" Style="flex: 1;" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">TO (Destination)</RadzenText>
+                            <RadzenTextBox @bind-Value="request.Destination" Style="flex: 1;" />
+                        </RadzenStack>
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Style="padding: 0.65rem 0;">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color); padding-top: 0.5rem;">Description additionnelle</RadzenText>
+                            <RadzenTextArea @bind-Value="request.Description" Rows="2" Placeholder="Informations complémentaires..." Style="flex: 1;" />
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+
+                @* === SECTION: Matériels === *@
+                <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
+                    <RadzenStack Style="padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--rz-base-200);">
+                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0;">Matériels (@materiels.Count articles)</RadzenText>
+                    </RadzenStack>
+                    <RadzenStack Gap="0" Style="padding: 0.75rem 1.5rem 1rem;">
+                        @if (materiels.Any())
+                        {
+                            <RadzenDataGrid TItem="MaterielEditModel" Data="@materiels" AllowSorting="false"
+                                            Density="Density.Compact" Style="margin-bottom: 0.75rem;">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="MaterielEditModel" Title="Désignation" Width="35%">
+                                        <Template Context="mat">
+                                            <RadzenTextBox @bind-Value="mat.Designation" Placeholder="Désignation..." Style="width:100%;" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    <RadzenDataGridColumn TItem="MaterielEditModel" Title="N° Série / Code" Width="30%">
+                                        <Template Context="mat">
+                                            <RadzenTextBox @bind-Value="mat.CodeProduitSerial" Placeholder="N° série / code..." Style="width:100%;" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    <RadzenDataGridColumn TItem="MaterielEditModel" Title="Quantité" Width="20%" TextAlign="TextAlign.Center">
+                                        <Template Context="mat">
+                                            <RadzenNumeric @bind-Value="mat.Quantite" Min="1" Step="1" Style="width:100%;" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                    <RadzenDataGridColumn TItem="MaterielEditModel" Title="" Width="15%" TextAlign="TextAlign.Center" Sortable="false">
+                                        <Template Context="mat">
+                                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                          Click="@(() => RemoveMateriel(mat))" />
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                </Columns>
+                            </RadzenDataGrid>
+                        }
+                        else
+                        {
+                            <RadzenStack AlignItems="AlignItems.Center" Style="padding: 2rem; color: var(--rz-text-secondary-color);">
+                                <RadzenIcon Icon="inventory_2" Style="font-size: 32px; opacity: 0.5;" />
+                                <RadzenText TextStyle="TextStyle.Body2">Aucun matériel ajouté</RadzenText>
+                            </RadzenStack>
+                        }
+                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Style="padding: 0.5rem 0; border-top: 1px solid var(--rz-base-200);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--rz-text-secondary-color);">
+                                Total : <strong>@materiels.Sum(m => m.Quantite)</strong> articles
+                            </RadzenText>
+                            <RadzenButton Text="Ajouter" Icon="add" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Text" Size="ButtonSize.Small"
+                                          Click="@AddMateriel" />
+                        </RadzenStack>
+                    </RadzenStack>
+                </RadzenCard>
+
+                @* === ACTIONS === *@
+                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Style="padding: 0.75rem 0;">
+                    <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Click="@GoBack" />
+                    <RadzenButton Text="@(isSaving ? "Enregistrement..." : "Enregistrer les modifications")" Icon="save"
+                                  ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" Disabled="@isSaving" />
+                </RadzenStack>
+            </EditForm>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private BonEntree? bon;
+    private UpdateBonEntreeRequest request = new();
+    private List<MaterielEditModel> materiels = new();
+    private bool isLoading = true;
+    private bool isSaving;
+
+    // Références pour dropdowns
+    private IEnumerable<Compagnie> compagnies = [];
+    private IEnumerable<Contrat> contrats = [];
+    private int? selectedCompagnieId;
+    private int? selectedContratId;
+
+    // Contrats filtrés par compagnie sélectionnée
+    private IEnumerable<Contrat> contratsFiltered =>
+        selectedCompagnieId.HasValue
+            ? contrats.Where(c => c.CompagnieId == selectedCompagnieId.Value)
+            : Enumerable.Empty<Contrat>();
+
+    // Navigation retour via historique
+    private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Charger les données de référence
+        compagnies = await ReferenceDataService.GetCompagniesAsync();
+        contrats = await ReferenceDataService.GetContratsAsync();
+
+        bon = await BonEntreeService.GetAsync(Id);
+        if (bon != null)
+        {
+            request = new UpdateBonEntreeRequest
+            {
+                IdBon = bon.Id,
+                ContratId = bon.ContratId,
+                NumeroContrat = bon.NumeroContrat,
+                NomCompagnie = bon.NomCompagnie,
+                EmailContractant = bon.EmailContractant,
+                SiteManager = bon.SiteManager,
+                HostDepartment = bon.HostDepartment,
+                ReasonOnSite = bon.ReasonOnSite,
+                NomEscorteur = bon.NomEscorteur,
+                FonctionEscorteur = bon.FonctionEscorteur,
+                Provenance = bon.Provenance,
+                Destination = bon.Destination,
+                Description = bon.Description,
+                DateExpiration = bon.DateExpiration
+            };
+
+            // Pré-sélectionner la compagnie
+            var comp = compagnies.FirstOrDefault(c => c.Nom == bon.NomCompagnie);
+            selectedCompagnieId = comp?.Id;
+
+            // Pré-sélectionner le contrat
+            selectedContratId = bon.ContratId;
+
+            // Charger les matériels existants
+            materiels = bon.Materiels?.Select(m => new MaterielEditModel
+            {
+                IdMateriel = m.Id,
+                Designation = m.Designation ?? "",
+                CodeProduitSerial = m.CodeProduitSerial ?? "",
+                Quantite = m.Quantite
+            }).ToList() ?? new();
+        }
+        isLoading = false;
+    }
+
+    private void OnCompagnieChanged(object value)
+    {
+        selectedContratId = null;
+        request.ContratId = null;
+        request.NumeroContrat = string.Empty;
+
+        if (value is int compagnieId)
+        {
+            var compagnie = compagnies.FirstOrDefault(c => c.Id == compagnieId);
+            if (compagnie != null)
+            {
+                request.NomCompagnie = compagnie.Nom;
+                request.EmailContractant = compagnie.Email ?? string.Empty;
+                request.SiteManager = compagnie.SiteManager ?? string.Empty;
+            }
+        }
+        else
+        {
+            request.NomCompagnie = string.Empty;
+            request.EmailContractant = string.Empty;
+            request.SiteManager = string.Empty;
+        }
+    }
+
+    private void OnContratChanged(object value)
+    {
+        if (value is int contratId)
+        {
+            var contrat = contrats.FirstOrDefault(c => c.Id == contratId);
+            if (contrat != null)
+            {
+                request.ContratId = contrat.Id;
+                request.NumeroContrat = contrat.PoNumber;
+            }
+        }
+        else
+        {
+            request.ContratId = null;
+            request.NumeroContrat = string.Empty;
+        }
+    }
+
+    private void AddMateriel()
+    {
+        materiels.Add(new MaterielEditModel { Quantite = 1 });
+        materiels = new List<MaterielEditModel>(materiels);
+    }
+
+    private void RemoveMateriel(MaterielEditModel mat)
+    {
+        materiels.Remove(mat);
+        materiels = new List<MaterielEditModel>(materiels);
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (!materiels.Any())
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Attention", "Ajoutez au moins un matériel");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            // Convertir les matériels pour la requête
+            request.Materiels = materiels.Select(m => new MaterielUpdateRequest
+            {
+                IdMateriel = m.IdMateriel,
+                CodeProduitSerial = m.CodeProduitSerial,
+                Designation = m.Designation,
+                Quantite = m.Quantite
+            }).ToList();
+
+            var result = await BonEntreeService.UpdateAsync(request);
+            if (result.Success)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, "Succès", result.Message ?? "Modifications enregistrées");
+                Navigation.NavigateTo($"/bon-entree/{Id}");
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", string.Join(", ", result.Errors));
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private class MaterielEditModel
+    {
+        public int IdMateriel { get; set; }
+        public string Designation { get; set; } = "";
+        public string CodeProduitSerial { get; set; } = "";
+        public decimal Quantite { get; set; } = 1;
+    }
+}

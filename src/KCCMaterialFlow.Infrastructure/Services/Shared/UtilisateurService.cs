@@ -1,6 +1,6 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -127,7 +127,7 @@ public class UtilisateurService : IUtilisateurService
         var user = await context.Set<Utilisateur>()
             .AsNoTracking()
             .Include(u => u.RolePrincipal)
-            .FirstOrDefaultAsync(u => u.IdUtilisateur == id, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
         if (user != null)
         {
@@ -225,7 +225,7 @@ public class UtilisateurService : IUtilisateurService
             existing.Departement = utilisateur.Departement;
             existing.Email = utilisateur.Email;
             existing.Telephone = utilisateur.Telephone;
-            existing.IdRole = utilisateur.IdRole;
+            existing.Id = utilisateur.Id;
             existing.EstActif = utilisateur.EstActif;
             existing.DateModification = DateTime.Now;
 
@@ -234,7 +234,7 @@ public class UtilisateurService : IUtilisateurService
 
             InvalidateCache();
             _logger.LogInformation("Utilisateur {Login} mis à jour (IdRole: {IdRole}, Actif: {Actif})", 
-                utilisateur.Login, utilisateur.IdRole, utilisateur.EstActif);
+                utilisateur.Login, utilisateur.Id, utilisateur.EstActif);
 
             return existing;
         }
@@ -246,7 +246,7 @@ public class UtilisateurService : IUtilisateurService
 
             InvalidateCache();
             _logger.LogInformation("Utilisateur {Login} créé (IdRole: {IdRole})", 
-                utilisateur.Login, utilisateur.IdRole);
+                utilisateur.Login, utilisateur.Id);
 
             return utilisateur;
         }

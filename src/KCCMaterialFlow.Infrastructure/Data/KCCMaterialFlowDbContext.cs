@@ -1,130 +1,77 @@
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Domain.Common;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
 
 namespace KCCMaterialFlow.Infrastructure.Data;
 
 /// <summary>
-/// DbContext principal de l'application avec support modulaire
+/// DbContext principal de l'application — implémente IApplicationDbContext (Clean Architecture).
+/// Toutes les configurations EF sont dans Infrastructure/Data/Configurations/.
 /// </summary>
-public class KCCMaterialFlowDbContext : DbContext, IAppDbContext
+public class KCCMaterialFlowDbContext : DbContext, IApplicationDbContext
 {
-    private readonly Assembly[] _moduleAssemblies;
-    
-    /// <summary>
-    /// Assemblies de modules à utiliser pour les configurations EF.
-    /// Configuré au démarrage de l'application via Program.cs
-    /// </summary>
-    public static IEnumerable<Assembly>? ConfiguredModuleAssemblies { get; set; }
 
-    /// <summary>
-    /// Notifications de rejet stockées en base
-    /// </summary>
-    public DbSet<NotificationRejet> NotificationsRejet => Set<NotificationRejet>();
+    // ── BonEntree Aggregate ─────────────────────────────────────────
+    public DbSet<BonEntree> BonsEntree => Set<BonEntree>();
+    public DbSet<Materiel> Materiels => Set<Materiel>();
+    public DbSet<Approbation> Approbations => Set<Approbation>();
+    public DbSet<ItinerairePrevu> ItinerairesPrevu => Set<ItinerairePrevu>();
+    public DbSet<BonEntreeHistory> BonEntreeHistoriques => Set<BonEntreeHistory>();
 
-    // ===== TABLES DE RÉFÉRENCE =====
-    
-    /// <summary>
-    /// Liste des compagnies (contractors, sous-traitants)
-    /// </summary>
-    public DbSet<Compagnie> Compagnies => Set<Compagnie>();
+    // ── BonSortie Aggregate ─────────────────────────────────────────
+    public DbSet<BonSortie> BonsSortie => Set<BonSortie>();
+    public DbSet<BonSortieExterne> BonsSortieExterne => Set<BonSortieExterne>();
+    public DbSet<BonSortieInterne> BonsSortieInterne => Set<BonSortieInterne>();
+    public DbSet<Pret> Prets => Set<Pret>();
+    public DbSet<MaterielSortie> MaterielsSortie => Set<MaterielSortie>();
+    public DbSet<ApprobationSortie> ApprobationsSortie => Set<ApprobationSortie>();
+    public DbSet<ItineraireSortie> ItinerairesSortie => Set<ItineraireSortie>();
+    public DbSet<BonSortieHistory> BonSortieHistoriques => Set<BonSortieHistory>();
 
-    /// <summary>
-    /// Contrats des compagnies
-    /// </summary>
-    public DbSet<Contrat> Contrats => Set<Contrat>();
+    // ── Securite ────────────────────────────────────────────────────
+    public DbSet<ScanEvenement> ScansEvenement => Set<ScanEvenement>();
+    public DbSet<Anomalie> Anomalies => Set<Anomalie>();
+    public DbSet<HistoriqueScan> HistoriqueScans => Set<HistoriqueScan>();
 
-    /// <summary>
-    /// Liste des départements
-    /// </summary>
+    // ── Référence / Admin ───────────────────────────────────────────
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<Barriere> Barrieres => Set<Barriere>();
+    public DbSet<ParametreSysteme> ParametresSysteme => Set<ParametreSysteme>();
+    public DbSet<Utilisateur> Utilisateurs => Set<Utilisateur>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UtilisateurRole> UtilisateurRoles => Set<UtilisateurRole>();
     public DbSet<Departement> Departements => Set<Departement>();
-
-    /// <summary>
-    /// Liste des sites (FROM/TO)
-    /// </summary>
-    public DbSet<Site> Sites => Set<Site>();
-
-    /// <summary>
-    /// Liste des employes (escorteurs, demandeurs)
-    /// </summary>
-    public DbSet<Employee> Employees => Set<Employee>();
-
-    /// <summary>
-    /// Categories de sortie (Externe, Interne)
-    /// </summary>
-    public DbSet<CategorieSortie> CategoriesSortie => Set<CategorieSortie>();
-
-    /// <summary>
-    /// Raisons de sortie (Fin chantier, Informatique, etc.)
-    /// </summary>
-    public DbSet<RaisonSortie> RaisonsSortie => Set<RaisonSortie>();
-
-    /// <summary>
-    /// Soldes de matériels pour liaison BEM ↔ BSM et gestion du reliquat
-    /// </summary>
-    public DbSet<SoldeMateriel> SoldesMateriels => Set<SoldeMateriel>();
-
-    /// <summary>
-    /// Checkpoints/Barrieres pour le suivi
-    /// </summary>
-    public DbSet<Checkpoint> Checkpoints => Set<Checkpoint>();
-
-    /// <summary>
-    /// Passages aux checkpoints (pour detection anomalies)
-    /// </summary>
-    public DbSet<PassageCheckpoint> PassagesCheckpoint => Set<PassageCheckpoint>();
-
-    // ===== PERMISSIONS & RÔLES =====
-
-    /// <summary>
-    /// Permissions système (CREATE_BON, APPROVE_BON, etc.)
-    /// </summary>
-    public DbSet<Permission> Permissions => Set<Permission>();
-
-    /// <summary>
-    /// Table de liaison rôle-permission
-    /// </summary>
-    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
-
-    // ===== ACTIVITÉS =====
-
-    /// <summary>
-    /// Activités métier du système (BEM_CREER, BSM_APPROUVER, SEC_SCANNER, etc.)
-    /// </summary>
+    public DbSet<WorkflowEtapeConfig> WorkflowEtapeConfigs => Set<WorkflowEtapeConfig>();
     public DbSet<Activite> Activites => Set<Activite>();
-
-    /// <summary>
-    /// Table de liaison utilisateur-activité (assignation d'activités par utilisateur)
-    /// </summary>
     public DbSet<UtilisateurActivite> UtilisateurActivites => Set<UtilisateurActivite>();
-
-    /// <summary>
-    /// Configuration flexible des étapes de workflow d'approbation (par type de bon et motif)
-    /// </summary>
-    public DbSet<WorkflowEtapeConfig> WorkflowEtapesConfig => Set<WorkflowEtapeConfig>();
+    public DbSet<Compagnie> Compagnies => Set<Compagnie>();
+    public DbSet<Contrat> Contrats => Set<Contrat>();
+    public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<CategorieSortie> CategoriesSortie => Set<CategorieSortie>();
+    public DbSet<RaisonSortie> RaisonsSortie => Set<RaisonSortie>();
+    public DbSet<Site> Sites => Set<Site>();
+    public DbSet<NotificationRejet> NotificationsRejet => Set<NotificationRejet>();
+    public DbSet<SoldeMateriel> SoldeMateriels => Set<SoldeMateriel>();
+    public DbSet<Checkpoint> Checkpoints => Set<Checkpoint>();
+    public DbSet<PassageCheckpoint> PassagesCheckpoint => Set<PassageCheckpoint>();
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<Statut> Statuts => Set<Statut>();
+    public DbSet<TypeMaterielEntity> TypesMateriels => Set<TypeMaterielEntity>();
 
     public KCCMaterialFlowDbContext(DbContextOptions<KCCMaterialFlowDbContext> options)
         : base(options)
     {
-        // Utiliser les assemblies configurées globalement si disponibles
-        _moduleAssemblies = ConfiguredModuleAssemblies?.ToArray() ?? [];
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Appliquer les configurations depuis l'assembly Infrastructure (Data/Configurations/)
+        // Toutes les configurations sont dans Infrastructure/Data/Configurations/
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(KCCMaterialFlowDbContext).Assembly);
 
-        // Appliquer les configurations depuis les assemblies des modules
-        foreach (var assembly in _moduleAssemblies)
-        {
-            modelBuilder.ApplyConfigurationsFromAssembly(assembly);
-        }
-        
         // Configuration globale par défaut
         ConfigureConventions(modelBuilder);
     }
@@ -156,7 +103,6 @@ public class KCCMaterialFlowDbContext : DbContext, IAppDbContext
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // Audit automatique des entités
         UpdateAuditFields();
         return base.SaveChangesAsync(cancellationToken);
     }
@@ -177,7 +123,7 @@ public class KCCMaterialFlowDbContext : DbContext, IAppDbContext
 
         foreach (var entry in entries)
         {
-            if (entry.Entity is IAuditableEntity auditable)
+            if (entry.Entity is BaseAuditableEntity auditable)
             {
                 var now = DateTime.UtcNow;
 

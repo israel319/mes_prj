@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -13,10 +13,10 @@ public class CompagnieConfiguration : IEntityTypeConfiguration<Compagnie>
     {
         builder.ToTable("T_Compagnies", "dbo");
 
-        builder.HasKey(c => c.IdCompagnie);
+        builder.HasKey(c => c.Id);
 
         // Mapping temporaire : la colonne BD est encore "Id" (sera renommée par Phase1_PK_Rename.sql)
-        builder.Property(c => c.IdCompagnie).HasColumnName("Id");
+        builder.Property(c => c.Id).HasColumnName("Id");
 
         builder.Property(c => c.Nom)
             .IsRequired()

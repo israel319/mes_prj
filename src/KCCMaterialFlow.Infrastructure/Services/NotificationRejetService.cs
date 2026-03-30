@@ -1,7 +1,6 @@
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -103,7 +102,7 @@ public class NotificationRejetService : INotificationRejetService
     {
         using var context = _dbContextFactory.CreateDbContext();
         var notification = await context.NotificationsRejet
-            .FirstOrDefaultAsync(n => n.IdNotificationRejet == notificationId, cancellationToken);
+            .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
 
         if (notification != null)
         {
@@ -118,7 +117,7 @@ public class NotificationRejetService : INotificationRejetService
     {
         using var context = _dbContextFactory.CreateDbContext();
         var notifications = await context.NotificationsRejet
-            .Where(n => notificationIds.Contains(n.IdNotificationRejet))
+            .Where(n => notificationIds.Contains(n.Id))
             .ToListAsync(cancellationToken);
 
         var now = DateTime.Now;

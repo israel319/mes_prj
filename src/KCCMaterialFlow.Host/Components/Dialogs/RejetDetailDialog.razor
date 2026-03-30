@@ -1,103 +1,223 @@
-@* Dialog pour afficher les détails d'un rejet *@
-@using KCCMaterialFlow.Module.Shared.Entities
+@* Dialog paysage — détails d'un rejet *@
 
-<RadzenStack Gap="1rem">
+<div class="kcc-rej">
     @if (Notification != null)
     {
-        @* Header *@
-        <RadzenCard Variant="Variant.Flat" Style="background: var(--rz-danger); color: white; border-radius: 8px; padding: 1rem 1.25rem;">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem">
-                <RadzenIcon Icon="cancel" Style="font-size: 2rem;" />
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.H6" Style="color: white; margin: 0; font-weight: 600;">
-                        Rejet - @Notification.NumeroReference
-                    </RadzenText>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: rgba(255,255,255,0.85); margin: 0;">
-                        @Notification.BonType · @Notification.DateRejet.ToString("dd/MM/yyyy HH:mm")
-                    </RadzenText>
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
-
-        @* Informations du rejet *@
-        <RadzenFieldset Text="Informations du rejet" Icon="info">
-            <RadzenRow Gap="0.75rem">
-                <RadzenColumn Size="12" SizeMD="6">
-                    <RadzenFormField Text="Type de bon" Variant="Variant.Text" Style="width: 100%;">
-                        <RadzenTextBox Value="@Notification.BonType" ReadOnly="true" />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="6">
-                    <RadzenFormField Text="N° Référence" Variant="Variant.Text" Style="width: 100%;">
-                        <RadzenTextBox Value="@Notification.NumeroReference" ReadOnly="true" />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="6">
-                    <RadzenFormField Text="Étape du rejet" Variant="Variant.Text" Style="width: 100%;">
-                        <RadzenTextBox Value="@Notification.EtapeRejet" ReadOnly="true" />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="6">
-                    <RadzenFormField Text="Date du rejet" Variant="Variant.Text" Style="width: 100%;">
-                        <RadzenTextBox Value="@Notification.DateRejet.ToString("dd MMM yyyy à HH:mm")" ReadOnly="true" />
-                    </RadzenFormField>
-                </RadzenColumn>
-            </RadzenRow>
-        </RadzenFieldset>
-
-        @* Approbateur *@
-        <RadzenFieldset Text="Approbateur" Icon="person">
-            <RadzenRow Gap="0.75rem">
-                <RadzenColumn Size="12" SizeMD="6">
-                    <RadzenFormField Text="Nom" Variant="Variant.Text" Style="width: 100%;">
-                        <RadzenTextBox Value="@Notification.ApprobateurNom" ReadOnly="true" />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="6">
-                    <RadzenFormField Text="Login" Variant="Variant.Text" Style="width: 100%;">
-                        <RadzenTextBox Value="@(Notification.ApprobateurLogin ?? "N/A")" ReadOnly="true" />
-                    </RadzenFormField>
-                </RadzenColumn>
-            </RadzenRow>
-        </RadzenFieldset>
-
-        @* Demandeur *@
-        <RadzenFieldset Text="Demandeur" Icon="person_outline">
-            <RadzenFormField Text="Nom du demandeur" Variant="Variant.Text" Style="width: 100%;">
-                <RadzenTextBox Value="@(Notification.DemandeurNom ?? "Non spécifié")" ReadOnly="true" />
-            </RadzenFormField>
-        </RadzenFieldset>
-
-        @* Motif du rejet *@
-        <RadzenFieldset Text="Motif du rejet" Icon="warning">
-            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Shade="Shade.Lighter" 
-                         AllowClose="false" ShowIcon="true" Size="AlertSize.Medium">
-                <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; line-height: 1.5;">
-                    @Notification.MotifRejet
-                </RadzenText>
-            </RadzenAlert>
-        </RadzenFieldset>
-
-        @* Footer *@
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" JustifyContent="JustifyContent.End"
-                     Style="padding-top: 0.5rem; border-top: 1px solid var(--gray-200);">
+        @* ─── BANDEAU SUPÉRIEUR ─── *@
+        <div class="kcc-rej__topbar">
+            <div class="kcc-rej__topbar-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            </div>
+            <div class="kcc-rej__topbar-text">
+                <h2 class="kcc-rej__title">Rejet — @Notification.NumeroReference</h2>
+                <p class="kcc-rej__desc">@Notification.BonType &bull; @Notification.DateRejet.ToString("dd/MM/yyyy à HH:mm")</p>
+            </div>
             @if (!Notification.EstLue)
             {
-                <RadzenButton Text="Marquer comme lu" Icon="check" 
-                              ButtonStyle="ButtonStyle.Success" Click="@MarkAsRead" />
+                <span class="kcc-rej__badge kcc-rej__badge--new">Nouveau</span>
             }
-            <RadzenButton Text="Fermer" Variant="Variant.Outlined" 
-                          ButtonStyle="ButtonStyle.Light" Click="@Close" />
-        </RadzenStack>
+            <button type="button" class="kcc-rej__close" @onclick="@Close" title="Fermer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        @* ─── CORPS DEUX COLONNES ─── *@
+        <div class="kcc-rej__body">
+
+            @* ══════════ GAUCHE — Infos ══════════ *@
+            <div class="kcc-rej__left">
+
+                @* Demandeur *@
+                <div class="kcc-rej__card">
+                    <div class="kcc-rej__card-row">
+                        <div class="kcc-rej__avatar kcc-rej__avatar--dem">@GetInitials(Notification.DemandeurNom)</div>
+                        <div class="kcc-rej__card-info">
+                            <span class="kcc-rej__card-name">@(Notification.DemandeurNom ?? "Non spécifié")</span>
+                            <span class="kcc-rej__card-sub">Demandeur</span>
+                        </div>
+                    </div>
+                </div>
+
+                @* Détails du rejet *@
+                <div class="kcc-rej__section">
+                    <div class="kcc-rej__section-head">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Informations
+                    </div>
+                    <div class="kcc-rej__grid">
+                        <div class="kcc-rej__field">
+                            <span class="kcc-rej__field-label">Type de bon</span>
+                            <span class="kcc-rej__field-value">
+                                <span class="kcc-rej__type-tag">@Notification.BonType</span>
+                            </span>
+                        </div>
+                        <div class="kcc-rej__field">
+                            <span class="kcc-rej__field-label">N° Référence</span>
+                            <span class="kcc-rej__field-value" style="font-weight: 700;">@Notification.NumeroReference</span>
+                        </div>
+                        <div class="kcc-rej__field">
+                            <span class="kcc-rej__field-label">Étape du rejet</span>
+                            <span class="kcc-rej__field-value">@Notification.EtapeRejet</span>
+                        </div>
+                        <div class="kcc-rej__field">
+                            <span class="kcc-rej__field-label">Date du rejet</span>
+                            <span class="kcc-rej__field-value">@Notification.DateRejet.ToString("dd MMM yyyy à HH:mm")</span>
+                        </div>
+                    </div>
+                </div>
+
+                @* Approbateur qui a rejeté *@
+                <div class="kcc-rej__section">
+                    <div class="kcc-rej__section-head">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Rejeté par
+                    </div>
+                    <div class="kcc-rej__card-row">
+                        <div class="kcc-rej__avatar kcc-rej__avatar--rej">@GetInitials(Notification.ApprobateurNom)</div>
+                        <div class="kcc-rej__card-info">
+                            <span class="kcc-rej__card-name">@Notification.ApprobateurNom</span>
+                            <span class="kcc-rej__card-sub">@(Notification.ApprobateurLogin ?? "N/A")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ══════════ DROITE — Motif du rejet ══════════ *@
+            <div class="kcc-rej__right">
+                <div class="kcc-rej__section kcc-rej__section--grow">
+                    <div class="kcc-rej__section-head">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                        Motif du rejet
+                    </div>
+                    <div class="kcc-rej__motif-box">
+                        <svg class="kcc-rej__motif-quote" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" opacity="0.15">
+                            <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10H14.017zM0 21v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151C7.563 6.068 6 8.789 6 11h4.017v10H0z"/>
+                        </svg>
+                        <p class="kcc-rej__motif-text">@Notification.MotifRejet</p>
+                    </div>
+                </div>
+
+                @* Statut lecture *@
+                <div class="kcc-rej__lecture">
+                    @if (Notification.EstLue)
+                    {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Lu le @(Notification.DateLecture?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span>
+                    }
+                    else
+                    {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        <span>Non lu</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* ─── FOOTER ─── *@
+        <div class="kcc-rej__footer">
+            @if (!Notification.EstLue)
+            {
+                <button type="button" class="kcc-rej__btn kcc-rej__btn--primary" @onclick="@MarkAsRead">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    Marquer comme lu
+                </button>
+            }
+            <div style="flex: 1;"></div>
+            <button type="button" class="kcc-rej__btn kcc-rej__btn--ghost" @onclick="@Close">Fermer</button>
+        </div>
     }
     else
     {
-        <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 2rem;">
-            <RadzenIcon Icon="error_outline" Style="font-size: 3rem; color: var(--gray-400);" />
-            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500);">Notification non trouvée</RadzenText>
-        </RadzenStack>
+        <div class="kcc-rej__topbar">
+            <div class="kcc-rej__topbar-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            </div>
+            <div class="kcc-rej__topbar-text">
+                <h2 class="kcc-rej__title">Erreur</h2>
+            </div>
+        </div>
+        <div style="padding: 3rem; text-align: center; color: #6b7280; flex: 1; display: flex; align-items: center; justify-content: center;">
+            Notification non trouvée
+        </div>
+        <div class="kcc-rej__footer" style="justify-content: flex-end;">
+            <button type="button" class="kcc-rej__btn kcc-rej__btn--ghost" @onclick="@Close">Fermer</button>
+        </div>
     }
-</RadzenStack>
+</div>
+
+<style>
+    /* ============================================================
+       KCC REJET DETAIL — Modale Paysage
+       Gauche : infos du rejet | Droite : motif
+       Couleurs : Rouge #dc2626 | Cuivre #BB8748 | Slate #253C45
+       ============================================================ */
+
+    .kcc-rej { display: flex; flex-direction: column; background: #ffffff; height: 100%; }
+
+    /* ─── TOPBAR ─── */
+    .kcc-rej__topbar { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.5rem; background: #7f1d1d; color: #ffffff; flex-shrink: 0; }
+    .kcc-rej__topbar-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fca5a5; }
+    .kcc-rej__topbar-text { flex: 1; min-width: 0; }
+    .kcc-rej__title { margin: 0; font-size: 1rem; font-weight: 700; color: #fff; }
+    .kcc-rej__desc { margin: 0; font-size: 0.75rem; color: rgba(255,255,255,0.65); }
+    .kcc-rej__close { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); cursor: pointer; flex-shrink: 0; }
+    .kcc-rej__close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* Badge */
+    .kcc-rej__badge { padding: 0.2rem 0.65rem; font-size: 0.65rem; font-weight: 700; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+    .kcc-rej__badge--new { background: rgba(252,165,165,0.25); color: #fca5a5; }
+
+    /* ─── BODY ─── */
+    .kcc-rej__body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+    .kcc-rej__left { flex: 1; display: flex; flex-direction: column; border-right: 1px solid rgba(0,0,0,0.06); overflow-y: auto; }
+    .kcc-rej__right { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: #fafbfc; }
+
+    /* ─── CARTE ─── */
+    .kcc-rej__card { padding: 0.85rem 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.06); background: #f8f9fb; }
+    .kcc-rej__card-row { display: flex; align-items: center; gap: 0.65rem; }
+    .kcc-rej__avatar { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; flex-shrink: 0; }
+    .kcc-rej__avatar--dem { background: #BB8748; }
+    .kcc-rej__avatar--rej { background: #dc2626; }
+    .kcc-rej__card-info { display: flex; flex-direction: column; min-width: 0; }
+    .kcc-rej__card-name { font-weight: 600; font-size: 0.85rem; color: #1a1a1a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .kcc-rej__card-sub { font-size: 0.7rem; color: #6b7280; }
+
+    /* ─── SECTIONS ─── */
+    .kcc-rej__section { padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.04); }
+    .kcc-rej__section--grow { flex: 1; }
+    .kcc-rej__section-head { display: flex; align-items: center; gap: 0.35rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #253C45; padding-bottom: 0.45rem; border-bottom: 1px solid rgba(0,0,0,0.06); margin-bottom: 0.5rem; }
+    .kcc-rej__section-head svg { color: #BB8748; flex-shrink: 0; }
+
+    /* Grid infos */
+    .kcc-rej__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; }
+    .kcc-rej__field { display: flex; flex-direction: column; gap: 0.1rem; }
+    .kcc-rej__field-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #9ca3af; }
+    .kcc-rej__field-value { font-size: 0.82rem; color: #1a1a1a; }
+    .kcc-rej__type-tag { display: inline-block; padding: 0.1rem 0.4rem; font-size: 0.68rem; font-weight: 700; background: rgba(37,60,69,0.08); color: #253C45; }
+
+    /* ─── MOTIF BOX ─── */
+    .kcc-rej__motif-box { position: relative; background: #fef2f2; border: 1px solid rgba(220,38,38,0.15); padding: 1.25rem 1rem 1rem; min-height: 100px; }
+    .kcc-rej__motif-quote { position: absolute; top: 0.5rem; left: 0.75rem; color: #dc2626; }
+    .kcc-rej__motif-text { margin: 0; padding-left: 1.5rem; font-size: 0.88rem; line-height: 1.6; color: #7f1d1d; word-break: break-word; }
+
+    /* Statut lecture */
+    .kcc-rej__lecture { display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1.25rem; font-size: 0.72rem; color: #6b7280; border-top: 1px solid rgba(0,0,0,0.04); margin-top: auto; }
+    .kcc-rej__lecture svg { flex-shrink: 0; }
+
+    /* ─── FOOTER ─── */
+    .kcc-rej__footer { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem; border-top: 1px solid rgba(0,0,0,0.08); background: #f4f5f7; flex-shrink: 0; }
+    .kcc-rej__btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.5rem 1.1rem; font-size: 0.8rem; font-weight: 600; font-family: inherit; border: 1px solid transparent; cursor: pointer; transition: all 0.1s; }
+    .kcc-rej__btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .kcc-rej__btn--ghost { background: #ffffff; color: #4a4a4a; border-color: rgba(0,0,0,0.12); }
+    .kcc-rej__btn--ghost:hover:not(:disabled) { background: #ebedf0; }
+    .kcc-rej__btn--primary { background: #00B193; color: #ffffff; border-color: #00B193; }
+    .kcc-rej__btn--primary:hover:not(:disabled) { background: #008F76; border-color: #008F76; }
+
+    /* Scrollbar */
+    .kcc-rej__left::-webkit-scrollbar, .kcc-rej__right::-webkit-scrollbar { width: 3px; }
+    .kcc-rej__left::-webkit-scrollbar-track, .kcc-rej__right::-webkit-scrollbar-track { background: transparent; }
+    .kcc-rej__left::-webkit-scrollbar-thumb, .kcc-rej__right::-webkit-scrollbar-thumb { background: #d1d5db; }
+</style>
 
 @code {
     [Parameter] public NotificationRejet? Notification { get; set; }
@@ -112,5 +232,13 @@
     private async Task Close()
     {
         await OnClose.InvokeAsync();
+    }
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2) return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[^1][0])}";
+        return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
     }
 }

@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,9 +13,9 @@ public class UtilisateurConfiguration : IEntityTypeConfiguration<Utilisateur>
     {
         builder.ToTable("T_Utilisateurs", "dbo");
 
-        builder.HasKey(u => u.IdUtilisateur);
+        builder.HasKey(u => u.Id);
 
-        builder.Property(u => u.IdUtilisateur)
+        builder.Property(u => u.Id)
             .HasColumnName("IdUtilisateur")
             .ValueGeneratedOnAdd();
 

@@ -1,5 +1,5 @@
-using KCCMaterialFlow.Module.BonEntree.Services;
-using KCCMaterialFlow.Module.BonSortie.Services;
+using KCCMaterialFlow.Application.Common.Interfaces;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Host.Services;
 
@@ -60,7 +60,7 @@ public class UnifiedSearchService : IUnifiedSearchService
 
         try
         {
-            var filter = new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter
+            var filter = new BonEntreeFilter
             {
                 SearchTerm = query,
                 Take = maxResults
@@ -73,7 +73,7 @@ public class UnifiedSearchService : IUnifiedSearchService
                 var score = CalculateScore(query, bon.NumeroReference, bon.NomCompagnie, bon.Description);
                 results.Add(new SearchResultItem
                 {
-                    Id = bon.IdBon,
+                    Id = bon.Id,
                     Type = "BEM",
                     TypeLabel = "Bon d'Entrée",
                     Reference = bon.NumeroReference,
@@ -81,7 +81,7 @@ public class UnifiedSearchService : IUnifiedSearchService
                     Subtitle = bon.ReasonOnSite,
                     Statut = bon.StatutActuel,
                     Date = bon.DateCreation,
-                    Url = $"/bon-entree/{bon.IdBon}",
+                    Url = $"/bon-entree/{bon.Id}",
                     Icon = "inventory_2",
                     Color = "#1976d2",
                     Score = score
@@ -102,7 +102,7 @@ public class UnifiedSearchService : IUnifiedSearchService
 
         try
         {
-            var filter = new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter
+            var filter = new BonSortieFilter
             {
                 SearchTerm = query,
                 Take = maxResults
@@ -112,12 +112,12 @@ public class UnifiedSearchService : IUnifiedSearchService
 
             foreach (var bon in searchResult.Items)
             {
-                var isExterne = bon is KCCMaterialFlow.Module.BonSortie.Entities.BonSortieExterne;
+                var isExterne = bon is BonSortieExterne;
                 var score = CalculateScore(query, bon.NumeroReference, bon.NomDemandeur, bon.MotifSortie);
                 
                 results.Add(new SearchResultItem
                 {
-                    Id = bon.IdBon,
+                    Id = bon.Id,
                     Type = isExterne ? "BSM" : "BSI",
                     TypeLabel = isExterne ? "Bon de Sortie Externe" : "Bon de Sortie Interne",
                     Reference = bon.NumeroReference,
@@ -125,7 +125,7 @@ public class UnifiedSearchService : IUnifiedSearchService
                     Subtitle = bon.MotifSortie,
                     Statut = bon.StatutActuel,
                     Date = bon.DateCreation,
-                    Url = $"/bon-sortie/{bon.IdBon}",
+                    Url = $"/bon-sortie/{bon.Id}",
                     Icon = isExterne ? "logout" : "swap_horiz",
                     Color = "#444",
                     Score = score

@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonEntree.Entities;
-
-using KCCMaterialFlow.Module.BonSortie.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -16,13 +14,13 @@ public class ItineraireSortieConfiguration : IEntityTypeConfiguration<Itineraire
     {
         builder.ToTable("T_ItinerairesSortie", "dbo");
 
-        builder.HasKey(i => i.IdItineraire);
+        builder.HasKey(i => i.Id);
 
-        builder.Property(i => i.IdItineraire)
+        builder.Property(i => i.Id)
             .HasColumnName("IdItineraire")
             .ValueGeneratedOnAdd();
 
-        builder.Property(i => i.BonSortieId)
+        builder.Property(i => i.BonId)
             .HasColumnName("BonSortieId")
             .IsRequired();
 
@@ -33,23 +31,8 @@ public class ItineraireSortieConfiguration : IEntityTypeConfiguration<Itineraire
         builder.Property(i => i.OrdrePassage)
             .HasColumnName("OrdrePassage");
 
-        builder.Property(i => i.DatePassagePrevue)
-            .HasColumnName("DatePassagePrevue");
-
-        builder.Property(i => i.DatePassageEffective)
-            .HasColumnName("DatePassageEffective");
-
-        builder.Property(i => i.StatutPassage)
-            .HasColumnName("StatutPassage")
-            .HasMaxLength(50)
-            .HasDefaultValue("Prévu");
-
-        builder.Property(i => i.Observations)
-            .HasColumnName("Observations")
-            .HasMaxLength(500);
-
         // Index sur le bon de sortie
-        builder.HasIndex(i => i.BonSortieId)
+        builder.HasIndex(i => i.BonId)
             .HasDatabaseName("IX_ItinerairesSortie_BonSortieId");
 
         // Index sur la barrière
@@ -57,7 +40,7 @@ public class ItineraireSortieConfiguration : IEntityTypeConfiguration<Itineraire
             .HasDatabaseName("IX_ItinerairesSortie_BarriereId");
 
         // Index composé pour l'ordre de passage
-        builder.HasIndex(i => new { i.BonSortieId, i.OrdrePassage })
+        builder.HasIndex(i => new { i.BonId, i.OrdrePassage })
             .HasDatabaseName("IX_ItinerairesSortie_Ordre");
     }
 }

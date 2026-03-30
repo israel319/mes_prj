@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,9 +13,9 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
     {
         builder.ToTable("T_Activites", "dbo");
 
-        builder.HasKey(a => a.IdActivite);
+        builder.HasKey(a => a.Id);
 
-        builder.Property(a => a.IdActivite)
+        builder.Property(a => a.Id)
             .HasColumnName("IdActivite")
             .ValueGeneratedOnAdd();
 
@@ -84,7 +84,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             // =============================================
             new Activite
             {
-                IdActivite = 1,
+                Id =1,
                 CodeActivite = "BEM_CREER",
                 NomActivite = "Créer un Bon d'Entrée",
                 Description = "Saisir et enregistrer un nouveau bon d'entrée matériel",
@@ -97,7 +97,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 2,
+                Id =2,
                 CodeActivite = "BEM_MODIFIER",
                 NomActivite = "Modifier un Bon d'Entrée",
                 Description = "Éditer un bon d'entrée en brouillon",
@@ -110,7 +110,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 3,
+                Id =3,
                 CodeActivite = "BEM_SOUMETTRE",
                 NomActivite = "Soumettre un Bon d'Entrée",
                 Description = "Envoyer un bon d'entrée en approbation",
@@ -123,7 +123,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 4,
+                Id =4,
                 CodeActivite = "BEM_APPROUVER",
                 NomActivite = "Approuver un Bon d'Entrée",
                 Description = "Valider et approuver un bon d'entrée soumis",
@@ -136,7 +136,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 5,
+                Id =5,
                 CodeActivite = "BEM_REJETER",
                 NomActivite = "Rejeter un Bon d'Entrée",
                 Description = "Rejeter un bon d'entrée avec motif obligatoire",
@@ -149,7 +149,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 6,
+                Id =6,
                 CodeActivite = "BEM_RETOURNER",
                 NomActivite = "Retourner un Bon d'Entrée",
                 Description = "Renvoyer un bon d'entrée au demandeur pour corrections",
@@ -162,7 +162,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 7,
+                Id =7,
                 CodeActivite = "BEM_SUPPRIMER",
                 NomActivite = "Supprimer un brouillon BEM",
                 Description = "Supprimer un bon d'entrée en statut brouillon",
@@ -175,7 +175,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 8,
+                Id =8,
                 CodeActivite = "BEM_IMPRIMER",
                 NomActivite = "Imprimer / Exporter PDF un BEM",
                 Description = "Imprimer ou télécharger le PDF d'un bon d'entrée",
@@ -192,7 +192,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             // =============================================
             new Activite
             {
-                IdActivite = 10,
+                Id =10,
                 CodeActivite = "BSM_CREER",
                 NomActivite = "Créer un Bon de Sortie",
                 Description = "Saisir et enregistrer un nouveau bon de sortie matériel",
@@ -205,7 +205,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 11,
+                Id =11,
                 CodeActivite = "BSM_MODIFIER",
                 NomActivite = "Modifier un Bon de Sortie",
                 Description = "Éditer un bon de sortie en brouillon",
@@ -218,7 +218,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 12,
+                Id =12,
                 CodeActivite = "BSM_SOUMETTRE",
                 NomActivite = "Soumettre un Bon de Sortie",
                 Description = "Envoyer un bon de sortie dans la chaîne d'approbation",
@@ -231,7 +231,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 13,
+                Id =13,
                 CodeActivite = "BSM_APPROUVER",
                 NomActivite = "Approuver un Bon de Sortie",
                 Description = "Valider et approuver un bon de sortie à l'étape courante",
@@ -244,7 +244,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 14,
+                Id =14,
                 CodeActivite = "BSM_REJETER",
                 NomActivite = "Rejeter un Bon de Sortie",
                 Description = "Rejeter un bon de sortie avec motif obligatoire",
@@ -257,7 +257,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 15,
+                Id =15,
                 CodeActivite = "BSM_RETOURNER",
                 NomActivite = "Retourner un Bon de Sortie",
                 Description = "Renvoyer un bon de sortie au demandeur pour corrections",
@@ -270,7 +270,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 16,
+                Id =16,
                 CodeActivite = "BSM_SUPPRIMER",
                 NomActivite = "Supprimer un brouillon BSM",
                 Description = "Supprimer un bon de sortie en statut brouillon",
@@ -283,7 +283,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 17,
+                Id =17,
                 CodeActivite = "BSM_IMPRIMER",
                 NomActivite = "Imprimer / Exporter PDF un BSM",
                 Description = "Imprimer ou télécharger le PDF d'un bon de sortie",
@@ -300,7 +300,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             // =============================================
             new Activite
             {
-                IdActivite = 18,
+                Id =18,
                 CodeActivite = "PRET_RETOUR",
                 NomActivite = "Enregistrer un retour de prêt",
                 Description = "Confirmer le retour d'un matériel prêté",
@@ -313,7 +313,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 19,
+                Id =19,
                 CodeActivite = "PRET_EXTENSION",
                 NomActivite = "Demander une extension de prêt",
                 Description = "Prolonger la date de retour d'un prêt en cours",
@@ -330,7 +330,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             // =============================================
             new Activite
             {
-                IdActivite = 20,
+                Id =20,
                 CodeActivite = "SEC_SCANNER",
                 NomActivite = "Scanner un QR Code",
                 Description = "Scanner un QR code à la barrière pour contrôler un passage",
@@ -343,7 +343,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 21,
+                Id =21,
                 CodeActivite = "SEC_CONFIRMER_PASSAGE",
                 NomActivite = "Confirmer un passage",
                 Description = "Valider le passage d'un matériel à la barrière après scan",
@@ -356,7 +356,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 22,
+                Id =22,
                 CodeActivite = "SEC_SIGNALER_ANOMALIE",
                 NomActivite = "Signaler une anomalie",
                 Description = "Signaler manuellement une anomalie lors d'un contrôle",
@@ -369,7 +369,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 23,
+                Id =23,
                 CodeActivite = "SEC_TRAITER_ANOMALIE",
                 NomActivite = "Traiter une anomalie",
                 Description = "Résoudre une anomalie avec commentaire et action corrective",
@@ -382,7 +382,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 24,
+                Id =24,
                 CodeActivite = "SEC_REOUVRIR_ANOMALIE",
                 NomActivite = "Réouvrir une anomalie",
                 Description = "Réouvrir une anomalie traitée pour investigation complémentaire",
@@ -395,7 +395,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 25,
+                Id =25,
                 CodeActivite = "SEC_VOIR_HISTORIQUE",
                 NomActivite = "Consulter l'historique des scans",
                 Description = "Voir l'historique complet des scans QR et passages",
@@ -412,7 +412,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             // =============================================
             new Activite
             {
-                IdActivite = 26,
+                Id =26,
                 CodeActivite = "SEC_GERER_BARRIERES",
                 NomActivite = "Gérer les barrières",
                 Description = "Créer, modifier, activer/désactiver les barrières de contrôle",
@@ -425,7 +425,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 27,
+                Id =27,
                 CodeActivite = "SEC_GERER_ITINERAIRES",
                 NomActivite = "Gérer les itinéraires",
                 Description = "Configurer les itinéraires et séquences de checkpoints",
@@ -438,7 +438,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 28,
+                Id =28,
                 CodeActivite = "SEC_GERER_AGENTS",
                 NomActivite = "Gérer les agents de barrière",
                 Description = "Affecter et gérer les agents aux barrières",
@@ -455,7 +455,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             // =============================================
             new Activite
             {
-                IdActivite = 30,
+                Id =30,
                 CodeActivite = "ADMIN_UTILISATEURS",
                 NomActivite = "Gérer les utilisateurs",
                 Description = "Créer, modifier, activer/désactiver les utilisateurs",
@@ -468,7 +468,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 31,
+                Id =31,
                 CodeActivite = "ADMIN_ROLES",
                 NomActivite = "Gérer les rôles",
                 Description = "Créer, modifier les rôles et leurs permissions",
@@ -481,7 +481,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 32,
+                Id =32,
                 CodeActivite = "ADMIN_DEPARTEMENTS",
                 NomActivite = "Gérer les départements",
                 Description = "Créer, modifier, activer/désactiver les départements",
@@ -494,7 +494,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 33,
+                Id =33,
                 CodeActivite = "ADMIN_TYPES_MATERIELS",
                 NomActivite = "Gérer les types de matériel",
                 Description = "Créer, modifier les types de matériel",
@@ -507,7 +507,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 34,
+                Id =34,
                 CodeActivite = "ADMIN_STATUTS",
                 NomActivite = "Gérer les statuts",
                 Description = "Créer, modifier les statuts de workflow",
@@ -520,7 +520,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 35,
+                Id =35,
                 CodeActivite = "ADMIN_PARAMETRES",
                 NomActivite = "Gérer les paramètres système",
                 Description = "Configurer les paramètres globaux de l'application",
@@ -533,7 +533,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 36,
+                Id =36,
                 CodeActivite = "ADMIN_AUDIT",
                 NomActivite = "Consulter le journal d'audit",
                 Description = "Voir les logs d'audit des actions système",
@@ -546,7 +546,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 37,
+                Id =37,
                 CodeActivite = "ADMIN_ACTIVITES",
                 NomActivite = "Gérer les activités utilisateurs",
                 Description = "Assigner et retirer des activités aux utilisateurs",
@@ -563,7 +563,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             // =============================================
             new Activite
             {
-                IdActivite = 40,
+                Id =40,
                 CodeActivite = "VOIR_TOUS_BONS",
                 NomActivite = "Voir tous les bons",
                 Description = "Consulter la liste complète de tous les bons du système",
@@ -576,7 +576,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 41,
+                Id =41,
                 CodeActivite = "VOIR_APPROBATIONS",
                 NomActivite = "Voir les approbations en attente",
                 Description = "Consulter la liste des bons en attente d'approbation",
@@ -589,7 +589,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 42,
+                Id =42,
                 CodeActivite = "EXPORT_EXCEL",
                 NomActivite = "Exporter les données en Excel",
                 Description = "Exporter les listes de bons et l'historique au format Excel",
@@ -602,7 +602,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 43,
+                Id =43,
                 CodeActivite = "VOIR_HISTORIQUE",
                 NomActivite = "Consulter l'historique",
                 Description = "Consulter l'historique complet des bons et mouvements",
@@ -615,7 +615,7 @@ public class ActiviteConfiguration : IEntityTypeConfiguration<Activite>
             },
             new Activite
             {
-                IdActivite = 44,
+                Id =44,
                 CodeActivite = "VOIR_TABLEAU_BORD",
                 NomActivite = "Voir le tableau de bord",
                 Description = "Accéder au tableau de bord avec statistiques et raccourcis",
@@ -639,9 +639,9 @@ public class UtilisateurActiviteConfiguration : IEntityTypeConfiguration<Utilisa
     {
         builder.ToTable("T_UtilisateurActivites", "dbo");
 
-        builder.HasKey(ua => ua.IdUtilisateurActivite);
+        builder.HasKey(ua => ua.Id);
 
-        builder.Property(ua => ua.IdUtilisateurActivite)
+        builder.Property(ua => ua.Id)
             .HasColumnName("IdUtilisateurActivite")
             .ValueGeneratedOnAdd();
 

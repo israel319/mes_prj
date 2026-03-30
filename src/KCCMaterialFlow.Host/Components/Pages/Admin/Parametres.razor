@@ -1,7 +1,5 @@
 @page "/admin/parametres"
 @attribute [Authorize(Roles = "Admin")]
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @using Microsoft.AspNetCore.Authorization
 @inject IParametreSystemeService ParametreService
 @inject IAuditLogService AuditLogService
@@ -11,16 +9,12 @@
 
 <PageTitle>Administration - Paramètres Système</PageTitle>
 
-<div style="padding: 1.5rem;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    <AdminNav />
     <RadzenStack Gap="1.5rem">
         @* En-tête *@
         <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
             <RadzenColumn>
-                <RadzenBreadCrumb>
-                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
-                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
-                    <RadzenBreadCrumbItem Text="Paramètres" Icon="tune" />
-                </RadzenBreadCrumb>
                 <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
                     <RadzenIcon Icon="tune" Style="margin-right: 0.5rem; vertical-align: middle;" />
                     Paramètres Système
@@ -57,7 +51,7 @@
                                     </RadzenText>
                                     @if (param.EstSysteme)
                                     {
-                                        <RadzenBadge Text="Système" BadgeStyle="BadgeStyle.Secondary" IsPill="true" Style="font-size: 0.6rem;" />
+                                        <RadzenBadge Text="Système" BadgeStyle="BadgeStyle.Secondary" Style="font-size: 0.6rem;" />
                                     }
                                 </RadzenStack>
                             </Template>
@@ -94,7 +88,7 @@
                         
                         <RadzenDataGridColumn TItem="ParametreSysteme" Property="TypeDonnee" Title="Type" Width="100px" TextAlign="TextAlign.Center">
                             <Template Context="param">
-                                <RadzenBadge Text="@param.TypeDonnee" BadgeStyle="BadgeStyle.Light" IsPill="true" />
+                                <RadzenBadge Text="@param.TypeDonnee" BadgeStyle="BadgeStyle.Light" />
                             </Template>
                         </RadzenDataGridColumn>
                         
@@ -191,6 +185,7 @@
         
         if (result == true)
         {
+            ParametreService.InvalidateCache();
             await LoadDataAsync();
             NotificationService.Notify(NotificationSeverity.Success, "Succès", "Paramètre créé avec succès");
         }
@@ -201,9 +196,10 @@
         var result = await DialogService.OpenAsync<ParametreEditDialog>("Modifier le paramètre",
             new Dictionary<string, object> { { "Parametre", parametre } },
             new DialogOptions { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
-        
+
         if (result == true)
         {
+            ParametreService.InvalidateCache();
             await LoadDataAsync();
             NotificationService.Notify(NotificationSeverity.Success, "Succès", "Paramètre modifié avec succès");
         }
@@ -231,19 +227,23 @@
             var ancienneValeur = param.Valeur;
             var userLogin = CurrentUserService.GetUserLogin();
             await ParametreService.UpdateValueAsync(param.Cle, newValue, userLogin);
-            
+
+            // Mettre à jour localement pour reflet immédiat
+            param.Valeur = newValue;
+
             await AuditLogService.LogAsync(
                 userLogin,
                 CurrentUserService.GetUserDisplayName(),
                 "Update",
                 "ParametreSysteme",
                 $"Paramètre {param.Cle} modifié",
-                param.IdParametre.ToString(),
+                param.Id.ToString(),
                 "ParametreSysteme",
                 ancienneValeur: ancienneValeur,
                 nouvelleValeur: newValue);
-            
+
             NotificationService.Notify(NotificationSeverity.Success, "Succès", $"Paramètre {param.Cle} mis à jour");
+            ParametreService.InvalidateCache();
             await LoadDataAsync();
         }
         catch (Exception ex)

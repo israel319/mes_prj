@@ -1,0 +1,372 @@
+@* BSM-060: Liste des prêts avec statut retour *@
+@* BSM-061: Indicateurs échéance - couleur selon jours restants *@
+@page "/bon-sortie/prets"
+@page "/prets"
+@attribute [Authorize]
+
+@inject IBonSortieService BonSortieService
+@inject NavigationManager Navigation
+@inject DialogService DialogService
+@inject NotificationService Notification
+
+<PageTitle>Gestion des Prêts - KCC Material Flow</PageTitle>
+
+  <RadzenStack Gap="1.5rem">
+        
+        @* En-tête *@
+        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+            <RadzenColumn Size="12" SizeMD="8">
+                <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1a202c;">
+                    Gestion des Prêts
+                </RadzenText>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Statistiques *@
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="6" SizeMD="3">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; text-align: center; border-left: 4px solid #007bff;">
+                    <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #007bff;">@totalActifs</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #888;">Prêts Actifs</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="6" SizeMD="3">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; text-align: center; border-left: 4px solid #fd7e14;">
+                    <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #fd7e14;">@expirantBientot</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #888;">Expire dans 7 jours</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="6" SizeMD="3">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; text-align: center; border-left: 4px solid #dc3545;">
+                    <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #dc3545;">@enRetard</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #888;">En Retard</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="6" SizeMD="3">
+                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; text-align: center; border-left: 4px solid #28a745;">
+                    <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #28a745;">@retournesCeMois</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #888;">Retournés ce mois</RadzenText>
+                </RadzenCard>
+            </RadzenColumn>
+        </RadzenRow>
+
+        @* Filtres *@
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.25rem; border: 1px solid #eee;">
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap" AlignItems="AlignItems.End">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Statut</RadzenText>
+                    <RadzenDropDown @bind-Value="@filtreStatut" Data="@statutOptions" TextProperty="Text" ValueProperty="Value" 
+                        Placeholder="Tous" AllowClear="true" Style="width: 160px;" Change="@(args => LoadDataAsync())" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Échéance</RadzenText>
+                    <RadzenDropDown @bind-Value="@filtreEcheance" Data="@echeanceOptions" TextProperty="Text" ValueProperty="Value" 
+                        Placeholder="Toutes" AllowClear="true" Style="width: 180px;" Change="@(args => LoadDataAsync())" />
+                </RadzenStack>
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Recherche</RadzenText>
+                    <RadzenTextBox @bind-Value="@searchText" Placeholder="N° référence, demandeur..." Style="width: 220px;" />
+                </RadzenStack>
+                <RadzenButton Icon="search" Text="Rechercher" ButtonStyle="ButtonStyle.Dark" Click="@LoadDataAsync" />
+                <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@ResetFilters" />
+            </RadzenStack>
+        </RadzenCard>
+
+        @* Grille des prêts *@
+        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 0; overflow: hidden; border: 1px solid #eee;">
+            <RadzenDataGrid @ref="grid" Data="@prets" TItem="PretListDto" AllowSorting="true" 
+                AllowPaging="true" PageSize="15" IsLoading="@isLoading">
+                <Columns>
+                    @* BSM-061: Indicateur d'échéance avec couleur *@
+                    <RadzenDataGridColumn TItem="PretListDto" Width="50px" Sortable="false" Filterable="false">
+                        <Template Context="pret">
+                            @{
+                                var (couleur, icon, tooltip) = GetIndicateurEcheance(pret);
+                            }
+                            <div title="@tooltip" style="text-align: center;">
+                                <RadzenIcon Icon="@icon" Style="@($"color: {couleur}; font-size: 1.5rem;")" />
+                            </div>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="PretListDto" Property="NumeroReference" Title="RÉFÉRENCE" Width="140px">
+                        <Template Context="pret">
+                            <RadzenLink Path="@($"/bon-sortie/{pret.IdBon}")" Text="@pret.NumeroReference" 
+                                Style="font-weight: bold; color: #e31b23; font-family: monospace;" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="PretListDto" Property="NomDemandeur" Title="DEMANDEUR" />
+
+                    <RadzenDataGridColumn TItem="PretListDto" Property="DateCreation" Title="DATE SORTIE" Width="110px">
+                        <Template Context="pret">@pret.DateCreation.ToString("dd/MM/yyyy")</Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="PretListDto" Property="DateRetourPrevue" Title="RETOUR PRÉVU" Width="120px">
+                        <Template Context="pret">
+                            <span style="@GetDateStyle(pret)">@pret.DateRetourPrevue.ToString("dd/MM/yyyy")</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    @* Countdown / jours restants *@
+                    <RadzenDataGridColumn TItem="PretListDto" Title="ÉCHÉANCE" Width="130px" Sortable="false">
+                        <Template Context="pret">
+                            @{
+                                var jours = GetJoursRestants(pret);
+                                var (badgeStyle, text) = GetEcheanceBadge(jours, pret.EstRetourne);
+                            }
+                            <RadzenBadge BadgeStyle="@badgeStyle" Text="@text" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="PretListDto" Property="NbMateriels" Title="MATÉRIELS" Width="90px" TextAlign="TextAlign.Center" />
+
+                    <RadzenDataGridColumn TItem="PretListDto" Title="STATUT" Width="120px">
+                        <Template Context="pret">
+                            <RadzenBadge BadgeStyle="@GetStatutBadgeStyle(pret)" Text="@GetStatutText(pret)" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="PretListDto" Title="" Width="150px" TextAlign="TextAlign.Center" Sortable="false">
+                        <Template Context="pret">
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
+                                <RadzenButton Icon="visibility" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Info" 
+                                    Click="@(() => Navigation.NavigateTo($"/bon-sortie/{pret.IdBon}"))" title="Voir" />
+                                
+                                @if (!pret.EstRetourne && pret.StatutActuel == "Approved")
+                                {
+                                    <RadzenButton Icon="assignment_return" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Success" 
+                                        Click="@(() => EnregistrerRetour(pret))" title="Retour" />
+                                    <RadzenButton Icon="event" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Warning" 
+                                        Click="@(() => DemanderExtension(pret))" title="Extension" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    </RadzenStack>
+
+
+@code {
+    private RadzenDataGrid<PretListDto>? grid;
+    private List<PretListDto> prets = new();
+    private bool isLoading = true;
+
+    private int totalActifs;
+    private int expirantBientot;
+    private int enRetard;
+    private int retournesCeMois;
+
+    private string? filtreStatut;
+    private string? filtreEcheance;
+    private string? searchText;
+
+    private List<object> statutOptions = new()
+    {
+        new { Text = "En cours", Value = "active" },
+        new { Text = "Retournés", Value = "returned" },
+        new { Text = "En retard", Value = "overdue" }
+    };
+
+    private List<object> echeanceOptions = new()
+    {
+        new { Text = "Expire aujourd'hui", Value = "today" },
+        new { Text = "Expire cette semaine", Value = "week" },
+        new { Text = "Expire ce mois", Value = "month" },
+        new { Text = "En retard", Value = "overdue" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var activeLoans = await BonSortieService.GetActiveLoansAsync();
+            var overdueLoans = await BonSortieService.GetOverdueLoansAsync();
+
+            var allPrets = activeLoans.Select(MapToDto).ToList();
+            prets = ApplyFilters(allPrets);
+
+            totalActifs = activeLoans.Count(p => !p.EstRetourne);
+            expirantBientot = activeLoans.Count(p => !p.EstRetourne && GetJoursRestants(MapToDto(p)) is >= 0 and <= 7);
+            enRetard = overdueLoans.Count;
+            retournesCeMois = activeLoans.Count(p => p.EstRetourne && p.DateRetourEffective?.Month == DateTime.Now.Month);
+        }
+        catch (Exception ex)
+        {
+            Notification.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private PretListDto MapToDto(Pret pret) => new()
+    {
+        IdBon = pret.Id,
+        NumeroReference = pret.NumeroReference,
+        NomDemandeur = pret.NomDemandeur,
+        DateCreation = pret.DateCreation,
+        DateRetourPrevue = pret.DateRetourPrevue,
+        DateRetourEffective = pret.DateRetourEffective,
+        EstRetourne = pret.EstRetourne,
+        NbMateriels = pret.Materiels.Count,
+        StatutActuel = pret.StatutActuel,
+        JoursRetard = pret.JoursRetard
+    };
+
+    private List<PretListDto> ApplyFilters(List<PretListDto> source)
+    {
+        var result = source.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(filtreStatut))
+        {
+            result = filtreStatut switch
+            {
+                "active" => result.Where(p => !p.EstRetourne),
+                "returned" => result.Where(p => p.EstRetourne),
+                "overdue" => result.Where(p => !p.EstRetourne && p.DateRetourPrevue < DateTime.Today),
+                _ => result
+            };
+        }
+
+        if (!string.IsNullOrWhiteSpace(filtreEcheance))
+        {
+            var today = DateTime.Today;
+            result = filtreEcheance switch
+            {
+                "today" => result.Where(p => p.DateRetourPrevue.Date == today),
+                "week" => result.Where(p => p.DateRetourPrevue.Date >= today && p.DateRetourPrevue.Date <= today.AddDays(7)),
+                "month" => result.Where(p => p.DateRetourPrevue.Date >= today && p.DateRetourPrevue.Date <= today.AddDays(30)),
+                "overdue" => result.Where(p => !p.EstRetourne && p.DateRetourPrevue < today),
+                _ => result
+            };
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            var search = searchText.ToLower();
+            result = result.Where(p => 
+                p.NumeroReference.ToLower().Contains(search) ||
+                p.NomDemandeur.ToLower().Contains(search));
+        }
+
+        return result.OrderBy(p => p.EstRetourne).ThenBy(p => p.DateRetourPrevue).ToList();
+    }
+
+    private async Task ResetFilters()
+    {
+        filtreStatut = null;
+        filtreEcheance = null;
+        searchText = null;
+        await LoadDataAsync();
+    }
+
+    private (string Couleur, string Icon, string Tooltip) GetIndicateurEcheance(PretListDto pret)
+    {
+        if (pret.EstRetourne)
+            return ("#28a745", "check_circle", "Retourné");
+
+        var jours = GetJoursRestants(pret);
+        if (jours <= -7) return ("#721c24", "error", $"Retard critique: {-jours} jours");
+        if (jours < 0) return ("#dc3545", "warning", $"En retard de {-jours} jour(s)");
+        if (jours == 0) return ("#fd7e14", "today", "Retour aujourd'hui");
+        if (jours <= 3) return ("#ffc107", "schedule", $"Expire dans {jours} jour(s)");
+        if (jours <= 7) return ("#17a2b8", "event", $"Expire dans {jours} jours");
+        return ("#6c757d", "event_available", $"Expire dans {jours} jours");
+    }
+
+    private int GetJoursRestants(PretListDto pret) => (pret.DateRetourPrevue.Date - DateTime.Today).Days;
+
+    private string GetDateStyle(PretListDto pret)
+    {
+        if (pret.EstRetourne) return "";
+        var jours = GetJoursRestants(pret);
+        if (jours < 0) return "color: #dc3545; font-weight: bold;";
+        if (jours == 0) return "color: #fd7e14; font-weight: bold;";
+        if (jours <= 3) return "color: #ffc107; font-weight: 600;";
+        return "";
+    }
+
+    private (BadgeStyle Style, string Text) GetEcheanceBadge(int jours, bool estRetourne)
+    {
+        if (estRetourne) return (BadgeStyle.Success, "Retourné");
+        if (jours < 0) return (BadgeStyle.Danger, $"Retard {-jours}j");
+        if (jours == 0) return (BadgeStyle.Warning, "Aujourd'hui");
+        if (jours == 1) return (BadgeStyle.Warning, "Demain");
+        if (jours <= 7) return (BadgeStyle.Info, $"{jours} jours");
+        return (BadgeStyle.Light, $"{jours} jours");
+    }
+
+    private BadgeStyle GetStatutBadgeStyle(PretListDto pret) => pret.EstRetourne ? BadgeStyle.Info : BadgeStyle.Success;
+    private string GetStatutText(PretListDto pret) => pret.EstRetourne ? "Retourné" : "En cours";
+
+    private async Task EnregistrerRetour(PretListDto pret)
+    {
+        var result = await DialogService.OpenAsync<ReturnLoanDialog>("Enregistrer le Retour",
+            options: new DialogOptions { Width = "400px" });
+
+        if (result is ReturnLoanDialog.ReturnData returnData)
+        {
+            try
+            {
+                var request = new ReturnLoanRequest
+                {
+                    IdBon = pret.IdBon,
+                    EtatRetour = returnData.EtatRetour,
+                    ReceptionnePar = returnData.Commentaire
+                };
+
+                var response = await BonSortieService.ReturnLoanAsync(request);
+                if (response.Success)
+                {
+                    Notification.Notify(NotificationSeverity.Success, "Succès", "Retour enregistré");
+                    await LoadDataAsync();
+                }
+                else
+                {
+                    Notification.Notify(NotificationSeverity.Error, "Erreur", response.Message ?? "Erreur");
+                }
+            }
+            catch (Exception ex)
+            {
+                Notification.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+
+    private async Task DemanderExtension(PretListDto pret)
+    {
+        var result = await DialogService.OpenAsync<PretExtension>("Demander une Extension",
+            new Dictionary<string, object> { { "PretId", pret.IdBon }, { "CurrentDate", pret.DateRetourPrevue } },
+            new DialogOptions { Width = "450px" });
+
+        if (result == true)
+        {
+            Notification.Notify(NotificationSeverity.Success, "Succès", "Extension enregistrée");
+            await LoadDataAsync();
+        }
+    }
+
+    public class PretListDto
+    {
+        public int IdBon { get; set; }
+        public string NumeroReference { get; set; } = "";
+        public string NomDemandeur { get; set; } = "";
+        public DateTime DateCreation { get; set; }
+        public DateTime DateRetourPrevue { get; set; }
+        public DateTime? DateRetourEffective { get; set; }
+        public bool EstRetourne { get; set; }
+        public int NbMateriels { get; set; }
+        public string StatutActuel { get; set; } = "";
+        public int JoursRetard { get; set; }
+    }
+}

@@ -1,7 +1,5 @@
 @page "/admin/roles"
 @attribute [Authorize(Roles = "Admin")]
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @using Microsoft.AspNetCore.Authorization
 @inject IRoleService RoleService
 @inject IPermissionService PermissionService
@@ -12,16 +10,12 @@
 
 <PageTitle>Administration - Rôles</PageTitle>
 
-<div style="padding: 1.5rem;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    <AdminNav />
     <RadzenStack Gap="1.5rem">
         @* En-tête *@
         <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
             <RadzenColumn>
-                <RadzenBreadCrumb>
-                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
-                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
-                    <RadzenBreadCrumbItem Text="Rôles" Icon="admin_panel_settings" />
-                </RadzenBreadCrumb>
                 <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
                     <RadzenIcon Icon="admin_panel_settings" Style="margin-right: 0.5rem; vertical-align: middle;" />
                     Gestion des Rôles et Permissions
@@ -44,91 +38,84 @@
                             PagerHorizontalAlign="HorizontalAlign.Center"
                             Style="border: none;">
                 <Columns>
-                    <RadzenDataGridColumn TItem="Role" Property="CodeRole" Title="Code" Width="150px">
+                    <RadzenDataGridColumn TItem="Role" Property="CodeRole" Title="Rôle" Width="250px">
                         <Template Context="role">
-                            <RadzenBadge Text="@role.CodeRole" BadgeStyle="@GetRoleBadgeStyle(role)" IsPill="true" />
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="width: 28px; height: 28px; background: @GetRoleBackground(role);
+                                            display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <span style="color: @GetRoleColor(role); font-size: 13px; font-weight: 700;">@role.CodeRole[..1]</span>
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.8rem; color: #1a1a1a;">@role.NomRole</div>
+                                    <div style="font-size: 0.72rem; color: #666;">@role.CodeRole</div>
+                                </div>
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Role" Property="NomRole" Title="Nom" Width="200px">
-                        <Template Context="role">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                <span>@role.NomRole</span>
-                                @if (role.EstSysteme)
-                                {
-                                    <RadzenBadge Text="Système" BadgeStyle="BadgeStyle.Info" IsPill="true" Style="font-size: 0.65rem;" />
-                                }
-                            </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="Role" Property="Description" Title="Description">
                         <Template Context="role">
-                            @(role.Description ?? "-")
+                            <span style="font-size: 0.78rem; color: #555;">@(role.Description ?? "—")</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Role" Property="NiveauPriorite" Title="Priorité" Width="100px" TextAlign="TextAlign.Center">
+
+                    <RadzenDataGridColumn TItem="Role" Property="NiveauPriorite" Title="Priorité" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="role">
-                            <RadzenBadge Text="@role.NiveauPriorite.ToString()" 
-                                         BadgeStyle="@(role.NiveauPriorite >= 50 ? BadgeStyle.Warning : BadgeStyle.Secondary)" />
+                            <span style="font-size: 0.78rem; font-weight: 600; color: #374151;">@role.NiveauPriorite</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Role" Title="Permissions" Width="250px" Sortable="false">
+
+                    <RadzenDataGridColumn TItem="Role" Title="Propriétés" Width="160px">
                         <Template Context="role">
-                            @{
-                                var perms = GetRolePermissions(role.IdRole);
-                            }
-                            @if (perms.Count > 0)
-                            {
-                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" Wrap="FlexWrap.Wrap">
-                                    @foreach (var perm in perms.Take(3))
-                                    {
-                                        <RadzenBadge Text="@perm.CodePermission" BadgeStyle="BadgeStyle.Light" IsPill="true" Style="font-size: 0.65rem;" />
-                                    }
-                                    @if (perms.Count > 3)
-                                    {
-                                        <RadzenBadge Text="@($"+{perms.Count - 3}")" BadgeStyle="BadgeStyle.Secondary" IsPill="true" Style="font-size: 0.65rem;" />
-                                    }
-                                </RadzenStack>
-                            }
-                            else
-                            {
-                                <span style="color: #999;">Aucune</span>
-                            }
+                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+                                @if (role.EstSysteme)
+                                {
+                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(59,130,246,0.1); color: #2563eb;">Système</span>
+                                }
+                                @{
+                                    var perms = GetRolePermissions(role.Id);
+                                }
+                                @if (perms.Count > 0)
+                                {
+                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: #f3f4f6; color: #374151;">@perms.Count perm.</span>
+                                }
+                                @if (!role.EstSysteme && perms.Count == 0)
+                                {
+                                    <span style="color: #999;">—</span>
+                                }
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Role" Property="EstActif" Title="Statut" Width="100px" TextAlign="TextAlign.Center">
+
+                    <RadzenDataGridColumn TItem="Role" Property="EstActif" Title="Statut" Width="80px" TextAlign="TextAlign.Center">
                         <Template Context="role">
                             @if (role.EstActif)
                             {
-                                <RadzenBadge Text="Actif" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                                <span style="font-size: 0.72rem; font-weight: 600; color: #059669;">Actif</span>
                             }
                             else
                             {
-                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                                <span style="font-size: 0.72rem; font-weight: 600; color: #dc2626;">Inactif</span>
                             }
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Role" Title="Actions" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
+
+                    <RadzenDataGridColumn TItem="Role" Title="Actions" Width="90px" TextAlign="TextAlign.Center" Sortable="false">
                         <Template Context="role">
                             <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
-                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
                                               Click="@(() => ShowEditDialog(role))" title="Modifier"
                                               Disabled="@role.EstSysteme" />
                                 @if (!role.EstSysteme)
                                 {
                                     @if (role.EstActif)
                                     {
-                                        <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                        <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
                                                       Click="@(() => ToggleStatus(role))" title="Désactiver" />
                                     }
                                     else
                                     {
-                                        <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                        <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
                                                       Click="@(() => ToggleStatus(role))" title="Activer" />
                                     }
                                 }
@@ -141,15 +128,15 @@
         
         @* Légende des permissions *@
         <RadzenCard Variant="Variant.Flat" Style="padding: 1rem;">
-            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold" Style="margin-bottom: 0.5rem;">
+            <div style="font-size: 0.72rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">
                 Permissions disponibles
-            </RadzenText>
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            </div>
+            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
                 @foreach (var perm in allPermissions)
                 {
-                    <RadzenBadge Text="@perm.CodePermission" BadgeStyle="BadgeStyle.Light" IsPill="true" Style="font-size: 0.7rem;" title="@perm.NomPermission" />
+                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: #f3f4f6; color: #374151;" title="@perm.NomPermission">@perm.CodePermission</span>
                 }
-            </RadzenStack>
+            </div>
         </RadzenCard>
     </RadzenStack>
 </div>
@@ -176,8 +163,8 @@
             rolePermissionsMap.Clear();
             foreach (var role in roles)
             {
-                var perms = await PermissionService.GetPermissionsForRoleAsync(role.IdRole);
-                rolePermissionsMap[role.IdRole] = perms.ToList();
+                var perms = await PermissionService.GetPermissionsForRoleAsync(role.Id);
+                rolePermissionsMap[role.Id] = perms.ToList();
             }
         }
         catch (Exception ex)
@@ -241,7 +228,7 @@
         {
             try
             {
-                await RoleService.DeleteAsync(role.IdRole);
+                await RoleService.DeleteAsync(role.Id);
                 
                 await AuditLogService.LogAsync(
                     CurrentUserService.GetUserLogin(),
@@ -249,7 +236,7 @@
                     role.EstActif ? "Deactivate" : "Activate",
                     "Role",
                     $"Rôle {role.NomRole} {(role.EstActif ? "désactivé" : "activé")}",
-                    role.IdRole.ToString(),
+                    role.Id.ToString(),
                     "Role");
                 
                 await LoadDataAsync();
@@ -263,11 +250,19 @@
         }
     }
 
-    private static BadgeStyle GetRoleBadgeStyle(Role role) => role.CodeRole switch
+    private static string GetRoleBackground(Role role) => role.CodeRole switch
     {
-        "ADMIN" => BadgeStyle.Danger,
-        "APPROBATEUR" => BadgeStyle.Warning,
-        "AGENT_SECURITE" => BadgeStyle.Info,
-        _ => BadgeStyle.Primary
+        "ADMIN" => "rgba(220,38,38,0.1)",
+        "APPROBATEUR" => "rgba(245,158,11,0.1)",
+        "AGENT_SECURITE" => "rgba(59,130,246,0.1)",
+        _ => "#f3f4f6"
+    };
+
+    private static string GetRoleColor(Role role) => role.CodeRole switch
+    {
+        "ADMIN" => "#dc2626",
+        "APPROBATEUR" => "#d97706",
+        "AGENT_SECURITE" => "#2563eb",
+        _ => "#374151"
     };
 }

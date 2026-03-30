@@ -1,8 +1,5 @@
 @page "/mes-approbations"
 @attribute [Authorize(Roles = "Admin,Superviseur,GM,IT,Environnement,OPJ,Identification,Barriere,Investigation")]
-@using KCCMaterialFlow.Domain.Enums
-@using KCCMaterialFlow.Module.BonEntree.Services
-@using KCCMaterialFlow.Module.BonSortie.Services
 @using KCCMaterialFlow.Host.Components.Dialogs
 @inject ICurrentUserService CurrentUserService
 @inject IBonEntreeService BonEntreeService
@@ -14,7 +11,7 @@
 <PageTitle>Mes Approbations - KCC Material Flow</PageTitle>
 
 
-    <div style="max-width: 1200px; margin: 0 auto;">
+    <div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
 
         @* === EN-TÊTE === *@
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" class="rz-mb-6">
@@ -34,38 +31,47 @@
         @* === STATISTIQUES === *@
         <RadzenRow Gap="1rem" class="rz-mb-4">
             <RadzenColumn Size="12" SizeMD="4">
-                <RadzenCard @onclick="@(() => SetFilter("BEM"))" Style="cursor: pointer;"
+                <RadzenCard @onclick="@(() => SetFilter("BEM"))" Style="cursor: pointer; background: var(--kcc-info-light);"
                             Variant="@(activeFilter == "BEM" ? Variant.Outlined : Variant.Filled)">
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
                         <RadzenStack Gap="0.25rem">
                             <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); text-transform: uppercase; margin: 0;">Bons d'Entrée</RadzenText>
-                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--rz-info); font-weight: 700; margin: 0;">@pendingBonsEntree.Count</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--kcc-info); font-weight: 700; margin: 0;">@pendingBonsEntree.Count</RadzenText>
                         </RadzenStack>
-                        <RadzenIcon Icon="inventory_2" Style="font-size: 2.5rem; color: var(--rz-info); opacity: 0.3;" />
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
+                                     Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-info);">
+                            <RadzenIcon Icon="inventory_2" />
+                        </RadzenStack>
                     </RadzenStack>
                 </RadzenCard>
             </RadzenColumn>
             <RadzenColumn Size="12" SizeMD="4">
-                <RadzenCard @onclick="@(() => SetFilter("BSM"))" Style="cursor: pointer;"
+                <RadzenCard @onclick="@(() => SetFilter("BSM"))" Style="cursor: pointer; background: var(--kcc-primary-light);"
                             Variant="@(activeFilter == "BSM" ? Variant.Outlined : Variant.Filled)">
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
                         <RadzenStack Gap="0.25rem">
                             <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); text-transform: uppercase; margin: 0;">Bons de Sortie</RadzenText>
-                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--kcc-slate); font-weight: 700; margin: 0;">@pendingBonsSortie.Count</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--kcc-primary); font-weight: 700; margin: 0;">@pendingBonsSortie.Count</RadzenText>
                         </RadzenStack>
-                        <RadzenIcon Icon="logout" Style="font-size: 2.5rem; color: var(--kcc-slate); opacity: 0.3;" />
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
+                                     Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-primary);">
+                            <RadzenIcon Icon="logout" />
+                        </RadzenStack>
                     </RadzenStack>
                 </RadzenCard>
             </RadzenColumn>
             <RadzenColumn Size="12" SizeMD="4">
-                <RadzenCard @onclick="@(() => SetFilter(null))" Style="cursor: pointer;"
+                <RadzenCard @onclick="@(() => SetFilter(null))" Style="cursor: pointer; background: var(--kcc-warning-light);"
                             Variant="@(activeFilter == null ? Variant.Outlined : Variant.Filled)">
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
                         <RadzenStack Gap="0.25rem">
                             <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); text-transform: uppercase; margin: 0;">Total en attente</RadzenText>
-                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--kcc-beige); font-weight: 700; margin: 0;">@(pendingBonsEntree.Count + pendingBonsSortie.Count)</RadzenText>
+                            <RadzenText TextStyle="TextStyle.H3" Style="color: var(--kcc-warning); font-weight: 700; margin: 0;">@(pendingBonsEntree.Count + pendingBonsSortie.Count)</RadzenText>
                         </RadzenStack>
-                        <RadzenIcon Icon="pending_actions" Style="font-size: 2.5rem; color: var(--kcc-beige); opacity: 0.3;" />
+                        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
+                                     Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-warning);">
+                            <RadzenIcon Icon="pending_actions" />
+                        </RadzenStack>
                     </RadzenStack>
                 </RadzenCard>
             </RadzenColumn>
@@ -165,7 +171,7 @@
                 <Columns>
                     <RadzenDataGridColumn TItem="ApprobationDto" Title="Type" Width="120px" Sortable="true" Property="TypeBon">
                         <Template Context="approbation">
-                            <RadzenBadge Text="@(approbation.TypeBon == "BEM" ? "Entrée" : "Sortie")" IsPill="true"
+                            <RadzenBadge Text="@(approbation.TypeBon == "BEM" ? "Entrée" : "Sortie")"
                                          BadgeStyle="@(approbation.TypeBon == "BEM" ? BadgeStyle.Info : BadgeStyle.Secondary)" />
                         </Template>
                     </RadzenDataGridColumn>
@@ -186,12 +192,12 @@
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ApprobationDto" Title="Statut" Property="StatutLibelle" Width="160px" Sortable="true">
                         <Template Context="approbation">
-                            <RadzenBadge Text="@approbation.StatutLibelle" IsPill="true" BadgeStyle="BadgeStyle.Warning" />
+                            <RadzenBadge Text="@approbation.StatutLibelle" BadgeStyle="BadgeStyle.Warning" />
                         </Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ApprobationDto" Title="Matériels" Width="100px" TextAlign="TextAlign.Center" Sortable="true" Property="NombreMateriels">
                         <Template Context="approbation">
-                            <RadzenBadge Text="@approbation.NombreMateriels.ToString()" IsPill="true" BadgeStyle="BadgeStyle.Light" />
+                            <RadzenBadge Text="@approbation.NombreMateriels.ToString()" BadgeStyle="BadgeStyle.Light" />
                         </Template>
                     </RadzenDataGridColumn>
                     <RadzenDataGridColumn TItem="ApprobationDto" Title="Actions" Width="240px" TextAlign="TextAlign.Right" Sortable="false">
@@ -272,15 +278,20 @@
 
         try
         {
-            var bonsEntree = await BonEntreeService.GetPendingApprovalsAsync();
-            var bonsSortie = await BonSortieService.GetPendingApprovalsAsync();
+            // Charger les listes en parallèle
+            var bonsEntreeTask = BonEntreeService.GetPendingApprovalsAsync();
+            var bonsSortieTask = BonSortieService.GetPendingApprovalsAsync();
+            await Task.WhenAll(bonsEntreeTask, bonsSortieTask);
 
-            pendingBonsEntree = new List<ApprobationDto>();
-            foreach (var be in bonsEntree)
+            var bonsEntree = bonsEntreeTask.Result;
+            var bonsSortie = bonsSortieTask.Result;
+
+            // Charger toutes les approbations BEM en parallèle (éviter N+1)
+            var bemApprobationTasks = bonsEntree.Select(async be =>
             {
                 var dto = new ApprobationDto
                 {
-                    Id = be.IdBon,
+                    Id = be.Id,
                     TypeBon = "BEM",
                     NumeroReference = be.NumeroReference,
                     Demandeur = be.NomDemandeur,
@@ -291,12 +302,12 @@
                     StatutCode = be.StatutActuel,
                     StatutLibelle = GetStatutLibelle(be.StatutActuel),
                     NombreMateriels = be.Materiels?.Count ?? 0,
-                    Url = $"/bon-entree/{be.IdBon}"
+                    Url = $"/bon-entree/{be.Id}"
                 };
 
                 try
                 {
-                    var approbations = await BonEntreeService.GetApprobationsAsync(be.IdBon);
+                    var approbations = await BonEntreeService.GetApprobationsAsync(be.Id);
                     var derniereApprobation = approbations
                         .Where(a => a.Decision == "Approuvé" && a.DateAction != null)
                         .OrderByDescending(a => a.DateAction)
@@ -312,16 +323,16 @@
                 }
                 catch { }
 
-                pendingBonsEntree.Add(dto);
-            }
+                return dto;
+            });
 
-            pendingBonsSortie = new List<ApprobationDto>();
-            foreach (var bs in bonsSortie)
+            // Charger toutes les approbations BSM en parallèle (éviter N+1)
+            var bsmApprobationTasks = bonsSortie.Select(async bs =>
             {
                 var dto = new ApprobationDto
                 {
-                    Id = bs.IdBon,
-                    TypeBon = bs is KCCMaterialFlow.Module.BonSortie.Entities.BonSortieExterne ? "BSM" : "BSI",
+                    Id = bs.Id,
+                    TypeBon = bs is BonSortieExterne ? "BSM" : "BSI",
                     NumeroReference = bs.NumeroReference,
                     Demandeur = bs.NomDemandeur,
                     Description = bs.MotifSortie,
@@ -331,12 +342,12 @@
                     StatutCode = bs.StatutActuel,
                     StatutLibelle = GetStatutLibelle(bs.StatutActuel),
                     NombreMateriels = bs.Materiels?.Count ?? 0,
-                    Url = $"/bon-sortie/{bs.IdBon}"
+                    Url = $"/bon-sortie/{bs.Id}"
                 };
 
                 try
                 {
-                    var approbations = await BonSortieService.GetApprobationsAsync(bs.IdBon);
+                    var approbations = await BonSortieService.GetApprobationsAsync(bs.Id);
                     var derniereApprobation = approbations
                         .Where(a => a.Decision == "Approuvé" && a.DateAction != null)
                         .OrderByDescending(a => a.DateAction)
@@ -345,15 +356,19 @@
                     if (derniereApprobation != null)
                     {
                         dto.DerniereEtapeApprouvee = derniereApprobation.NomEtape;
-                        dto.DernierApprobateur = derniereApprobation.ApprobateurNom;
+                        dto.DernierApprobateur = derniereApprobation.NomApprobateur;
                         dto.DateDerniereApprobation = derniereApprobation.DateAction;
-                        dto.CommentaireDernierApprobateur = derniereApprobation.Commentaire;
+                        dto.CommentaireDernierApprobateur = derniereApprobation.ReservesEventuelles;
                     }
                 }
                 catch { }
 
-                pendingBonsSortie.Add(dto);
-            }
+                return dto;
+            });
+
+            // Attendre tous les résultats en parallèle
+            pendingBonsEntree = (await Task.WhenAll(bemApprobationTasks)).ToList();
+            pendingBonsSortie = (await Task.WhenAll(bsmApprobationTasks)).ToList();
         }
         catch (Exception ex)
         {
@@ -389,14 +404,15 @@
         var result = await DialogService.OpenAsync<BonDetailDialog>(
             $"Détails - {approbation.NumeroReference}",
             parameters,
-            new DialogOptions 
-            { 
-                Width = "700px", 
-                Height = "auto",
+            new DialogOptions
+            {
+                Width = "960px",
+                Height = "540px",
                 CloseDialogOnOverlayClick = false,
-                ShowClose = true,
+                ShowClose = false,
                 Resizable = true,
-                Draggable = true
+                Draggable = true,
+                CssClass = "kcc-dialog-clean"
             }
         );
 
@@ -436,7 +452,7 @@
         {
             if (approbation.TypeBon == "BEM")
             {
-                var request = new KCCMaterialFlow.Module.BonEntree.Services.ApprovalRequest
+                var request = new ApprovalRequest
                 {
                     BonId = approbation.Id,
                     ReservesEventuelles = commentaire
@@ -454,7 +470,7 @@
             }
             else
             {
-                var request = new KCCMaterialFlow.Module.BonSortie.Services.ApprovalRequest
+                var request = new BonSortieApprovalRequest
                 {
                     IdBon = approbation.Id,
                     Commentaire = commentaire
@@ -488,7 +504,7 @@
         {
             if (approbation.TypeBon == "BEM")
             {
-                var request = new KCCMaterialFlow.Module.BonEntree.Services.ApprovalRequest
+                var request = new ApprovalRequest
                 {
                     BonId = approbation.Id,
                     ReservesEventuelles = motif
@@ -506,7 +522,7 @@
             }
             else
             {
-                var request = new KCCMaterialFlow.Module.BonSortie.Services.RejectRequest
+                var request = new RejectRequest
                 {
                     IdBon = approbation.Id,
                     Motif = motif

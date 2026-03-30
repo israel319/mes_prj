@@ -2,10 +2,11 @@
 @page "/liste-bons/{TabName?}"
 @page "/mes-bons"
 @attribute [Authorize]
-@using KCCMaterialFlow.Module.BonEntree.Services
-@using KCCMaterialFlow.Module.BonSortie.Services
-@using BEMEntities = KCCMaterialFlow.Module.BonEntree.Entities
-@using BSMEntities = KCCMaterialFlow.Module.BonSortie.Entities
+@using BonEntreeEntity = KCCMaterialFlow.Domain.Entities.BonEntree
+@using BonSortieEntity = KCCMaterialFlow.Domain.Entities.BonSortie
+@using BonSortieExterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieExterne
+@using BonSortieInterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieInterne
+@using PretEntity = KCCMaterialFlow.Domain.Entities.Pret
 
 @inject ICurrentUserService CurrentUserService
 @inject IBonEntreeService BonEntreeService
@@ -55,33 +56,33 @@
                                       ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" />
                     </RadzenStack>
 
-                    <RadzenDataGrid Data="@filteredBEM" TItem="BEMEntities.BonEntree"
+                    <RadzenDataGrid Data="@filteredBEM" TItem="BonEntreeEntity"
                                     AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
                                     AllowSorting="true" AllowColumnResize="true"
-                                    RowClick="@((args) => { if (args.Data != null) NavigateTo($"/bon-entree/{args.Data.IdBon}"); })"
+                                    RowClick="@((args) => { if (args.Data != null) NavigateTo($"/bon-entree/{args.Data.Id}"); })"
                                     Style="cursor: pointer;"
                                     EmptyText="Aucun bon d'entrée trouvé">
                         <Columns>
-                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="NumeroReference" Title="Numéro" Width="160px">
+                            <RadzenDataGridColumn TItem="BonEntreeEntity" Property="NumeroReference" Title="Numéro" Width="160px">
                                 <Template Context="bon">
                                     <strong>@bon.NumeroReference</strong>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="NomCompagnie" Title="Compagnie" />
-                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="NomDemandeur" Title="Demandeur" />
-                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="DateCreation" Title="Date" Width="130px"
+                            <RadzenDataGridColumn TItem="BonEntreeEntity" Property="NomCompagnie" Title="Compagnie" />
+                            <RadzenDataGridColumn TItem="BonEntreeEntity" Property="NomDemandeur" Title="Demandeur" />
+                            <RadzenDataGridColumn TItem="BonEntreeEntity" Property="DateCreation" Title="Date" Width="130px"
                                                   FormatString="{0:dd/MM/yyyy}" SortOrder="SortOrder.Descending" />
-                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Property="StatutActuel" Title="Statut" Width="140px">
+                            <RadzenDataGridColumn TItem="BonEntreeEntity" Property="StatutActuel" Title="Statut" Width="140px">
                                 <Template Context="bon">
                                     <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" 
                                                  BadgeStyle="@GetBadgeStyle(bon.StatutActuel)" 
-                                                 IsPill="true" />
+                                                 />
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BEMEntities.BonEntree" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+                            <RadzenDataGridColumn TItem="BonEntreeEntity" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
                                 <Template Context="bon">
                                     <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
-                                                  Size="ButtonSize.Small" Click="@(() => NavigateTo($"/bon-entree/{bon.IdBon}"))" />
+                                                  Size="ButtonSize.Small" Click="@(() => NavigateTo($"/bon-entree/{bon.Id}"))" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -103,41 +104,41 @@
                                       ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" />
                     </RadzenStack>
 
-                    <RadzenDataGrid Data="@filteredBSM" TItem="BSMEntities.BonSortie"
+                    <RadzenDataGrid Data="@filteredBSM" TItem="BonSortieEntity"
                                     AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
                                     AllowSorting="true" AllowColumnResize="true"
-                                    RowClick="@((args) => { if (args.Data != null) NavigateTo($"/bon-sortie/{args.Data.IdBon}"); })"
+                                    RowClick="@((args) => { if (args.Data != null) NavigateTo($"/bon-sortie/{args.Data.Id}"); })"
                                     Style="cursor: pointer;"
                                     EmptyText="Aucun bon de sortie trouvé">
                         <Columns>
-                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Property="NumeroReference" Title="Numéro" Width="160px">
+                            <RadzenDataGridColumn TItem="BonSortieEntity" Property="NumeroReference" Title="Numéro" Width="160px">
                                 <Template Context="bon">
                                     <strong>@bon.NumeroReference</strong>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Title="Type" Width="110px">
+                            <RadzenDataGridColumn TItem="BonSortieEntity" Title="Type" Width="110px">
                                 <Template Context="bon">
                                     @GetTypeBSM(bon)
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Title="Destination">
+                            <RadzenDataGridColumn TItem="BonSortieEntity" Title="Destination">
                                 <Template Context="bon">
                                     @GetCompagnieBSM(bon)
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Property="DateCreation" Title="Date" Width="130px"
+                            <RadzenDataGridColumn TItem="BonSortieEntity" Property="DateCreation" Title="Date" Width="130px"
                                                   FormatString="{0:dd/MM/yyyy}" SortOrder="SortOrder.Descending" />
-                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Property="StatutActuel" Title="Statut" Width="140px">
+                            <RadzenDataGridColumn TItem="BonSortieEntity" Property="StatutActuel" Title="Statut" Width="140px">
                                 <Template Context="bon">
                                     <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" 
                                                  BadgeStyle="@GetBadgeStyle(bon.StatutActuel)" 
-                                                 IsPill="true" />
+                                                 />
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BSMEntities.BonSortie" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+                            <RadzenDataGridColumn TItem="BonSortieEntity" Title="Actions" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
                                 <Template Context="bon">
                                     <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
-                                                  Size="ButtonSize.Small" Click="@(() => NavigateTo($"/bon-sortie/{bon.IdBon}"))" />
+                                                  Size="ButtonSize.Small" Click="@(() => NavigateTo($"/bon-sortie/{bon.Id}"))" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -166,13 +167,13 @@
     private bool CanExport => CurrentUserService.GetUserRoles()
         .Any(r => r.Equals("Identification", StringComparison.OrdinalIgnoreCase));
 
-    private List<BEMEntities.BonEntree> bonsEntree = new();
-    private List<BSMEntities.BonSortie> bonsSortie = new();
+    private List<BonEntreeEntity> bonsEntree = new();
+    private List<BonSortieEntity> bonsSortie = new();
     private int totalBEM => bonsEntree.Count;
     private int totalBSM => bonsSortie.Count;
 
-    private List<BEMEntities.BonEntree> filteredBEM => ApplyFilterBEM();
-    private List<BSMEntities.BonSortie> filteredBSM => ApplyFilterBSM();
+    private List<BonEntreeEntity> filteredBEM => ApplyFilterBEM();
+    private List<BonSortieEntity> filteredBSM => ApplyFilterBSM();
 
     private readonly List<object> statutOptions = new()
     {
@@ -230,8 +231,11 @@
                                        && !canSeeAll
                                        && !roles.Any(r => new[] { "Superviseur", "GM", "OPJ", "IT", "Environnement" }.Contains(r, StringComparer.OrdinalIgnoreCase));
             
-            var bemResult = await BonEntreeService.GetListAsync(new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter { Take = 500 });
-            var bsmResult = await BonSortieService.GetListAsync(new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter { Take = 500 });
+            var bemResultTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Take = 500 });
+            var bsmResultTask = BonSortieService.GetListAsync(new BonSortieFilter { Take = 500 });
+            await Task.WhenAll(bemResultTask, bsmResultTask);
+            var bemResult = bemResultTask.Result;
+            var bsmResult = bsmResultTask.Result;
             
             if (canSeeAll)
             {
@@ -261,27 +265,30 @@
                     .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
                                 b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase))
                     .ToList();
-                foreach (var b in myBonsEntree) myBonsEntreeIds.Add(b.IdBon);
+                foreach (var b in myBonsEntree) myBonsEntreeIds.Add(b.Id);
                     
                 var myBonsSortie = bsmResult.Items
                     .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
                                 b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
                                 b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase))
                     .ToList();
-                foreach (var b in myBonsSortie) myBonsSortieIds.Add(b.IdBon);
+                foreach (var b in myBonsSortie) myBonsSortieIds.Add(b.Id);
                 
-                var pendingBEM = await BonEntreeService.GetPendingApprovalsAsync();
-                var pendingBSM = await BonSortieService.GetPendingApprovalsAsync();
+                var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
+                var pendingBSMTask = BonSortieService.GetPendingApprovalsAsync();
+                await Task.WhenAll(pendingBEMTask, pendingBSMTask);
+                var pendingBEM = pendingBEMTask.Result;
+                var pendingBSM = pendingBSMTask.Result;
                 
                 foreach (var bon in pendingBEM)
                 {
-                    if (!myBonsEntreeIds.Contains(bon.IdBon))
+                    if (!myBonsEntreeIds.Contains(bon.Id))
                         myBonsEntree.Add(bon);
                 }
                 
                 foreach (var bon in pendingBSM)
                 {
-                    if (!myBonsSortieIds.Contains(bon.IdBon))
+                    if (!myBonsSortieIds.Contains(bon.Id))
                         myBonsSortie.Add(bon);
                 }
                 
@@ -312,7 +319,7 @@
         }
     }
 
-    private List<BEMEntities.BonEntree> ApplyFilterBEM()
+    private List<BonEntreeEntity> ApplyFilterBEM()
     {
         var result = bonsEntree.AsEnumerable();
         
@@ -331,7 +338,7 @@
         return result.OrderByDescending(b => b.DateCreation).ToList();
     }
 
-    private List<BSMEntities.BonSortie> ApplyFilterBSM()
+    private List<BonSortieEntity> ApplyFilterBSM()
     {
         var result = bonsSortie.AsEnumerable();
         
@@ -360,19 +367,19 @@
         await JSRuntime.InvokeVoidAsync("open", endpoint, "_blank");
     }
 
-    private static string GetCompagnieBSM(BSMEntities.BonSortie? bon) => bon switch
+    private static string GetCompagnieBSM(BonSortieEntity? bon) => bon switch
     {
-        BSMEntities.Pret pret => pret.NomDestinataire ?? "Prêt",
-        BSMEntities.BonSortieExterne ext => ext.NomDestinataire ?? "N/A",
-        BSMEntities.BonSortieInterne => "Interne",
+        PretEntity pret => pret.NomDestinataire ?? "Prêt",
+        BonSortieExterneEntity ext => ext.NomDestinataire ?? "N/A",
+        BonSortieInterneEntity => "Interne",
         _ => "N/A"
     };
 
-    private static string GetTypeBSM(BSMEntities.BonSortie? bon) => bon switch
+    private static string GetTypeBSM(BonSortieEntity? bon) => bon switch
     {
-        BSMEntities.Pret => "Prêt",
-        BSMEntities.BonSortieExterne => "Externe",
-        BSMEntities.BonSortieInterne => "Interne",
+        PretEntity => "Prêt",
+        BonSortieExterneEntity => "Externe",
+        BonSortieInterneEntity => "Interne",
         _ => "Sortie"
     };
 

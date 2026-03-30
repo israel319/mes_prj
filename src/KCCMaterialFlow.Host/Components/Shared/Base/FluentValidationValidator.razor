@@ -1,0 +1,93 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using FluentValidation
+
+@namespace KCCMaterialFlow.Host.Components.Shared.Base
+
+@typeparam TModel where TModel : class
+
+@* Wrapper pour FluentValidation dans les formulaires Blazor *@
+
+<CascadingValue Value="this">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [CascadingParameter] private EditContext? CurrentEditContext { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public IValidator<TModel>? Validator { get; set; }
+
+    private ValidationMessageStore? _messageStore;
+
+    protected override void OnInitialized()
+    {
+        if (CurrentEditContext == null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(FluentValidationValidator<TModel>)} requires a cascading parameter of type {nameof(EditContext)}.");
+        }
+
+        _messageStore = new ValidationMessageStore(CurrentEditContext);
+        CurrentEditContext.OnValidationRequested += HandleValidationRequested;
+        CurrentEditContext.OnFieldChanged += HandleFieldChanged;
+    }
+
+    private void HandleValidationRequested(object? sender, ValidationRequestedEventArgs e)
+    {
+        _messageStore?.Clear();
+
+        if (Validator != null && CurrentEditContext?.Model is TModel model)
+        {
+            var result = Validator.Validate(model);
+            if (!result.IsValid)
+            {
+                foreach (var error in result.Errors)
+                {
+                    var fieldIdentifier = CurrentEditContext.Field(error.PropertyName);
+                    _messageStore?.Add(fieldIdentifier, error.ErrorMessage);
+                }
+            }
+        }
+
+        CurrentEditContext?.NotifyValidationStateChanged();
+    }
+
+    private void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        _messageStore?.Clear(e.FieldIdentifier);
+
+        if (Validator != null && CurrentEditContext?.Model is TModel model)
+        {
+            var result = Validator.Validate(model, options =>
+                options.IncludeProperties(e.FieldIdentifier.FieldName));
+
+            if (!result.IsValid)
+            {
+                foreach (var error in result.Errors.Where(err => err.PropertyName == e.FieldIdentifier.FieldName))
+                {
+                    _messageStore?.Add(e.FieldIdentifier, error.ErrorMessage);
+                }
+            }
+        }
+
+        CurrentEditContext?.NotifyValidationStateChanged();
+    }
+
+    public void DisplayErrors(IDictionary<string, string[]> errors)
+    {
+        if (CurrentEditContext == null || _messageStore == null)
+            return;
+
+        foreach (var err in errors)
+        {
+            _messageStore.Add(CurrentEditContext.Field(err.Key), err.Value);
+        }
+
+        CurrentEditContext.NotifyValidationStateChanged();
+    }
+
+    public void ClearErrors()
+    {
+        _messageStore?.Clear();
+        CurrentEditContext?.NotifyValidationStateChanged();
+    }
+}

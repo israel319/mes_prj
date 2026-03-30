@@ -1,0 +1,212 @@
+@page "/bon-sortie"
+@using BonSortieEntity = KCCMaterialFlow.Domain.Entities.BonSortie
+@attribute [Authorize]
+@inject IBonSortieService BonSortieService
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+
+<PageTitle>Bons de Sortie - KCC Material Flow</PageTitle>
+
+<div class="bsm-container">
+    @* === PAGE HEADER (Style Figma) === *@
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Bons de sortie</h1>
+            <p class="page-subtitle">Gérer les sorties de matériel de l'entreprise</p>
+        </div>
+        <RadzenButton Text="Nouveau bon de sortie" Icon="add_circle" ButtonStyle="ButtonStyle.Primary"
+                      Click="@(() => Navigation.NavigateTo("/bon-sortie/nouveau"))" />
+    </div>
+
+    @* === STATS (Style Figma) === *@
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value" style="color: var(--kcc-slate);">@stats.TotalBons</div>
+            <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: var(--kcc-orange);">@stats.BonsEnAttente</div>
+            <div class="stat-label">En attente</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #22c55e;">@stats.BonsApprouves</div>
+            <div class="stat-label">Approuvés</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: var(--kcc-blue);">@stats.PretsEnCours</div>
+            <div class="stat-label">Prêts en cours</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" style="color: #ef4444;">@stats.PretsEnRetard</div>
+            <div class="stat-label">En retard</div>
+        </div>
+    </div>
+
+    @* === CARD CONTAINER === *@
+    <div class="section-card">
+        <div class="card-header">
+            <h3 class="card-title">Liste des bons de sortie</h3>
+            <p class="card-description">Consulter et gérer tous les bons de sortie de matériel</p>
+        </div>
+
+        @* Filters (Style Figma) *@
+        <div class="filters-bar">
+            <div class="search-wrapper">
+                <RadzenIcon Icon="search" class="search-icon" />
+                <RadzenTextBox @bind-Value="filter.SearchTerm" Placeholder="Rechercher..." Style="width: 100%;" />
+            </div>
+            <RadzenDropDown TValue="string" @bind-Value="filter.Statut" Data="@statutOptions"
+                            TextProperty="Text" ValueProperty="Value" Placeholder="Tous statuts"
+                            AllowClear="true" Style="min-width: 160px;" />
+            <RadzenDropDown TValue="string" @bind-Value="filter.TypeSortie" Data="@typeOptions"
+                            TextProperty="Text" ValueProperty="Value" Placeholder="Tous types"
+                            AllowClear="true" Style="min-width: 140px;" />
+            <RadzenButton Text="Filtrer" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                          Click="@LoadDataAsync" />
+            <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Variant="Variant.Text"
+                          Click="@ResetFilter" />
+        </div>
+
+        @* DataGrid *@
+        <RadzenDataGrid @ref="grid" Data="@items" TItem="BonSortieEntity" IsLoading="@isLoading"
+                        AllowPaging="true" PageSize="15" AllowSorting="true" Count="@totalCount"
+                        Variant="Variant.Flat" GridLines="DataGridGridLines.None">
+            <Columns>
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="NumeroReference" Title="RÉFÉRENCE" Width="140px">
+                    <Template Context="bon">
+                        <span class="cell-ref">@bon.NumeroReference</span>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="BonSortieEntity" Title="TYPE" Width="100px">
+                    <Template Context="bon">
+                        <RadzenBadge Text="@GetTypeLabel(bon)" BadgeStyle="@GetTypeBadgeStyle(bon)" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="NomDemandeur" Title="DEMANDEUR" />
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="Destination" Title="DESTINATION" Width="150px" />
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="DateCreation" Title="DATE" Width="100px">
+                    <Template Context="bon">@bon.DateCreation.ToString("dd/MM/yyyy")</Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="StatutActuel" Title="STATUT" Width="130px">
+                    <Template Context="bon">
+                        <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" BadgeStyle="@GetStatutBadgeStyle(bon.StatutActuel)" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="BonSortieEntity" Title="" Width="50px" TextAlign="TextAlign.Center" Sortable="false">
+                    <Template Context="bon">
+                        <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
+                                      Click="@(() => Navigation.NavigateTo($"/bon-sortie/{bon.Id}"))" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+</div>
+
+@code {
+    private RadzenDataGrid<BonSortieEntity>? grid;
+    private List<BonSortieEntity> items = [];
+    private BonSortieStats stats = new();
+    private BonSortieFilter filter = new() { Take = 15 };
+    private int totalCount = 0;
+    private bool isLoading = true;
+
+    private List<object> statutOptions = new()
+    {
+        new { Text = "Brouillon", Value = "Draft" },
+        new { Text = "Attente IT", Value = "PendingIT" },
+        new { Text = "Attente ENV", Value = "PendingEnv" },
+        new { Text = "Approuvé", Value = "Approved" },
+        new { Text = "Rejeté", Value = "Rejected" }
+    };
+
+    private List<object> typeOptions = new()
+    {
+        new { Text = "Externe", Value = "Externe" },
+        new { Text = "Interne", Value = "Interne" },
+        new { Text = "Prêt", Value = "Pret" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+        await LoadStatsAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await BonSortieService.GetListAsync(filter);
+            items = result.Items.ToList();
+            totalCount = result.TotalCount;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        stats = await BonSortieService.GetStatsAsync();
+    }
+
+    private async Task ResetFilter()
+    {
+        filter = new BonSortieFilter { Take = 15 };
+        await LoadDataAsync();
+    }
+
+    private string GetTypeLabel(BonSortieEntity bon) => bon switch
+    {
+        Pret => "Prêt",
+        BonSortieInterne => "Interne",
+        BonSortieExterne => "Externe",
+        _ => "Sortie"
+    };
+
+    private string GetStatutLabel(string statut) => statut switch
+    {
+        "Draft" => "Brouillon",
+        "Approved" => "Approuvé",
+        "Rejected" => "Rejeté",
+        "Returned" => "Retourné",
+        "Cancelled" => "Annulé",
+        "PendingIT" => "Attente IT",
+        "PendingEnv" => "Attente ENV",
+        "PendingIdentification" => "Attente ID",
+        _ => statut
+    };
+
+    private string GetStatutClass(string statut) => statut switch
+    {
+        "Draft" => "badge-gray",
+        "Approved" => "badge-success",
+        "Rejected" => "badge-danger",
+        "Returned" => "badge-blue",
+        "Cancelled" => "badge-gray",
+        _ when statut.StartsWith("Pending") => "badge-warning",
+        _ => "badge-gray"
+    };
+
+    private BadgeStyle GetStatutBadgeStyle(string statut) => statut switch
+    {
+        "Draft" => BadgeStyle.Light,
+        "Approved" => BadgeStyle.Success,
+        "Rejected" => BadgeStyle.Danger,
+        "Returned" => BadgeStyle.Warning,
+        "Cancelled" => BadgeStyle.Light,
+        _ when statut.StartsWith("Pending") => BadgeStyle.Warning,
+        _ => BadgeStyle.Light
+    };
+
+    private BadgeStyle GetTypeBadgeStyle(BonSortieEntity bon) => bon switch
+    {
+        Pret => BadgeStyle.Success,
+        BonSortieInterne => BadgeStyle.Secondary,
+        BonSortieExterne => BadgeStyle.Info,
+        _ => BadgeStyle.Light
+    };
+}

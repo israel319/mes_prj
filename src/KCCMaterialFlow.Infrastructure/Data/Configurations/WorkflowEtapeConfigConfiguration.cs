@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,9 +10,9 @@ public class WorkflowEtapeConfigConfiguration : IEntityTypeConfiguration<Workflo
     {
         builder.ToTable("T_WorkflowEtapesConfig", "dbo");
 
-        builder.HasKey(x => x.IdWorkflowEtapeConfig);
+        builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.IdWorkflowEtapeConfig)
+        builder.Property(x => x.Id)
             .HasColumnName("IdWorkflowEtapeConfig")
             .ValueGeneratedOnAdd();
 

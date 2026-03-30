@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonEntree.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -14,9 +14,9 @@ public class BonEntreeHistoryConfiguration : IEntityTypeConfiguration<BonEntreeH
     {
         builder.ToTable("T_BonEntreeHistory", "dbo");
 
-        builder.HasKey(h => h.IdHistory);
+        builder.HasKey(h => h.Id);
 
-        builder.Property(h => h.IdHistory)
+        builder.Property(h => h.Id)
             .HasColumnName("IdHistory")
             .ValueGeneratedOnAdd();
 
@@ -61,17 +61,14 @@ public class BonEntreeHistoryConfiguration : IEntityTypeConfiguration<BonEntreeH
             .HasMaxLength(30);
 
         builder.Property(h => h.ChangementsJson)
-            .HasColumnName("ChangementsJson");
+            .HasColumnName("ChangementsJson")
+            .HasColumnType("nvarchar(max)");
 
         builder.Property(h => h.AdresseIP)
             .HasColumnName("AdresseIP")
             .HasMaxLength(50);
 
-        // Relation avec le Bon
-        builder.HasOne(h => h.Bon)
-            .WithMany()
-            .HasForeignKey(h => h.BonId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // Relation avec le Bon (définie dans BonEntreeConfiguration — ne pas redéfinir ici)
 
         // Index sur le bon pour récupérer l'historique complet
         builder.HasIndex(h => h.BonId)

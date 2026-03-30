@@ -1,6 +1,6 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -53,7 +53,7 @@ public class PermissionService : IPermissionService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await context.Set<Permission>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.IdPermission == id, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
     public async Task<Permission?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
@@ -87,7 +87,7 @@ public class PermissionService : IPermissionService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var permissions = await context.Set<RolePermission>()
             .AsNoTracking()
-            .Where(rp => rp.IdRole == roleId)
+            .Where(rp => rp.Id == roleId)
             .Include(rp => rp.Permission)
             .Where(rp => rp.Permission != null && rp.Permission.EstActif)
             .Select(rp => rp.Permission!)
@@ -104,7 +104,7 @@ public class PermissionService : IPermissionService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var exists = await context.Set<RolePermission>()
-            .AnyAsync(rp => rp.IdRole == roleId && rp.IdPermission == permissionId, cancellationToken);
+            .AnyAsync(rp => rp.Id == roleId && rp.Id == permissionId, cancellationToken);
 
         if (exists)
             return false;
@@ -127,7 +127,7 @@ public class PermissionService : IPermissionService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var rp = await context.Set<RolePermission>()
-            .FirstOrDefaultAsync(rp => rp.IdRole == roleId && rp.IdPermission == permissionId, cancellationToken);
+            .FirstOrDefaultAsync(rp => rp.Id == roleId && rp.Id == permissionId, cancellationToken);
 
         if (rp == null)
             return false;
@@ -145,7 +145,7 @@ public class PermissionService : IPermissionService
 
         // Supprimer les permissions actuelles du rôle
         var existing = await context.Set<RolePermission>()
-            .Where(rp => rp.IdRole == roleId)
+            .Where(rp => rp.Id == roleId)
             .ToListAsync(cancellationToken);
 
         context.Set<RolePermission>().RemoveRange(existing);

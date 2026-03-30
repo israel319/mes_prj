@@ -1,5 +1,3 @@
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @inject IDepartementService DepartementService
 @inject IUtilisateurService UtilisateurService
 @inject DialogService DialogService
@@ -98,7 +96,7 @@
             isEditMode = true;
             model = new Departement
             {
-                IdDepartement = Departement.IdDepartement,
+                Id = Departement.Id,
                 CodeDepartement = Departement.CodeDepartement,
                 NomDepartement = Departement.NomDepartement,
                 Description = Departement.Description,

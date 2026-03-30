@@ -1,6 +1,6 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -32,34 +32,34 @@ public class TypeMaterielService : ITypeMaterielService
         _logger = logger;
     }
 
-    public async Task<IReadOnlyList<TypeMateriel>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TypeMaterielEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        if (_cache.TryGetValue(CacheKeyAll, out IReadOnlyList<TypeMateriel>? cached) && cached != null)
+        if (_cache.TryGetValue(CacheKeyAll, out IReadOnlyList<TypeMaterielEntity>? cached) && cached != null)
             return cached;
 
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var types = await context.Set<TypeMateriel>()
+        var types = await context.Set<TypeMaterielEntity>()
             .AsNoTracking()
             .Where(t => t.EstActif)
             .OrderBy(t => t.Ordre)
             .ThenBy(t => t.NomType)
             .ToListAsync(cancellationToken);
 
-        _cache.Set(CacheKeyAll, (IReadOnlyList<TypeMateriel>)types, CacheDuration);
+        _cache.Set(CacheKeyAll, (IReadOnlyList<TypeMaterielEntity>)types, CacheDuration);
         return types;
     }
 
-    public async Task<TypeMateriel?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<TypeMaterielEntity?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var cacheKey = $"{CacheKeyPrefix}{id}";
-        
-        if (_cache.TryGetValue(cacheKey, out TypeMateriel? cached))
+
+        if (_cache.TryGetValue(cacheKey, out TypeMaterielEntity? cached))
             return cached;
 
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var type = await context.Set<TypeMateriel>()
+        var type = await context.Set<TypeMaterielEntity>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.IdTypeMateriel == id, cancellationToken);
+            .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
         if (type != null)
             _cache.Set(cacheKey, type, CacheDuration);
@@ -67,24 +67,24 @@ public class TypeMaterielService : ITypeMaterielService
         return type;
     }
 
-    public async Task<TypeMateriel?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
+    public async Task<TypeMaterielEntity?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(code))
             return null;
 
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await context.Set<TypeMateriel>()
+        return await context.Set<TypeMaterielEntity>()
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.CodeType.ToUpper() == code.ToUpper() && t.EstActif, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<TypeMateriel>> GetByCategorieAsync(string categorie, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TypeMaterielEntity>> GetByCategorieAsync(string categorie, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(categorie))
             return [];
 
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await context.Set<TypeMateriel>()
+        return await context.Set<TypeMaterielEntity>()
             .AsNoTracking()
             .Where(t => t.EstActif && t.Categorie != null && t.Categorie.ToUpper() == categorie.ToUpper())
             .OrderBy(t => t.Ordre)
@@ -92,13 +92,13 @@ public class TypeMaterielService : ITypeMaterielService
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<TypeMateriel> CreateAsync(TypeMateriel typeMateriel, CancellationToken cancellationToken = default)
+    public async Task<TypeMaterielEntity> CreateAsync(TypeMaterielEntity typeMateriel, CancellationToken cancellationToken = default)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         typeMateriel.DateCreation = DateTime.Now;
         typeMateriel.CodeType = typeMateriel.CodeType.ToUpperInvariant();
 
-        context.Set<TypeMateriel>().Add(typeMateriel);
+        context.Set<TypeMaterielEntity>().Add(typeMateriel);
         await context.SaveChangesAsync(cancellationToken);
 
         InvalidateCache();
@@ -107,14 +107,14 @@ public class TypeMaterielService : ITypeMaterielService
         return typeMateriel;
     }
 
-    public async Task<TypeMateriel> UpdateAsync(TypeMateriel typeMateriel, CancellationToken cancellationToken = default)
+    public async Task<TypeMaterielEntity> UpdateAsync(TypeMaterielEntity typeMateriel, CancellationToken cancellationToken = default)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var existing = await context.Set<TypeMateriel>()
-            .FirstOrDefaultAsync(t => t.IdTypeMateriel == typeMateriel.IdTypeMateriel, cancellationToken);
+        var existing = await context.Set<TypeMaterielEntity>()
+            .FirstOrDefaultAsync(t => t.Id == typeMateriel.Id, cancellationToken);
 
         if (existing == null)
-            throw new InvalidOperationException($"Type de matériel {typeMateriel.IdTypeMateriel} non trouvé");
+            throw new InvalidOperationException($"Type de matériel {typeMateriel.Id} non trouvé");
 
         existing.CodeType = typeMateriel.CodeType.ToUpperInvariant();
         existing.NomType = typeMateriel.NomType;
@@ -145,8 +145,8 @@ public class TypeMaterielService : ITypeMaterielService
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var type = await context.Set<TypeMateriel>()
-            .FirstOrDefaultAsync(t => t.IdTypeMateriel == id, cancellationToken);
+        var type = await context.Set<TypeMaterielEntity>()
+            .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
         if (type == null)
             return false;
@@ -164,11 +164,11 @@ public class TypeMaterielService : ITypeMaterielService
     public async Task<bool> CodeExistsAsync(string code, int? excludeId = null, CancellationToken cancellationToken = default)
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var query = context.Set<TypeMateriel>()
+        var query = context.Set<TypeMaterielEntity>()
             .Where(t => t.CodeType.ToUpper() == code.ToUpper());
 
         if (excludeId.HasValue)
-            query = query.Where(t => t.IdTypeMateriel != excludeId.Value);
+            query = query.Where(t => t.Id != excludeId.Value);
 
         return await query.AnyAsync(cancellationToken);
     }
@@ -179,7 +179,7 @@ public class TypeMaterielService : ITypeMaterielService
             return cached;
 
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        var categories = await context.Set<TypeMateriel>()
+        var categories = await context.Set<TypeMaterielEntity>()
             .AsNoTracking()
             .Where(t => t.EstActif && t.Categorie != null)
             .Select(t => t.Categorie!)

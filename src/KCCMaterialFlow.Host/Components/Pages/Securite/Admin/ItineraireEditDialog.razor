@@ -1,0 +1,183 @@
+@inject IBarriereService BarriereService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
+    <RadzenStack Gap="1rem">
+        @* Provenance *@
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                <RadzenIcon Icon="flight_takeoff" Style="vertical-align: middle; color: #48bb78;" />
+                Provenance <span style="color: #e31b23;">*</span>
+            </RadzenText>
+            <RadzenDropDown @bind-Value="@model.Provenance" Data="@lieux" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            Placeholder="Sélectionner ou saisir..." AllowClear="true" Style="width: 100%; border-radius: 6px;" />
+        </RadzenStack>
+
+        @* Destination *@
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                <RadzenIcon Icon="flight_land" Style="vertical-align: middle; color: #ed8936;" />
+                Destination <span style="color: #e31b23;">*</span>
+            </RadzenText>
+            <RadzenDropDown @bind-Value="@model.Destination" Data="@lieux" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            Placeholder="Sélectionner ou saisir..." AllowClear="true" Style="width: 100%; border-radius: 6px;" />
+        </RadzenStack>
+
+        @* Barrières autorisées *@
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                <RadzenIcon Icon="security" Style="vertical-align: middle; color: #4299e1;" />
+                Barrières Autorisées <span style="color: #e31b23;">*</span>
+            </RadzenText>
+            <RadzenDropDown @bind-Value="@selectedBarrieres" Data="@barrieres" TextProperty="NomBarriere" ValueProperty="CodeBarriere"
+                            Multiple="true" AllowClear="true" AllowFiltering="true" Chips="true"
+                            Placeholder="Sélectionner les barrières..." Style="width: 100%; border-radius: 6px;" />
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.8rem;">
+                Sélectionnez les barrières que les documents peuvent traverser pour cet itinéraire
+            </RadzenText>
+        </RadzenStack>
+
+        @* Ordre de passage (optionnel) *@
+        @if (selectedBarrieres.Any())
+        {
+            <RadzenCard Variant="Variant.Flat" Style="background: #f8fafc; border-radius: 8px; padding: 1rem;">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold" Style="margin-bottom: 0.5rem;">
+                    Ordre de Passage (optionnel)
+                </RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; margin-bottom: 0.75rem;">
+                    Glissez-déposez pour définir l'ordre de passage obligatoire
+                </RadzenText>
+                <RadzenStack Gap="0.5rem">
+                    @foreach (var (barriere, index) in selectedBarrieres.Select((b, i) => (b, i)))
+                    {
+                        <RadzenCard Variant="Variant.Flat" Style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 1rem;">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                    <RadzenBadge Text="@((index + 1).ToString())" BadgeStyle="BadgeStyle.Info" />
+                                    <RadzenText>@barriere</RadzenText>
+                                </RadzenStack>
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem">
+                                    <RadzenButton Icon="arrow_upward" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.ExtraSmall"
+                                                  Disabled="@(index == 0)" Click="@(() => MoveUp(index))" />
+                                    <RadzenButton Icon="arrow_downward" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.ExtraSmall"
+                                                  Disabled="@(index == selectedBarrieres.Count - 1)" Click="@(() => MoveDown(index))" />
+                                </RadzenStack>
+                            </RadzenStack>
+                        </RadzenCard>
+                    }
+                </RadzenStack>
+            </RadzenCard>
+        }
+
+        @* Statut *@
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+            <RadzenSwitch @bind-Value="@model.EstActif" />
+            <RadzenText>Itinéraire actif</RadzenText>
+        </RadzenStack>
+    </RadzenStack>
+
+    @* Actions *@
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="margin-top: 1rem;">
+        <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@(isNew ? "Créer" : "Enregistrer")" Icon="save" ButtonStyle="ButtonStyle.Danger" 
+                      Style="background-color: #e31b23;" Click="@Submit" IsBusy="@isSaving" 
+                      Disabled="@(!IsValid)" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter] public ItinerairesConfig.ItineraireConfig? Itineraire { get; set; }
+
+    private ItinerairesConfig.ItineraireConfig model = new();
+    private bool isNew = true;
+    private bool isSaving = false;
+    private List<string> selectedBarrieres = new();
+    private List<Barriere> barrieres = new();
+
+    // Lieux exemple - à remplacer par données réelles
+    private readonly List<string> lieux = new()
+    {
+        "Magasin Central",
+        "Usine A",
+        "Usine B",
+        "Réception",
+        "Expédition",
+        "Fournisseur Externe",
+        "Client Externe",
+        "Atelier Maintenance",
+        "Zone de Stockage"
+    };
+
+    private bool IsValid => !string.IsNullOrWhiteSpace(model.Provenance) && 
+                            !string.IsNullOrWhiteSpace(model.Destination) &&
+                            selectedBarrieres.Any();
+
+    protected override async Task OnInitializedAsync()
+    {
+        barrieres = (await BarriereService.GetAllAsync()).ToList();
+
+        if (Itineraire != null)
+        {
+            isNew = false;
+            model = new ItinerairesConfig.ItineraireConfig
+            {
+                Id = Itineraire.Id,
+                Provenance = Itineraire.Provenance,
+                Destination = Itineraire.Destination,
+                BarrieresAutorisees = new List<string>(Itineraire.BarrieresAutorisees),
+                EstActif = Itineraire.EstActif
+            };
+            selectedBarrieres = new List<string>(model.BarrieresAutorisees);
+        }
+        else
+        {
+            model = new ItinerairesConfig.ItineraireConfig { EstActif = true };
+        }
+    }
+
+    private void MoveUp(int index)
+    {
+        if (index > 0)
+        {
+            var temp = selectedBarrieres[index];
+            selectedBarrieres[index] = selectedBarrieres[index - 1];
+            selectedBarrieres[index - 1] = temp;
+        }
+    }
+
+    private void MoveDown(int index)
+    {
+        if (index < selectedBarrieres.Count - 1)
+        {
+            var temp = selectedBarrieres[index];
+            selectedBarrieres[index] = selectedBarrieres[index + 1];
+            selectedBarrieres[index + 1] = temp;
+        }
+    }
+
+    private void Submit()
+    {
+        if (!IsValid)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Veuillez remplir tous les champs obligatoires");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            model.BarrieresAutorisees = new List<string>(selectedBarrieres);
+            DialogService.Close(model);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(null);
+    }
+}

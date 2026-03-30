@@ -1,11 +1,10 @@
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.BonEntree.Entities;
-using KCCMaterialFlow.Module.BonEntree.Repositories;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace KCCMaterialFlow.Infrastructure.Repositories.BonEntree;
+namespace KCCMaterialFlow.Infrastructure.Repositories;
 
 /// <summary>
 /// Implémentation du repository pour les Bons d'Entrée.
@@ -29,13 +28,13 @@ public class BonEntreeRepository : IBonEntreeRepository
 
     #region CRUD Operations
 
-    public async Task<Module.BonEntree.Entities.BonEntree?> GetByIdAsync(
+    public async Task<BonEntree?> GetByIdAsync(
         int id,
         bool includeMateriels = true,
         bool includeApprobations = false,
         CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.Set<Module.BonEntree.Entities.BonEntree>().AsQueryable();
+        var query = _dbContext.Set<BonEntree>().AsQueryable();
 
         if (includeMateriels)
         {
@@ -49,21 +48,21 @@ public class BonEntreeRepository : IBonEntreeRepository
 
         return await query
             .AsNoTracking()
-            .FirstOrDefaultAsync(b => b.IdBon == id, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
     }
 
-    public async Task<Module.BonEntree.Entities.BonEntree?> GetByNumeroAsync(string numeroReference, CancellationToken cancellationToken = default)
+    public async Task<BonEntree?> GetByNumeroAsync(string numeroReference, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(numeroReference))
             return null;
 
-        return await _dbContext.Set<Module.BonEntree.Entities.BonEntree>()
+        return await _dbContext.Set<BonEntree>()
             .AsNoTracking()
             .Include(b => b.Materiels)
             .FirstOrDefaultAsync(b => b.NumeroReference == numeroReference, cancellationToken);
     }
 
-    public async Task<Module.BonEntree.Entities.BonEntree> CreateAsync(Module.BonEntree.Entities.BonEntree bonEntree, CancellationToken cancellationToken = default)
+    public async Task<BonEntree> CreateAsync(BonEntree bonEntree, CancellationToken cancellationToken = default)
     {
         using var dbContext = _dbContextFactory.CreateDbContext();
         
@@ -74,25 +73,25 @@ public class BonEntreeRepository : IBonEntreeRepository
             bonEntree.NumeroReference = await GenerateNextNumeroReferenceAsync(cancellationToken);
         }
 
-        dbContext.Set<Module.BonEntree.Entities.BonEntree>().Add(bonEntree);
+        dbContext.Set<BonEntree>().Add(bonEntree);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("Bon d'entrée {Numero} créé avec ID {Id}", bonEntree.NumeroReference, bonEntree.IdBon);
+        _logger.LogInformation("Bon d'entrée {Numero} créé avec ID {Id}", bonEntree.NumeroReference, bonEntree.Id);
 
         return bonEntree;
     }
 
-    public async Task<Module.BonEntree.Entities.BonEntree> UpdateAsync(Module.BonEntree.Entities.BonEntree bonEntree, CancellationToken cancellationToken = default)
+    public async Task<BonEntree> UpdateAsync(BonEntree bonEntree, CancellationToken cancellationToken = default)
     {
         using var dbContext = _dbContextFactory.CreateDbContext();
         
         // Recharger l'entité depuis la base avec tracking
-        var existing = await dbContext.Set<Module.BonEntree.Entities.BonEntree>()
-            .FirstOrDefaultAsync(b => b.IdBon == bonEntree.IdBon, cancellationToken);
+        var existing = await dbContext.Set<BonEntree>()
+            .FirstOrDefaultAsync(b => b.Id == bonEntree.Id, cancellationToken);
         
         if (existing == null)
         {
-            throw new InvalidOperationException($"Bon d'entrée {bonEntree.IdBon} non trouvé");
+            throw new InvalidOperationException($"Bon d'entrée {bonEntree.Id} non trouvé");
         }
         
         // Copier les propriétés modifiées
@@ -127,8 +126,8 @@ public class BonEntreeRepository : IBonEntreeRepository
     {
         using var dbContext = _dbContextFactory.CreateDbContext();
         
-        var bonEntree = await dbContext.Set<Module.BonEntree.Entities.BonEntree>()
-            .FirstOrDefaultAsync(b => b.IdBon == id, cancellationToken);
+        var bonEntree = await dbContext.Set<BonEntree>()
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
 
         if (bonEntree != null)
         {
@@ -147,7 +146,7 @@ public class BonEntreeRepository : IBonEntreeRepository
 
     public async Task<BonEntreeSearchResult> SearchAsync(BonEntreeFilter filter, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.Set<Module.BonEntree.Entities.BonEntree>().AsQueryable();
+        var query = _dbContext.Set<BonEntree>().AsQueryable();
 
         // Exclure les annulés
         query = query.Where(b => b.StatutActuel != "Cancelled");
@@ -188,7 +187,7 @@ public class BonEntreeRepository : IBonEntreeRepository
         return await SearchAsync(filter, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Module.BonEntree.Entities.BonEntree>> GetPendingApprovalsAsync(IEnumerable<string> userRoles, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<BonEntree>> GetPendingApprovalsAsync(IEnumerable<string> userRoles, CancellationToken cancellationToken = default)
     {
         // Mapper les rôles utilisateur vers les statuts correspondants
         // Chaîne standard BEM: Superviseur → GM → OPJ → Identification
@@ -218,7 +217,7 @@ public class BonEntreeRepository : IBonEntreeRepository
             string.Join(", ", roles), string.Join(", ", allowedStatuses), isAdmin);
 
         // Requête pour les bons
-        var query = _dbContext.Set<Module.BonEntree.Entities.BonEntree>()
+        var query = _dbContext.Set<BonEntree>()
             .AsNoTracking()
             .Where(b => b.StatutActuel != "Cancelled" && b.StatutActuel != "Draft" && b.StatutActuel != "Approved" && b.StatutActuel != "Rejected");
 
@@ -230,7 +229,7 @@ public class BonEntreeRepository : IBonEntreeRepository
         else if (!isAdmin && allowedStatuses.Count == 0)
         {
             // L'utilisateur n'a aucun rôle d'approbation
-            return new List<Module.BonEntree.Entities.BonEntree>();
+            return new List<BonEntree>();
         }
 
         var bons = await query
@@ -251,7 +250,7 @@ public class BonEntreeRepository : IBonEntreeRepository
 
     public async Task<Dictionary<string, int>> GetCountByStatutAsync(CancellationToken cancellationToken = default)
     {
-        var counts = await _dbContext.Set<Module.BonEntree.Entities.BonEntree>()
+        var counts = await _dbContext.Set<BonEntree>()
             .Where(b => b.StatutActuel != "Cancelled")
             .GroupBy(b => b.StatutActuel)
             .Select(g => new { Statut = g.Key, Count = g.Count() })
@@ -265,7 +264,7 @@ public class BonEntreeRepository : IBonEntreeRepository
         var today = DateTime.Today;
         var tomorrow = today.AddDays(1);
 
-        return await _dbContext.Set<Module.BonEntree.Entities.BonEntree>()
+        return await _dbContext.Set<BonEntree>()
             .CountAsync(b => b.DateCreation >= today && b.DateCreation < tomorrow, cancellationToken);
     }
 
@@ -274,7 +273,7 @@ public class BonEntreeRepository : IBonEntreeRepository
         var year = DateTime.Now.Year;
         var prefix = $"BEM-{year}-";
 
-        var lastNumero = await _dbContext.Set<Module.BonEntree.Entities.BonEntree>()
+        var lastNumero = await _dbContext.Set<BonEntree>()
             .Where(b => b.NumeroReference.StartsWith(prefix))
             .OrderByDescending(b => b.NumeroReference)
             .Select(b => b.NumeroReference)
@@ -328,7 +327,7 @@ public class BonEntreeRepository : IBonEntreeRepository
         using var dbContext = _dbContextFactory.CreateDbContext();
         
         var materiel = await dbContext.Set<Materiel>()
-            .FirstOrDefaultAsync(m => m.IdMateriel == materielId, cancellationToken);
+            .FirstOrDefaultAsync(m => m.Id == materielId, cancellationToken);
 
         if (materiel != null)
         {
@@ -369,12 +368,27 @@ public class BonEntreeRepository : IBonEntreeRepository
     public async Task<IReadOnlyList<Approbation>> GetApprobationsAsync(int bonId, CancellationToken cancellationToken = default)
     {
         using var dbContext = _dbContextFactory.CreateDbContext();
-        
+
         return await dbContext.Set<Approbation>()
             .AsNoTracking()
             .Where(a => a.BonId == bonId)
             .OrderBy(a => a.OrdreEtape)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task DeleteApprobationsAsync(int bonId, CancellationToken cancellationToken = default)
+    {
+        using var dbContext = _dbContextFactory.CreateDbContext();
+
+        var existing = await dbContext.Set<Approbation>()
+            .Where(a => a.BonId == bonId)
+            .ToListAsync(cancellationToken);
+
+        if (existing.Count > 0)
+        {
+            dbContext.Set<Approbation>().RemoveRange(existing);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 
     #endregion
@@ -389,9 +403,9 @@ public class BonEntreeRepository : IBonEntreeRepository
     {
         using var dbContext = _dbContextFactory.CreateDbContext();
         
-        var bonEntree = await dbContext.Set<Module.BonEntree.Entities.BonEntree>()
+        var bonEntree = await dbContext.Set<BonEntree>()
             .Include(b => b.Materiels)
-            .FirstOrDefaultAsync(b => b.IdBon == bonEntreeId, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == bonEntreeId, cancellationToken);
 
         if (bonEntree == null)
             throw new InvalidOperationException($"Bon d'entrée {bonEntreeId} non trouvé");
@@ -422,8 +436,8 @@ public class BonEntreeRepository : IBonEntreeRepository
     {
         using var dbContext = _dbContextFactory.CreateDbContext();
         
-        var bonEntree = await dbContext.Set<Module.BonEntree.Entities.BonEntree>()
-            .FirstOrDefaultAsync(b => b.IdBon == bonEntreeId, cancellationToken);
+        var bonEntree = await dbContext.Set<BonEntree>()
+            .FirstOrDefaultAsync(b => b.Id == bonEntreeId, cancellationToken);
 
         if (bonEntree == null)
             return;
@@ -447,10 +461,10 @@ public class BonEntreeRepository : IBonEntreeRepository
     /// </summary>
     public async Task<bool> IsAvailableForSortieAsync(int bonEntreeId, CancellationToken cancellationToken = default)
     {
-        var bonEntree = await _dbContext.Set<Module.BonEntree.Entities.BonEntree>()
+        var bonEntree = await _dbContext.Set<BonEntree>()
             .AsNoTracking()
             .Include(b => b.Materiels)
-            .FirstOrDefaultAsync(b => b.IdBon == bonEntreeId, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == bonEntreeId, cancellationToken);
 
         if (bonEntree == null)
             return false;
@@ -469,8 +483,8 @@ public class BonEntreeRepository : IBonEntreeRepository
     {
         using var dbContext = _dbContextFactory.CreateDbContext();
         
-        var bonEntree = await dbContext.Set<Module.BonEntree.Entities.BonEntree>()
-            .FirstOrDefaultAsync(b => b.IdBon == bonEntreeId, cancellationToken);
+        var bonEntree = await dbContext.Set<BonEntree>()
+            .FirstOrDefaultAsync(b => b.Id == bonEntreeId, cancellationToken);
 
         if (bonEntree == null)
         {
@@ -508,7 +522,7 @@ public class BonEntreeRepository : IBonEntreeRepository
                 item.MaterielEntreeId, item.QuantiteASortir);
 
             var materiel = await dbContext.Set<Materiel>()
-                .FirstOrDefaultAsync(m => m.IdMateriel == item.MaterielEntreeId, cancellationToken);
+                .FirstOrDefaultAsync(m => m.Id == item.MaterielEntreeId, cancellationToken);
 
             if (materiel == null)
             {
@@ -528,7 +542,7 @@ public class BonEntreeRepository : IBonEntreeRepository
             materiel.QuantiteDisponible -= item.QuantiteASortir;
 
             _logger.LogInformation("Stock décrémenté pour matériel {Id} ({Designation}): {OldQty} -> {NewQty}",
-                materiel.IdMateriel, materiel.Designation, oldQty, materiel.QuantiteDisponible);
+                materiel.Id, materiel.Designation, oldQty, materiel.QuantiteDisponible);
         }
 
         var changedEntries = await dbContext.SaveChangesAsync(cancellationToken);
@@ -548,7 +562,7 @@ public class BonEntreeRepository : IBonEntreeRepository
         
         var today = DateTime.Today;
         
-        var query = dbContext.Set<Module.BonEntree.Entities.BonEntree>()
+        var query = dbContext.Set<BonEntree>()
             .AsNoTracking()
             .Include(b => b.Materiels)
             .Where(b => b.StatutActuel == "Approved"
@@ -569,7 +583,7 @@ public class BonEntreeRepository : IBonEntreeRepository
             .Where(b => b.Materiels != null && b.Materiels.Sum(m => m.QuantiteDisponible) > 0)
             .Select(b => new BonEntreeForDropdown
             {
-                IdBon = b.IdBon,
+                IdBon = b.Id,
                 NumeroReference = b.NumeroReference,
                 NomCompagnie = b.NomCompagnie ?? string.Empty,
                 HostDepartment = b.HostDepartment ?? string.Empty,
@@ -586,7 +600,7 @@ public class BonEntreeRepository : IBonEntreeRepository
 
     #region Private Helpers
 
-    private static IQueryable<Module.BonEntree.Entities.BonEntree> ApplyFilters(IQueryable<Module.BonEntree.Entities.BonEntree> query, BonEntreeFilter filter)
+    private static IQueryable<BonEntree> ApplyFilters(IQueryable<BonEntree> query, BonEntreeFilter filter)
     {
         if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
         {
@@ -631,10 +645,16 @@ public class BonEntreeRepository : IBonEntreeRepository
             query = query.Where(b => b.HostDepartment.ToUpper() == dept);
         }
 
+        if (!string.IsNullOrWhiteSpace(filter.Demandeur))
+        {
+            var demandeur = filter.Demandeur;
+            query = query.Where(b => b.NomDemandeur == demandeur);
+        }
+
         return query;
     }
 
-    private static IQueryable<Module.BonEntree.Entities.BonEntree> ApplySorting(IQueryable<Module.BonEntree.Entities.BonEntree> query, string sortBy, bool descending)
+    private static IQueryable<BonEntree> ApplySorting(IQueryable<BonEntree> query, string sortBy, bool descending)
     {
         return sortBy.ToLower() switch
         {
@@ -664,8 +684,8 @@ public class BonEntreeRepository : IBonEntreeRepository
             .Where(m => m.BonId == bonId)
             .SumAsync(m => m.Quantite, cancellationToken);
 
-        var bon = await dbContext.Set<Module.BonEntree.Entities.BonEntree>()
-            .FirstOrDefaultAsync(b => b.IdBon == bonId, cancellationToken);
+        var bon = await dbContext.Set<BonEntree>()
+            .FirstOrDefaultAsync(b => b.Id == bonId, cancellationToken);
 
         if (bon != null)
         {

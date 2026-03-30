@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonSortie.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -45,7 +45,7 @@ public class BonSortieExterneConfiguration : IEntityTypeConfiguration<BonSortieE
             .HasMaxLength(50);
 
         // Relation 0..1 vers BonEntree (FK optionnelle)
-        builder.HasOne(b => b.BonEntreeAssocie)
+        builder.HasOne<BonEntree>()
             .WithMany()
             .HasForeignKey(b => b.BonEntreeAssocieId)
             .OnDelete(DeleteBehavior.SetNull)

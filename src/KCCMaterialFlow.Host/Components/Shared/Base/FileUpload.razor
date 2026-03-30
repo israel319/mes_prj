@@ -1,0 +1,266 @@
+@namespace KCCMaterialFlow.Host.Components.Shared.Base
+@using Radzen
+@using Radzen.Blazor
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JS
+
+@* Composant d'upload multi-fichiers avec drag-drop *@
+
+<div style="@($"border: 2px dashed {(_isDragging ? "var(--rz-primary)" : "var(--rz-border-color)")}; border-radius: 8px; padding: 2rem; transition: all 0.3s ease; background-color: {(_isDragging ? "rgba(0, 177, 147, 0.05)" : "var(--rz-base-background-color)")};")"
+     @ondragenter="HandleDragEnter"
+     @ondragleave="HandleDragLeave"
+     @ondragover:preventDefault
+     @ondrop="HandleDrop"
+     @ondrop:preventDefault>
+
+    <InputFile @ref="_inputFile"
+               OnChange="HandleFileSelected"
+               multiple="@AllowMultiple"
+               accept="@Accept"
+               style="display: none;"
+               id="@_inputId" />
+
+    <label for="@_inputId" style="cursor: pointer; display: block;">
+        <div style="text-align: center;">
+            <RadzenIcon Icon="cloud_upload" Style="font-size: 3rem; color: var(--rz-primary);" />
+            <p style="margin-top: 0.5rem; margin-bottom: 0.25rem;">
+                <strong>Glissez-déposez vos fichiers ici</strong>
+            </p>
+            <p style="color: var(--rz-text-secondary-color); font-size: 0.875rem; margin-bottom: 0.5rem;">ou cliquez pour sélectionner</p>
+            @if (!string.IsNullOrEmpty(AcceptDescription))
+            {
+                <p style="color: var(--rz-text-secondary-color); font-size: 0.875rem;">@AcceptDescription</p>
+            }
+            @if (MaxFileSize > 0)
+            {
+                <p style="color: var(--rz-text-secondary-color); font-size: 0.875rem;">Taille max: @FormatFileSize(MaxFileSize)</p>
+            }
+        </div>
+    </label>
+
+    @if (IsUploading)
+    {
+        <div style="margin-top: 1rem;">
+            <RadzenProgressBar Value="@UploadProgress" ShowValue="true" Mode="ProgressBarMode.Determinate" />
+            <p style="text-align: center; font-size: 0.875rem; margin-top: 0.25rem;">Envoi en cours...</p>
+        </div>
+    }
+
+    @if (_errors.Any())
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="true" Variant="Variant.Flat" Style="margin-top: 1rem;">
+            <ul style="margin-bottom: 0;">
+                @foreach (var error in _errors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </RadzenAlert>
+    }
+
+    @if (SelectedFiles.Any())
+    {
+        <div style="margin-top: 1rem;">
+            <RadzenText TextStyle="TextStyle.H6">Fichiers sélectionnés (@SelectedFiles.Count)</RadzenText>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                @foreach (var file in SelectedFiles)
+                {
+                    <li style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--rz-border-color);">
+                        <span>
+                            <RadzenIcon Icon="@GetFileIcon(file.Name)" Style="margin-right: 0.5rem;" />
+                            @file.Name
+                            <small style="color: var(--rz-text-secondary-color); margin-left: 0.5rem;">(@FormatFileSize(file.Size))</small>
+                        </span>
+                        <RadzenButton Icon="close"
+                                      ButtonStyle="ButtonStyle.Danger"
+                                      Variant="Variant.Text"
+                                      Size="ButtonSize.Small"
+                                      Click="@(() => RemoveFile(file))" />
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@code {
+    private InputFile? _inputFile;
+    private string _inputId = $"file-upload-{Guid.NewGuid():N}";
+    private bool _isDragging;
+    private List<string> _errors = new();
+
+    [Parameter] public List<IBrowserFile> SelectedFiles { get; set; } = new();
+    [Parameter] public EventCallback<List<IBrowserFile>> SelectedFilesChanged { get; set; }
+
+    [Parameter] public bool AllowMultiple { get; set; } = true;
+    [Parameter] public string? Accept { get; set; }
+    [Parameter] public string? AcceptDescription { get; set; }
+    [Parameter] public long MaxFileSize { get; set; } = 10 * 1024 * 1024; // 10 MB
+    [Parameter] public int MaxFiles { get; set; } = 10;
+
+    [Parameter] public bool IsUploading { get; set; }
+    [Parameter] public double UploadProgress { get; set; }
+
+    [Parameter] public EventCallback<List<IBrowserFile>> OnFilesSelected { get; set; }
+    [Parameter] public EventCallback<IBrowserFile> OnFileRemoved { get; set; }
+
+    /// <summary>
+    /// INT-030: Liste des extensions autorisées (ex: ".pdf", ".docx", ".xlsx")
+    /// Si vide, toutes les extensions sont autorisées selon le paramètre Accept
+    /// </summary>
+    [Parameter] public List<string> AllowedExtensions { get; set; } = new();
+
+    /// <summary>
+    /// INT-030: Liste des types MIME autorisés (ex: "application/pdf", "image/jpeg")
+    /// Si vide, tous les types sont autorisés selon le paramètre Accept
+    /// </summary>
+    [Parameter] public List<string> AllowedContentTypes { get; set; } = new();
+
+    /// <summary>
+    /// INT-030: Extensions dangereuses toujours bloquées (sécurité)
+    /// </summary>
+    private static readonly HashSet<string> DangerousExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".exe", ".dll", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".jse",
+        ".wsf", ".wsh", ".msi", ".msp", ".com", ".scr", ".pif", ".hta",
+        ".cpl", ".msc", ".jar", ".vb", ".vbe", ".ws", ".reg", ".inf",
+        ".lnk", ".url", ".iso", ".img", ".vhd", ".vhdx"
+    };
+
+    /// <summary>
+    /// INT-030: Types MIME dangereux toujours bloqués
+    /// </summary>
+    private static readonly HashSet<string> DangerousContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "application/x-msdownload", "application/x-msdos-program",
+        "application/x-executable", "application/x-sh", "application/x-bash",
+        "application/x-csh", "text/x-script", "application/x-javascript"
+    };
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        _errors.Clear();
+        var files = e.GetMultipleFiles(MaxFiles).ToList();
+        await ProcessFiles(files);
+    }
+
+    private async Task HandleDrop(DragEventArgs e)
+    {
+        _isDragging = false;
+        // Note: Le drag-drop natif nécessite JS interop pour accéder aux fichiers
+        // Les fichiers seront traités via InputFile
+    }
+
+    private void HandleDragEnter(DragEventArgs e)
+    {
+        _isDragging = true;
+    }
+
+    private void HandleDragLeave(DragEventArgs e)
+    {
+        _isDragging = false;
+    }
+
+    private async Task ProcessFiles(List<IBrowserFile> files)
+    {
+        foreach (var file in files)
+        {
+            // INT-030: Validation de sécurité des fichiers
+            var extension = Path.GetExtension(file.Name);
+            var contentType = file.ContentType;
+
+            // 1. Vérifier les extensions dangereuses (toujours bloquées)
+            if (DangerousExtensions.Contains(extension))
+            {
+                _errors.Add($"Le fichier '{file.Name}' a une extension non autorisée pour des raisons de sécurité.");
+                continue;
+            }
+
+            // 2. Vérifier les types MIME dangereux (toujours bloqués)
+            if (!string.IsNullOrEmpty(contentType) && DangerousContentTypes.Contains(contentType))
+            {
+                _errors.Add($"Le type de fichier '{file.Name}' n'est pas autorisé pour des raisons de sécurité.");
+                continue;
+            }
+
+            // 3. Vérifier les extensions autorisées (si configurées)
+            if (AllowedExtensions.Count > 0 && !AllowedExtensions.Any(e => e.Equals(extension, StringComparison.OrdinalIgnoreCase)))
+            {
+                _errors.Add($"Le fichier '{file.Name}' n'a pas une extension autorisée. Extensions acceptées: {string.Join(", ", AllowedExtensions)}");
+                continue;
+            }
+
+            // 4. Vérifier les types MIME autorisés (si configurés)
+            if (AllowedContentTypes.Count > 0 && !string.IsNullOrEmpty(contentType) &&
+                !AllowedContentTypes.Any(t => t.Equals(contentType, StringComparison.OrdinalIgnoreCase)))
+            {
+                _errors.Add($"Le type de fichier '{file.Name}' ({contentType}) n'est pas autorisé. Types acceptés: {string.Join(", ", AllowedContentTypes)}");
+                continue;
+            }
+
+            // 5. Vérifier la taille
+            if (file.Size > MaxFileSize)
+            {
+                _errors.Add($"Le fichier '{file.Name}' dépasse la taille maximale autorisée ({FormatFileSize(MaxFileSize)}).");
+                continue;
+            }
+
+            // 6. Vérifier le nombre de fichiers
+            if (SelectedFiles.Count >= MaxFiles)
+            {
+                _errors.Add($"Nombre maximum de fichiers atteint ({MaxFiles}).");
+                break;
+            }
+
+            // 7. Éviter les doublons
+            if (!SelectedFiles.Any(f => f.Name == file.Name))
+            {
+                SelectedFiles.Add(file);
+            }
+        }
+
+        await SelectedFilesChanged.InvokeAsync(SelectedFiles);
+        await OnFilesSelected.InvokeAsync(SelectedFiles);
+    }
+
+    private async Task RemoveFile(IBrowserFile file)
+    {
+        SelectedFiles.Remove(file);
+        await SelectedFilesChanged.InvokeAsync(SelectedFiles);
+        await OnFileRemoved.InvokeAsync(file);
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "o", "Ko", "Mo", "Go" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+
+    private static string GetFileIcon(string fileName)
+    {
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        return extension switch
+        {
+            ".pdf" => "picture_as_pdf",
+            ".doc" or ".docx" => "description",
+            ".xls" or ".xlsx" => "table_chart",
+            ".jpg" or ".jpeg" or ".png" or ".gif" => "image",
+            ".zip" or ".rar" => "folder_zip",
+            _ => "insert_drive_file"
+        };
+    }
+
+    public void Clear()
+    {
+        SelectedFiles.Clear();
+        _errors.Clear();
+        StateHasChanged();
+    }
+}

@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -152,17 +152,17 @@ public class DatabaseRoleClaimsTransformation : IClaimsTransformation
 
         var roles = dbContext.Set<UtilisateurRole>()
             .AsNoTracking()
-            .Where(ur => ur.IdUtilisateur == utilisateur.IdUtilisateur)
+            .Where(ur => ur.IdUtilisateur == utilisateur.Id)
             .Join(dbContext.Set<Role>().Where(r => r.EstActif),
                 ur => ur.IdRole,
-                r => r.IdRole,
+                r => r.Id,
                 (ur, r) => r.CodeRole)
             .ToList();
 
         // Ajouter le rôle principal via la FK IdRole
         var directRole = dbContext.Set<Role>()
             .AsNoTracking()
-            .Where(r => r.IdRole == utilisateur.IdRole && r.EstActif)
+            .Where(r => r.Id == utilisateur.IdRole && r.EstActif)
             .Select(r => r.CodeRole)
             .FirstOrDefault();
 

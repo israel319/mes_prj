@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonEntree.Entities;
-
-using KCCMaterialFlow.Module.BonSortie.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -16,13 +14,13 @@ public class MaterielSortieConfiguration : IEntityTypeConfiguration<MaterielSort
     {
         builder.ToTable("T_MaterielsSortie", "dbo");
 
-        builder.HasKey(m => m.IdMateriel);
+        builder.HasKey(m => m.Id);
 
-        builder.Property(m => m.IdMateriel)
+        builder.Property(m => m.Id)
             .HasColumnName("IdMateriel")
             .ValueGeneratedOnAdd();
 
-        builder.Property(m => m.BonSortieId)
+        builder.Property(m => m.BonId)
             .HasColumnName("BonSortieId")
             .IsRequired();
 
@@ -65,7 +63,7 @@ public class MaterielSortieConfiguration : IEntityTypeConfiguration<MaterielSort
             .HasMaxLength(500);
 
         // Index sur le bon de sortie
-        builder.HasIndex(m => m.BonSortieId)
+        builder.HasIndex(m => m.BonId)
             .HasDatabaseName("IX_MaterielsSortie_BonSortieId");
 
         // Index sur le code produit

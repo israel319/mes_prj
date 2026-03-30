@@ -1,184 +1,132 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
-@using KCCMaterialFlow.Module.Shared.Services
-@using KCCMaterialFlow.Module.Shared.Entities
 @inject IUtilisateurService UtilisateurService
+@inject IParametreSystemeService ParametreSystemeService
 
 <RadzenComponents @rendermode="InteractiveServer" />
 
 @* ============ LAYOUT PRINCIPAL ============ *@
 <RadzenLayout>
+    @* ─── TOPBAR UNIQUE — Slate #253C45 ─── *@
     <RadzenHeader>
-        <div class="kcc-header @(IsDemandeurOnly ? "kcc-header--demandeur" : "")">
-            @if (IsDemandeurOnly)
-            {
-                @* ── Mode Demandeur : topbar complète ── *@
-                <a href="/" class="kcc-brand">
-                    <img src="/images/kcc-logo.png" alt="KCC" style="height: 36px; width: auto;" />
-                    <div class="kcc-brand-text">
-                        <span class="kcc-brand-name">KCC Flow</span>
-                    </div>
-                </a>
+        <div class="kcc-topbar">
+            <nav class="kcc-topbar__inner @(mobileMenuOpen ? "kcc-topbar--open" : "")">
+                @* ─── Logo / Nom application ─── *@
+                <NavLink href="/" class="kcc-topbar__brand" Match="NavLinkMatch.All">
+                    <span class="kcc-topbar__brand-text">@appName</span>
+                </NavLink>
 
-                <div class="kcc-divider-v"></div>
+                <div class="kcc-topbar__sep"></div>
 
-                <nav class="kcc-topnav">
-                    <NavLink href="/" class="kcc-topnav-link" Match="NavLinkMatch.All">
-                        <span>Accueil</span>
-                    </NavLink>
-                    <NavLink href="/liste-bons" class="kcc-topnav-link" Match="NavLinkMatch.Prefix">
-                        <span>Mes Bons</span>
-                    </NavLink>
-                    <NavLink href="/historique" class="kcc-topnav-link" Match="NavLinkMatch.All">
-                        <span>Historique</span>
-                    </NavLink>
-                </nav>
-
-                @* Bouton "Nouveau" avec dropdown *@
-                <div class="kcc-new-dropdown">
-                    <button class="kcc-new-btn">
-                        Nouveau
-                        <svg class="kcc-new-chevron" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M7 10l5 5 5-5z"/>
-                        </svg>
-                    </button>
-                    <div class="kcc-new-menu">
-                        <span class="kcc-new-menu-label">Créer un bon</span>
-                        @if (CurrentUserService.HasActivite("BEM_CREER"))
+                @* ─── Hamburger (mobile) ─── *@
+                <button class="kcc-topbar__burger" @onclick="ToggleMobileMenu" @onclick:stopPropagation="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        @if (mobileMenuOpen)
                         {
-                        <button class="kcc-new-item" @onclick="@(() => CreateBon("BEM"))">
-                            <div class="kcc-new-item-icon bem">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 19V5M5 12l7-7 7 7"/>
-                                </svg>
-                            </div>
-                            <div class="kcc-new-item-text">
-                                <span class="kcc-new-item-title">Bon d'Entrée</span>
-                                <span class="kcc-new-item-desc">Matériel entrant sur le site</span>
-                            </div>
-                        </button>
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         }
-                        @if (CurrentUserService.HasActivite("BSM_CREER"))
+                        else
                         {
-                        <button class="kcc-new-item" @onclick="@(() => CreateBon("BSM"))">
-                            <div class="kcc-new-item-icon bsm">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 5v14M5 12l7 7 7-7"/>
-                                </svg>
-                            </div>
-                            <div class="kcc-new-item-text">
-                                <span class="kcc-new-item-title">Bon de Sortie</span>
-                                <span class="kcc-new-item-desc">Matériel sortant du site</span>
-                            </div>
-                        </button>
+                            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
                         }
-                    </div>
-                </div>
-
-                @* Spacer *@
-                <div style="flex: 1;"></div>
-
-                @* Recherche *@
-                <div class="kcc-search">
-                    <input type="text" placeholder="Rechercher un bon..."
-                           @bind="searchQuery"
-                           @bind:event="oninput"
-                           @onkeydown="HandleSearchKeyDown" />
-                </div>
-
-                @* Actions *@
-                <div class="kcc-actions">
-                    <NotificationPanel />
-
-                    <div class="kcc-divider-v"></div>
-
-                    <RadzenProfileMenu>
-                        <Template>
-                            <div class="kcc-user">
-                                <div class="kcc-avatar" title="@displayName">
-                                    @userInitials
-                                </div>
-                                <div class="kcc-user-info">
-                                    <span class="kcc-username">@GetGreeting()</span>
-                                    <span class="kcc-userrole">@displayName</span>
-                                </div>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="#94a3b8">
-                                    <path d="M7 10l5 5 5-5z"/>
-                                </svg>
-                            </div>
-                        </Template>
-                        <ChildContent>
-                            <RadzenProfileMenuItem Text="Mon profil" Icon="person" Path="/profil" />
-                            <RadzenProfileMenuItem Text="Préférences" Icon="settings" Path="/preferences" />
-                            <hr style="margin: 0.5rem 0; border-color: #e5e7eb;" />
-                            <RadzenProfileMenuItem Text="Déconnexion" Icon="logout" />
-                        </ChildContent>
-                    </RadzenProfileMenu>
-                </div>
-            }
-            else
-            {
-                @* Mode complet: Toggle sidebar *@
-                <button class="kcc-toggle" @onclick="@(() => sidebarExpanded = !sidebarExpanded)">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round">
-                        <path d="M3 12h18M3 6h18M3 18h18"/>
                     </svg>
                 </button>
 
-                @* Recherche fonctionnelle *@
-                <div class="kcc-search">
-                    <input type="text" placeholder="Rechercher un bon (ex: BEM-2026-001)..."
-                           @bind="searchQuery"
-                           @bind:event="oninput"
-                           @onkeydown="HandleSearchKeyDown" />
-                </div>
+                <a href="/" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("dashboard")">
+                    <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/liste-bons" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("bons")">
+                    <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <span>Tous les Bons</span>
+                </a>
+                @if (CanApprove)
+                {
+                    <a href="/mes-approbations" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("approbations")">
+                        <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                        </svg>
+                        <span>Approbations</span>
+                    </a>
+                }
+                @if (CanCreateBEM || CanCreateBSM)
+                {
+                    <div class="kcc-topbar__dropdown kcc-topbar__tab--nav">
+                        <span class="kcc-topbar__tab @TabCss("nouveau")">
+                            <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+                            </svg>
+                            <span>Nouveau Bon</span>
+                            <svg class="kcc-topbar__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </span>
+                        <div class="kcc-topbar__dropdown-menu">
+                            @if (CanCreateBEM)
+                            {
+                                <a href="/bon-entree/nouveau" class="kcc-topbar__dropdown-item">Bon d'Entrée (BEM)</a>
+                            }
+                            @if (CanCreateBSM)
+                            {
+                                <a href="/bon-sortie/nouveau" class="kcc-topbar__dropdown-item">Bon de Sortie (BSM)</a>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (CanViewPrets)
+                {
+                    <a href="/bon-sortie/prets" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("prets")">
+                        <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>
+                        </svg>
+                        <span>Prêts</span>
+                    </a>
+                }
+                <a href="/historique" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("historique")">
+                    <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>Historique</span>
+                </a>
+                @if (CanScan)
+                {
+                    <a href="/securite/scanner" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("scanner")">
+                        <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/>
+                        </svg>
+                        <span>Scanner</span>
+                    </a>
+                }
+                @if (IsAdmin)
+                {
+                    <a href="/admin/utilisateurs" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("admin")">
+                        <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <span>Admin</span>
+                    </a>
+                }
+                @* ─── Spacer pour pousser le profil à droite ─── *@
+                <div class="kcc-topbar__spacer"></div>
 
-                @* Actions *@
-                <div class="kcc-actions">
-                    <NotificationPanel />
-
-                    <RadzenProfileMenu>
-                        <Template>
-                            <div class="kcc-user">
-                                <div class="kcc-avatar" title="@displayName">
-                                    @userInitials
-                                </div>
-                                <div class="kcc-user-info">
-                                    <span class="kcc-username">@displayName</span>
-                                    <span class="kcc-userrole">@userRole</span>
-                                </div>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="#94a3b8">
-                                    <path d="M7 10l5 5 5-5z"/>
-                                </svg>
-                            </div>
-                        </Template>
-                        <ChildContent>
-                            <RadzenProfileMenuItem Text="Mon profil" Icon="person" Path="/profil" />
-                            <RadzenProfileMenuItem Text="Préférences" Icon="settings" Path="/preferences" />
-                            <hr style="margin: 0.5rem 0; border-color: #e5e7eb;" />
-                            <RadzenProfileMenuItem Text="Déconnexion" Icon="logout" />
-                        </ChildContent>
-                    </RadzenProfileMenu>
+                @* ─── Profil utilisateur ─── *@
+                <div class="kcc-topbar__user">
+                    <div class="kcc-topbar__avatar">@userInitials</div>
+                    <span class="kcc-topbar__username">@displayName</span>
                 </div>
-            }
+            </nav>
         </div>
     </RadzenHeader>
 
-    @if (!IsDemandeurOnly)
-    {
-        @* Sidebar simple pour les rôles avancés *@
-        <RadzenSidebar @bind-Expanded="@sidebarExpanded">
-            <div class="sidebar-simple">
-                <RadzenPanelMenu>
-                    <NavMenu />
-                </RadzenPanelMenu>
-            </div>
-        </RadzenSidebar>
-    }
-
+    @* ─── CONTENU ─── *@
     <RadzenBody>
-        @Body
+        <div class="kcc-content">
+            @Body
+        </div>
     </RadzenBody>
 </RadzenLayout>
 
@@ -190,45 +138,88 @@
 <DevRoleSwitcher />
 
 @code {
-    private bool sidebarExpanded = true;
-    private string searchQuery = "";
     private string displayName = "";
-    private string userRole = "";
     private string userInitials = "";
+    private string appName = "KCC Material Flow";
     private Utilisateur? currentDbUser;
+    private bool mobileMenuOpen;
+
+    // Permissions pour la topbar (initialisées une seule fois dans LoadDataAsync)
+    private bool CanApprove;
+    private bool CanCreateBEM;
+    private bool CanCreateBSM;
+    private bool CanViewPrets;
+    private bool CanScan;
+    private bool IsAdmin;
+
+    private string TabCss(string section)
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath.ToLowerInvariant();
+        var isActive = section switch
+        {
+            "dashboard" => path == "/" || path == "",
+            "bons" => path.StartsWith("/liste-bons") || path.StartsWith("/suivi-bons")
+                       || (path.StartsWith("/bon-sortie/") && !path.Contains("/nouveau") && !path.Contains("/prets"))
+                       || (path.StartsWith("/bon-entree/") && !path.Contains("/nouveau")),
+            "approbations" => path.StartsWith("/mes-approbations") || path.StartsWith("/liste-rejets"),
+            "nouveau" => path.Contains("/nouveau"),
+            "prets" => path.StartsWith("/bon-sortie/prets"),
+            "historique" => path.StartsWith("/historique"),
+            "scanner" => path.StartsWith("/securite"),
+            "admin" => path.StartsWith("/admin"),
+            _ => false
+        };
+        return isActive ? "active" : "";
+    }
+
+    private void ToggleMobileMenu() => mobileMenuOpen = !mobileMenuOpen;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadUserFromDatabase();
+        Navigation.LocationChanged += OnLocationChanged;
+        await LoadDataAsync();
     }
 
-    private async Task LoadUserFromDatabase()
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        mobileMenuOpen = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadDataAsync()
     {
         try
         {
             var login = CurrentUserService.GetUserLogin();
-            if (!string.IsNullOrEmpty(login) && login != "Anonyme")
-            {
-                currentDbUser = await UtilisateurService.GetByLoginAsync(login);
-            }
 
-            if (currentDbUser != null)
-            {
-                displayName = currentDbUser.NomComplet;
-                userRole = currentDbUser.RolePrincipal?.NomRole ?? currentDbUser.RolePrincipal?.CodeRole ?? "Utilisateur";
-            }
-            else
-            {
-                displayName = CurrentUserService.GetUserDisplayName();
-                userRole = GetPrimaryRole();
-            }
+            // Charger les permissions une seule fois (pas sur chaque render)
+            CanApprove = CurrentUserService.HasAnyActivite("BEM_APPROUVER", "BEM_REJETER", "BEM_RETOURNER", "BSM_APPROUVER", "BSM_REJETER", "BSM_RETOURNER");
+            CanCreateBEM = CurrentUserService.HasActivite("BEM_CREER");
+            CanCreateBSM = CurrentUserService.HasActivite("BSM_CREER");
+            CanViewPrets = CurrentUserService.HasAnyActivite("PRET_RETOUR", "PRET_EXTENSION", "BSM_CREER");
+            CanScan = CurrentUserService.HasActivite("SEC_SCANNER");
+            IsAdmin = CurrentUserService.IsInRole("Admin");
 
+            // Lancer les deux appels DB en parallèle
+            Task<Utilisateur?> userTask =
+                !string.IsNullOrEmpty(login) && login != "Anonyme"
+                    ? UtilisateurService.GetByLoginAsync(login)
+                    : Task.FromResult<Utilisateur?>(null);
+            var appNameTask = ParametreSystemeService.GetValueAsync("APP_NOM");
+
+            await Task.WhenAll(userTask, appNameTask);
+
+            currentDbUser = userTask.Result;
+            displayName = currentDbUser?.NomComplet ?? CurrentUserService.GetUserDisplayName();
             userInitials = GetInitials(displayName);
+
+            var dbAppName = appNameTask.Result;
+            if (!string.IsNullOrWhiteSpace(dbAppName))
+                appName = dbAppName;
         }
         catch
         {
             displayName = CurrentUserService.GetUserDisplayName();
-            userRole = GetPrimaryRole();
             userInitials = GetInitials(displayName);
         }
     }
@@ -242,58 +233,8 @@
         return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
     }
 
-    private string GetGreeting()
+    public void Dispose()
     {
-        var hour = DateTime.Now.Hour;
-        var firstName = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? displayName;
-        if (hour < 12) return $"Bonjour";
-        if (hour < 18) return $"Bon après-midi";
-        return $"Bonsoir";
-    }
-
-    /// <summary>
-    /// Vérifie si l'utilisateur a uniquement le rôle Demandeur (sans autres rôles avancés)
-    /// </summary>
-    private bool IsDemandeurOnly
-    {
-        get
-        {
-            var roles = CurrentUserService.GetUserRoles();
-            var advancedRoles = new[] { "Admin", "Superviseur", "GM", "IT", "Environnement",
-                                        "OPJ", "Identification", "Barriere", "Investigation" };
-            return !roles.Any(r => advancedRoles.Contains(r, StringComparer.OrdinalIgnoreCase));
-        }
-    }
-
-    private string GetPrimaryRole()
-    {
-        var roles = CurrentUserService.GetUserRoles();
-        if (!roles.Any()) return "Demandeur";
-
-        var priority = new[] { "Admin", "GM", "Superviseur", "OPJ", "IT", "Environnement",
-                               "Identification", "Investigation", "Barriere", "Demandeur" };
-
-        foreach (var p in priority)
-        {
-            if (roles.Contains(p, StringComparer.OrdinalIgnoreCase))
-                return p;
-        }
-
-        return roles.First();
-    }
-
-    private void CreateBon(string type)
-    {
-        var url = type == "BEM" ? "/bon-entree/nouveau" : "/bon-sortie/nouveau";
-        Navigation.NavigateTo(url);
-    }
-
-    private void HandleSearchKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(searchQuery))
-        {
-            // Naviguer vers la page de liste avec le filtre de recherche
-            Navigation.NavigateTo($"/liste-bons?search={Uri.EscapeDataString(searchQuery.Trim())}");
-        }
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }

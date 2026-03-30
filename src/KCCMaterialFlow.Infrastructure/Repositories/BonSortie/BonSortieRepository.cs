@@ -1,11 +1,10 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using DomainEnums = KCCMaterialFlow.Domain.Enums;
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.BonSortie.Entities;
-using KCCMaterialFlow.Module.BonSortie.Repositories;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace KCCMaterialFlow.Infrastructure.Repositories.BonSortie;
+namespace KCCMaterialFlow.Infrastructure.Repositories;
 
 /// <summary>
 /// Implémentation du repository pour les Bons de Sortie.
@@ -22,21 +21,21 @@ public class BonSortieRepository : IBonSortieRepository
 
     #region CRUD de base
 
-    public async Task<Module.BonSortie.Entities.BonSortie?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<BonSortie?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         using var context = _dbContextFactory.CreateDbContext();
-        return await context.Set<Module.BonSortie.Entities.BonSortie>()
+        return await context.Set<BonSortie>()
             .Include(b => b.Materiels)
             .Include(b => b.Approbations)
             .Include(b => b.Itineraires)
             .Include(b => b.Historiques)
-            .FirstOrDefaultAsync(b => b.IdBon == id, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
     }
 
-    public async Task<Module.BonSortie.Entities.BonSortie?> GetByNumeroAsync(string numeroReference, CancellationToken cancellationToken = default)
+    public async Task<BonSortie?> GetByNumeroAsync(string numeroReference, CancellationToken cancellationToken = default)
     {
         using var context = _dbContextFactory.CreateDbContext();
-        return await context.Set<Module.BonSortie.Entities.BonSortie>()
+        return await context.Set<BonSortie>()
             .Include(b => b.Materiels)
             .Include(b => b.Approbations)
             .FirstOrDefaultAsync(b => b.NumeroReference == numeroReference, cancellationToken);
@@ -45,34 +44,34 @@ public class BonSortieRepository : IBonSortieRepository
     /// <summary>
     /// BSM-030: Récupère un bon par son hash QR Code
     /// </summary>
-    public async Task<Module.BonSortie.Entities.BonSortie?> GetByQRCodeHashAsync(string qrCodeHash, CancellationToken cancellationToken = default)
+    public async Task<BonSortie?> GetByQRCodeHashAsync(string qrCodeHash, CancellationToken cancellationToken = default)
     {
         using var context = _dbContextFactory.CreateDbContext();
-        return await context.Set<Module.BonSortie.Entities.BonSortie>()
+        return await context.Set<BonSortie>()
             .Include(b => b.Materiels)
             .Include(b => b.Itineraires)
             .FirstOrDefaultAsync(b => b.QRCodeHash == qrCodeHash, cancellationToken);
     }
 
-    public async Task<Module.BonSortie.Entities.BonSortie> AddAsync(Module.BonSortie.Entities.BonSortie bonSortie, CancellationToken cancellationToken = default)
+    public async Task<BonSortie> AddAsync(BonSortie bonSortie, CancellationToken cancellationToken = default)
     {
         using var context = _dbContextFactory.CreateDbContext();
-        await context.Set<Module.BonSortie.Entities.BonSortie>().AddAsync(bonSortie, cancellationToken);
+        await context.Set<BonSortie>().AddAsync(bonSortie, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
         return bonSortie;
     }
 
-    public async Task UpdateAsync(Module.BonSortie.Entities.BonSortie bonSortie, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(BonSortie bonSortie, CancellationToken cancellationToken = default)
     {
         using var context = _dbContextFactory.CreateDbContext();
         
         // Recharger l'entité depuis la base avec tracking
-        var existing = await context.Set<Module.BonSortie.Entities.BonSortie>()
-            .FirstOrDefaultAsync(b => b.IdBon == bonSortie.IdBon, cancellationToken);
+        var existing = await context.Set<BonSortie>()
+            .FirstOrDefaultAsync(b => b.Id == bonSortie.Id, cancellationToken);
         
         if (existing == null)
         {
-            throw new InvalidOperationException($"Bon de sortie {bonSortie.IdBon} non trouvé");
+            throw new InvalidOperationException($"Bon de sortie {bonSortie.Id} non trouvé");
         }
         
         // Copier les propriétés modifiées
@@ -94,10 +93,10 @@ public class BonSortieRepository : IBonSortieRepository
     public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         using var context = _dbContextFactory.CreateDbContext();
-        var bon = await context.Set<Module.BonSortie.Entities.BonSortie>().FindAsync([id], cancellationToken);
+        var bon = await context.Set<BonSortie>().FindAsync([id], cancellationToken);
         if (bon != null)
         {
-            context.Set<Module.BonSortie.Entities.BonSortie>().Remove(bon);
+            context.Set<BonSortie>().Remove(bon);
             await context.SaveChangesAsync(cancellationToken);
         }
     }
@@ -106,7 +105,7 @@ public class BonSortieRepository : IBonSortieRepository
 
     #region Requêtes spécialisées
 
-    public async Task<(IReadOnlyList<Module.BonSortie.Entities.BonSortie> Items, int TotalCount)> SearchAsync(
+    public async Task<(IReadOnlyList<BonSortie> Items, int TotalCount)> SearchAsync(
         string? searchTerm = null,
         string? statut = null,
         string? typeSortie = null,
@@ -116,10 +115,11 @@ public class BonSortieRepository : IBonSortieRepository
         int skip = 0,
         int take = 20,
         string? userLogin = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? demandeur = null)
     {
         using var context = _dbContextFactory.CreateDbContext();
-        var query = context.Set<Module.BonSortie.Entities.BonSortie>()
+        var query = context.Set<BonSortie>()
             .Include(b => b.Materiels)
             .Include(b => b.Historiques)
             .AsQueryable();
@@ -178,6 +178,13 @@ public class BonSortieRepository : IBonSortieRepository
             query = query.Where(b => b.DateCreation <= dateFin.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(demandeur))
+        {
+            query = query.Where(b =>
+                b.NomDemandeur == demandeur ||
+                b.CreatedByLogin == demandeur);
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
@@ -189,7 +196,7 @@ public class BonSortieRepository : IBonSortieRepository
         return (items, totalCount);
     }
 
-    public async Task<(IReadOnlyList<Module.BonSortie.Entities.BonSortie> Items, int TotalCount)> GetByUserAsync(
+    public async Task<(IReadOnlyList<BonSortie> Items, int TotalCount)> GetByUserAsync(
         string userLogin,
         int skip = 0,
         int take = 20,
@@ -198,7 +205,7 @@ public class BonSortieRepository : IBonSortieRepository
         // Retourne les bons créés par l'utilisateur
         // Pour compatibilité avec les anciens bons (CreatedByLogin vide), on inclut aussi ceux où CreatedByLogin est vide
         using var context = _dbContextFactory.CreateDbContext();
-        var query = context.Set<Module.BonSortie.Entities.BonSortie>()
+        var query = context.Set<BonSortie>()
             .Include(b => b.Materiels)
             .Include(b => b.Historiques)
             .Where(b => b.CreatedByLogin == userLogin || string.IsNullOrEmpty(b.CreatedByLogin))
@@ -210,7 +217,7 @@ public class BonSortieRepository : IBonSortieRepository
         return (items, totalCount);
     }
 
-    public async Task<IReadOnlyList<Module.BonSortie.Entities.BonSortie>> GetPendingApprovalAsync(
+    public async Task<IReadOnlyList<BonSortie>> GetPendingApprovalAsync(
         string role,
         CancellationToken cancellationToken = default)
     {
@@ -218,7 +225,7 @@ public class BonSortieRepository : IBonSortieRepository
 
         using var context = _dbContextFactory.CreateDbContext();
 
-        var query = context.Set<Module.BonSortie.Entities.BonSortie>()
+        var query = context.Set<BonSortie>()
             .Include(b => b.Materiels)
             .Include(b => b.Historiques)
             .Include(b => b.Approbations);
@@ -234,12 +241,12 @@ public class BonSortieRepository : IBonSortieRepository
 
         // Pour tout autre rôle : seule la PREMIÈRE étape encore "En attente" détermine
         // qui peut agir sur ce bon. Si ce n'est pas mon RoleCode, je ne le vois pas.
-        // La comparaison se fait directement sur ApprobationSortie.RoleCode (canonique en BD).
+        // La comparaison se fait directement sur ApprobationSortie.RoleApprobateur (canonique en BD).
         return await query
             .Where(b => b.Approbations
                 .Where(a => a.Decision == "En attente")
                 .OrderBy(a => a.OrdreEtape)
-                .Select(a => a.RoleCode)
+                .Select(a => a.RoleApprobateur)
                 .FirstOrDefault() == canonicalRole)
             .OrderBy(b => b.DateCreation)
             .ToListAsync(cancellationToken);
@@ -334,7 +341,7 @@ public class BonSortieRepository : IBonSortieRepository
     public async Task<Dictionary<string, int>> GetCountByStatutAsync(CancellationToken cancellationToken = default)
     {
         using var context = _dbContextFactory.CreateDbContext();
-        return await context.Set<Module.BonSortie.Entities.BonSortie>()
+        return await context.Set<BonSortie>()
             .GroupBy(b => b.StatutActuel)
             .Select(g => new { Statut = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Statut, x => x.Count, cancellationToken);
@@ -346,7 +353,7 @@ public class BonSortieRepository : IBonSortieRepository
         var year = DateTime.Now.Year;
         var pattern = $"{prefix}-{year}-";
 
-        var lastNumero = await context.Set<Module.BonSortie.Entities.BonSortie>()
+        var lastNumero = await context.Set<BonSortie>()
             .Where(b => b.NumeroReference.StartsWith(pattern))
             .OrderByDescending(b => b.NumeroReference)
             .Select(b => b.NumeroReference)
@@ -380,9 +387,33 @@ public class BonSortieRepository : IBonSortieRepository
     {
         using var context = _dbContextFactory.CreateDbContext();
         return await context.Set<BonSortieHistory>()
-            .Where(h => h.BonSortieId == bonSortieId)
-            .OrderByDescending(h => h.DateAction)
+            .Where(h => h.BonId == bonSortieId)
+            .OrderByDescending(h => h.ActionDate)
             .ToListAsync(cancellationToken);
+    }
+
+    #endregion
+
+    #region Approbations
+
+    public async Task AddApprobationAsync(ApprobationSortie approbation, CancellationToken cancellationToken = default)
+    {
+        using var context = _dbContextFactory.CreateDbContext();
+        await context.Set<ApprobationSortie>().AddAsync(approbation, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteApprobationsAsync(int bonSortieId, CancellationToken cancellationToken = default)
+    {
+        using var context = _dbContextFactory.CreateDbContext();
+        var existing = await context.Set<ApprobationSortie>()
+            .Where(a => a.BonId == bonSortieId)
+            .ToListAsync(cancellationToken);
+        if (existing.Count > 0)
+        {
+            context.Set<ApprobationSortie>().RemoveRange(existing);
+            await context.SaveChangesAsync(cancellationToken);
+        }
     }
 
     #endregion
@@ -394,7 +425,7 @@ public class BonSortieRepository : IBonSortieRepository
         using var context = _dbContextFactory.CreateDbContext();
         var raison = await context.Set<RaisonSortie>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.IdRaisonSortie == raisonId, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == raisonId, cancellationToken);
         return raison?.Code;
     }
 
@@ -411,7 +442,7 @@ public class BonSortieRepository : IBonSortieRepository
     {
         using var context = _dbContextFactory.CreateDbContext();
         var materiels = await context.Set<MaterielSortie>()
-            .Where(m => m.BonSortieId == bonSortieId)
+            .Where(m => m.BonId == bonSortieId)
             .ToListAsync(cancellationToken);
 
         if (materiels.Count > 0)

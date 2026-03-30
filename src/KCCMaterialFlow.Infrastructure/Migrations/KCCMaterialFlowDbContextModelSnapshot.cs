@@ -17,19 +17,744 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.2")
+                .HasAnnotation("ProductVersion", "10.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.Approbation", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Activite", b =>
                 {
-                    b.Property<int>("IdApprobation")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdActivite");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Categorie")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("Categorie");
+
+                    b.Property<string>("CodeActivite")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("CodeActivite");
+
+                    b.Property<DateTime>("DateCreation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateCreation")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Description");
+
+                    b.Property<bool>("EstActif")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("EstActif");
+
+                    b.Property<bool>("EstSysteme")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("EstSysteme");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("Module");
+
+                    b.Property<string>("NomActivite")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("NomActivite");
+
+                    b.Property<int>("OrdreAffichage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("OrdreAffichage");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Categorie")
+                        .HasDatabaseName("IX_Activites_Categorie");
+
+                    b.HasIndex("CodeActivite")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Activites_CodeActivite");
+
+                    b.HasIndex("EstActif")
+                        .HasDatabaseName("IX_Activites_EstActif");
+
+                    b.HasIndex("Module")
+                        .HasDatabaseName("IX_Activites_Module");
+
+                    b.ToTable("T_Activites", "dbo");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Categorie = "Création",
+                            CodeActivite = "BEM_CREER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Saisir et enregistrer un nouveau bon d'entrée matériel",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonEntree",
+                            NomActivite = "Créer un Bon d'Entrée",
+                            OrdreAffichage = 10
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Categorie = "Modification",
+                            CodeActivite = "BEM_MODIFIER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Éditer un bon d'entrée en brouillon",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonEntree",
+                            NomActivite = "Modifier un Bon d'Entrée",
+                            OrdreAffichage = 20
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Categorie = "Workflow",
+                            CodeActivite = "BEM_SOUMETTRE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Envoyer un bon d'entrée en approbation",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonEntree",
+                            NomActivite = "Soumettre un Bon d'Entrée",
+                            OrdreAffichage = 30
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Categorie = "Approbation",
+                            CodeActivite = "BEM_APPROUVER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Valider et approuver un bon d'entrée soumis",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonEntree",
+                            NomActivite = "Approuver un Bon d'Entrée",
+                            OrdreAffichage = 40
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Categorie = "Approbation",
+                            CodeActivite = "BEM_REJETER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Rejeter un bon d'entrée avec motif obligatoire",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonEntree",
+                            NomActivite = "Rejeter un Bon d'Entrée",
+                            OrdreAffichage = 50
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Categorie = "Approbation",
+                            CodeActivite = "BEM_RETOURNER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Renvoyer un bon d'entrée au demandeur pour corrections",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonEntree",
+                            NomActivite = "Retourner un Bon d'Entrée",
+                            OrdreAffichage = 60
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Categorie = "Suppression",
+                            CodeActivite = "BEM_SUPPRIMER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Supprimer un bon d'entrée en statut brouillon",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonEntree",
+                            NomActivite = "Supprimer un brouillon BEM",
+                            OrdreAffichage = 70
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Categorie = "Export",
+                            CodeActivite = "BEM_IMPRIMER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Imprimer ou télécharger le PDF d'un bon d'entrée",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonEntree",
+                            NomActivite = "Imprimer / Exporter PDF un BEM",
+                            OrdreAffichage = 80
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Categorie = "Création",
+                            CodeActivite = "BSM_CREER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Saisir et enregistrer un nouveau bon de sortie matériel",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Créer un Bon de Sortie",
+                            OrdreAffichage = 100
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Categorie = "Modification",
+                            CodeActivite = "BSM_MODIFIER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Éditer un bon de sortie en brouillon",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Modifier un Bon de Sortie",
+                            OrdreAffichage = 110
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Categorie = "Workflow",
+                            CodeActivite = "BSM_SOUMETTRE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Envoyer un bon de sortie dans la chaîne d'approbation",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Soumettre un Bon de Sortie",
+                            OrdreAffichage = 120
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Categorie = "Approbation",
+                            CodeActivite = "BSM_APPROUVER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Valider et approuver un bon de sortie à l'étape courante",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Approuver un Bon de Sortie",
+                            OrdreAffichage = 130
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Categorie = "Approbation",
+                            CodeActivite = "BSM_REJETER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Rejeter un bon de sortie avec motif obligatoire",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Rejeter un Bon de Sortie",
+                            OrdreAffichage = 140
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Categorie = "Approbation",
+                            CodeActivite = "BSM_RETOURNER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Renvoyer un bon de sortie au demandeur pour corrections",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Retourner un Bon de Sortie",
+                            OrdreAffichage = 150
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Categorie = "Suppression",
+                            CodeActivite = "BSM_SUPPRIMER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Supprimer un bon de sortie en statut brouillon",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Supprimer un brouillon BSM",
+                            OrdreAffichage = 160
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Categorie = "Export",
+                            CodeActivite = "BSM_IMPRIMER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Imprimer ou télécharger le PDF d'un bon de sortie",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Imprimer / Exporter PDF un BSM",
+                            OrdreAffichage = 170
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Categorie = "Prêts",
+                            CodeActivite = "PRET_RETOUR",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Confirmer le retour d'un matériel prêté",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Enregistrer un retour de prêt",
+                            OrdreAffichage = 180
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Categorie = "Prêts",
+                            CodeActivite = "PRET_EXTENSION",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Prolonger la date de retour d'un prêt en cours",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "BonSortie",
+                            NomActivite = "Demander une extension de prêt",
+                            OrdreAffichage = 190
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Categorie = "Scan",
+                            CodeActivite = "SEC_SCANNER",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Scanner un QR code à la barrière pour contrôler un passage",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Scanner un QR Code",
+                            OrdreAffichage = 200
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Categorie = "Scan",
+                            CodeActivite = "SEC_CONFIRMER_PASSAGE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Valider le passage d'un matériel à la barrière après scan",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Confirmer un passage",
+                            OrdreAffichage = 210
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Categorie = "Anomalies",
+                            CodeActivite = "SEC_SIGNALER_ANOMALIE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Signaler manuellement une anomalie lors d'un contrôle",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Signaler une anomalie",
+                            OrdreAffichage = 220
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Categorie = "Anomalies",
+                            CodeActivite = "SEC_TRAITER_ANOMALIE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Résoudre une anomalie avec commentaire et action corrective",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Traiter une anomalie",
+                            OrdreAffichage = 230
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Categorie = "Anomalies",
+                            CodeActivite = "SEC_REOUVRIR_ANOMALIE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Réouvrir une anomalie traitée pour investigation complémentaire",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Réouvrir une anomalie",
+                            OrdreAffichage = 240
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Categorie = "Consultation",
+                            CodeActivite = "SEC_VOIR_HISTORIQUE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Voir l'historique complet des scans QR et passages",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Consulter l'historique des scans",
+                            OrdreAffichage = 250
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Categorie = "Administration",
+                            CodeActivite = "SEC_GERER_BARRIERES",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Créer, modifier, activer/désactiver les barrières de contrôle",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Gérer les barrières",
+                            OrdreAffichage = 260
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Categorie = "Administration",
+                            CodeActivite = "SEC_GERER_ITINERAIRES",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Configurer les itinéraires et séquences de checkpoints",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Gérer les itinéraires",
+                            OrdreAffichage = 270
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Categorie = "Administration",
+                            CodeActivite = "SEC_GERER_AGENTS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Affecter et gérer les agents aux barrières",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Securite",
+                            NomActivite = "Gérer les agents de barrière",
+                            OrdreAffichage = 280
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Categorie = "Administration",
+                            CodeActivite = "ADMIN_UTILISATEURS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Créer, modifier, activer/désactiver les utilisateurs",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Admin",
+                            NomActivite = "Gérer les utilisateurs",
+                            OrdreAffichage = 300
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Categorie = "Administration",
+                            CodeActivite = "ADMIN_ROLES",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Créer, modifier les rôles et leurs permissions",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Admin",
+                            NomActivite = "Gérer les rôles",
+                            OrdreAffichage = 310
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Categorie = "Administration",
+                            CodeActivite = "ADMIN_DEPARTEMENTS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Créer, modifier, activer/désactiver les départements",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Admin",
+                            NomActivite = "Gérer les départements",
+                            OrdreAffichage = 320
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Categorie = "Administration",
+                            CodeActivite = "ADMIN_TYPES_MATERIELS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Créer, modifier les types de matériel",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Admin",
+                            NomActivite = "Gérer les types de matériel",
+                            OrdreAffichage = 330
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Categorie = "Administration",
+                            CodeActivite = "ADMIN_STATUTS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Créer, modifier les statuts de workflow",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Admin",
+                            NomActivite = "Gérer les statuts",
+                            OrdreAffichage = 340
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Categorie = "Administration",
+                            CodeActivite = "ADMIN_PARAMETRES",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Configurer les paramètres globaux de l'application",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Admin",
+                            NomActivite = "Gérer les paramètres système",
+                            OrdreAffichage = 350
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Categorie = "Administration",
+                            CodeActivite = "ADMIN_AUDIT",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Voir les logs d'audit des actions système",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Admin",
+                            NomActivite = "Consulter le journal d'audit",
+                            OrdreAffichage = 360
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Categorie = "Administration",
+                            CodeActivite = "ADMIN_ACTIVITES",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Assigner et retirer des activités aux utilisateurs",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Admin",
+                            NomActivite = "Gérer les activités utilisateurs",
+                            OrdreAffichage = 370
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Categorie = "Consultation",
+                            CodeActivite = "VOIR_TOUS_BONS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Consulter la liste complète de tous les bons du système",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Transversal",
+                            NomActivite = "Voir tous les bons",
+                            OrdreAffichage = 400
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Categorie = "Approbation",
+                            CodeActivite = "VOIR_APPROBATIONS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Consulter la liste des bons en attente d'approbation",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Transversal",
+                            NomActivite = "Voir les approbations en attente",
+                            OrdreAffichage = 410
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Categorie = "Export",
+                            CodeActivite = "EXPORT_EXCEL",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Exporter les listes de bons et l'historique au format Excel",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Transversal",
+                            NomActivite = "Exporter les données en Excel",
+                            OrdreAffichage = 420
+                        },
+                        new
+                        {
+                            Id = 43,
+                            Categorie = "Consultation",
+                            CodeActivite = "VOIR_HISTORIQUE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Consulter l'historique complet des bons et mouvements",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Transversal",
+                            NomActivite = "Consulter l'historique",
+                            OrdreAffichage = 430
+                        },
+                        new
+                        {
+                            Id = 44,
+                            Categorie = "Consultation",
+                            CodeActivite = "VOIR_TABLEAU_BORD",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Accéder au tableau de bord avec statistiques et raccourcis",
+                            EstActif = true,
+                            EstSysteme = true,
+                            Module = "Transversal",
+                            NomActivite = "Voir le tableau de bord",
+                            OrdreAffichage = 440
+                        });
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Anomalie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdAnomalie");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionsCorrectives")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnName("ActionsCorrectives");
+
+                    b.Property<int?>("BarriereId")
+                        .HasColumnType("int")
+                        .HasColumnName("BarriereId");
+
+                    b.Property<int?>("BonId")
+                        .HasColumnType("int")
+                        .HasColumnName("BonId");
+
+                    b.Property<DateTime>("DateSignalement")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateSignalement")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<DateTime?>("DateTraitement")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateTraitement");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnName("Description");
+
+                    b.Property<bool>("EstTraitee")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("EstTraitee");
+
+                    b.Property<string>("NiveauGravite")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Moyen")
+                        .HasColumnName("NiveauGravite");
+
+                    b.Property<string>("NumeroReferenceBon")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("NumeroReferenceBon");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnName("Resolution");
+
+                    b.Property<int?>("ScanId")
+                        .HasColumnType("int")
+                        .HasColumnName("ScanId");
+
+                    b.Property<string>("SignalePar")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("SignalePar");
+
+                    b.Property<string>("SignaleParNom")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("SignaleParNom");
+
+                    b.Property<string>("TraitePar")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("TraitePar");
+
+                    b.Property<string>("TypeAnomalie")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("TypeAnomalie");
+
+                    b.Property<string>("TypeBon")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnName("TypeBon");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BarriereId");
+
+                    b.HasIndex("BonId")
+                        .HasDatabaseName("IX_Anomalies_BonId");
+
+                    b.HasIndex("DateSignalement")
+                        .HasDatabaseName("IX_Anomalies_DateSignalement");
+
+                    b.HasIndex("EstTraitee")
+                        .HasDatabaseName("IX_Anomalies_EstTraitee");
+
+                    b.HasIndex("NiveauGravite")
+                        .HasDatabaseName("IX_Anomalies_NiveauGravite");
+
+                    b.HasIndex("ScanId")
+                        .HasDatabaseName("IX_Anomalies_ScanId");
+
+                    b.HasIndex("SignalePar")
+                        .HasDatabaseName("IX_Anomalies_SignalePar");
+
+                    b.HasIndex("TypeAnomalie")
+                        .HasDatabaseName("IX_Anomalies_TypeAnomalie");
+
+                    b.HasIndex("EstTraitee", "NiveauGravite")
+                        .HasDatabaseName("IX_Anomalies_EstTraitee_NiveauGravite");
+
+                    b.ToTable("T_Anomalies", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Approbation", b =>
+                {
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdApprobation");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdApprobation"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BonId")
                         .HasColumnType("int")
@@ -68,7 +793,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("IdApprobation");
+                    b.HasKey("Id");
 
                     b.HasIndex("BonId")
                         .HasDatabaseName("IX_Approbations_Bon");
@@ -83,14 +808,309 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.ToTable("T_Approbations", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.Bon", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ApprobationSortie", b =>
                 {
-                    b.Property<int>("IdBon")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdApprobation");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApprobateurLogin")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ApprobateurLogin");
+
+                    b.Property<int>("BonId")
+                        .HasColumnType("int")
+                        .HasColumnName("BonSortieId");
+
+                    b.Property<DateTime?>("DateAction")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateAction");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("En attente")
+                        .HasColumnName("Decision");
+
+                    b.Property<string>("NomApprobateur")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("ApprobateurNom");
+
+                    b.Property<string>("NomEtape")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("NomEtape");
+
+                    b.Property<int>("OrdreEtape")
+                        .HasColumnType("int")
+                        .HasColumnName("OrdreEtape");
+
+                    b.Property<string>("ReservesEventuelles")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("Commentaire");
+
+                    b.Property<string>("RoleApprobateur")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("")
+                        .HasColumnName("RoleCode");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BonId")
+                        .HasDatabaseName("IX_ApprobationsSortie_BonSortieId");
+
+                    b.HasIndex("BonId", "OrdreEtape")
+                        .HasDatabaseName("IX_ApprobationsSortie_Etape");
+
+                    b.HasIndex("RoleApprobateur", "Decision")
+                        .HasDatabaseName("IX_ApprobationsSortie_RoleCode_Decision");
+
+                    b.ToTable("T_ApprobationsSortie", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<long>("IdAuditLog")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("IdAuditLog"));
+
+                    b.Property<string>("AdresseIP")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("AncienneValeur")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Categorie")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("DateAction")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("DureeMs")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntiteId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EntiteType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("MessageErreur")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Niveau")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("NouvelleValeur")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Resultat")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TypeAction")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("UtilisateurLogin")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("UtilisateurNom")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("IdAuditLog");
+
+                    b.HasIndex("Categorie")
+                        .HasDatabaseName("IX_AuditLogs_Categorie");
+
+                    b.HasIndex("CorrelationId")
+                        .HasDatabaseName("IX_AuditLogs_CorrelationId");
+
+                    b.HasIndex("DateAction")
+                        .HasDatabaseName("IX_AuditLogs_DateAction");
+
+                    b.HasIndex("Niveau")
+                        .HasDatabaseName("IX_AuditLogs_Niveau");
+
+                    b.HasIndex("TypeAction")
+                        .HasDatabaseName("IX_AuditLogs_TypeAction");
+
+                    b.HasIndex("UtilisateurLogin")
+                        .HasDatabaseName("IX_AuditLogs_UtilisateurLogin");
+
+                    b.HasIndex("EntiteType", "EntiteId")
+                        .HasDatabaseName("IX_AuditLogs_Entite");
+
+                    b.HasIndex("DateAction", "Categorie", "TypeAction")
+                        .HasDatabaseName("IX_AuditLogs_Reporting");
+
+                    b.ToTable("T_AuditLogs", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Barriere", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdBarriere");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeBarriere")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("CodeBarriere");
+
+                    b.Property<DateTime>("DateCreation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateCreation")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<DateTime?>("DateModification")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateModification");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Description");
+
+                    b.Property<bool>("EstActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("EstActive");
+
+                    b.Property<string>("HorairesOuverture")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("HorairesOuverture");
+
+                    b.Property<string>("Localisation")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("Localisation");
+
+                    b.Property<string>("NomBarriere")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("NomBarriere");
+
+                    b.Property<int>("OrdreAffichage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("OrdreAffichage");
+
+                    b.Property<string>("Telephone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("Telephone");
+
+                    b.Property<string>("TypeBarriere")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Mixte")
+                        .HasColumnName("TypeBarriere");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeBarriere")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Barrieres_Code");
+
+                    b.HasIndex("EstActive")
+                        .HasDatabaseName("IX_Barrieres_EstActive");
+
+                    b.HasIndex("Localisation")
+                        .HasDatabaseName("IX_Barrieres_Localisation");
+
+                    b.HasIndex("TypeBarriere")
+                        .HasDatabaseName("IX_Barrieres_Type");
+
+                    b.ToTable("T_Barrieres", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonEntree", b =>
+                {
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdBon");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdBon"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BonSortieAssocieId")
+                        .HasColumnType("int")
+                        .HasColumnName("BonSortieAssocieId");
+
+                    b.Property<string>("BonSortieAssocieNumero")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("BonSortieAssocieNumero");
+
+                    b.Property<int?>("ContratId")
+                        .HasColumnType("int")
+                        .HasColumnName("ContratId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("DateCreation")
                         .ValueGeneratedOnAdd()
@@ -103,7 +1123,12 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnName("DateExpiration");
 
                     b.Property<DateTime?>("DateGenerationQR")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateGenerationQR");
+
+                    b.Property<DateTime?>("DateVerrouillage")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateVerrouillage");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -115,6 +1140,51 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)")
                         .HasColumnName("Destination");
+
+                    b.Property<string>("EmailContractant")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("EmailContractant");
+
+                    b.Property<bool>("EstVerrouillePourSortie")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("EstVerrouillePourSortie");
+
+                    b.Property<string>("FonctionEscorteur")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("FonctionEscorteur");
+
+                    b.Property<string>("HostDepartment")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("HostDepartment");
+
+                    b.Property<string>("NomCompagnie")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("NomCompagnie");
+
+                    b.Property<string>("NomDemandeur")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("NomDemandeur");
+
+                    b.Property<string>("NomEscorteur")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("NomEscorteur");
+
+                    b.Property<string>("NumeroContrat")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("NumeroContrat");
 
                     b.Property<string>("NumeroReference")
                         .IsRequired()
@@ -130,21 +1200,36 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
 
                     b.Property<string>("QRCodeBase64")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("QRCodeBase64");
 
                     b.Property<string>("QRCodeData")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("QRCodeData");
 
                     b.Property<string>("QRCodeHash")
                         .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("QRCodeHash");
 
                     b.Property<int>("Quantite")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0)
                         .HasColumnName("Quantite");
+
+                    b.Property<string>("ReasonOnSite")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("ReasonOnSite");
+
+                    b.Property<string>("SiteManager")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("SiteManager");
 
                     b.Property<string>("StatutActuel")
                         .IsRequired()
@@ -154,15 +1239,27 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasDefaultValue("Draft")
                         .HasColumnName("StatutActuel");
 
-                    b.Property<string>("TypeDiscriminator")
-                        .IsRequired()
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.HasKey("IdBon");
+                    b.HasKey("Id");
+
+                    b.HasIndex("BonSortieAssocieId")
+                        .HasDatabaseName("IX_Bons_BonSortieAssocieId")
+                        .HasFilter("[BonSortieAssocieId] IS NOT NULL");
 
                     b.HasIndex("DateCreation")
                         .HasDatabaseName("IX_Bons_DateCreation");
+
+                    b.HasIndex("HostDepartment")
+                        .HasDatabaseName("IX_Bons_HostDepartment");
+
+                    b.HasIndex("NomCompagnie")
+                        .HasDatabaseName("IX_Bons_NomCompagnie");
 
                     b.HasIndex("NumeroReference")
                         .IsUnique()
@@ -172,20 +1269,16 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasDatabaseName("IX_Bons_Statut");
 
                     b.ToTable("T_Bons", "dbo");
-
-                    b.HasDiscriminator<string>("TypeDiscriminator").HasValue("Bon");
-
-                    b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.BonEntreeHistory", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonEntreeHistory", b =>
                 {
-                    b.Property<int>("IdHistory")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdHistory");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdHistory"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Action")
                         .IsRequired()
@@ -225,12 +1318,9 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("BonId");
 
-                    b.Property<int?>("BonIdBon")
-                        .HasColumnType("int");
-
                     b.Property<string>("ChangementsJson")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("ChangementsJson");
 
                     b.Property<string>("Comment")
@@ -248,7 +1338,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(30)")
                         .HasColumnName("StatutAvant");
 
-                    b.HasKey("IdHistory");
+                    b.HasKey("Id");
 
                     b.HasIndex("Action")
                         .HasDatabaseName("IX_BonEntreeHistory_Action");
@@ -262,176 +1352,27 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.HasIndex("BonId")
                         .HasDatabaseName("IX_BonEntreeHistory_Bon");
 
-                    b.HasIndex("BonIdBon");
-
                     b.HasIndex("BonId", "ActionDate")
                         .HasDatabaseName("IX_BonEntreeHistory_Bon_Date");
 
                     b.ToTable("T_BonEntreeHistory", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.ItinerairePrevu", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonSortie", b =>
                 {
-                    b.Property<int>("IdItineraire")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("IdItineraire");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdItineraire"));
-
-                    b.Property<int>("BarriereId")
-                        .HasColumnType("int")
-                        .HasColumnName("BarriereId");
-
-                    b.Property<int>("BonId")
-                        .HasColumnType("int")
-                        .HasColumnName("BonId");
-
-                    b.Property<int>("OrdrePassage")
-                        .HasColumnType("int")
-                        .HasColumnName("OrdrePassage");
-
-                    b.HasKey("IdItineraire");
-
-                    b.HasIndex("BarriereId")
-                        .HasDatabaseName("IX_ItinerairesPrevu_Barriere");
-
-                    b.HasIndex("BonId")
-                        .HasDatabaseName("IX_ItinerairesPrevu_Bon");
-
-                    b.HasIndex("BonId", "OrdrePassage")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ItinerairesPrevu_Bon_Ordre");
-
-                    b.ToTable("T_ItinerairesPrevu", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.Materiel", b =>
-                {
-                    b.Property<int>("IdMateriel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("IdMateriel");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdMateriel"));
-
-                    b.Property<int>("BonId")
-                        .HasColumnType("int")
-                        .HasColumnName("BonId");
-
-                    b.Property<string>("CodeProduitSerial")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("CodeProduitSerial");
-
-                    b.Property<string>("Designation")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)")
-                        .HasColumnName("Designation");
-
-                    b.Property<decimal>("Quantite")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(1m)
-                        .HasColumnName("Quantite");
-
-                    b.Property<decimal>("QuantiteDisponible")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("IdMateriel");
-
-                    b.HasIndex("BonId")
-                        .HasDatabaseName("IX_Materiels_Bon");
-
-                    b.HasIndex("CodeProduitSerial")
-                        .HasDatabaseName("IX_Materiels_CodeSerial");
-
-                    b.ToTable("T_Materiels", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.ApprobationSortie", b =>
-                {
-                    b.Property<int>("IdApprobation")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("IdApprobation");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdApprobation"));
-
-                    b.Property<string>("ApprobateurLogin")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("ApprobateurLogin");
-
-                    b.Property<string>("ApprobateurNom")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("ApprobateurNom");
-
-                    b.Property<int>("BonSortieId")
-                        .HasColumnType("int")
-                        .HasColumnName("BonSortieId");
-
-                    b.Property<string>("Commentaire")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)")
-                        .HasColumnName("Commentaire");
-
-                    b.Property<DateTime?>("DateAction")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateAction");
-
-                    b.Property<string>("Decision")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("En attente")
-                        .HasColumnName("Decision");
-
-                    b.Property<string>("NomEtape")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("NomEtape");
-
-                    b.Property<int>("OrdreEtape")
-                        .HasColumnType("int")
-                        .HasColumnName("OrdreEtape");
-
-                    b.Property<string>("RoleCode")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("")
-                        .HasColumnName("RoleCode");
-
-                    b.HasKey("IdApprobation");
-
-                    b.HasIndex("BonSortieId")
-                        .HasDatabaseName("IX_ApprobationsSortie_BonSortieId");
-
-                    b.HasIndex("BonSortieId", "OrdreEtape")
-                        .HasDatabaseName("IX_ApprobationsSortie_Etape");
-
-                    b.HasIndex("RoleCode", "Decision")
-                        .HasDatabaseName("IX_ApprobationsSortie_RoleCode_Decision");
-
-                    b.ToTable("T_ApprobationsSortie", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.BonSortie", b =>
-                {
-                    b.Property<int>("IdBon")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdBon");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdBon"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("CreatedByLogin")
                         .IsRequired()
@@ -543,7 +1484,14 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.HasKey("IdBon");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("DateCreation")
                         .HasDatabaseName("IX_BonsSortie_DateCreation");
@@ -565,34 +1513,62 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.BonSortieHistory", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonSortieHistory", b =>
                 {
-                    b.Property<int>("IdHistory")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdHistory");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdHistory"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("TypeAction");
+
+                    b.Property<string>("ActionBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("UtilisateurLogin");
+
+                    b.Property<string>("ActionByNom")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("UtilisateurNom");
+
+                    b.Property<DateTime>("ActionDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateAction")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("ActionDescription")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("Description");
 
                     b.Property<string>("AdresseIP")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("AdresseIP");
 
-                    b.Property<int>("BonSortieId")
+                    b.Property<int>("BonId")
                         .HasColumnType("int")
                         .HasColumnName("BonSortieId");
 
-                    b.Property<DateTime>("DateAction")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateAction")
-                        .HasDefaultValueSql("GETDATE()");
+                    b.Property<string>("ChangementsJson")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("ChangementsJson");
 
-                    b.Property<string>("Description")
+                    b.Property<string>("Comment")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)")
-                        .HasColumnName("Description");
+                        .HasColumnName("Comment");
 
                     b.Property<string>("StatutApres")
                         .HasMaxLength(50)
@@ -604,299 +1580,313 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("StatutAvant");
 
-                    b.Property<string>("TypeAction")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("TypeAction");
+                    b.HasKey("Id");
 
-                    b.Property<string>("UtilisateurLogin")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("UtilisateurLogin");
+                    b.HasIndex("ActionBy")
+                        .HasDatabaseName("IX_BonSortieHistories_Utilisateur");
 
-                    b.Property<string>("UtilisateurNom")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("UtilisateurNom");
-
-                    b.HasKey("IdHistory");
-
-                    b.HasIndex("BonSortieId")
-                        .HasDatabaseName("IX_BonSortieHistories_BonSortieId");
-
-                    b.HasIndex("DateAction")
+                    b.HasIndex("ActionDate")
                         .HasDatabaseName("IX_BonSortieHistories_DateAction");
 
-                    b.HasIndex("UtilisateurLogin")
-                        .HasDatabaseName("IX_BonSortieHistories_Utilisateur");
+                    b.HasIndex("BonId")
+                        .HasDatabaseName("IX_BonSortieHistories_BonSortieId");
 
                     b.ToTable("T_BonSortieHistories", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.ItineraireSortie", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.CategorieSortie", b =>
                 {
-                    b.Property<int>("IdItineraire")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
-                        .HasColumnName("IdItineraire");
+                        .HasColumnName("Id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdItineraire"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("BarriereId")
-                        .HasColumnType("int")
-                        .HasColumnName("BarriereId");
-
-                    b.Property<int>("BonSortieId")
-                        .HasColumnType("int")
-                        .HasColumnName("BonSortieId");
-
-                    b.Property<DateTime?>("DatePassageEffective")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DatePassageEffective");
-
-                    b.Property<DateTime?>("DatePassagePrevue")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DatePassagePrevue");
-
-                    b.Property<string>("Observations")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("Observations");
-
-                    b.Property<int>("OrdrePassage")
-                        .HasColumnType("int")
-                        .HasColumnName("OrdrePassage");
-
-                    b.Property<string>("StatutPassage")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Prévu")
-                        .HasColumnName("StatutPassage");
-
-                    b.HasKey("IdItineraire");
-
-                    b.HasIndex("BarriereId")
-                        .HasDatabaseName("IX_ItinerairesSortie_BarriereId");
-
-                    b.HasIndex("BonSortieId")
-                        .HasDatabaseName("IX_ItinerairesSortie_BonSortieId");
-
-                    b.HasIndex("BonSortieId", "OrdrePassage")
-                        .HasDatabaseName("IX_ItinerairesSortie_Ordre");
-
-                    b.ToTable("T_ItinerairesSortie", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.MaterielSortie", b =>
-                {
-                    b.Property<int>("IdMateriel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("IdMateriel");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdMateriel"));
-
-                    b.Property<int?>("BonEntreeId")
-                        .HasColumnType("int")
-                        .HasColumnName("BonEntreeId");
-
-                    b.Property<string>("BonEntreeNumero")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("BonEntreeNumero");
-
-                    b.Property<int>("BonSortieId")
-                        .HasColumnType("int")
-                        .HasColumnName("BonSortieId");
-
-                    b.Property<string>("CodeProduitSerial")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("CodeProduitSerial");
-
-                    b.Property<string>("Designation")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)")
-                        .HasColumnName("Designation");
-
-                    b.Property<int?>("MaterielEntreeId")
-                        .HasColumnType("int")
-                        .HasColumnName("MaterielEntreeId");
-
-                    b.Property<string>("Observations")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("Observations");
-
-                    b.Property<decimal>("Quantite")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(1m)
-                        .HasColumnName("Quantite");
-
-                    b.Property<decimal?>("QuantiteDisponible")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasColumnName("QuantiteDisponible");
-
-                    b.Property<decimal?>("QuantiteInitialeBem")
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasColumnName("QuantiteInitialeBem");
-
-                    b.HasKey("IdMateriel");
-
-                    b.HasIndex("BonSortieId")
-                        .HasDatabaseName("IX_MaterielsSortie_BonSortieId");
-
-                    b.HasIndex("CodeProduitSerial")
-                        .HasDatabaseName("IX_MaterielsSortie_CodeProduit");
-
-                    b.HasIndex("MaterielEntreeId")
-                        .HasDatabaseName("IX_MaterielsSortie_MaterielEntreeId");
-
-                    b.ToTable("T_MaterielsSortie", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Securite.Entities.Anomalie", b =>
-                {
-                    b.Property<int>("IdAnomalie")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("IdAnomalie");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdAnomalie"));
-
-                    b.Property<string>("ActionsCorrectives")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
-                        .HasColumnName("ActionsCorrectives");
-
-                    b.Property<int?>("BarriereId")
-                        .HasColumnType("int")
-                        .HasColumnName("BarriereId");
-
-                    b.Property<int?>("BonId")
-                        .HasColumnType("int")
-                        .HasColumnName("BonId");
-
-                    b.Property<DateTime>("DateSignalement")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateSignalement")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<DateTime?>("DateTraitement")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateTraitement");
+                    b.Property<string>("Code")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
-                        .HasColumnName("Description");
-
-                    b.Property<bool>("EstTraitee")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasColumnName("EstTraitee");
-
-                    b.Property<string>("NiveauGravite")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("Moyen")
-                        .HasColumnName("NiveauGravite");
-
-                    b.Property<string>("NumeroReferenceBon")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)")
-                        .HasColumnName("NumeroReferenceBon");
-
-                    b.Property<string>("Resolution")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
-                        .HasColumnName("Resolution");
-
-                    b.Property<int?>("ScanId")
-                        .HasColumnType("int")
-                        .HasColumnName("ScanId");
-
-                    b.Property<string>("SignalePar")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("SignalePar");
-
-                    b.Property<string>("SignaleParNom")
                         .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("SignaleParNom");
+                        .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("TraitePar")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("TraitePar");
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
 
-                    b.Property<string>("TypeAnomalie")
+                    b.Property<string>("Nom")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("TypeAnomalie");
+                        .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("TypeBon")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasColumnName("TypeBon");
+                    b.Property<int>("OrdreAffichage")
+                        .HasColumnType("int");
 
-                    b.HasKey("IdAnomalie");
+                    b.Property<bool>("RequiertBarrieres")
+                        .HasColumnType("bit");
 
-                    b.HasIndex("BarriereId");
+                    b.Property<bool>("RequiertBonEntree")
+                        .HasColumnType("bit");
 
-                    b.HasIndex("BonId")
-                        .HasDatabaseName("IX_Anomalies_BonId");
+                    b.Property<string>("TypeEntite")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
-                    b.HasIndex("DateSignalement")
-                        .HasDatabaseName("IX_Anomalies_DateSignalement");
+                    b.HasKey("Id");
 
-                    b.HasIndex("EstTraitee")
-                        .HasDatabaseName("IX_Anomalies_EstTraitee");
-
-                    b.HasIndex("NiveauGravite")
-                        .HasDatabaseName("IX_Anomalies_NiveauGravite");
-
-                    b.HasIndex("ScanId")
-                        .HasDatabaseName("IX_Anomalies_ScanId");
-
-                    b.HasIndex("SignalePar")
-                        .HasDatabaseName("IX_Anomalies_SignalePar");
-
-                    b.HasIndex("TypeAnomalie")
-                        .HasDatabaseName("IX_Anomalies_TypeAnomalie");
-
-                    b.HasIndex("EstTraitee", "NiveauGravite")
-                        .HasDatabaseName("IX_Anomalies_EstTraitee_NiveauGravite");
-
-                    b.ToTable("T_Anomalies", "dbo");
+                    b.ToTable("T_CategoriesSortie", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Securite.Entities.HistoriqueScan", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Checkpoint", b =>
                 {
-                    b.Property<int>("IdHistorique")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OrdreDefaut")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SiteId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SiteId");
+
+                    b.ToTable("T_Checkpoints", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Compagnie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("SiteManager")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Telephone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("T_Compagnies", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Contrat", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompagnieId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContratDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PoNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompagnieId");
+
+                    b.HasIndex("PoNumber");
+
+                    b.ToTable("T_Contrats", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Departement", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdDepartement");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeDepartement")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("CodeDepartement");
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateCreation");
+
+                    b.Property<DateTime?>("DateModification")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DateModification");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Description");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit")
+                        .HasColumnName("EstActif");
+
+                    b.Property<string>("NomDepartement")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)")
+                        .HasColumnName("NomDepartement");
+
+                    b.Property<string>("ResponsableEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("ResponsableEmail");
+
+                    b.Property<string>("ResponsableLogin")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("ResponsableLogin");
+
+                    b.Property<string>("ResponsableNom")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("ResponsableNom");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("T_Departements", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Employee", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CompagnieId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DepartementId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstInterne")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Fonction")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Login")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Matricule")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Nom")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NomComplet")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("PeutEtreEscorteur")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Prenom")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Telephone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompagnieId");
+
+                    b.HasIndex("DepartementId");
+
+                    b.ToTable("T_Employees", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.HistoriqueScan", b =>
+                {
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdHistorique");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdHistorique"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AgentLogin")
                         .IsRequired()
@@ -1023,7 +2013,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("TypeMouvement");
 
-                    b.HasKey("IdHistorique");
+                    b.HasKey("Id");
 
                     b.HasIndex("AgentLogin")
                         .HasDatabaseName("IX_HistoriqueScans_AgentLogin");
@@ -1063,14 +2053,1132 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.ToTable("T_HistoriqueScans", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Securite.Entities.ScanEvenement", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ItinerairePrevu", b =>
                 {
-                    b.Property<int>("IdScan")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdItineraire");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BarriereId")
+                        .HasColumnType("int")
+                        .HasColumnName("BarriereId");
+
+                    b.Property<int>("BonId")
+                        .HasColumnType("int")
+                        .HasColumnName("BonId");
+
+                    b.Property<int>("OrdrePassage")
+                        .HasColumnType("int")
+                        .HasColumnName("OrdrePassage");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BarriereId")
+                        .HasDatabaseName("IX_ItinerairesPrevu_Barriere");
+
+                    b.HasIndex("BonId")
+                        .HasDatabaseName("IX_ItinerairesPrevu_Bon");
+
+                    b.HasIndex("BonId", "OrdrePassage")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ItinerairesPrevu_Bon_Ordre");
+
+                    b.ToTable("T_ItinerairesPrevu", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ItineraireSortie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdItineraire");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BarriereId")
+                        .HasColumnType("int")
+                        .HasColumnName("BarriereId");
+
+                    b.Property<int>("BonId")
+                        .HasColumnType("int")
+                        .HasColumnName("BonSortieId");
+
+                    b.Property<DateTime?>("DatePassageEffective")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("OrdrePassage")
+                        .HasColumnType("int")
+                        .HasColumnName("OrdrePassage");
+
+                    b.Property<string>("StatutPassage")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BarriereId")
+                        .HasDatabaseName("IX_ItinerairesSortie_BarriereId");
+
+                    b.HasIndex("BonId")
+                        .HasDatabaseName("IX_ItinerairesSortie_BonSortieId");
+
+                    b.HasIndex("BonId", "OrdrePassage")
+                        .HasDatabaseName("IX_ItinerairesSortie_Ordre");
+
+                    b.ToTable("T_ItinerairesSortie", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Materiel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdMateriel");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BonId")
+                        .HasColumnType("int")
+                        .HasColumnName("BonId");
+
+                    b.Property<string>("CodeProduitSerial")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("CodeProduitSerial");
+
+                    b.Property<string>("Designation")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasColumnName("Designation");
+
+                    b.Property<decimal>("Quantite")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(1m)
+                        .HasColumnName("Quantite");
+
+                    b.Property<decimal>("QuantiteDisponible")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BonId")
+                        .HasDatabaseName("IX_Materiels_Bon");
+
+                    b.HasIndex("CodeProduitSerial")
+                        .HasDatabaseName("IX_Materiels_CodeSerial");
+
+                    b.ToTable("T_Materiels", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.MaterielSortie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdMateriel");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BonEntreeId")
+                        .HasColumnType("int")
+                        .HasColumnName("BonEntreeId");
+
+                    b.Property<string>("BonEntreeNumero")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("BonEntreeNumero");
+
+                    b.Property<int>("BonId")
+                        .HasColumnType("int")
+                        .HasColumnName("BonSortieId");
+
+                    b.Property<string>("CodeProduitSerial")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("CodeProduitSerial");
+
+                    b.Property<string>("Designation")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)")
+                        .HasColumnName("Designation");
+
+                    b.Property<int?>("MaterielEntreeId")
+                        .HasColumnType("int")
+                        .HasColumnName("MaterielEntreeId");
+
+                    b.Property<string>("Observations")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Observations");
+
+                    b.Property<decimal>("Quantite")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(1m)
+                        .HasColumnName("Quantite");
+
+                    b.Property<decimal?>("QuantiteDisponible")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)")
+                        .HasColumnName("QuantiteDisponible");
+
+                    b.Property<decimal?>("QuantiteInitialeBem")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)")
+                        .HasColumnName("QuantiteInitialeBem");
+
+                    b.Property<string>("Remarque")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BonId")
+                        .HasDatabaseName("IX_MaterielsSortie_BonSortieId");
+
+                    b.HasIndex("CodeProduitSerial")
+                        .HasDatabaseName("IX_MaterielsSortie_CodeProduit");
+
+                    b.HasIndex("MaterielEntreeId")
+                        .HasDatabaseName("IX_MaterielsSortie_MaterielEntreeId");
+
+                    b.ToTable("T_MaterielsSortie", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.NotificationRejet", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApprobateurLogin")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ApprobateurNom")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("BonType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("DateEnvoiEmail")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateLecture")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateRejet")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DemandeurNom")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("EmailEnvoye")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstLue")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("EtapeRejet")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("MotifRejet")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("NumeroReference")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("T_NotificationsRejet", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ParametreSysteme", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdParametre");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Categorie")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Cle")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DateModification")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("EstModifiable")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstSysteme")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstVisible")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Libelle")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ModifieParLogin")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("NecessiteRedemarrage")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Ordre")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TypeDonnee")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Unite")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Valeur")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ValeurDefaut")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int?>("ValeurMax")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ValeurMin")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ValeursPossibles")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Categorie")
+                        .HasDatabaseName("IX_ParametresSysteme_Categorie");
+
+                    b.HasIndex("Cle")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ParametresSysteme_Cle");
+
+                    b.ToTable("T_ParametresSysteme", "dbo");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Categorie = "General",
+                            Cle = "APP_NOM",
+                            Description = "Nom affiché dans l'en-tête et les emails",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Nom de l'application",
+                            NecessiteRedemarrage = false,
+                            Ordre = 1,
+                            TypeDonnee = "String",
+                            Valeur = "KCC Material Flow"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Categorie = "General",
+                            Cle = "APP_VERSION",
+                            Description = "Version actuelle du système",
+                            EstModifiable = false,
+                            EstSysteme = true,
+                            EstVisible = true,
+                            Libelle = "Version de l'application",
+                            NecessiteRedemarrage = false,
+                            Ordre = 2,
+                            TypeDonnee = "String",
+                            Valeur = "1.0.0"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Categorie = "Workflow",
+                            Cle = "WORKFLOW_DUREE_VALIDITE_DEFAUT",
+                            Description = "Durée de validité par défaut pour les bons de sortie",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Durée de validité par défaut (jours)",
+                            NecessiteRedemarrage = false,
+                            Ordre = 1,
+                            TypeDonnee = "Integer",
+                            Unite = "jours",
+                            Valeur = "30",
+                            ValeurDefaut = "30",
+                            ValeurMax = 365,
+                            ValeurMin = 1
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Categorie = "Workflow",
+                            Cle = "WORKFLOW_DELAI_RAPPEL_EXPIRATION",
+                            Description = "Nombre de jours avant expiration pour envoyer un rappel",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Délai de rappel avant expiration (jours)",
+                            NecessiteRedemarrage = false,
+                            Ordre = 2,
+                            TypeDonnee = "Integer",
+                            Unite = "jours",
+                            Valeur = "3",
+                            ValeurDefaut = "3",
+                            ValeurMax = 30,
+                            ValeurMin = 1
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Categorie = "Workflow",
+                            Cle = "WORKFLOW_DELAI_APPROBATION_MAX",
+                            Description = "Délai maximum pour qu'un approbateur valide un bon",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Délai maximum d'approbation (jours)",
+                            NecessiteRedemarrage = false,
+                            Ordre = 3,
+                            TypeDonnee = "Integer",
+                            Unite = "jours",
+                            Valeur = "7",
+                            ValeurDefaut = "7",
+                            ValeurMax = 30,
+                            ValeurMin = 1
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Categorie = "Email",
+                            Cle = "EMAIL_ACTIVER_NOTIFICATIONS",
+                            Description = "Active ou désactive l'envoi des notifications par email",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Activer les notifications email",
+                            NecessiteRedemarrage = false,
+                            Ordre = 1,
+                            TypeDonnee = "Boolean",
+                            Valeur = "true",
+                            ValeurDefaut = "true",
+                            ValeursPossibles = "true|false"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Categorie = "Email",
+                            Cle = "EMAIL_EXPEDITEUR",
+                            Description = "Adresse email utilisée comme expéditeur pour les notifications",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Adresse email expéditeur",
+                            NecessiteRedemarrage = false,
+                            Ordre = 2,
+                            TypeDonnee = "String",
+                            Valeur = "noreply@kccmaterialflow.local"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Categorie = "Email",
+                            Cle = "EMAIL_ADMIN",
+                            Description = "Adresse email pour les notifications administratives",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Email administrateur",
+                            NecessiteRedemarrage = false,
+                            Ordre = 3,
+                            TypeDonnee = "String",
+                            Valeur = "admin@kccmaterialflow.local"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Categorie = "Securite",
+                            Cle = "SECURITE_QRCODE_DUREE_VALIDITE",
+                            Description = "Durée pendant laquelle un QR Code scanné est valide",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Durée de validité QR Code (minutes)",
+                            NecessiteRedemarrage = false,
+                            Ordre = 1,
+                            TypeDonnee = "Integer",
+                            Unite = "minutes",
+                            Valeur = "60",
+                            ValeurDefaut = "60",
+                            ValeurMax = 1440,
+                            ValeurMin = 5
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Categorie = "Securite",
+                            Cle = "SECURITE_MAX_SCANS_JOUR",
+                            Description = "Nombre maximum de scans autorisés par bon par jour",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Nombre maximum de scans par jour",
+                            NecessiteRedemarrage = false,
+                            Ordre = 2,
+                            TypeDonnee = "Integer",
+                            Valeur = "10",
+                            ValeurDefaut = "10",
+                            ValeurMax = 100,
+                            ValeurMin = 1
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Categorie = "Securite",
+                            Cle = "SECURITE_DETECTER_ANOMALIES_AUTO",
+                            Description = "Active la détection automatique des anomalies lors des scans",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Détection automatique des anomalies",
+                            NecessiteRedemarrage = false,
+                            Ordre = 3,
+                            TypeDonnee = "Boolean",
+                            Valeur = "true",
+                            ValeurDefaut = "true",
+                            ValeursPossibles = "true|false"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Categorie = "Interface",
+                            Cle = "UI_ITEMS_PAR_PAGE",
+                            Description = "Nombre d'éléments affichés par page dans les listes",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Éléments par page",
+                            NecessiteRedemarrage = false,
+                            Ordre = 1,
+                            TypeDonnee = "Integer",
+                            Valeur = "20",
+                            ValeurDefaut = "20",
+                            ValeurMax = 100,
+                            ValeurMin = 10,
+                            ValeursPossibles = "10|20|50|100"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Categorie = "Interface",
+                            Cle = "UI_THEME_DEFAUT",
+                            Description = "Thème visuel par défaut de l'application",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Thème par défaut",
+                            NecessiteRedemarrage = false,
+                            Ordre = 2,
+                            TypeDonnee = "String",
+                            Valeur = "light",
+                            ValeurDefaut = "light",
+                            ValeursPossibles = "light|dark|auto"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Categorie = "Interface",
+                            Cle = "UI_LANGUE_DEFAUT",
+                            Description = "Langue par défaut de l'interface",
+                            EstModifiable = true,
+                            EstSysteme = false,
+                            EstVisible = true,
+                            Libelle = "Langue par défaut",
+                            NecessiteRedemarrage = false,
+                            Ordre = 3,
+                            TypeDonnee = "String",
+                            Valeur = "fr",
+                            ValeurDefaut = "fr",
+                            ValeursPossibles = "fr|en"
+                        });
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.PassageCheckpoint", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BonId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CheckpointId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CoordonneeGPS")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("DateEffective")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DatePrevue")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DescriptionAnomalie")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("EstAnomalie")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NumeroReference")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Observations")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("OrdreEffectif")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrdrePrevu")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ScannePar")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Statut")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TypeAnomalie")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TypeBon")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CheckpointId");
+
+                    b.ToTable("T_PassagesCheckpoint", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdPermission");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Categorie")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("CodePermission")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("DateCreation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstSysteme")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NomPermission")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("OrdreAffichage")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Categorie")
+                        .HasDatabaseName("IX_Permissions_Categorie");
+
+                    b.HasIndex("CodePermission")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Permissions_CodePermission");
+
+                    b.HasIndex("EstActif")
+                        .HasDatabaseName("IX_Permissions_EstActif");
+
+                    b.ToTable("T_Permissions", "dbo");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Categorie = "Système",
+                            CodePermission = "ALL",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Accès complet à toutes les fonctionnalités",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Accès complet",
+                            OrdreAffichage = 0
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Categorie = "Bons",
+                            CodePermission = "CREATE_BON",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Créer des bons d'entrée/sortie de matériel",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Créer des bons",
+                            OrdreAffichage = 10
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Categorie = "Bons",
+                            CodePermission = "VIEW_BON",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Consulter tous les bons du système",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Voir tous les bons",
+                            OrdreAffichage = 20
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Categorie = "Bons",
+                            CodePermission = "VIEW_OWN_BON",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Consulter uniquement ses propres bons",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Voir ses propres bons",
+                            OrdreAffichage = 25
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Categorie = "Bons",
+                            CodePermission = "APPROVE_BON",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Approuver les bons de son département",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Approuver les bons",
+                            OrdreAffichage = 30
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Categorie = "Bons",
+                            CodePermission = "REJECT_BON",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Rejeter les bons de son département",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Rejeter les bons",
+                            OrdreAffichage = 35
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Categorie = "Sécurité",
+                            CodePermission = "SCAN_BON",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Scanner les QR codes des bons aux barrières",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Scanner les QR codes",
+                            OrdreAffichage = 40
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Categorie = "Sécurité",
+                            CodePermission = "CREATE_ANOMALIE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Créer des signalements d'anomalies",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Signaler des anomalies",
+                            OrdreAffichage = 45
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Categorie = "Rapports",
+                            CodePermission = "VIEW_REPORTS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Consulter les rapports et statistiques",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Accéder aux rapports",
+                            OrdreAffichage = 50
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Categorie = "Administration",
+                            CodePermission = "MANAGE_USERS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Ajouter, modifier et désactiver les utilisateurs",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Gérer les utilisateurs",
+                            OrdreAffichage = 60
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Categorie = "Administration",
+                            CodePermission = "MANAGE_SETTINGS",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Modifier les paramètres système",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NomPermission = "Gérer les paramètres",
+                            OrdreAffichage = 70
+                        });
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonSortie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CategorieId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Couleur")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("DureeMaxJours")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstTemporaire")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Icone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("OrdreAffichage")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequiertBarrieres")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RequiertBonEntree")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RequiertDetails")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TypeApprobateurSpecial")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("TypeMaterielDefaut")
+                        .HasColumnType("int")
+                        .HasColumnName("TypeMaterielDefaut");
+
+                    b.Property<bool>("ValidationSpeciale")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategorieId");
+
+                    b.ToTable("T_RaisonsSortie", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Role", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdRole");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CodeRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateModification")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstSysteme")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("NiveauPriorite")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomRole")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeRole")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Roles_CodeRole");
+
+                    b.HasIndex("EstActif")
+                        .HasDatabaseName("IX_Roles_EstActif");
+
+                    b.ToTable("T_Roles", "dbo");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CodeRole = "ADMIN",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Accès complet au système",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NiveauPriorite = 100,
+                            NomRole = "Administrateur"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CodeRole = "APPROBATEUR",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Peut approuver les bons de son département",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NiveauPriorite = 50,
+                            NomRole = "Approbateur"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CodeRole = "AGENT_SECURITE",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Peut scanner et contrôler les entrées/sorties",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NiveauPriorite = 40,
+                            NomRole = "Agent de sécurité"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CodeRole = "UTILISATEUR",
+                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Utilisateur standard - peut créer des bons",
+                            EstActif = true,
+                            EstSysteme = true,
+                            NiveauPriorite = 10,
+                            NomRole = "Utilisateur"
+                        });
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RolePermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("IdRolePermission");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DateAttribution")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("IdPermission")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IdRole")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdPermission");
+
+                    b.HasIndex("IdRole", "IdPermission")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RolePermissions_Role_Permission");
+
+                    b.ToTable("T_RolePermissions", "dbo");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 1,
+                            IdRole = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 3,
+                            IdRole = 2
+                        },
+                        new
+                        {
+                            Id = 3,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 5,
+                            IdRole = 2
+                        },
+                        new
+                        {
+                            Id = 4,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 6,
+                            IdRole = 2
+                        },
+                        new
+                        {
+                            Id = 5,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 3,
+                            IdRole = 3
+                        },
+                        new
+                        {
+                            Id = 6,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 7,
+                            IdRole = 3
+                        },
+                        new
+                        {
+                            Id = 7,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 8,
+                            IdRole = 3
+                        },
+                        new
+                        {
+                            Id = 8,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 2,
+                            IdRole = 4
+                        },
+                        new
+                        {
+                            Id = 9,
+                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IdPermission = 4,
+                            IdRole = 4
+                        });
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ScanEvenement", b =>
+                {
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdScan");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdScan"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AgentLogin")
                         .IsRequired()
@@ -1161,7 +3269,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasDefaultValue("Sortie")
                         .HasColumnName("TypeMouvement");
 
-                    b.HasKey("IdScan");
+                    b.HasKey("Id");
 
                     b.HasIndex("AgentLogin")
                         .HasDatabaseName("IX_ScanEvenements_AgentLogin");
@@ -1184,2014 +3292,14 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.ToTable("T_ScanEvenements", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Activite", b =>
-                {
-                    b.Property<int>("IdActivite")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("IdActivite");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdActivite"));
-
-                    b.Property<string>("Categorie")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("Categorie");
-
-                    b.Property<string>("CodeActivite")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("CodeActivite");
-
-                    b.Property<DateTime>("DateCreation")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateCreation")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("Description");
-
-                    b.Property<bool>("EstActif")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true)
-                        .HasColumnName("EstActif");
-
-                    b.Property<bool>("EstSysteme")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasColumnName("EstSysteme");
-
-                    b.Property<string>("Module")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("Module");
-
-                    b.Property<string>("NomActivite")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("NomActivite");
-
-                    b.Property<int>("OrdreAffichage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0)
-                        .HasColumnName("OrdreAffichage");
-
-                    b.HasKey("IdActivite");
-
-                    b.HasIndex("Categorie")
-                        .HasDatabaseName("IX_Activites_Categorie");
-
-                    b.HasIndex("CodeActivite")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Activites_CodeActivite");
-
-                    b.HasIndex("EstActif")
-                        .HasDatabaseName("IX_Activites_EstActif");
-
-                    b.HasIndex("Module")
-                        .HasDatabaseName("IX_Activites_Module");
-
-                    b.ToTable("T_Activites", "dbo");
-
-                    b.HasData(
-                        new
-                        {
-                            IdActivite = 1,
-                            Categorie = "Création",
-                            CodeActivite = "BEM_CREER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Saisir et enregistrer un nouveau bon d'entrée matériel",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonEntree",
-                            NomActivite = "Créer un Bon d'Entrée",
-                            OrdreAffichage = 10
-                        },
-                        new
-                        {
-                            IdActivite = 2,
-                            Categorie = "Modification",
-                            CodeActivite = "BEM_MODIFIER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Éditer un bon d'entrée en brouillon",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonEntree",
-                            NomActivite = "Modifier un Bon d'Entrée",
-                            OrdreAffichage = 20
-                        },
-                        new
-                        {
-                            IdActivite = 3,
-                            Categorie = "Workflow",
-                            CodeActivite = "BEM_SOUMETTRE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Envoyer un bon d'entrée en approbation",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonEntree",
-                            NomActivite = "Soumettre un Bon d'Entrée",
-                            OrdreAffichage = 30
-                        },
-                        new
-                        {
-                            IdActivite = 4,
-                            Categorie = "Approbation",
-                            CodeActivite = "BEM_APPROUVER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Valider et approuver un bon d'entrée soumis",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonEntree",
-                            NomActivite = "Approuver un Bon d'Entrée",
-                            OrdreAffichage = 40
-                        },
-                        new
-                        {
-                            IdActivite = 5,
-                            Categorie = "Approbation",
-                            CodeActivite = "BEM_REJETER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Rejeter un bon d'entrée avec motif obligatoire",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonEntree",
-                            NomActivite = "Rejeter un Bon d'Entrée",
-                            OrdreAffichage = 50
-                        },
-                        new
-                        {
-                            IdActivite = 6,
-                            Categorie = "Approbation",
-                            CodeActivite = "BEM_RETOURNER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Renvoyer un bon d'entrée au demandeur pour corrections",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonEntree",
-                            NomActivite = "Retourner un Bon d'Entrée",
-                            OrdreAffichage = 60
-                        },
-                        new
-                        {
-                            IdActivite = 7,
-                            Categorie = "Suppression",
-                            CodeActivite = "BEM_SUPPRIMER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Supprimer un bon d'entrée en statut brouillon",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonEntree",
-                            NomActivite = "Supprimer un brouillon BEM",
-                            OrdreAffichage = 70
-                        },
-                        new
-                        {
-                            IdActivite = 8,
-                            Categorie = "Export",
-                            CodeActivite = "BEM_IMPRIMER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Imprimer ou télécharger le PDF d'un bon d'entrée",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonEntree",
-                            NomActivite = "Imprimer / Exporter PDF un BEM",
-                            OrdreAffichage = 80
-                        },
-                        new
-                        {
-                            IdActivite = 10,
-                            Categorie = "Création",
-                            CodeActivite = "BSM_CREER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Saisir et enregistrer un nouveau bon de sortie matériel",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Créer un Bon de Sortie",
-                            OrdreAffichage = 100
-                        },
-                        new
-                        {
-                            IdActivite = 11,
-                            Categorie = "Modification",
-                            CodeActivite = "BSM_MODIFIER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Éditer un bon de sortie en brouillon",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Modifier un Bon de Sortie",
-                            OrdreAffichage = 110
-                        },
-                        new
-                        {
-                            IdActivite = 12,
-                            Categorie = "Workflow",
-                            CodeActivite = "BSM_SOUMETTRE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Envoyer un bon de sortie dans la chaîne d'approbation",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Soumettre un Bon de Sortie",
-                            OrdreAffichage = 120
-                        },
-                        new
-                        {
-                            IdActivite = 13,
-                            Categorie = "Approbation",
-                            CodeActivite = "BSM_APPROUVER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Valider et approuver un bon de sortie à l'étape courante",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Approuver un Bon de Sortie",
-                            OrdreAffichage = 130
-                        },
-                        new
-                        {
-                            IdActivite = 14,
-                            Categorie = "Approbation",
-                            CodeActivite = "BSM_REJETER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Rejeter un bon de sortie avec motif obligatoire",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Rejeter un Bon de Sortie",
-                            OrdreAffichage = 140
-                        },
-                        new
-                        {
-                            IdActivite = 15,
-                            Categorie = "Approbation",
-                            CodeActivite = "BSM_RETOURNER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Renvoyer un bon de sortie au demandeur pour corrections",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Retourner un Bon de Sortie",
-                            OrdreAffichage = 150
-                        },
-                        new
-                        {
-                            IdActivite = 16,
-                            Categorie = "Suppression",
-                            CodeActivite = "BSM_SUPPRIMER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Supprimer un bon de sortie en statut brouillon",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Supprimer un brouillon BSM",
-                            OrdreAffichage = 160
-                        },
-                        new
-                        {
-                            IdActivite = 17,
-                            Categorie = "Export",
-                            CodeActivite = "BSM_IMPRIMER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Imprimer ou télécharger le PDF d'un bon de sortie",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Imprimer / Exporter PDF un BSM",
-                            OrdreAffichage = 170
-                        },
-                        new
-                        {
-                            IdActivite = 18,
-                            Categorie = "Prêts",
-                            CodeActivite = "PRET_RETOUR",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Confirmer le retour d'un matériel prêté",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Enregistrer un retour de prêt",
-                            OrdreAffichage = 180
-                        },
-                        new
-                        {
-                            IdActivite = 19,
-                            Categorie = "Prêts",
-                            CodeActivite = "PRET_EXTENSION",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Prolonger la date de retour d'un prêt en cours",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "BonSortie",
-                            NomActivite = "Demander une extension de prêt",
-                            OrdreAffichage = 190
-                        },
-                        new
-                        {
-                            IdActivite = 20,
-                            Categorie = "Scan",
-                            CodeActivite = "SEC_SCANNER",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Scanner un QR code à la barrière pour contrôler un passage",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Scanner un QR Code",
-                            OrdreAffichage = 200
-                        },
-                        new
-                        {
-                            IdActivite = 21,
-                            Categorie = "Scan",
-                            CodeActivite = "SEC_CONFIRMER_PASSAGE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Valider le passage d'un matériel à la barrière après scan",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Confirmer un passage",
-                            OrdreAffichage = 210
-                        },
-                        new
-                        {
-                            IdActivite = 22,
-                            Categorie = "Anomalies",
-                            CodeActivite = "SEC_SIGNALER_ANOMALIE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Signaler manuellement une anomalie lors d'un contrôle",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Signaler une anomalie",
-                            OrdreAffichage = 220
-                        },
-                        new
-                        {
-                            IdActivite = 23,
-                            Categorie = "Anomalies",
-                            CodeActivite = "SEC_TRAITER_ANOMALIE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Résoudre une anomalie avec commentaire et action corrective",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Traiter une anomalie",
-                            OrdreAffichage = 230
-                        },
-                        new
-                        {
-                            IdActivite = 24,
-                            Categorie = "Anomalies",
-                            CodeActivite = "SEC_REOUVRIR_ANOMALIE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Réouvrir une anomalie traitée pour investigation complémentaire",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Réouvrir une anomalie",
-                            OrdreAffichage = 240
-                        },
-                        new
-                        {
-                            IdActivite = 25,
-                            Categorie = "Consultation",
-                            CodeActivite = "SEC_VOIR_HISTORIQUE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Voir l'historique complet des scans QR et passages",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Consulter l'historique des scans",
-                            OrdreAffichage = 250
-                        },
-                        new
-                        {
-                            IdActivite = 26,
-                            Categorie = "Administration",
-                            CodeActivite = "SEC_GERER_BARRIERES",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Créer, modifier, activer/désactiver les barrières de contrôle",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Gérer les barrières",
-                            OrdreAffichage = 260
-                        },
-                        new
-                        {
-                            IdActivite = 27,
-                            Categorie = "Administration",
-                            CodeActivite = "SEC_GERER_ITINERAIRES",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Configurer les itinéraires et séquences de checkpoints",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Gérer les itinéraires",
-                            OrdreAffichage = 270
-                        },
-                        new
-                        {
-                            IdActivite = 28,
-                            Categorie = "Administration",
-                            CodeActivite = "SEC_GERER_AGENTS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Affecter et gérer les agents aux barrières",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Securite",
-                            NomActivite = "Gérer les agents de barrière",
-                            OrdreAffichage = 280
-                        },
-                        new
-                        {
-                            IdActivite = 30,
-                            Categorie = "Administration",
-                            CodeActivite = "ADMIN_UTILISATEURS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Créer, modifier, activer/désactiver les utilisateurs",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Admin",
-                            NomActivite = "Gérer les utilisateurs",
-                            OrdreAffichage = 300
-                        },
-                        new
-                        {
-                            IdActivite = 31,
-                            Categorie = "Administration",
-                            CodeActivite = "ADMIN_ROLES",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Créer, modifier les rôles et leurs permissions",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Admin",
-                            NomActivite = "Gérer les rôles",
-                            OrdreAffichage = 310
-                        },
-                        new
-                        {
-                            IdActivite = 32,
-                            Categorie = "Administration",
-                            CodeActivite = "ADMIN_DEPARTEMENTS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Créer, modifier, activer/désactiver les départements",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Admin",
-                            NomActivite = "Gérer les départements",
-                            OrdreAffichage = 320
-                        },
-                        new
-                        {
-                            IdActivite = 33,
-                            Categorie = "Administration",
-                            CodeActivite = "ADMIN_TYPES_MATERIELS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Créer, modifier les types de matériel",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Admin",
-                            NomActivite = "Gérer les types de matériel",
-                            OrdreAffichage = 330
-                        },
-                        new
-                        {
-                            IdActivite = 34,
-                            Categorie = "Administration",
-                            CodeActivite = "ADMIN_STATUTS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Créer, modifier les statuts de workflow",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Admin",
-                            NomActivite = "Gérer les statuts",
-                            OrdreAffichage = 340
-                        },
-                        new
-                        {
-                            IdActivite = 35,
-                            Categorie = "Administration",
-                            CodeActivite = "ADMIN_PARAMETRES",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Configurer les paramètres globaux de l'application",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Admin",
-                            NomActivite = "Gérer les paramètres système",
-                            OrdreAffichage = 350
-                        },
-                        new
-                        {
-                            IdActivite = 36,
-                            Categorie = "Administration",
-                            CodeActivite = "ADMIN_AUDIT",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Voir les logs d'audit des actions système",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Admin",
-                            NomActivite = "Consulter le journal d'audit",
-                            OrdreAffichage = 360
-                        },
-                        new
-                        {
-                            IdActivite = 37,
-                            Categorie = "Administration",
-                            CodeActivite = "ADMIN_ACTIVITES",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Assigner et retirer des activités aux utilisateurs",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Admin",
-                            NomActivite = "Gérer les activités utilisateurs",
-                            OrdreAffichage = 370
-                        },
-                        new
-                        {
-                            IdActivite = 40,
-                            Categorie = "Consultation",
-                            CodeActivite = "VOIR_TOUS_BONS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Consulter la liste complète de tous les bons du système",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Transversal",
-                            NomActivite = "Voir tous les bons",
-                            OrdreAffichage = 400
-                        },
-                        new
-                        {
-                            IdActivite = 41,
-                            Categorie = "Approbation",
-                            CodeActivite = "VOIR_APPROBATIONS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Consulter la liste des bons en attente d'approbation",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Transversal",
-                            NomActivite = "Voir les approbations en attente",
-                            OrdreAffichage = 410
-                        },
-                        new
-                        {
-                            IdActivite = 42,
-                            Categorie = "Export",
-                            CodeActivite = "EXPORT_EXCEL",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Exporter les listes de bons et l'historique au format Excel",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Transversal",
-                            NomActivite = "Exporter les données en Excel",
-                            OrdreAffichage = 420
-                        },
-                        new
-                        {
-                            IdActivite = 43,
-                            Categorie = "Consultation",
-                            CodeActivite = "VOIR_HISTORIQUE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Consulter l'historique complet des bons et mouvements",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Transversal",
-                            NomActivite = "Consulter l'historique",
-                            OrdreAffichage = 430
-                        },
-                        new
-                        {
-                            IdActivite = 44,
-                            Categorie = "Consultation",
-                            CodeActivite = "VOIR_TABLEAU_BORD",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Accéder au tableau de bord avec statistiques et raccourcis",
-                            EstActif = true,
-                            EstSysteme = true,
-                            Module = "Transversal",
-                            NomActivite = "Voir le tableau de bord",
-                            OrdreAffichage = 440
-                        });
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.AuditLog", b =>
-                {
-                    b.Property<long>("IdAuditLog")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("IdAuditLog"));
-
-                    b.Property<string>("AdresseIP")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("AncienneValeur")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Categorie")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("CorrelationId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("DateAction")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Details")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int?>("DureeMs")
-                        .HasColumnType("int");
-
-                    b.Property<string>("EntiteId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("EntiteType")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("MessageErreur")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("Niveau")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("NouvelleValeur")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Resultat")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("TypeAction")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("UserAgent")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("UtilisateurLogin")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("UtilisateurNom")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("IdAuditLog");
-
-                    b.HasIndex("Categorie")
-                        .HasDatabaseName("IX_AuditLogs_Categorie");
-
-                    b.HasIndex("CorrelationId")
-                        .HasDatabaseName("IX_AuditLogs_CorrelationId");
-
-                    b.HasIndex("DateAction")
-                        .HasDatabaseName("IX_AuditLogs_DateAction");
-
-                    b.HasIndex("Niveau")
-                        .HasDatabaseName("IX_AuditLogs_Niveau");
-
-                    b.HasIndex("TypeAction")
-                        .HasDatabaseName("IX_AuditLogs_TypeAction");
-
-                    b.HasIndex("UtilisateurLogin")
-                        .HasDatabaseName("IX_AuditLogs_UtilisateurLogin");
-
-                    b.HasIndex("EntiteType", "EntiteId")
-                        .HasDatabaseName("IX_AuditLogs_Entite");
-
-                    b.HasIndex("DateAction", "Categorie", "TypeAction")
-                        .HasDatabaseName("IX_AuditLogs_Reporting");
-
-                    b.ToTable("T_AuditLogs", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Barriere", b =>
-                {
-                    b.Property<int>("IdBarriere")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("IdBarriere");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdBarriere"));
-
-                    b.Property<string>("CodeBarriere")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("CodeBarriere");
-
-                    b.Property<DateTime>("DateCreation")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateCreation")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<DateTime?>("DateModification")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateModification");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("Description");
-
-                    b.Property<bool>("EstActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true)
-                        .HasColumnName("EstActive");
-
-                    b.Property<string>("HorairesOuverture")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("HorairesOuverture");
-
-                    b.Property<string>("Localisation")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("Localisation");
-
-                    b.Property<string>("NomBarriere")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("NomBarriere");
-
-                    b.Property<int>("OrdreAffichage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0)
-                        .HasColumnName("OrdreAffichage");
-
-                    b.Property<string>("Telephone")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("Telephone");
-
-                    b.Property<string>("TypeBarriere")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("Mixte")
-                        .HasColumnName("TypeBarriere");
-
-                    b.HasKey("IdBarriere");
-
-                    b.HasIndex("CodeBarriere")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Barrieres_Code");
-
-                    b.HasIndex("EstActive")
-                        .HasDatabaseName("IX_Barrieres_EstActive");
-
-                    b.HasIndex("Localisation")
-                        .HasDatabaseName("IX_Barrieres_Localisation");
-
-                    b.HasIndex("TypeBarriere")
-                        .HasDatabaseName("IX_Barrieres_Type");
-
-                    b.ToTable("T_Barrieres", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.CategorieSortie", b =>
-                {
-                    b.Property<int>("IdCategorieSortie")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdCategorieSortie"));
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Nom")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("OrdreAffichage")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("RequiertBarrieres")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("RequiertBonEntree")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("TypeEntite")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("IdCategorieSortie");
-
-                    b.ToTable("T_CategoriesSortie", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Checkpoint", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Site", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Nom")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("OrdreDefaut")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SiteId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SiteId");
-
-                    b.ToTable("T_Checkpoints", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Compagnie", b =>
-                {
-                    b.Property<int>("IdCompagnie")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdCompagnie"));
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("DateCreation")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Nom")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("SiteManager")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Telephone")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("IdCompagnie");
-
-                    b.ToTable("T_Compagnies", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Contrat", b =>
-                {
-                    b.Property<int>("IdContrat")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdContrat"));
-
-                    b.Property<int>("CompagnieId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ContratDescription")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("DateCreation")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("PoNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("IdContrat");
-
-                    b.HasIndex("CompagnieId");
-
-                    b.HasIndex("PoNumber");
-
-                    b.ToTable("T_Contrats", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Departement", b =>
-                {
-                    b.Property<int>("IdDepartement")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("IdDepartement");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdDepartement"));
-
-                    b.Property<string>("CodeDepartement")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("CodeDepartement");
-
-                    b.Property<DateTime>("DateCreation")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateCreation");
-
-                    b.Property<DateTime?>("DateModification")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateModification");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("Description");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit")
-                        .HasColumnName("EstActif");
-
-                    b.Property<string>("NomDepartement")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnName("NomDepartement");
-
-                    b.Property<string>("ResponsableEmail")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("ResponsableEmail");
-
-                    b.Property<string>("ResponsableLogin")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("ResponsableLogin");
-
-                    b.Property<string>("ResponsableNom")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("ResponsableNom");
-
-                    b.HasKey("IdDepartement");
-
-                    b.ToTable("T_Departements", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Employee", b =>
-                {
-                    b.Property<int>("IdEmployee")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdEmployee"));
-
-                    b.Property<int?>("CompagnieId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("DateCreation")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("DepartementId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EstInterne")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Fonction")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Login")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Matricule")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Nom")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("NomComplet")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("PeutEtreEscorteur")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Prenom")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Telephone")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("IdEmployee");
-
-                    b.HasIndex("CompagnieId");
-
-                    b.HasIndex("DepartementId");
-
-                    b.ToTable("T_Employees", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.NotificationRejet", b =>
-                {
-                    b.Property<int>("IdNotificationRejet")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdNotificationRejet"));
-
-                    b.Property<string>("ApprobateurLogin")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ApprobateurNom")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("BonType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("DateEnvoiEmail")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateLecture")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DateRejet")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DemandeurNom")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("EmailEnvoye")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EstLue")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("EtapeRejet")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("MotifRejet")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("NumeroReference")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("IdNotificationRejet");
-
-                    b.ToTable("T_NotificationsRejet", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.ParametreSysteme", b =>
-                {
-                    b.Property<int>("IdParametre")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdParametre"));
-
-                    b.Property<string>("Categorie")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Cle")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DateModification")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("EstModifiable")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EstSysteme")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EstVisible")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Libelle")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("ModifieParLogin")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("NecessiteRedemarrage")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Ordre")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TypeDonnee")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Unite")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Valeur")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<string>("ValeurDefaut")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<int?>("ValeurMax")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ValeurMin")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ValeursPossibles")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.HasKey("IdParametre");
-
-                    b.HasIndex("Categorie")
-                        .HasDatabaseName("IX_ParametresSysteme_Categorie");
-
-                    b.HasIndex("Cle")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ParametresSysteme_Cle");
-
-                    b.ToTable("T_ParametresSysteme", "dbo");
-
-                    b.HasData(
-                        new
-                        {
-                            IdParametre = 1,
-                            Categorie = "General",
-                            Cle = "APP_NOM",
-                            Description = "Nom affiché dans l'en-tête et les emails",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Nom de l'application",
-                            NecessiteRedemarrage = false,
-                            Ordre = 1,
-                            TypeDonnee = "String",
-                            Valeur = "KCC Material Flow"
-                        },
-                        new
-                        {
-                            IdParametre = 2,
-                            Categorie = "General",
-                            Cle = "APP_VERSION",
-                            Description = "Version actuelle du système",
-                            EstModifiable = false,
-                            EstSysteme = true,
-                            EstVisible = true,
-                            Libelle = "Version de l'application",
-                            NecessiteRedemarrage = false,
-                            Ordre = 2,
-                            TypeDonnee = "String",
-                            Valeur = "1.0.0"
-                        },
-                        new
-                        {
-                            IdParametre = 10,
-                            Categorie = "Workflow",
-                            Cle = "WORKFLOW_DUREE_VALIDITE_DEFAUT",
-                            Description = "Durée de validité par défaut pour les bons de sortie",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Durée de validité par défaut (jours)",
-                            NecessiteRedemarrage = false,
-                            Ordre = 1,
-                            TypeDonnee = "Integer",
-                            Unite = "jours",
-                            Valeur = "30",
-                            ValeurDefaut = "30",
-                            ValeurMax = 365,
-                            ValeurMin = 1
-                        },
-                        new
-                        {
-                            IdParametre = 11,
-                            Categorie = "Workflow",
-                            Cle = "WORKFLOW_DELAI_RAPPEL_EXPIRATION",
-                            Description = "Nombre de jours avant expiration pour envoyer un rappel",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Délai de rappel avant expiration (jours)",
-                            NecessiteRedemarrage = false,
-                            Ordre = 2,
-                            TypeDonnee = "Integer",
-                            Unite = "jours",
-                            Valeur = "3",
-                            ValeurDefaut = "3",
-                            ValeurMax = 30,
-                            ValeurMin = 1
-                        },
-                        new
-                        {
-                            IdParametre = 12,
-                            Categorie = "Workflow",
-                            Cle = "WORKFLOW_DELAI_APPROBATION_MAX",
-                            Description = "Délai maximum pour qu'un approbateur valide un bon",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Délai maximum d'approbation (jours)",
-                            NecessiteRedemarrage = false,
-                            Ordre = 3,
-                            TypeDonnee = "Integer",
-                            Unite = "jours",
-                            Valeur = "7",
-                            ValeurDefaut = "7",
-                            ValeurMax = 30,
-                            ValeurMin = 1
-                        },
-                        new
-                        {
-                            IdParametre = 20,
-                            Categorie = "Email",
-                            Cle = "EMAIL_ACTIVER_NOTIFICATIONS",
-                            Description = "Active ou désactive l'envoi des notifications par email",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Activer les notifications email",
-                            NecessiteRedemarrage = false,
-                            Ordre = 1,
-                            TypeDonnee = "Boolean",
-                            Valeur = "true",
-                            ValeurDefaut = "true",
-                            ValeursPossibles = "true|false"
-                        },
-                        new
-                        {
-                            IdParametre = 21,
-                            Categorie = "Email",
-                            Cle = "EMAIL_EXPEDITEUR",
-                            Description = "Adresse email utilisée comme expéditeur pour les notifications",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Adresse email expéditeur",
-                            NecessiteRedemarrage = false,
-                            Ordre = 2,
-                            TypeDonnee = "String",
-                            Valeur = "noreply@kccmaterialflow.local"
-                        },
-                        new
-                        {
-                            IdParametre = 22,
-                            Categorie = "Email",
-                            Cle = "EMAIL_ADMIN",
-                            Description = "Adresse email pour les notifications administratives",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Email administrateur",
-                            NecessiteRedemarrage = false,
-                            Ordre = 3,
-                            TypeDonnee = "String",
-                            Valeur = "admin@kccmaterialflow.local"
-                        },
-                        new
-                        {
-                            IdParametre = 30,
-                            Categorie = "Securite",
-                            Cle = "SECURITE_QRCODE_DUREE_VALIDITE",
-                            Description = "Durée pendant laquelle un QR Code scanné est valide",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Durée de validité QR Code (minutes)",
-                            NecessiteRedemarrage = false,
-                            Ordre = 1,
-                            TypeDonnee = "Integer",
-                            Unite = "minutes",
-                            Valeur = "60",
-                            ValeurDefaut = "60",
-                            ValeurMax = 1440,
-                            ValeurMin = 5
-                        },
-                        new
-                        {
-                            IdParametre = 31,
-                            Categorie = "Securite",
-                            Cle = "SECURITE_MAX_SCANS_JOUR",
-                            Description = "Nombre maximum de scans autorisés par bon par jour",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Nombre maximum de scans par jour",
-                            NecessiteRedemarrage = false,
-                            Ordre = 2,
-                            TypeDonnee = "Integer",
-                            Valeur = "10",
-                            ValeurDefaut = "10",
-                            ValeurMax = 100,
-                            ValeurMin = 1
-                        },
-                        new
-                        {
-                            IdParametre = 32,
-                            Categorie = "Securite",
-                            Cle = "SECURITE_DETECTER_ANOMALIES_AUTO",
-                            Description = "Active la détection automatique des anomalies lors des scans",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Détection automatique des anomalies",
-                            NecessiteRedemarrage = false,
-                            Ordre = 3,
-                            TypeDonnee = "Boolean",
-                            Valeur = "true",
-                            ValeurDefaut = "true",
-                            ValeursPossibles = "true|false"
-                        },
-                        new
-                        {
-                            IdParametre = 40,
-                            Categorie = "Interface",
-                            Cle = "UI_ITEMS_PAR_PAGE",
-                            Description = "Nombre d'éléments affichés par page dans les listes",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Éléments par page",
-                            NecessiteRedemarrage = false,
-                            Ordre = 1,
-                            TypeDonnee = "Integer",
-                            Valeur = "20",
-                            ValeurDefaut = "20",
-                            ValeurMax = 100,
-                            ValeurMin = 10,
-                            ValeursPossibles = "10|20|50|100"
-                        },
-                        new
-                        {
-                            IdParametre = 41,
-                            Categorie = "Interface",
-                            Cle = "UI_THEME_DEFAUT",
-                            Description = "Thème visuel par défaut de l'application",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Thème par défaut",
-                            NecessiteRedemarrage = false,
-                            Ordre = 2,
-                            TypeDonnee = "String",
-                            Valeur = "light",
-                            ValeurDefaut = "light",
-                            ValeursPossibles = "light|dark|auto"
-                        },
-                        new
-                        {
-                            IdParametre = 42,
-                            Categorie = "Interface",
-                            Cle = "UI_LANGUE_DEFAUT",
-                            Description = "Langue par défaut de l'interface",
-                            EstModifiable = true,
-                            EstSysteme = false,
-                            EstVisible = true,
-                            Libelle = "Langue par défaut",
-                            NecessiteRedemarrage = false,
-                            Ordre = 3,
-                            TypeDonnee = "String",
-                            Valeur = "fr",
-                            ValeurDefaut = "fr",
-                            ValeursPossibles = "fr|en"
-                        });
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.PassageCheckpoint", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BonId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CheckpointId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CoordonneeGPS")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DateEffective")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DatePrevue")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DescriptionAnomalie")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("EstAnomalie")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("NumeroReference")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Observations")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int?>("OrdreEffectif")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OrdrePrevu")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ScannePar")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Statut")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("TypeAnomalie")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TypeBon")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CheckpointId");
-
-                    b.ToTable("T_PassagesCheckpoint", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Permission", b =>
-                {
-                    b.Property<int>("IdPermission")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdPermission"));
-
-                    b.Property<string>("Categorie")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("CodePermission")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("DateCreation")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EstSysteme")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("NomPermission")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<int>("OrdreAffichage")
-                        .HasColumnType("int");
-
-                    b.HasKey("IdPermission");
-
-                    b.HasIndex("Categorie")
-                        .HasDatabaseName("IX_Permissions_Categorie");
-
-                    b.HasIndex("CodePermission")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Permissions_CodePermission");
-
-                    b.HasIndex("EstActif")
-                        .HasDatabaseName("IX_Permissions_EstActif");
-
-                    b.ToTable("T_Permissions", "dbo");
-
-                    b.HasData(
-                        new
-                        {
-                            IdPermission = 1,
-                            Categorie = "Système",
-                            CodePermission = "ALL",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Accès complet à toutes les fonctionnalités",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Accès complet",
-                            OrdreAffichage = 0
-                        },
-                        new
-                        {
-                            IdPermission = 2,
-                            Categorie = "Bons",
-                            CodePermission = "CREATE_BON",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Créer des bons d'entrée/sortie de matériel",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Créer des bons",
-                            OrdreAffichage = 10
-                        },
-                        new
-                        {
-                            IdPermission = 3,
-                            Categorie = "Bons",
-                            CodePermission = "VIEW_BON",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Consulter tous les bons du système",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Voir tous les bons",
-                            OrdreAffichage = 20
-                        },
-                        new
-                        {
-                            IdPermission = 4,
-                            Categorie = "Bons",
-                            CodePermission = "VIEW_OWN_BON",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Consulter uniquement ses propres bons",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Voir ses propres bons",
-                            OrdreAffichage = 25
-                        },
-                        new
-                        {
-                            IdPermission = 5,
-                            Categorie = "Bons",
-                            CodePermission = "APPROVE_BON",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Approuver les bons de son département",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Approuver les bons",
-                            OrdreAffichage = 30
-                        },
-                        new
-                        {
-                            IdPermission = 6,
-                            Categorie = "Bons",
-                            CodePermission = "REJECT_BON",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Rejeter les bons de son département",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Rejeter les bons",
-                            OrdreAffichage = 35
-                        },
-                        new
-                        {
-                            IdPermission = 7,
-                            Categorie = "Sécurité",
-                            CodePermission = "SCAN_BON",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Scanner les QR codes des bons aux barrières",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Scanner les QR codes",
-                            OrdreAffichage = 40
-                        },
-                        new
-                        {
-                            IdPermission = 8,
-                            Categorie = "Sécurité",
-                            CodePermission = "CREATE_ANOMALIE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Créer des signalements d'anomalies",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Signaler des anomalies",
-                            OrdreAffichage = 45
-                        },
-                        new
-                        {
-                            IdPermission = 9,
-                            Categorie = "Rapports",
-                            CodePermission = "VIEW_REPORTS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Consulter les rapports et statistiques",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Accéder aux rapports",
-                            OrdreAffichage = 50
-                        },
-                        new
-                        {
-                            IdPermission = 10,
-                            Categorie = "Administration",
-                            CodePermission = "MANAGE_USERS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Ajouter, modifier et désactiver les utilisateurs",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Gérer les utilisateurs",
-                            OrdreAffichage = 60
-                        },
-                        new
-                        {
-                            IdPermission = 11,
-                            Categorie = "Administration",
-                            CodePermission = "MANAGE_SETTINGS",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Modifier les paramètres système",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NomPermission = "Gérer les paramètres",
-                            OrdreAffichage = 70
-                        });
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.RaisonSortie", b =>
-                {
-                    b.Property<int>("IdRaisonSortie")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdRaisonSortie"));
-
-                    b.Property<int>("CategorieId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Couleur")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int?>("DureeMaxJours")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EstTemporaire")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Icone")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Nom")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("OrdreAffichage")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("RequiertBarrieres")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("RequiertBonEntree")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("RequiertDetails")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("TypeApprobateurSpecial")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int?>("TypeMaterielDefaut")
-                        .HasColumnType("int")
-                        .HasColumnName("TypeMaterielDefaut");
-
-                    b.Property<bool>("ValidationSpeciale")
-                        .HasColumnType("bit");
-
-                    b.HasKey("IdRaisonSortie");
-
-                    b.HasIndex("CategorieId");
-
-                    b.ToTable("T_RaisonsSortie", "dbo");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Role", b =>
-                {
-                    b.Property<int>("IdRole")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdRole"));
-
-                    b.Property<string>("CodeRole")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("DateCreation")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DateModification")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("EstActif")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("EstSysteme")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("NiveauPriorite")
-                        .HasColumnType("int");
-
-                    b.Property<string>("NomRole")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("IdRole");
-
-                    b.HasIndex("CodeRole")
-                        .IsUnique()
-                        .HasDatabaseName("IX_Roles_CodeRole");
-
-                    b.HasIndex("EstActif")
-                        .HasDatabaseName("IX_Roles_EstActif");
-
-                    b.ToTable("T_Roles", "dbo");
-
-                    b.HasData(
-                        new
-                        {
-                            IdRole = 1,
-                            CodeRole = "ADMIN",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Accès complet au système",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NiveauPriorite = 100,
-                            NomRole = "Administrateur"
-                        },
-                        new
-                        {
-                            IdRole = 2,
-                            CodeRole = "APPROBATEUR",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Peut approuver les bons de son département",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NiveauPriorite = 50,
-                            NomRole = "Approbateur"
-                        },
-                        new
-                        {
-                            IdRole = 3,
-                            CodeRole = "AGENT_SECURITE",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Peut scanner et contrôler les entrées/sorties",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NiveauPriorite = 40,
-                            NomRole = "Agent de sécurité"
-                        },
-                        new
-                        {
-                            IdRole = 4,
-                            CodeRole = "UTILISATEUR",
-                            DateCreation = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Utilisateur standard - peut créer des bons",
-                            EstActif = true,
-                            EstSysteme = true,
-                            NiveauPriorite = 10,
-                            NomRole = "Utilisateur"
-                        });
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.RolePermission", b =>
-                {
-                    b.Property<int>("IdRolePermission")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdRolePermission"));
-
-                    b.Property<DateTime>("DateAttribution")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("IdPermission")
-                        .HasColumnType("int");
-
-                    b.Property<int>("IdRole")
-                        .HasColumnType("int");
-
-                    b.HasKey("IdRolePermission");
-
-                    b.HasIndex("IdPermission");
-
-                    b.HasIndex("IdRole", "IdPermission")
-                        .IsUnique()
-                        .HasDatabaseName("IX_RolePermissions_Role_Permission");
-
-                    b.ToTable("T_RolePermissions", "dbo");
-
-                    b.HasData(
-                        new
-                        {
-                            IdRolePermission = 1,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 1,
-                            IdRole = 1
-                        },
-                        new
-                        {
-                            IdRolePermission = 2,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 3,
-                            IdRole = 2
-                        },
-                        new
-                        {
-                            IdRolePermission = 3,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 5,
-                            IdRole = 2
-                        },
-                        new
-                        {
-                            IdRolePermission = 4,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 6,
-                            IdRole = 2
-                        },
-                        new
-                        {
-                            IdRolePermission = 5,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 3,
-                            IdRole = 3
-                        },
-                        new
-                        {
-                            IdRolePermission = 6,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 7,
-                            IdRole = 3
-                        },
-                        new
-                        {
-                            IdRolePermission = 7,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 8,
-                            IdRole = 3
-                        },
-                        new
-                        {
-                            IdRolePermission = 8,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 2,
-                            IdRole = 4
-                        },
-                        new
-                        {
-                            IdRolePermission = 9,
-                            DateAttribution = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IdPermission = 4,
-                            IdRole = 4
-                        });
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Site", b =>
-                {
-                    b.Property<int>("IdSite")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("Id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdSite"));
 
                     b.Property<string>("Adresse")
                         .HasMaxLength(500)
@@ -3219,19 +3327,19 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("IdSite");
+                    b.HasKey("Id");
 
                     b.ToTable("T_Sites", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.SoldeMateriel", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.SoldeMateriel", b =>
                 {
-                    b.Property<int>("IdSoldeMateriel")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("Id");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdSoldeMateriel"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("BonEntreeId")
                         .HasColumnType("int");
@@ -3262,18 +3370,19 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Property<decimal>("QuantiteSortie")
                         .HasColumnType("decimal(18,4)");
 
-                    b.HasKey("IdSoldeMateriel");
+                    b.HasKey("Id");
 
                     b.ToTable("T_SoldesMateriels", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Statut", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Statut", b =>
                 {
-                    b.Property<int>("IdStatut")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("IdStatut");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdStatut"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CodeStatut")
                         .IsRequired()
@@ -3333,7 +3442,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("IdStatut");
+                    b.HasKey("Id");
 
                     b.HasIndex("CodeStatut")
                         .IsUnique()
@@ -3347,7 +3456,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            IdStatut = 1,
+                            Id = 1,
                             CodeStatut = "BROUILLON",
                             CouleurFond = "#6c757d",
                             CouleurTexte = "#ffffff",
@@ -3365,7 +3474,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdStatut = 2,
+                            Id = 2,
                             CodeStatut = "EN_ATTENTE_APPROBATION",
                             CouleurFond = "#ffc107",
                             CouleurTexte = "#212529",
@@ -3383,7 +3492,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdStatut = 3,
+                            Id = 3,
                             CodeStatut = "APPROUVE",
                             CouleurFond = "#28a745",
                             CouleurTexte = "#ffffff",
@@ -3401,7 +3510,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdStatut = 4,
+                            Id = 4,
                             CodeStatut = "REJETE",
                             CouleurFond = "#dc3545",
                             CouleurTexte = "#ffffff",
@@ -3418,7 +3527,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdStatut = 5,
+                            Id = 5,
                             CodeStatut = "EN_COURS",
                             CouleurFond = "#17a2b8",
                             CouleurTexte = "#ffffff",
@@ -3436,7 +3545,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdStatut = 6,
+                            Id = 6,
                             CodeStatut = "TERMINE",
                             CouleurFond = "#198754",
                             CouleurTexte = "#ffffff",
@@ -3453,7 +3562,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdStatut = 7,
+                            Id = 7,
                             CodeStatut = "EXPIRE",
                             CouleurFond = "#fd7e14",
                             CouleurTexte = "#ffffff",
@@ -3471,7 +3580,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdStatut = 8,
+                            Id = 8,
                             CodeStatut = "ANNULE",
                             CouleurFond = "#6c757d",
                             CouleurTexte = "#ffffff",
@@ -3488,13 +3597,14 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.TypeMateriel", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.TypeMaterielEntity", b =>
                 {
-                    b.Property<int>("IdTypeMateriel")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("IdTypeMateriel");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdTypeMateriel"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Categorie")
                         .HasMaxLength(100)
@@ -3563,7 +3673,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
-                    b.HasKey("IdTypeMateriel");
+                    b.HasKey("Id");
 
                     b.HasIndex("CodeType")
                         .IsUnique()
@@ -3577,7 +3687,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            IdTypeMateriel = 1,
+                            Id = 1,
                             Categorie = "Matériel roulant",
                             CodeType = "VEHICULE",
                             Couleur = "#0d6efd",
@@ -3597,7 +3707,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdTypeMateriel = 2,
+                            Id = 2,
                             Categorie = "Informatique",
                             CodeType = "EQUIPEMENT_IT",
                             Couleur = "#6610f2",
@@ -3617,7 +3727,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdTypeMateriel = 3,
+                            Id = 3,
                             Categorie = "Équipement",
                             CodeType = "OUTILLAGE",
                             Couleur = "#fd7e14",
@@ -3637,7 +3747,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdTypeMateriel = 4,
+                            Id = 4,
                             Categorie = "Documentation",
                             CodeType = "DOCUMENT",
                             Couleur = "#20c997",
@@ -3657,7 +3767,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         },
                         new
                         {
-                            IdTypeMateriel = 5,
+                            Id = 5,
                             Categorie = "Divers",
                             CodeType = "MATERIEL_DIVERS",
                             Couleur = "#6c757d",
@@ -3677,14 +3787,14 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Utilisateur", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Utilisateur", b =>
                 {
-                    b.Property<int>("IdUtilisateur")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdUtilisateur");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdUtilisateur"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("DateCreation")
                         .ValueGeneratedOnAdd()
@@ -3742,7 +3852,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("Telephone");
 
-                    b.HasKey("IdUtilisateur");
+                    b.HasKey("Id");
 
                     b.HasIndex("Departement")
                         .HasDatabaseName("IX_Utilisateurs_Departement");
@@ -3760,14 +3870,14 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.ToTable("T_Utilisateurs", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.UtilisateurActivite", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.UtilisateurActivite", b =>
                 {
-                    b.Property<int>("IdUtilisateurActivite")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdUtilisateurActivite");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdUtilisateurActivite"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AttribueParLogin")
                         .HasMaxLength(100)
@@ -3794,7 +3904,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasColumnName("IdUtilisateur");
 
-                    b.HasKey("IdUtilisateurActivite");
+                    b.HasKey("Id");
 
                     b.HasIndex("IdActivite")
                         .HasDatabaseName("IX_UtilisateurActivites_IdActivite");
@@ -3809,13 +3919,14 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.ToTable("T_UtilisateurActivites", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.UtilisateurRole", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.UtilisateurRole", b =>
                 {
-                    b.Property<int>("IdUtilisateurRole")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("int")
+                        .HasColumnName("IdUtilisateurRole");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdUtilisateurRole"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AttribueParLogin")
                         .HasMaxLength(100)
@@ -3830,7 +3941,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Property<int>("IdUtilisateur")
                         .HasColumnType("int");
 
-                    b.HasKey("IdUtilisateurRole");
+                    b.HasKey("Id");
 
                     b.HasIndex("IdRole");
 
@@ -3841,14 +3952,14 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.ToTable("T_UtilisateurRoles", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.WorkflowEtapeConfig", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.WorkflowEtapeConfig", b =>
                 {
-                    b.Property<int>("IdWorkflowEtapeConfig")
+                    b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasColumnName("IdWorkflowEtapeConfig");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdWorkflowEtapeConfig"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("BonType")
                         .IsRequired()
@@ -3889,7 +4000,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("IdWorkflowEtapeConfig");
+                    b.HasKey("Id");
 
                     b.HasIndex("BonType", "RaisonSortieCode", "EstActif")
                         .HasDatabaseName("IX_WorkflowEtapesConfig_BonType_Raison_Actif");
@@ -3900,101 +4011,9 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.ToTable("T_WorkflowEtapesConfig", "dbo");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.BonEntree", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonSortieExterne", b =>
                 {
-                    b.HasBaseType("KCCMaterialFlow.Module.BonEntree.Entities.Bon");
-
-                    b.Property<int?>("BonSortieAssocieId")
-                        .HasColumnType("int")
-                        .HasColumnName("BonSortieAssocieId");
-
-                    b.Property<string>("BonSortieAssocieNumero")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("BonSortieAssocieNumero");
-
-                    b.Property<int?>("ContratId")
-                        .HasColumnType("int")
-                        .HasColumnName("ContratId");
-
-                    b.Property<DateTime?>("DateVerrouillage")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateVerrouillage");
-
-                    b.Property<string>("EmailContractant")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("EmailContractant");
-
-                    b.Property<bool>("EstVerrouillePourSortie")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false)
-                        .HasColumnName("EstVerrouillePourSortie");
-
-                    b.Property<string>("FonctionEscorteur")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)")
-                        .HasColumnName("FonctionEscorteur");
-
-                    b.Property<string>("HostDepartment")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("HostDepartment");
-
-                    b.Property<string>("NomCompagnie")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("NomCompagnie");
-
-                    b.Property<string>("NomDemandeur")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("NomEscorteur")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("NomEscorteur");
-
-                    b.Property<string>("NumeroContrat")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("NumeroContrat");
-
-                    b.Property<string>("ReasonOnSite")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("ReasonOnSite");
-
-                    b.Property<string>("SiteManager")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("SiteManager");
-
-                    b.HasIndex("BonSortieAssocieId")
-                        .HasDatabaseName("IX_Bons_BonSortieAssocieId")
-                        .HasFilter("[BonSortieAssocieId] IS NOT NULL");
-
-                    b.HasIndex("HostDepartment")
-                        .HasDatabaseName("IX_Bons_HostDepartment");
-
-                    b.HasIndex("NomCompagnie")
-                        .HasDatabaseName("IX_Bons_NomCompagnie");
-
-                    b.ToTable("T_Bons", "dbo");
-
-                    b.HasDiscriminator().HasValue("BonEntree");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.BonSortieExterne", b =>
-                {
-                    b.HasBaseType("KCCMaterialFlow.Module.BonSortie.Entities.BonSortie");
+                    b.HasBaseType("KCCMaterialFlow.Domain.Entities.BonSortie");
 
                     b.Property<string>("AdresseDestination")
                         .HasMaxLength(500)
@@ -4047,9 +4066,9 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.HasDiscriminator().HasValue("Externe");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.BonSortieInterne", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonSortieInterne", b =>
                 {
-                    b.HasBaseType("KCCMaterialFlow.Module.BonSortie.Entities.BonSortie");
+                    b.HasBaseType("KCCMaterialFlow.Domain.Entities.BonSortie");
 
                     b.Property<int?>("BonEntreeAssocieId")
                         .ValueGeneratedOnUpdateSometimes()
@@ -4098,9 +4117,9 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.HasDiscriminator().HasValue("Interne");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.Pret", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Pret", b =>
                 {
-                    b.HasBaseType("KCCMaterialFlow.Module.BonSortie.Entities.BonSortieExterne");
+                    b.HasBaseType("KCCMaterialFlow.Domain.Entities.BonSortieExterne");
 
                     b.Property<DateTime?>("DateRetourEffective")
                         .HasColumnType("datetime2")
@@ -4140,106 +4159,14 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.HasDiscriminator().HasValue("Pret");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.Approbation", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Anomalie", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.BonEntree.Entities.Bon", "Bon")
-                        .WithMany("Approbations")
-                        .HasForeignKey("BonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bon");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.BonEntreeHistory", b =>
-                {
-                    b.HasOne("KCCMaterialFlow.Module.BonEntree.Entities.Bon", "Bon")
-                        .WithMany()
-                        .HasForeignKey("BonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("KCCMaterialFlow.Module.BonEntree.Entities.Bon", null)
-                        .WithMany("Historiques")
-                        .HasForeignKey("BonIdBon");
-
-                    b.Navigation("Bon");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.ItinerairePrevu", b =>
-                {
-                    b.HasOne("KCCMaterialFlow.Module.BonEntree.Entities.Bon", "Bon")
-                        .WithMany("ItinerairesPrevu")
-                        .HasForeignKey("BonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bon");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.Materiel", b =>
-                {
-                    b.HasOne("KCCMaterialFlow.Module.BonEntree.Entities.Bon", "Bon")
-                        .WithMany("Materiels")
-                        .HasForeignKey("BonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Bon");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.ApprobationSortie", b =>
-                {
-                    b.HasOne("KCCMaterialFlow.Module.BonSortie.Entities.BonSortie", "BonSortie")
-                        .WithMany("Approbations")
-                        .HasForeignKey("BonSortieId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BonSortie");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.BonSortieHistory", b =>
-                {
-                    b.HasOne("KCCMaterialFlow.Module.BonSortie.Entities.BonSortie", "BonSortie")
-                        .WithMany("Historiques")
-                        .HasForeignKey("BonSortieId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BonSortie");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.ItineraireSortie", b =>
-                {
-                    b.HasOne("KCCMaterialFlow.Module.BonSortie.Entities.BonSortie", "BonSortie")
-                        .WithMany("Itineraires")
-                        .HasForeignKey("BonSortieId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BonSortie");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.MaterielSortie", b =>
-                {
-                    b.HasOne("KCCMaterialFlow.Module.BonSortie.Entities.BonSortie", "BonSortie")
-                        .WithMany("Materiels")
-                        .HasForeignKey("BonSortieId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BonSortie");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Securite.Entities.Anomalie", b =>
-                {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Barriere", "Barriere")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Barriere", "Barriere")
                         .WithMany()
                         .HasForeignKey("BarriereId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("KCCMaterialFlow.Module.Securite.Entities.ScanEvenement", "ScanEvenement")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.ScanEvenement", "ScanEvenement")
                         .WithMany("Anomalies")
                         .HasForeignKey("ScanId")
                         .OnDelete(DeleteBehavior.Cascade);
@@ -4249,31 +4176,45 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("ScanEvenement");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Securite.Entities.HistoriqueScan", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Approbation", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Securite.Entities.ScanEvenement", "ScanEvenement")
-                        .WithMany()
-                        .HasForeignKey("ScanId")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonEntree", null)
+                        .WithMany("Approbations")
+                        .HasForeignKey("BonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("ScanEvenement");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Securite.Entities.ScanEvenement", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ApprobationSortie", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Barriere", "Barriere")
-                        .WithMany()
-                        .HasForeignKey("BarriereId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonSortie", null)
+                        .WithMany("Approbations")
+                        .HasForeignKey("BonId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Barriere");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Checkpoint", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonEntreeHistory", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Site", "Site")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonEntree", null)
+                        .WithMany("Historiques")
+                        .HasForeignKey("BonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonSortieHistory", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonSortie", null)
+                        .WithMany("Historiques")
+                        .HasForeignKey("BonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Checkpoint", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Site", "Site")
                         .WithMany()
                         .HasForeignKey("SiteId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4282,9 +4223,9 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Site");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Contrat", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Contrat", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Compagnie", "Compagnie")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Compagnie", "Compagnie")
                         .WithMany("Contrats")
                         .HasForeignKey("CompagnieId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -4293,13 +4234,13 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Compagnie");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Employee", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Employee", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Compagnie", "Compagnie")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Compagnie", "Compagnie")
                         .WithMany("Employees")
                         .HasForeignKey("CompagnieId");
 
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Departement", "Departement")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Departement", "Departement")
                         .WithMany("Employees")
                         .HasForeignKey("DepartementId");
 
@@ -4308,9 +4249,54 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Departement");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.PassageCheckpoint", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.HistoriqueScan", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Checkpoint", "Checkpoint")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.ScanEvenement", null)
+                        .WithMany()
+                        .HasForeignKey("ScanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ItinerairePrevu", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonEntree", null)
+                        .WithMany("ItinerairesPrevu")
+                        .HasForeignKey("BonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ItineraireSortie", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonSortie", null)
+                        .WithMany("Itineraires")
+                        .HasForeignKey("BonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Materiel", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonEntree", null)
+                        .WithMany("Materiels")
+                        .HasForeignKey("BonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.MaterielSortie", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonSortie", null)
+                        .WithMany("Materiels")
+                        .HasForeignKey("BonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.PassageCheckpoint", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Checkpoint", "Checkpoint")
                         .WithMany()
                         .HasForeignKey("CheckpointId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4319,9 +4305,9 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Checkpoint");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.RaisonSortie", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonSortie", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.CategorieSortie", "Categorie")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.CategorieSortie", "Categorie")
                         .WithMany("Raisons")
                         .HasForeignKey("CategorieId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4330,15 +4316,15 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Categorie");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.RolePermission", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RolePermission", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Permission", "Permission")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Permission", "Permission")
                         .WithMany("RolePermissions")
                         .HasForeignKey("IdPermission")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Role", "Role")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Role", "Role")
                         .WithMany("RolePermissions")
                         .HasForeignKey("IdRole")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4349,9 +4335,20 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Utilisateur", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ScanEvenement", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Role", "RolePrincipal")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Barriere", "Barriere")
+                        .WithMany()
+                        .HasForeignKey("BarriereId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Barriere");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Utilisateur", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Role", "RolePrincipal")
                         .WithMany()
                         .HasForeignKey("IdRole")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -4360,15 +4357,15 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("RolePrincipal");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.UtilisateurActivite", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.UtilisateurActivite", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Activite", "Activite")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Activite", "Activite")
                         .WithMany("UtilisateurActivites")
                         .HasForeignKey("IdActivite")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Utilisateur", "Utilisateur")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Utilisateur", "Utilisateur")
                         .WithMany("UtilisateurActivites")
                         .HasForeignKey("IdUtilisateur")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4379,15 +4376,15 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Utilisateur");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.UtilisateurRole", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.UtilisateurRole", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Role", "Role")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Role", "Role")
                         .WithMany("UtilisateurRoles")
                         .HasForeignKey("IdRole")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("KCCMaterialFlow.Module.Shared.Entities.Utilisateur", "Utilisateur")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Utilisateur", "Utilisateur")
                         .WithMany("UtilisateurRoles")
                         .HasForeignKey("IdUtilisateur")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4398,17 +4395,20 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Utilisateur");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.BonSortieExterne", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonSortieExterne", b =>
                 {
-                    b.HasOne("KCCMaterialFlow.Module.BonEntree.Entities.BonEntree", "BonEntreeAssocie")
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.BonEntree", null)
                         .WithMany()
                         .HasForeignKey("BonEntreeAssocieId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("BonEntreeAssocie");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonEntree.Entities.Bon", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Activite", b =>
+                {
+                    b.Navigation("UtilisateurActivites");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonEntree", b =>
                 {
                     b.Navigation("Approbations");
 
@@ -4419,7 +4419,7 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Materiels");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.BonSortie.Entities.BonSortie", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.BonSortie", b =>
                 {
                     b.Navigation("Approbations");
 
@@ -4430,46 +4430,41 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Materiels");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Securite.Entities.ScanEvenement", b =>
-                {
-                    b.Navigation("Anomalies");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Activite", b =>
-                {
-                    b.Navigation("UtilisateurActivites");
-                });
-
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.CategorieSortie", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.CategorieSortie", b =>
                 {
                     b.Navigation("Raisons");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Compagnie", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Compagnie", b =>
                 {
                     b.Navigation("Contrats");
 
                     b.Navigation("Employees");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Departement", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Departement", b =>
                 {
                     b.Navigation("Employees");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Permission", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Role", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Role", b =>
                 {
                     b.Navigation("RolePermissions");
 
                     b.Navigation("UtilisateurRoles");
                 });
 
-            modelBuilder.Entity("KCCMaterialFlow.Module.Shared.Entities.Utilisateur", b =>
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.ScanEvenement", b =>
+                {
+                    b.Navigation("Anomalies");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Utilisateur", b =>
                 {
                     b.Navigation("UtilisateurActivites");
 

@@ -1,6 +1,6 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -45,7 +45,7 @@ public class CategorieSortieService : ICategorieSortieService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         return await context.Set<CategorieSortie>()
-            .FirstOrDefaultAsync(c => c.IdCategorieSortie == id);
+            .FirstOrDefaultAsync(c => c.Id == id);
     }
 
     /// <inheritdoc />
@@ -74,7 +74,7 @@ public class CategorieSortieService : ICategorieSortieService
         if (categorie == null)
             return [];
 
-        return await GetRaisonsByCategorieIdAsync(categorie.IdCategorieSortie);
+        return await GetRaisonsByCategorieIdAsync(categorie.Id);
     }
 
     /// <inheritdoc />
@@ -83,7 +83,7 @@ public class CategorieSortieService : ICategorieSortieService
         await using var context = await _dbContextFactory.CreateDbContextAsync();
         return await context.Set<RaisonSortie>()
             .Include(r => r.Categorie)
-            .FirstOrDefaultAsync(r => r.IdRaisonSortie == id);
+            .FirstOrDefaultAsync(r => r.Id == id);
     }
 
     /// <inheritdoc />

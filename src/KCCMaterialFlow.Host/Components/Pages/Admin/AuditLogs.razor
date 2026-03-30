@@ -1,23 +1,17 @@
 @page "/admin/audit"
 @attribute [Authorize(Roles = "Admin")]
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @using Microsoft.AspNetCore.Authorization
 @inject IAuditLogService AuditLogService
 @inject NotificationService NotificationService
 
 <PageTitle>Administration - Journal d'Audit</PageTitle>
 
-<div style="padding: 1.5rem;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    <AdminNav />
     <RadzenStack Gap="1.5rem">
         @* En-tête *@
         <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
             <RadzenColumn>
-                <RadzenBreadCrumb>
-                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
-                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
-                    <RadzenBreadCrumbItem Text="Journal d'Audit" Icon="history" />
-                </RadzenBreadCrumb>
                 <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
                     <RadzenIcon Icon="history" Style="margin-right: 0.5rem; vertical-align: middle;" />
                     Journal d'Audit
@@ -34,35 +28,27 @@
         {
             <RadzenRow Gap="1rem">
                 <RadzenColumn Size="6" SizeMD="3">
-                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: #e3f2fd;">
-                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1976d2;">
-                            @stats.TotalActions
-                        </RadzenText>
-                        <RadzenText TextStyle="TextStyle.Caption">Total actions</RadzenText>
+                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: rgba(59,130,246,0.08);">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #2563eb;">@stats.TotalActions</div>
+                        <div style="font-size: 0.72rem; color: #666;">Total actions</div>
                     </RadzenCard>
                 </RadzenColumn>
                 <RadzenColumn Size="6" SizeMD="3">
-                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: #e8f5e9;">
-                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #388e3c;">
-                            @stats.TotalUsers
-                        </RadzenText>
-                        <RadzenText TextStyle="TextStyle.Caption">Utilisateurs</RadzenText>
+                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: rgba(5,150,105,0.08);">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">@stats.TotalUsers</div>
+                        <div style="font-size: 0.72rem; color: #666;">Utilisateurs</div>
                     </RadzenCard>
                 </RadzenColumn>
                 <RadzenColumn Size="6" SizeMD="3">
-                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: #fff3e0;">
-                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #f57c00;">
-                            @stats.ActionsByType.Count
-                        </RadzenText>
-                        <RadzenText TextStyle="TextStyle.Caption">Types d'actions</RadzenText>
+                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: rgba(245,158,11,0.08);">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #d97706;">@stats.ActionsByType.Count</div>
+                        <div style="font-size: 0.72rem; color: #666;">Types d'actions</div>
                     </RadzenCard>
                 </RadzenColumn>
                 <RadzenColumn Size="6" SizeMD="3">
-                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: #fce4ec;">
-                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #c2185b;">
-                            @stats.TotalErrors
-                        </RadzenText>
-                        <RadzenText TextStyle="TextStyle.Caption">Erreurs</RadzenText>
+                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: rgba(220,38,38,0.08);">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #dc2626;">@stats.TotalErrors</div>
+                        <div style="font-size: 0.72rem; color: #666;">Erreurs</div>
                     </RadzenCard>
                 </RadzenColumn>
             </RadzenRow>
@@ -123,71 +109,67 @@
                 <Columns>
                     <RadzenDataGridColumn TItem="AuditLog" Property="DateAction" Title="Date" Width="150px">
                         <Template Context="log">
-                            <RadzenStack Gap="0">
-                                <RadzenText TextStyle="TextStyle.Body2">
+                            <div>
+                                <div style="font-size: 0.78rem; font-weight: 600; color: #1a1a1a;">
                                     @log.DateAction.ToString("dd/MM/yyyy HH:mm")
-                                </RadzenText>
-                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
+                                </div>
+                                <div style="font-size: 0.72rem; color: #666;">
                                     @log.DateAction.ToString("ss")s
-                                </RadzenText>
-                            </RadzenStack>
+                                </div>
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="AuditLog" Title="Utilisateur" Width="150px">
                         <Template Context="log">
-                            <RadzenStack Gap="0">
-                                <RadzenText TextStyle="TextStyle.Body2" FontWeight="FontWeight.SemiBold">
-                                    @log.UtilisateurNom
-                                </RadzenText>
-                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
-                                    @log.UtilisateurLogin
-                                </RadzenText>
-                            </RadzenStack>
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.78rem; color: #1a1a1a;">@log.UtilisateurNom</div>
+                                <div style="font-size: 0.72rem; color: #666;">@log.UtilisateurLogin</div>
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="AuditLog" Property="TypeAction" Title="Action" Width="120px">
                         <Template Context="log">
-                            <RadzenBadge Text="@log.TypeAction" 
-                                         BadgeStyle="@GetActionBadgeStyle(log.TypeAction)" IsPill="true" />
+                            <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: @GetActionBackground(log.TypeAction); color: @GetActionColor(log.TypeAction);">
+                                @log.TypeAction
+                            </span>
                         </Template>
                     </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="AuditLog" Property="Categorie" Title="Catégorie" Width="120px">
                         <Template Context="log">
-                            <RadzenBadge Text="@log.Categorie" BadgeStyle="BadgeStyle.Light" IsPill="true" />
+                            <span style="font-size: 0.78rem; color: #374151;">@log.Categorie</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="AuditLog" Property="Description" Title="Détails">
                         <Template Context="log">
-                            <RadzenStack Gap="0">
-                                <RadzenText TextStyle="TextStyle.Body2">
-                                    @log.Description
-                                </RadzenText>
+                            <div>
+                                <div style="font-size: 0.78rem; color: #374151;">@log.Description</div>
                                 @if (!string.IsNullOrEmpty(log.EntiteId))
                                 {
-                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
+                                    <div style="font-size: 0.72rem; color: #666;">
                                         @log.EntiteType #@log.EntiteId
-                                    </RadzenText>
+                                    </div>
                                 }
-                            </RadzenStack>
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="AuditLog" Property="Niveau" Title="Niveau" Width="90px" TextAlign="TextAlign.Center">
                         <Template Context="log">
-                            <RadzenBadge Text="@log.Niveau" 
-                                         BadgeStyle="@GetNiveauBadgeStyle(log.Niveau)" IsPill="true" />
+                            <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: @GetNiveauBackground(log.Niveau); color: @GetNiveauColor(log.Niveau);">
+                                @log.Niveau
+                            </span>
                         </Template>
                     </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="AuditLog" Title="" Width="50px" TextAlign="TextAlign.Center" Sortable="false">
                         <Template Context="log">
                             @if (!string.IsNullOrEmpty(log.AncienneValeur) || !string.IsNullOrEmpty(log.NouvelleValeur))
                             {
-                                <RadzenButton Icon="compare_arrows" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                <RadzenButton Icon="compare_arrows" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
                                               Click="@(() => ShowDiff(log))" title="Voir les modifications" />
                             }
                         </Template>
@@ -241,7 +223,7 @@
         }
     }
 
-    private async Task LoadDataGrid(LoadDataArgs args)
+    private async Task LoadDataGrid(Radzen.LoadDataArgs args)
     {
         try
         {
@@ -286,25 +268,46 @@
         await SearchAsync();
     }
 
-    private BadgeStyle GetActionBadgeStyle(string action) => action switch
+    private static string GetActionBackground(string action) => action switch
     {
-        "Create" => BadgeStyle.Success,
-        "Update" => BadgeStyle.Info,
-        "Delete" => BadgeStyle.Danger,
-        "Approve" => BadgeStyle.Success,
-        "Reject" => BadgeStyle.Warning,
-        "Login" => BadgeStyle.Primary,
-        "Logout" => BadgeStyle.Light,
-        _ => BadgeStyle.Secondary
+        "Create" => "rgba(5,150,105,0.1)",
+        "Update" => "rgba(59,130,246,0.1)",
+        "Delete" => "rgba(220,38,38,0.1)",
+        "Approve" => "rgba(5,150,105,0.1)",
+        "Reject" => "rgba(245,158,11,0.1)",
+        "Login" => "rgba(37,99,235,0.1)",
+        "Logout" => "#f3f4f6",
+        _ => "#f3f4f6"
     };
 
-    private BadgeStyle GetNiveauBadgeStyle(string niveau) => niveau switch
+    private static string GetActionColor(string action) => action switch
     {
-        "Info" => BadgeStyle.Info,
-        "Warning" => BadgeStyle.Warning,
-        "Error" => BadgeStyle.Danger,
-        "Critical" => BadgeStyle.Danger,
-        _ => BadgeStyle.Light
+        "Create" => "#059669",
+        "Update" => "#2563eb",
+        "Delete" => "#dc2626",
+        "Approve" => "#059669",
+        "Reject" => "#d97706",
+        "Login" => "#2563eb",
+        "Logout" => "#374151",
+        _ => "#374151"
+    };
+
+    private static string GetNiveauBackground(string niveau) => niveau switch
+    {
+        "Info" => "rgba(59,130,246,0.1)",
+        "Warning" => "rgba(245,158,11,0.1)",
+        "Error" => "rgba(220,38,38,0.1)",
+        "Critical" => "rgba(220,38,38,0.1)",
+        _ => "#f3f4f6"
+    };
+
+    private static string GetNiveauColor(string niveau) => niveau switch
+    {
+        "Info" => "#2563eb",
+        "Warning" => "#d97706",
+        "Error" => "#dc2626",
+        "Critical" => "#dc2626",
+        _ => "#374151"
     };
 
     private async Task ShowDiff(AuditLog log)

@@ -1,13 +1,9 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.BonEntree.Entities;
-using KCCMaterialFlow.Module.BonSortie.Entities;
-using KCCMaterialFlow.Module.Securite.Entities;
-using KCCMaterialFlow.Module.Securite.Repositories;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using BonEntreeEntity = KCCMaterialFlow.Module.BonEntree.Entities.BonEntree;
-using BonSortieEntity = KCCMaterialFlow.Module.BonSortie.Entities.BonSortie;
 
-namespace KCCMaterialFlow.Infrastructure.Repositories.Securite;
+namespace KCCMaterialFlow.Infrastructure.Repositories;
 
 /// <summary>
 /// SEC-008: Implémentation du repository pour les événements de scan.
@@ -34,7 +30,7 @@ public class ScanRepository : IScanRepository
         return await _context.Set<ScanEvenement>()
             .Include(s => s.Barriere)
             .Include(s => s.Anomalies)
-            .FirstOrDefaultAsync(s => s.IdScan == id, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
     public async Task<ScanEvenement> CreateScanAsync(ScanEvenement scan, CancellationToken cancellationToken = default)
@@ -305,7 +301,7 @@ public class ScanRepository : IScanRepository
         using var context = _dbContextFactory.CreateDbContext();
         var itineraire = await context.Set<ItineraireSortie>()
             .AsNoTracking()
-            .Where(i => i.BonSortieId == bonSortieId && i.BarriereId == barriereId)
+            .Where(i => i.BonId == bonSortieId && i.BarriereId == barriereId)
             .FirstOrDefaultAsync(cancellationToken);
 
         return itineraire == null ? null : new ItineraireInfo { OrdrePassage = itineraire.OrdrePassage };
@@ -317,13 +313,13 @@ public class ScanRepository : IScanRepository
 
         if (typeBon == "BEM")
         {
-            var bon = await context.Set<BonEntreeEntity>()
+            var bon = await context.Set<BonEntree>()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(b => b.IdBon == bonId, cancellationToken);
+                .FirstOrDefaultAsync(b => b.Id == bonId, cancellationToken);
 
             return bon == null ? null : new ScanBonInfo
             {
-                IdBon = bon.IdBon,
+                IdBon = bon.Id,
                 NumeroReference = bon.NumeroReference,
                 Provenance = bon.Provenance,
                 Destination = bon.Destination,
@@ -333,13 +329,13 @@ public class ScanRepository : IScanRepository
         }
         else
         {
-            var bon = await context.Set<BonSortieEntity>()
+            var bon = await context.Set<BonSortie>()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(b => b.IdBon == bonId, cancellationToken);
+                .FirstOrDefaultAsync(b => b.Id == bonId, cancellationToken);
 
             return bon == null ? null : new ScanBonInfo
             {
-                IdBon = bon.IdBon,
+                IdBon = bon.Id,
                 NumeroReference = bon.NumeroReference,
                 Provenance = bon.Provenance,
                 Destination = bon.Destination,
@@ -353,7 +349,7 @@ public class ScanRepository : IScanRepository
     {
         using var context = _dbContextFactory.CreateDbContext();
         var itineraire = await context.Set<ItineraireSortie>()
-            .FirstOrDefaultAsync(i => i.BonSortieId == bonSortieId && i.BarriereId == barriereId, cancellationToken);
+            .FirstOrDefaultAsync(i => i.BonId == bonSortieId && i.BarriereId == barriereId, cancellationToken);
 
         if (itineraire != null)
         {

@@ -2,11 +2,3 @@
     background: white;
     min-height: 100vh;
 }
-
-/* Masquer les éléments Radzen globaux en mode impression */
-::deep .rz-dialog-wrapper,
-::deep .rz-notification,
-::deep .rz-tooltip,
-::deep .rz-contextmenu {
-    display: none !important;
-}

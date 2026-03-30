@@ -1,9 +1,10 @@
 @page "/"
 @attribute [Authorize]
-@using KCCMaterialFlow.Application.Interfaces
-@using KCCMaterialFlow.Module.BonEntree.Services
-@using KCCMaterialFlow.Module.BonSortie.Services
-@using KCCMaterialFlow.Module.Shared.Services
+@using BonEntreeEntity = KCCMaterialFlow.Domain.Entities.BonEntree
+@using BonSortieEntity = KCCMaterialFlow.Domain.Entities.BonSortie
+@using BonSortieExterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieExterne
+@using BonSortieInterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieInterne
+@using PretEntity = KCCMaterialFlow.Domain.Entities.Pret
 @inject NavigationManager Navigation
 @inject IBonEntreeService BonEntreeService
 @inject IBonSortieService BonSortieService
@@ -23,67 +24,67 @@
     @* === STATS GRID === *@
     <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" Gap="1rem">
         @* Bons d'entrée *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer;" @onclick="@(() => NavigateTo("/liste-bons/bem"))">
+        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: var(--kcc-info-light);" @onclick="@(() => NavigateTo("/liste-bons/bem"))">
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
                 <RadzenStack Gap="0.25rem">
                     <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Bons d'entrée</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; margin: 0;">@stats.TotalBEM</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-info); margin: 0;">@stats.TotalBEM</RadzenText>
                     <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">Total des entrées</RadzenText>
                 </RadzenStack>
                 <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: var(--kcc-info-light); color: var(--kcc-info);">
+                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-info);">
                     <RadzenIcon Icon="input" />
                 </RadzenStack>
             </RadzenStack>
         </RadzenCard>
 
         @* Bons de sortie *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer;" @onclick="@(() => NavigateTo("/liste-bons/bsm"))">
+        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: var(--kcc-primary-light);" @onclick="@(() => NavigateTo("/liste-bons/bsm"))">
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
                 <RadzenStack Gap="0.25rem">
                     <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Bons de sortie</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; margin: 0;">@stats.TotalBSM</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-primary); margin: 0;">@stats.TotalBSM</RadzenText>
                     <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">Total des sorties</RadzenText>
                 </RadzenStack>
                 <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: var(--kcc-primary-light); color: var(--kcc-primary);">
+                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-primary);">
                     <RadzenIcon Icon="output" />
                 </RadzenStack>
             </RadzenStack>
         </RadzenCard>
 
         @* En attente *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer;" @onclick="@(() => NavigateTo(isApprover ? "/mes-approbations" : "/suivi-bons"))">
+        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: var(--kcc-warning-light);" @onclick="@(() => NavigateTo(isApprover ? "/mes-approbations" : "/suivi-bons"))">
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
                 <RadzenStack Gap="0.25rem">
                     <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">En attente</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; margin: 0;">@stats.EnAttente</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-warning); margin: 0;">@stats.EnAttente</RadzenText>
                     <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">@(isApprover ? "À traiter" : "Mes demandes")</RadzenText>
                 </RadzenStack>
                 <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: var(--kcc-warning-light); color: var(--kcc-warning);">
+                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-warning);">
                     <RadzenIcon Icon="pending_actions" />
                 </RadzenStack>
             </RadzenStack>
         </RadzenCard>
 
         @* Approuvés *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer;" @onclick="@(() => NavigateTo("/liste-bons?statut=approuve"))">
+        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: rgba(5,150,105,0.08);" @onclick="@(() => NavigateTo("/liste-bons?statut=approuve"))">
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
                 <RadzenStack Gap="0.25rem">
                     <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Approuvés</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; margin: 0;">@stats.Approuves</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: #059669; margin: 0;">@stats.Approuves</RadzenText>
                     <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">Ce mois</RadzenText>
                 </RadzenStack>
                 <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: var(--kcc-primary-light); color: var(--kcc-primary);">
+                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: #059669;">
                     <RadzenIcon Icon="check_circle" />
                 </RadzenStack>
             </RadzenStack>
         </RadzenCard>
 
         @* Rejets *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; border-left: 3px solid var(--kcc-accent);" @onclick="@(() => NavigateTo("/liste-rejets"))">
+        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: var(--kcc-accent-light);" @onclick="@(() => NavigateTo("/liste-rejets"))">
             <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
                 <RadzenStack Gap="0.25rem">
                     <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Rejets</RadzenText>
@@ -91,7 +92,7 @@
                     <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">@(stats.RejetsNonLus > 0 ? $"{stats.RejetsNonLus} non lu(s)" : "Tous lus")</RadzenText>
                 </RadzenStack>
                 <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: var(--kcc-accent-light); color: var(--kcc-accent);">
+                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-accent);">
                     <RadzenIcon Icon="cancel" />
                 </RadzenStack>
             </RadzenStack>
@@ -143,7 +144,7 @@
                                     <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 500; margin: 0;">@entree.Reference</RadzenText>
                                     <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">@entree.NomEntreprise</RadzenText>
                                 </RadzenStack>
-                                <RadzenBadge Text="@entree.StatutLibelle" BadgeStyle="@GetBadgeStyleFromCode(entree.StatutCode)" IsPill="true" />
+                                <RadzenBadge Text="@entree.StatutLibelle" BadgeStyle="@GetBadgeStyleFromCode(entree.StatutCode)" />
                             </RadzenStack>
                         }
                     </RadzenStack>
@@ -189,7 +190,7 @@
                                     <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 500; margin: 0;">@sortie.Reference</RadzenText>
                                     <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">@sortie.NomEntreprise</RadzenText>
                                 </RadzenStack>
-                                <RadzenBadge Text="@sortie.StatutLibelle" BadgeStyle="@GetBadgeStyleFromCode(sortie.StatutCode)" IsPill="true" />
+                                <RadzenBadge Text="@sortie.StatutLibelle" BadgeStyle="@GetBadgeStyleFromCode(sortie.StatutCode)" />
                             </RadzenStack>
                         }
                     </RadzenStack>
@@ -255,8 +256,7 @@
             approverRoles = roles.Where(r => AllApproverRoles.Contains(r, StringComparer.OrdinalIgnoreCase)).ToList();
             isApprover = approverRoles.Any();
             
-            await LoadStatsAsync();
-            await LoadRecentBonsAsync();
+            await Task.WhenAll(LoadStatsAsync(), LoadRecentBonsAsync());
         }
         catch (Exception ex)
         {
@@ -277,60 +277,61 @@
             
             if (canSeeAll)
             {
-                // Admins voient les stats globales
-                var bemStats = await BonEntreeService.GetStatsAsync();
-                var bsmStats = await BonSortieService.GetStatsAsync();
-                
-                var pendingBEM = await BonEntreeService.GetPendingApprovalsAsync();
-                var pendingBSM = await BonSortieService.GetPendingApprovalsAsync();
-                
-                // Charger les rejets
-                var allRejets = await NotificationRejetService.GetNotificationsAsync();
-                var rejetsNonLus = await NotificationRejetService.CompterNotificationsNonLuesAsync();
-                
+                // Admins : lancer tous les appels en parallèle
+                var bemStatsTask = BonEntreeService.GetStatsAsync();
+                var bsmStatsTask = BonSortieService.GetStatsAsync();
+                var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
+                var pendingBSMTask = BonSortieService.GetPendingApprovalsAsync();
+                var allRejetsTask = NotificationRejetService.GetNotificationsAsync();
+                var rejetsNonLusTask = NotificationRejetService.CompterNotificationsNonLuesAsync();
+
+                await Task.WhenAll(bemStatsTask, bsmStatsTask, pendingBEMTask, pendingBSMTask, allRejetsTask, rejetsNonLusTask);
+
+                var bemStats = bemStatsTask.Result;
+                var bsmStats = bsmStatsTask.Result;
+
                 stats = new DashboardStats
                 {
                     TotalBEM = bemStats.TotalBons,
                     TotalBSM = bsmStats.TotalBons,
-                    EnAttente = pendingBEM.Count + pendingBSM.Count,
+                    EnAttente = pendingBEMTask.Result.Count + pendingBSMTask.Result.Count,
                     Approuves = bemStats.BonsApprouves + bsmStats.BonsApprouves,
-                    Rejetes = allRejets.Count(),
-                    RejetsNonLus = rejetsNonLus
+                    Rejetes = allRejetsTask.Result.Count(),
+                    RejetsNonLus = rejetsNonLusTask.Result
                 };
             }
             else if (isApprover)
             {
-                // Approbateurs voient leurs propres bons + les bons en attente d'approbation pour leur rôle
-                var myBEM = await BonEntreeService.GetListAsync(new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter { Take = 500 });
-                var myBSM = await BonSortieService.GetListAsync(new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter { Take = 500 });
-                
-                // Bons créés par l'utilisateur
-                var userBEM = myBEM.Items.Where(b => 
-                    b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                    b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase)).ToList();
-                    
-                var userBSM = myBSM.Items.Where(b => 
-                    b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                    b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
-                    b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)).ToList();
-                
-                // Bons en attente d'approbation pour ce rôle
-                var pendingBEM = await BonEntreeService.GetPendingApprovalsAsync();
-                var pendingBSM = await BonSortieService.GetPendingApprovalsAsync();
-                
+                // Approbateurs : bons propres (server-side) + pending approvals en parallèle
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentLogin, Take = 100 });
+                var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 100 });
+                var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
+                var pendingBSMTask = BonSortieService.GetPendingApprovalsAsync();
+                var allRejetsTask = NotificationRejetService.GetNotificationsAsync();
+
+                await Task.WhenAll(myBEMTask, myBSMTask, pendingBEMTask, pendingBSMTask, allRejetsTask);
+
+                var myBEM = myBEMTask.Result;
+                var myBSM = myBSMTask.Result;
+                var pendingBEM = pendingBEMTask.Result;
+                var pendingBSM = pendingBSMTask.Result;
+
+                var userBEM = myBEM.Items.ToList();
+                var userBSM = myBSM.Items.ToList();
+
                 // Calculer les totaux visibles (propres + pending, dédupliqués)
-                var allVisibleBEMIds = new HashSet<int>(userBEM.Select(b => b.IdBon));
-                foreach (var bon in pendingBEM) allVisibleBEMIds.Add(bon.IdBon);
-                
-                var allVisibleBSMIds = new HashSet<int>(userBSM.Select(b => b.IdBon));
-                foreach (var bon in pendingBSM) allVisibleBSMIds.Add(bon.IdBon);
-                
+                var allVisibleBEMIds = new HashSet<int>(userBEM.Select(b => b.Id));
+                foreach (var bon in pendingBEM) allVisibleBEMIds.Add(bon.Id);
+
+                var allVisibleBSMIds = new HashSet<int>(userBSM.Select(b => b.Id));
+                foreach (var bon in pendingBSM) allVisibleBSMIds.Add(bon.Id);
+
                 // Tous les bons visibles pour compter les approuvés
-                var allVisibleBEM = userBEM.Concat(pendingBEM.Where(b => !userBEM.Any(u => u.IdBon == b.IdBon))).ToList();
-                var allVisibleBSM = userBSM.Concat(pendingBSM.Where(b => !userBSM.Any(u => u.IdBon == b.IdBon))).ToList();
+                var allVisibleBEM = userBEM.Concat(pendingBEM.Where(b => !userBEM.Any(u => u.Id == b.Id))).ToList();
+                var allVisibleBSM = userBSM.Concat(pendingBSM.Where(b => !userBSM.Any(u => u.Id == b.Id))).ToList();
                 
                 // Charger les rejets liés à l'utilisateur
-                var allRejets = await NotificationRejetService.GetNotificationsAsync();
+                var allRejets = allRejetsTask.Result;
                 var userRejets = allRejets.Where(r => 
                     (r.DemandeurNom?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true) ||
                     (r.DemandeurNom?.Equals(currentName, StringComparison.OrdinalIgnoreCase) == true) ||
@@ -349,22 +350,18 @@
             }
             else
             {
-                // Utilisateurs normaux voient leurs propres stats
-                var myBEM = await BonEntreeService.GetListAsync(new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter { Take = 500 });
-                var myBSM = await BonSortieService.GetListAsync(new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter { Take = 500 });
-                
-                // Filtrer par utilisateur
-                var userBEM = myBEM.Items.Where(b => 
-                    b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                    b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase)).ToList();
-                    
-                var userBSM = myBSM.Items.Where(b => 
-                    b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                    b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
-                    b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)).ToList();
-                
+                // Utilisateurs normaux : filtrage server-side par demandeur
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentLogin, Take = 100 });
+                var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 100 });
+                var allRejetsTask = NotificationRejetService.GetNotificationsAsync();
+
+                await Task.WhenAll(myBEMTask, myBSMTask, allRejetsTask);
+
+                var userBEM = myBEMTask.Result.Items.ToList();
+                var userBSM = myBSMTask.Result.Items.ToList();
+
                 // Charger les rejets liés à l'utilisateur (comme demandeur)
-                var allRejets = await NotificationRejetService.GetNotificationsAsync();
+                var allRejets = allRejetsTask.Result;
                 var userRejets = allRejets.Where(r => 
                     (r.DemandeurNom?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true) ||
                     (r.DemandeurNom?.Equals(currentName, StringComparison.OrdinalIgnoreCase) == true)).ToList();
@@ -394,68 +391,65 @@
             
             if (canSeeAll)
             {
-                // Admins voient les 5 derniers bons (tous)
-                var allBEM = await BonEntreeService.GetListAsync(new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter { Take = 5 });
-                entreesRecentes = allBEM.Items.Select(b => new BonItem
+                // Admins : les 5 derniers bons en parallèle
+                var allBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Take = 5 });
+                var allBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Take = 5 });
+                await Task.WhenAll(allBEMTask, allBSMTask);
+
+                entreesRecentes = allBEMTask.Result.Items.Select(b => new BonItem
                 {
                     Reference = b.NumeroReference,
                     NomEntreprise = b.NomCompagnie ?? "N/A",
                     StatutCode = MapStatutCode(b.StatutActuel),
                     StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                    Url = $"/bon-entree/{b.IdBon}"
+                    Url = $"/bon-entree/{b.Id}"
                 }).ToList();
 
-                var allBSM = await BonSortieService.GetListAsync(new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter { Take = 5 });
-                sortiesRecentes = allBSM.Items.Select(b => new BonItem
+                sortiesRecentes = allBSMTask.Result.Items.Select(b => new BonItem
                 {
                     Reference = b.NumeroReference,
                     NomEntreprise = GetBSMType(b),
                     StatutCode = MapStatutCode(b.StatutActuel),
                     StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                    Url = $"/bon-sortie/{b.IdBon}"
+                    Url = $"/bon-sortie/{b.Id}"
                 }).ToList();
             }
             else
             {
-                // Utilisateurs normaux voient seulement leurs bons
-                var myBEM = await BonEntreeService.GetListAsync(new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter { Take = 50 });
-                entreesRecentes = myBEM.Items
-                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase))
-                    .Take(5)
+                // Utilisateurs normaux : filtrage server-side, seulement 5 résultats
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentLogin, Take = 5 });
+                var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 5 });
+                await Task.WhenAll(myBEMTask, myBSMTask);
+
+                entreesRecentes = myBEMTask.Result.Items
                     .Select(b => new BonItem
                     {
                         Reference = b.NumeroReference,
                         NomEntreprise = b.NomCompagnie ?? "N/A",
                         StatutCode = MapStatutCode(b.StatutActuel),
                         StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                        Url = $"/bon-entree/{b.IdBon}"
+                        Url = $"/bon-entree/{b.Id}"
                     }).ToList();
 
-                var myBSM = await BonSortieService.GetListAsync(new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter { Take = 50 });
-                sortiesRecentes = myBSM.Items
-                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
-                                b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase))
-                    .Take(5)
+                sortiesRecentes = myBSMTask.Result.Items
                     .Select(b => new BonItem
                     {
                         Reference = b.NumeroReference,
                         NomEntreprise = GetBSMType(b),
                         StatutCode = MapStatutCode(b.StatutActuel),
                         StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                        Url = $"/bon-sortie/{b.IdBon}"
+                        Url = $"/bon-sortie/{b.Id}"
                     }).ToList();
             }
         }
         catch { }
     }
 
-    private static string GetBSMType(KCCMaterialFlow.Module.BonSortie.Entities.BonSortie bon) => bon switch
+    private static string GetBSMType(BonSortieEntity bon) => bon switch
     {
-        KCCMaterialFlow.Module.BonSortie.Entities.Pret => "Prêt",
-        KCCMaterialFlow.Module.BonSortie.Entities.BonSortieInterne => "Interne",
-        KCCMaterialFlow.Module.BonSortie.Entities.BonSortieExterne => "Externe",
+        PretEntity => "Prêt",
+        BonSortieInterneEntity => "Interne",
+        BonSortieExterneEntity => "Externe",
         _ => "N/A"
     };
 

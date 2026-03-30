@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Domain.Enums;
 using Microsoft.Extensions.Logging;
 

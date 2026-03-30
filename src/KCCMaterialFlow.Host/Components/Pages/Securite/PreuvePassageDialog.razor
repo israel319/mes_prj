@@ -1,0 +1,126 @@
+@* SEC-031: Dialog Preuve de Passage *@
+
+<RadzenStack Gap="1rem">
+    @* En-tête *@
+    <div style="text-align: center; padding: 1rem; background-color: #48bb78; border-radius: 8px; color: white;">
+        <RadzenIcon Icon="verified" Style="font-size: 3rem;" />
+        <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" Style="color: white; margin-top: 0.5rem;">
+            PASSAGE CONFIRMÉ
+        </RadzenText>
+    </div>
+
+    @* Détails de la Preuve *@
+    <RadzenCard Variant="Variant.Flat" Style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+        <RadzenRow>
+            <RadzenColumn Size="6">
+                <RadzenStack Gap="0.75rem">
+                    <div>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Numéro de Preuve</RadzenText>
+                        <RadzenText FontWeight="FontWeight.Bold" Style="font-family: monospace; font-size: 1.1rem; color: #e31b23;">
+                            @Preuve.NumeroPreuve
+                        </RadzenText>
+                    </div>
+                    <div>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Date & Heure</RadzenText>
+                        <RadzenText FontWeight="FontWeight.Bold">@Preuve.DateHeure.ToString("dd/MM/yyyy HH:mm:ss")</RadzenText>
+                    </div>
+                    <div>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Barrière</RadzenText>
+                        <RadzenText FontWeight="FontWeight.Bold">@Preuve.NomBarriere</RadzenText>
+                    </div>
+                </RadzenStack>
+            </RadzenColumn>
+            <RadzenColumn Size="6">
+                <RadzenStack Gap="0.75rem">
+                    <div>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Référence Bon</RadzenText>
+                        <RadzenText FontWeight="FontWeight.Bold" Style="font-family: monospace;">@Preuve.NumeroReferenceBon</RadzenText>
+                    </div>
+                    <div>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Type</RadzenText>
+                        <RadzenBadge Text="@Preuve.TypeBon" BadgeStyle="BadgeStyle.Info" />
+                        <RadzenBadge Text="@Preuve.TypeMouvement" BadgeStyle="@(Preuve.TypeMouvement == "Entree" ? BadgeStyle.Success : BadgeStyle.Warning)" Style="margin-left: 0.25rem;" />
+                    </div>
+                    <div>
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Agent</RadzenText>
+                        <RadzenText FontWeight="FontWeight.Bold">@(Preuve.AgentNom ?? Preuve.AgentLogin)</RadzenText>
+                    </div>
+                </RadzenStack>
+            </RadzenColumn>
+        </RadzenRow>
+
+        <hr style="border: none; border-top: 1px dashed #e2e8f0; margin: 1rem 0;" />
+
+        <RadzenRow>
+            <RadzenColumn Size="6">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Provenance (FROM)</RadzenText>
+                <RadzenText FontWeight="FontWeight.Bold">@Preuve.Provenance</RadzenText>
+            </RadzenColumn>
+            <RadzenColumn Size="6">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Destination (TO)</RadzenText>
+                <RadzenText FontWeight="FontWeight.Bold">@Preuve.Destination</RadzenText>
+            </RadzenColumn>
+        </RadzenRow>
+
+        <div style="margin-top: 1rem; text-align: center;">
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Nombre de Matériels</RadzenText>
+            <RadzenText FontWeight="FontWeight.Bold" Style="font-size: 1.5rem; color: #e31b23;">@Preuve.NombreMateriels</RadzenText>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Preuve.Observations))
+        {
+            <div style="margin-top: 1rem; padding: 0.75rem; background-color: #f7fafc; border-radius: 6px;">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Observations</RadzenText>
+                <RadzenText>@Preuve.Observations</RadzenText>
+            </div>
+        }
+    </RadzenCard>
+
+    @* QR Code de Vérification *@
+    @if (!string.IsNullOrWhiteSpace(Preuve.QRCodeBase64))
+    {
+        <div style="text-align: center; padding: 1rem;">
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">QR Code de Vérification</RadzenText>
+            <div style="margin-top: 0.5rem;">
+                <img src="@Preuve.QRCodeBase64" alt="QR Code Preuve" style="max-width: 150px;" />
+            </div>
+        </div>
+    }
+
+    @* Boutons *@
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.Center">
+        <RadzenButton Text="Imprimer" Icon="print" ButtonStyle="ButtonStyle.Primary"
+                      Click="@PrintPreuve" Style="border-radius: 8px;" />
+        <RadzenButton Text="Fermer" Icon="close" ButtonStyle="ButtonStyle.Light"
+                      Click="@Close" Style="border-radius: 8px;" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter]
+    public PreuvePassage Preuve { get; set; } = new();
+
+    [Inject]
+    public DialogService DialogService { get; set; } = default!;
+
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async Task PrintPreuve()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("printPreuvePassage", Preuve);
+        }
+        catch
+        {
+            // Fallback: window.print()
+            await JSRuntime.InvokeVoidAsync("window.print");
+        }
+    }
+
+    private void Close()
+    {
+        DialogService.Close();
+    }
+}

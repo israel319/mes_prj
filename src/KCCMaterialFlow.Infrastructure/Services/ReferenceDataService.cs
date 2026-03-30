@@ -1,7 +1,6 @@
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -46,7 +45,7 @@ public class ReferenceDataService : IReferenceDataService
     public async Task<Compagnie?> GetCompagnieByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.Compagnies
-            .FirstOrDefaultAsync(c => c.IdCompagnie == id, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
     public async Task<Compagnie?> GetCompagnieByNomAsync(string nom, CancellationToken cancellationToken = default)
@@ -88,7 +87,7 @@ public class ReferenceDataService : IReferenceDataService
     {
         return await _context.Contrats
             .Include(c => c.Compagnie)
-            .FirstOrDefaultAsync(c => c.IdContrat == id, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
     #endregion
@@ -110,7 +109,7 @@ public class ReferenceDataService : IReferenceDataService
     public async Task<Departement?> GetDepartementByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.Departements
-            .FirstOrDefaultAsync(d => d.IdDepartement == id, cancellationToken);
+            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
     }
 
     #endregion
@@ -151,7 +150,7 @@ public class ReferenceDataService : IReferenceDataService
     public async Task<Site?> GetSiteByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.Sites
-            .FirstOrDefaultAsync(s => s.IdSite == id, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
     #endregion
@@ -205,7 +204,7 @@ public class ReferenceDataService : IReferenceDataService
         return await _context.Employees
             .Include(e => e.Departement)
             .Include(e => e.Compagnie)
-            .FirstOrDefaultAsync(e => e.IdEmployee == id, cancellationToken);
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
     public async Task<Employee?> GetEmployeeByLoginAsync(string login, CancellationToken cancellationToken = default)
@@ -284,7 +283,7 @@ public class ReferenceDataService : IReferenceDataService
     {
         return await _context.CategoriesSortie
             .Include(c => c.Raisons.Where(r => r.EstActif))
-            .FirstOrDefaultAsync(c => c.IdCategorieSortie == id, cancellationToken);
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
 
     public async Task<CategorieSortie?> GetCategorieSortieByCodeAsync(string code, CancellationToken cancellationToken = default)
@@ -327,7 +326,7 @@ public class ReferenceDataService : IReferenceDataService
     {
         return await _context.RaisonsSortie
             .Include(r => r.Categorie)
-            .FirstOrDefaultAsync(r => r.IdRaisonSortie == id, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
     #endregion

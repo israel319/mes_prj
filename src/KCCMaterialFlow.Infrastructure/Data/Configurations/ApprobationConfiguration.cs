@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonEntree.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -15,9 +15,9 @@ public class ApprobationConfiguration : IEntityTypeConfiguration<Approbation>
     {
         builder.ToTable("T_Approbations", "dbo");
 
-        builder.HasKey(a => a.IdApprobation);
+        builder.HasKey(a => a.Id);
 
-        builder.Property(a => a.IdApprobation)
+        builder.Property(a => a.Id)
             .HasColumnName("IdApprobation")
             .ValueGeneratedOnAdd();
 

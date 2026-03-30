@@ -1,6 +1,4 @@
-using KCCMaterialFlow.Application.Interfaces;
-using KCCMaterialFlow.Module.BonEntree.Services;
-using KCCMaterialFlow.Module.BonSortie.Services;
+using KCCMaterialFlow.Application.Common.Interfaces;
 
 namespace KCCMaterialFlow.Host.Services;
 

@@ -1,7 +1,5 @@
 @page "/admin/departements"
 @attribute [Authorize(Roles = "Admin")]
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @using Microsoft.AspNetCore.Authorization
 @inject IDepartementService DepartementService
 @inject IUtilisateurService UtilisateurService
@@ -12,16 +10,12 @@
 
 <PageTitle>Administration - Départements</PageTitle>
 
-<div style="padding: 1.5rem;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    <AdminNav />
     <RadzenStack Gap="1.5rem">
         @* En-tête *@
         <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
             <RadzenColumn>
-                <RadzenBreadCrumb>
-                    <RadzenBreadCrumbItem Path="/" Text="Accueil" Icon="home" />
-                    <RadzenBreadCrumbItem Text="Administration" Icon="settings" />
-                    <RadzenBreadCrumbItem Text="Départements" Icon="business" />
-                </RadzenBreadCrumb>
                 <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
                     <RadzenIcon Icon="business" Style="margin-right: 0.5rem; vertical-align: middle;" />
                     Gestion des Départements
@@ -68,72 +62,83 @@
                             PagerHorizontalAlign="HorizontalAlign.Center"
                             Style="border: none;">
                 <Columns>
-                    <RadzenDataGridColumn TItem="Departement" Property="CodeDepartement" Title="Code" Width="100px">
+                    <RadzenDataGridColumn TItem="Departement" Property="CodeDepartement" Title="Département" Width="280px">
                         <Template Context="dept">
-                            <RadzenBadge Text="@dept.CodeDepartement" BadgeStyle="BadgeStyle.Primary" IsPill="true" />
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div style="width: 28px; height: 28px; background: #003468;
+                                            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+                                            color: #fff; font-size: 11px; font-weight: 600;">
+                                    @dept.CodeDepartement[..Math.Min(2, dept.CodeDepartement.Length)]
+                                </div>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.8rem; color: #1a1a1a;">@dept.NomDepartement</div>
+                                    <div style="font-size: 0.72rem; color: #666;">@dept.CodeDepartement</div>
+                                </div>
+                            </div>
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Departement" Property="NomDepartement" Title="Nom" Width="250px" />
-                    
+
                     <RadzenDataGridColumn TItem="Departement" Property="Description" Title="Description">
                         <Template Context="dept">
-                            @(dept.Description ?? "-")
+                            <span style="font-size: 0.78rem; color: #555;">@(dept.Description ?? "—")</span>
                         </Template>
                     </RadzenDataGridColumn>
-                    
+
                     <RadzenDataGridColumn TItem="Departement" Property="ResponsableNom" Title="Responsable" Width="200px">
                         <Template Context="dept">
-                            <RadzenStack Gap="0">
-                                <RadzenText TextStyle="TextStyle.Body2" FontWeight="FontWeight.SemiBold">
-                                    @(dept.ResponsableNom ?? "-")
-                                </RadzenText>
-                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
-                                    @dept.ResponsableLogin
-                                </RadzenText>
-                            </RadzenStack>
+                            @if (!string.IsNullOrEmpty(dept.ResponsableNom))
+                            {
+                                <div>
+                                    <div style="font-weight: 600; font-size: 0.78rem; color: #1a1a1a;">@dept.ResponsableNom</div>
+                                    <div style="font-size: 0.72rem; color: #666;">@dept.ResponsableLogin</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <span style="color: #999;">—</span>
+                            }
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Departement" Property="ResponsableEmail" Title="Email responsable" Width="200px">
+
+                    <RadzenDataGridColumn TItem="Departement" Property="ResponsableEmail" Title="Email" Width="200px">
                         <Template Context="dept">
                             @if (!string.IsNullOrEmpty(dept.ResponsableEmail))
                             {
-                                <a href="mailto:@dept.ResponsableEmail" style="color: #0066cc;">@dept.ResponsableEmail</a>
+                                <span style="font-size: 0.78rem; color: #374151;">@dept.ResponsableEmail</span>
                             }
                             else
                             {
-                                <span style="color: #999;">-</span>
+                                <span style="color: #999;">—</span>
                             }
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Departement" Property="EstActif" Title="Statut" Width="100px" TextAlign="TextAlign.Center">
+
+                    <RadzenDataGridColumn TItem="Departement" Property="EstActif" Title="Statut" Width="80px" TextAlign="TextAlign.Center">
                         <Template Context="dept">
                             @if (dept.EstActif)
                             {
-                                <RadzenBadge Text="Actif" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                                <span style="font-size: 0.72rem; font-weight: 600; color: #059669;">Actif</span>
                             }
                             else
                             {
-                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Danger" IsPill="true" />
+                                <span style="font-size: 0.72rem; font-weight: 600; color: #dc2626;">Inactif</span>
                             }
                         </Template>
                     </RadzenDataGridColumn>
-                    
-                    <RadzenDataGridColumn TItem="Departement" Title="Actions" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
+
+                    <RadzenDataGridColumn TItem="Departement" Title="Actions" Width="90px" TextAlign="TextAlign.Center" Sortable="false">
                         <Template Context="dept">
                             <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
-                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
                                               Click="@(() => ShowEditDialog(dept))" title="Modifier" />
                                 @if (dept.EstActif)
                                 {
-                                    <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                    <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
                                                   Click="@(() => ToggleStatus(dept))" title="Désactiver" />
                                 }
                                 else
                                 {
-                                    <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                    <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
                                                   Click="@(() => ToggleStatus(dept))" title="Activer" />
                                 }
                             </RadzenStack>
@@ -260,7 +265,7 @@
                     dept.EstActif ? "Activate" : "Deactivate",
                     "Departement",
                     $"Département {dept.NomDepartement} {(dept.EstActif ? "activé" : "désactivé")}",
-                    dept.IdDepartement.ToString(),
+                    dept.Id.ToString(),
                     "Departement");
                 
                 await LoadDataAsync();

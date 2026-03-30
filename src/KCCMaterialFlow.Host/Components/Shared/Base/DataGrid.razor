@@ -1,0 +1,105 @@
+@namespace KCCMaterialFlow.Host.Components.Shared.Base
+@using Radzen
+@using Radzen.Blazor
+@typeparam TItem where TItem : class
+
+@* DataGrid configurable avec tri et pagination *@
+
+@if (IsLoading)
+{
+    <LoadingSpinner Text="Chargement des données..." />
+}
+else if (Items == null || !Items.Any())
+{
+    <div class="text-center py-5 text-muted">
+        <RadzenIcon Icon="inbox" Style="font-size: 3rem;" />
+        <p class="mt-2">@EmptyMessage</p>
+    </div>
+}
+else
+{
+    <RadzenDataGrid @ref="_grid"
+                    Data="@Items"
+                    TItem="TItem"
+                    AllowSorting="@AllowSorting"
+                    AllowFiltering="@AllowFiltering"
+                    AllowColumnResize="@AllowColumnResize"
+                    AllowPaging="@AllowPaging"
+                    PageSize="@PageSize"
+                    Count="@TotalCount"
+                    LoadData="@LoadData"
+                    PagerHorizontalAlign="HorizontalAlign.Center"
+                    ShowPagingSummary="true"
+                    PagingSummaryFormat="Page {0} sur {1} ({2} éléments)"
+                    RowSelect="@OnRowSelectInternal"
+                    RowDoubleClick="@OnRowDoubleClickInternal"
+                    class="@CssClass">
+        <Columns>
+            @ChildContent
+        </Columns>
+    </RadzenDataGrid>
+}
+
+@code {
+    private RadzenDataGrid<TItem>? _grid;
+
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public int TotalCount { get; set; }
+    [Parameter] public int PageSize { get; set; } = 20;
+    [Parameter] public int CurrentPage { get; set; } = 1;
+    [Parameter] public string EmptyMessage { get; set; } = "Aucun élément trouvé.";
+    [Parameter] public string? CssClass { get; set; }
+
+    [Parameter] public bool AllowSorting { get; set; } = true;
+    [Parameter] public bool AllowFiltering { get; set; } = false;
+    [Parameter] public bool AllowPaging { get; set; } = true;
+    [Parameter] public bool AllowColumnResize { get; set; } = true;
+    [Parameter] public bool ServerSide { get; set; } = false;
+
+    [Parameter] public EventCallback<int> OnPageChanged { get; set; }
+    [Parameter] public EventCallback<SortChangedEventArgs> OnSortChanged { get; set; }
+    [Parameter] public EventCallback<TItem> OnRowSelect { get; set; }
+    [Parameter] public EventCallback<TItem> OnRowDoubleClick { get; set; }
+    [Parameter] public EventCallback<LoadDataArgs> OnLoadData { get; set; }
+
+    private async Task LoadData(Radzen.LoadDataArgs args)
+    {
+        if (ServerSide && OnLoadData.HasDelegate)
+        {
+            var localArgs = new LoadDataArgs
+            {
+                Skip = args.Skip ?? 0,
+                Top = args.Top ?? PageSize,
+                OrderBy = args.OrderBy,
+                Filter = args.Filter
+            };
+            await OnLoadData.InvokeAsync(localArgs);
+        }
+    }
+
+    private async Task OnRowSelectInternal(TItem item)
+    {
+        await OnRowSelect.InvokeAsync(item);
+    }
+
+    private async Task OnRowDoubleClickInternal(DataGridRowMouseEventArgs<TItem> args)
+    {
+        await OnRowDoubleClick.InvokeAsync(args.Data);
+    }
+
+    public async Task ReloadAsync()
+    {
+        if (_grid != null)
+        {
+            await _grid.Reload();
+        }
+    }
+
+    public void Reset()
+    {
+        _grid?.Reset();
+    }
+}

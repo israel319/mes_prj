@@ -149,12 +149,15 @@ html, body {
     background-color: #f0f2f5 !important;
 }
 
-/* ============ HEADER — Blanc professionnel ============ */
+/* ============ HEADER — Topbar Slate ============ */
 .rz-header {
-    background-color: #ffffff !important;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    background-color: #253C45 !important;
+    border-bottom: none !important;
     box-shadow: none !important;
-    color: #1a1a1a;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
 }
 
 /* ============ SIDEBAR — Sombre #1e3038 ============ */
@@ -174,24 +177,30 @@ html, body {
 .rz-sidebar .sidebar-simple {
     background-color: #1e3038 !important;
     height: 100%;
-    padding: 0.75rem;
+    padding: 0.5rem 0;
 }
 
 /* Navigation dans sidebar (texte clair sur fond sombre) */
 .rz-panel-menu .rz-navigation-item {
-    border-radius: 8px !important;
-    margin: 2px 0;
+    border-radius: 0 !important;
+    margin: 0;
+    padding: 0;
 }
 
 .rz-panel-menu .rz-navigation-item-text {
     color: #D1D5DB;
 }
 
+.rz-panel-menu .rz-navigation-item > a,
+.rz-panel-menu .rz-navigation-item > .rz-navigation-item-link {
+    padding: 0.6rem 1rem !important;
+}
+
 .rz-panel-menu .rz-navigation-item:hover {
     background-color: rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Item actif : fond vert KCC arrondi */
+/* Item actif : fond vert KCC pleine largeur */
 .rz-panel-menu .rz-navigation-item-active {
     background-color: #00B193 !important;
 }
@@ -340,4 +349,588 @@ body {
 ::selection {
     background: rgba(0, 177, 147, 0.3);
     color: #FFFFFF;
+}
+
+/* ============ TOPBAR NAVIGATION ============ */
+.kcc-topbar {
+    width: 100%;
+    background: #253C45;
+}
+
+.kcc-topbar__inner {
+    display: flex;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    overflow: visible;
+    padding: 0 0.5rem;
+}
+
+/* ─── Brand / Logo ─── */
+.kcc-topbar__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    text-decoration: none !important;
+    flex-shrink: 0;
+}
+
+.kcc-topbar__brand-text {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #ffffff !important;
+    white-space: nowrap;
+}
+
+.kcc-topbar__brand-accent {
+    font-weight: 400;
+    color: #00B193 !important;
+}
+
+.kcc-topbar__sep {
+    width: 1px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 0.35rem;
+    flex-shrink: 0;
+}
+
+/* ─── Hamburger button (hidden on desktop) ─── */
+.kcc-topbar__burger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.kcc-topbar__burger:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Spacer ─── */
+.kcc-topbar__spacer {
+    flex: 1;
+}
+
+.kcc-topbar__tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    cursor: pointer;
+}
+
+.kcc-topbar__tab:hover {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.kcc-topbar__tab.active {
+    color: #00B193 !important;
+    border-bottom-color: #00B193;
+    font-weight: 600;
+}
+
+.kcc-topbar__icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* ============ CONTENU — Contraint a la largeur topbar ============ */
+.kcc-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* ============ TOPBAR — Dropdowns au survol ============ */
+.kcc-topbar__dropdown {
+    position: relative;
+}
+
+.kcc-topbar__dropdown > .kcc-topbar__tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    cursor: pointer;
+    user-select: none;
+}
+
+.kcc-topbar__dropdown > .kcc-topbar__tab:hover {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.kcc-topbar__dropdown > .kcc-topbar__tab.active {
+    color: #00B193 !important;
+    border-bottom-color: #00B193;
+    font-weight: 600;
+}
+
+.kcc-topbar__chevron {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    opacity: 0.6;
+    transition: transform 0.2s;
+}
+
+.kcc-topbar__dropdown:hover .kcc-topbar__chevron {
+    transform: rotate(180deg);
+}
+
+.kcc-topbar__dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 200px;
+    background: #253C45;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    padding: 0.25rem 0;
+}
+
+.kcc-topbar__dropdown:hover .kcc-topbar__dropdown-menu {
+    display: block;
+}
+
+.kcc-topbar__dropdown-item {
+    display: block;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.75) !important;
+    text-decoration: none !important;
+    white-space: nowrap;
+    transition: background 0.1s, color 0.1s;
+}
+
+.kcc-topbar__dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff !important;
+}
+
+.kcc-topbar__dropdown-item.active {
+    color: #00B193 !important;
+    background: rgba(0, 177, 147, 0.1);
+}
+
+/* ============ TOPBAR — Profil utilisateur a droite ============ */
+.kcc-topbar__user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    flex-shrink: 0;
+    cursor: default;
+}
+
+.kcc-topbar__avatar {
+    width: 28px;
+    height: 28px;
+    background: #00B193;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.kcc-topbar__username {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+}
+
+/* ============ FORMULAIRE BEM/BSM — Sections et champs ============ */
+/* Section cards : fond gris clair visible */
+.kcc-form-section {
+    background: #f8f9fa !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+}
+
+/* Input fields : fond blanc pour distinction */
+.kcc-form-section .rz-textbox,
+.kcc-form-section .rz-inputtext,
+.kcc-form-section .rz-dropdown,
+.kcc-form-section .rz-multiselect,
+.kcc-form-section .rz-datepicker,
+.kcc-form-section .rz-numeric,
+.kcc-form-section .rz-textarea,
+.kcc-form-section textarea {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Labels et texte des formulaires — opacité renforcée */
+.kcc-form-section .rz-form-field-label,
+.kcc-form-section label,
+.kcc-form-section .rz-placeholder,
+.rz-form-field-label {
+    color: #374151 !important;
+    opacity: 1 !important;
+}
+
+.kcc-form-section .rz-label,
+.kcc-form-section RadzenLabel {
+    color: #374151 !important;
+    opacity: 1 !important;
+}
+
+.rz-placeholder {
+    color: #6b7280 !important;
+    opacity: 1 !important;
+}
+
+.rz-dropdown .rz-dropdown-label,
+.rz-dropdown .rz-inputtext,
+.rz-dropdown .rz-dropdown-label.rz-placeholder {
+    color: #1a1a1a !important;
+}
+
+.rz-dropdown .rz-dropdown-label.rz-placeholder {
+    color: #6b7280 !important;
+}
+
+/* Radzen text dans formulaires */
+.kcc-form-section .rz-text,
+.kcc-form-section .rz-text-body2,
+.kcc-form-section .rz-text-subtitle2,
+.kcc-form-section span,
+.kcc-form-section p {
+    color: #1a1a1a;
+}
+
+/* Retirer les underlines des dropdowns et inputs */
+/* Radzen utilise border-block-end (pas border-bottom) et des pseudo-elements */
+.rz-dropdown,
+.rz-textbox,
+.rz-inputtext,
+.rz-numeric,
+.rz-datepicker,
+.rz-multiselect {
+    border-block-end: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+}
+
+/* Retirer pseudo-elements underline (form-field Variant.Text) */
+.rz-dropdown::after,
+.rz-dropdown::before,
+.rz-textbox::after,
+.rz-textbox::before,
+.rz-inputtext::after,
+.rz-inputtext::before,
+.rz-form-field::after,
+.rz-form-field::before,
+.rz-form-field-content::after,
+.rz-form-field-content::before,
+.rz-numeric::after,
+.rz-numeric::before,
+.rz-datepicker::after,
+.rz-datepicker::before,
+.rz-multiselect::after,
+.rz-multiselect::before {
+    display: none !important;
+    border: none !important;
+    border-block-end: none !important;
+    height: 0 !important;
+}
+
+/* Retirer underlines en hover et focus aussi */
+.rz-dropdown:hover,
+.rz-textbox:hover,
+.rz-inputtext:hover,
+.rz-numeric:hover,
+.rz-datepicker:hover,
+.rz-multiselect:hover,
+.rz-dropdown:not(:disabled):not(.rz-state-disabled):hover,
+.rz-textbox:not(:disabled):not(.rz-state-disabled):hover {
+    border-block-end: none !important;
+    border-bottom: none !important;
+}
+
+.rz-state-focused,
+.rz-dropdown.rz-state-focused,
+.rz-dropdown:not(:disabled):not(.rz-state-disabled):focus,
+.rz-textbox:focus,
+.rz-inputtext:focus {
+    border-block-end: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+}
+
+/* Forcer la suppression de la variable CSS Radzen pour le underline */
+.rz-dropdown,
+.rz-textbox,
+.rz-inputtext,
+.rz-numeric,
+.rz-datepicker,
+.rz-multiselect {
+    --rz-input-border-block-end: none !important;
+    --rz-input-hover-border-block-end: none !important;
+    --rz-input-focus-border-block-end: none !important;
+}
+
+/* Assurer que le border solid reste dans les sections formulaire */
+.kcc-form-section .rz-dropdown,
+.kcc-form-section .rz-textbox,
+.kcc-form-section .rz-inputtext,
+.kcc-form-section .rz-numeric,
+.kcc-form-section .rz-datepicker,
+.kcc-form-section .rz-multiselect,
+.kcc-form-section textarea {
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    background-color: #ffffff !important;
+}
+
+.kcc-form-section .rz-dropdown:hover,
+.kcc-form-section .rz-textbox:hover,
+.kcc-form-section .rz-inputtext:hover {
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+}
+
+.kcc-form-section .rz-dropdown.rz-state-focused,
+.kcc-form-section .rz-textbox:focus,
+.kcc-form-section .rz-inputtext:focus {
+    border: 1px solid #00B193 !important;
+    outline: none !important;
+}
+
+/* Bouton suppression (poubelle) rouge — classe Radzen = rz-variant-text */
+.rz-button.rz-variant-text.rz-danger,
+.rz-button.rz-variant-text.rz-danger.rz-shade-default {
+    color: #dc2626 !important;
+}
+
+.rz-button.rz-variant-text.rz-danger:hover,
+.rz-button.rz-variant-text.rz-danger:not(.rz-state-disabled):hover {
+    color: #b91c1c !important;
+    background-color: rgba(220, 38, 38, 0.08) !important;
+}
+
+/* Review panel : même fond gris clair */
+.kcc-review-panel {
+    background: #f8f9fa !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Actions form : fond visible */
+.kcc-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Bouton Brouillon : visible outline Slate */
+.kcc-btn-brouillon {
+    height: 44px;
+    padding: 0 1.5rem;
+    background: #ffffff !important;
+    color: #253C45 !important;
+    border: 1.5px solid #253C45 !important;
+    font-weight: 600;
+}
+
+.kcc-btn-brouillon:hover {
+    background: #253C45 !important;
+    color: #ffffff !important;
+}
+
+/* Bouton Soumettre : teal bien visible */
+.kcc-btn-soumettre {
+    height: 44px;
+    padding: 0 1.5rem;
+    background: #00B193 !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 600;
+}
+
+.kcc-btn-soumettre:hover {
+    background: #008F76 !important;
+}
+
+/* En-tête formulaire : fond gris visible */
+.kcc-form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #f8f9fa;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ============ ADMIN — Sous-navigation par onglets ============ */
+.kcc-admin-nav {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+}
+
+.kcc-admin-nav::-webkit-scrollbar { display: none; }
+.kcc-admin-nav { -ms-overflow-style: none; scrollbar-width: none; }
+
+.kcc-admin-nav__item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none !important;
+    color: #718096 !important;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.kcc-admin-nav__item:hover {
+    color: #253C45 !important;
+}
+
+.kcc-admin-nav__item.active {
+    color: #00B193 !important;
+    border-bottom-color: #00B193;
+    font-weight: 600;
+}
+
+/* ============ DIALOG CLEAN (sans titre Radzen) ============ */
+.kcc-dialog-clean .rz-dialog-titlebar {
+    display: none !important;
+}
+
+.kcc-dialog-clean .rz-dialog-content {
+    padding: 0 !important;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* ============ RESPONSIVE — Hamburger menu sous 1100px ============ */
+@media (max-width: 1100px) {
+    /* Afficher le hamburger */
+    .kcc-topbar__burger {
+        display: flex;
+    }
+
+    /* Cacher le séparateur brand/tabs */
+    .kcc-topbar__sep {
+        display: none;
+    }
+
+    /* Topbar inner : wrap pour que les tabs passent en ligne 2 */
+    .kcc-topbar__inner {
+        flex-wrap: wrap;
+    }
+
+    /* Cacher les onglets de navigation par défaut */
+    .kcc-topbar__tab--nav {
+        display: none !important;
+    }
+
+    /* Le spacer ne doit plus pousser mais prendre toute la place sur la 1ère ligne */
+    .kcc-topbar__spacer {
+        flex: 1;
+        order: 0;
+    }
+
+    /* Quand le menu est ouvert, afficher les tabs en colonne pleine largeur */
+    .kcc-topbar--open .kcc-topbar__tab--nav {
+        display: flex !important;
+        width: 100%;
+        padding: 0.65rem 1.25rem;
+        border-bottom: none;
+        border-left: 2px solid transparent;
+    }
+
+    .kcc-topbar--open .kcc-topbar__tab--nav:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .kcc-topbar--open .kcc-topbar__tab--nav.active,
+    .kcc-topbar--open .kcc-topbar__tab.active {
+        border-left-color: #00B193;
+        border-bottom-color: transparent;
+    }
+
+    /* Le dropdown Nouveau Bon en mobile : pleine largeur */
+    .kcc-topbar--open .kcc-topbar__dropdown.kcc-topbar__tab--nav {
+        display: block !important;
+        width: 100%;
+    }
+
+    .kcc-topbar--open .kcc-topbar__dropdown > .kcc-topbar__tab {
+        width: 100%;
+        padding: 0.65rem 1.25rem;
+        border-bottom: none;
+        border-left: 2px solid transparent;
+    }
+
+    .kcc-topbar--open .kcc-topbar__dropdown > .kcc-topbar__tab.active {
+        border-left-color: #00B193;
+    }
+
+    /* Le sous-menu dropdown en mobile : statique, pas de hover */
+    .kcc-topbar--open .kcc-topbar__dropdown-menu {
+        position: static;
+        display: none;
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .kcc-topbar--open .kcc-topbar__dropdown:hover .kcc-topbar__dropdown-menu {
+        display: block;
+    }
+
+    .kcc-topbar--open .kcc-topbar__dropdown-item {
+        padding: 0.55rem 1.25rem 0.55rem 2.75rem;
+    }
+
+    /* Profil utilisateur : toujours visible dans la barre */
+    .kcc-topbar__user {
+        order: 1;
+    }
 }

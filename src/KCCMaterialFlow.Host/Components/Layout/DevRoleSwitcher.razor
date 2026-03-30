@@ -1,7 +1,5 @@
 @namespace KCCMaterialFlow.Host.Components.Layout
 @using KCCMaterialFlow.Host.Services
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @using KCCMaterialFlow.Infrastructure.Services
 @implements IDisposable
 @inject DevRoleSwitcherService RoleSwitcher
@@ -56,7 +54,7 @@
                         <div class="simulated-roles">
                             @foreach (var role in RoleSwitcher.SimulatedRoles)
                             {
-                                <RadzenBadge Text="@role" BadgeStyle="@GetRoleBadgeStyle(role)" IsPill="true" />
+                                <RadzenBadge Text="@role" BadgeStyle="@GetRoleBadgeStyle(role)" />
                             }
                         </div>
                         <button class="reset-btn" @onclick="ClearSimulation">
@@ -93,7 +91,7 @@
                                         <span class="user-login">@user.Login</span>
                                         <div class="user-role-badges">
                                             <RadzenBadge Text="@(user.RolePrincipal?.CodeRole ?? "-")" BadgeStyle="@GetRoleBadgeStyle(user.RolePrincipal?.CodeRole ?? "")" 
-                                                        IsPill="true" Style="font-size: 0.65rem;" />
+                                                        Style="font-size: 0.65rem;" />
                                             @if (!string.IsNullOrEmpty(user.Departement))
                                             {
                                                 <span class="user-dept">@user.Departement</span>

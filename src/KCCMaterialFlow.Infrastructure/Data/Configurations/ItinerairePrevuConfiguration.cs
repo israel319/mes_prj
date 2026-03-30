@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonEntree.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -15,9 +15,9 @@ public class ItinerairePrevuConfiguration : IEntityTypeConfiguration<ItineraireP
     {
         builder.ToTable("T_ItinerairesPrevu", "dbo");
 
-        builder.HasKey(i => i.IdItineraire);
+        builder.HasKey(i => i.Id);
 
-        builder.Property(i => i.IdItineraire)
+        builder.Property(i => i.Id)
             .HasColumnName("IdItineraire")
             .ValueGeneratedOnAdd();
 

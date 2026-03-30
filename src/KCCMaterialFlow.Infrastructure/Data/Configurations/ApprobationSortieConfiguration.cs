@@ -1,9 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonEntree.Entities;
-
-using KCCMaterialFlow.Module.BonSortie.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -16,20 +14,20 @@ public class ApprobationSortieConfiguration : IEntityTypeConfiguration<Approbati
     {
         builder.ToTable("T_ApprobationsSortie", "dbo");
 
-        builder.HasKey(a => a.IdApprobation);
+        builder.HasKey(a => a.Id);
 
-        builder.Property(a => a.IdApprobation)
+        builder.Property(a => a.Id)
             .HasColumnName("IdApprobation")
             .ValueGeneratedOnAdd();
 
-        builder.Property(a => a.BonSortieId)
+        builder.Property(a => a.BonId)
             .HasColumnName("BonSortieId")
             .IsRequired();
 
         builder.Property(a => a.OrdreEtape)
             .HasColumnName("OrdreEtape");
 
-        builder.Property(a => a.RoleCode)
+        builder.Property(a => a.RoleApprobateur)
             .HasColumnName("RoleCode")
             .HasMaxLength(50)
             .IsRequired()
@@ -52,24 +50,24 @@ public class ApprobationSortieConfiguration : IEntityTypeConfiguration<Approbati
             .HasColumnName("ApprobateurLogin")
             .HasMaxLength(100);
 
-        builder.Property(a => a.ApprobateurNom)
+        builder.Property(a => a.NomApprobateur)
             .HasColumnName("ApprobateurNom")
             .HasMaxLength(200);
 
-        builder.Property(a => a.Commentaire)
+        builder.Property(a => a.ReservesEventuelles)
             .HasColumnName("Commentaire")
             .HasMaxLength(1000);
 
         // Index sur le bon de sortie
-        builder.HasIndex(a => a.BonSortieId)
+        builder.HasIndex(a => a.BonId)
             .HasDatabaseName("IX_ApprobationsSortie_BonSortieId");
 
         // Index sur l'ordre d'étape
-        builder.HasIndex(a => new { a.BonSortieId, a.OrdreEtape })
+        builder.HasIndex(a => new { a.BonId, a.OrdreEtape })
             .HasDatabaseName("IX_ApprobationsSortie_Etape");
 
         // Index RoleCode + Decision : clé de la requête "bons en attente pour mon rôle"
-        builder.HasIndex(a => new { a.RoleCode, a.Decision })
+        builder.HasIndex(a => new { a.RoleApprobateur, a.Decision })
             .HasDatabaseName("IX_ApprobationsSortie_RoleCode_Decision");
     }
 }

@@ -90,7 +90,6 @@
     width: 100%;
     border-collapse: collapse;
     margin-top: 8px;
-    flex-grow: 1;
 }
 
 .mat-tbl th,
@@ -112,10 +111,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.mat-tbl tbody {
-    height: 100%;
 }
 
 .total-row {
@@ -247,10 +242,6 @@
         z-index: 999999 !important;
         display: flex !important;
         flex-direction: column !important;
-    }
-
-    .mat-tbl {
-        flex-grow: 1;
     }
 
     .footer-bar {

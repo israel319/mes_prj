@@ -1,0 +1,82 @@
+@namespace KCCMaterialFlow.Host.Components.Shared.Workflow
+@using Radzen
+@using Radzen.Blazor
+@using KCCMaterialFlow.Domain.Constants
+
+@* Timeline historique des approbations - Simplifié *@
+
+<div class="@CssClass">
+    @if (Title != null)
+    {
+        <RadzenText TextStyle="TextStyle.H6" Style="margin-bottom: 1rem;"><RadzenIcon Icon="history" Style="margin-right: 0.5rem;" />@Title</RadzenText>
+    }
+
+    @if (Approvals == null || !Approvals.Any())
+    {
+        <div style="text-align: center; padding: 1.5rem 0; color: var(--rz-text-secondary-color);">
+            <RadzenIcon Icon="hourglass_empty" Style="font-size: 2rem;" />
+            <p style="margin-top: 0.5rem; margin-bottom: 0;">@EmptyMessage</p>
+        </div>
+    }
+    else
+    {
+        <div style="position: relative; padding-left: 30px;">
+            @foreach (var approval in Approvals)
+            {
+                <div style="position: relative; padding-bottom: 1.5rem; padding-left: 15px; border-left: 2px solid var(--rz-border-color);">
+                    <div style="position: absolute; left: -10px; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; @GetMarkerStyle(approval.Decision)">
+                        <RadzenIcon Icon="@GetIcon(approval.Decision)" Style="font-size: 0.8rem;" />
+                    </div>
+                    <div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <strong>@GetDecisionText(approval.Decision)</strong>
+                            @if (approval.DateAction.HasValue)
+                            {
+                                <small style="color: var(--rz-text-secondary-color);">@approval.DateAction.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(approval.Comment))
+                        {
+                            <p style="margin-top: 0.5rem; margin-bottom: 0; font-style: italic; color: var(--rz-text-secondary-color);">@approval.Comment</p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<ApprovalItem>? Approvals { get; set; }
+    [Parameter] public string? Title { get; set; } = "Historique";
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public string EmptyMessage { get; set; } = "Aucune approbation";
+
+    private string GetMarkerStyle(string decision) => decision switch
+    {
+        ApprobationDecisions.Approuve => "background-color: var(--rz-success);",
+        ApprobationDecisions.Rejete => "background-color: var(--rz-danger);",
+        _ => "background-color: var(--rz-warning); color: black;"
+    };
+
+    private string GetIcon(string decision) => decision switch
+    {
+        ApprobationDecisions.Approuve => "check",
+        ApprobationDecisions.Rejete => "close",
+        _ => "hourglass_empty"
+    };
+
+    private string GetDecisionText(string decision) => decision switch
+    {
+        ApprobationDecisions.Approuve => "Approuvé",
+        ApprobationDecisions.Rejete => "Rejeté",
+        _ => "En attente"
+    };
+
+    public class ApprovalItem
+    {
+        public string Decision { get; set; } = ApprobationDecisions.EnAttente;
+        public DateTime? DateAction { get; set; }
+        public string? Comment { get; set; }
+    }
+}

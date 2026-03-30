@@ -1,6 +1,6 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -66,7 +66,7 @@ public class DepartementService : IDepartementService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var departement = await context.Set<Departement>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(d => d.IdDepartement == id, cancellationToken);
+            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
 
         if (departement != null)
         {
@@ -121,8 +121,8 @@ public class DepartementService : IDepartementService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var existing = await context.Set<Departement>()
-            .FirstOrDefaultAsync(d => d.IdDepartement == departement.IdDepartement, cancellationToken)
-            ?? throw new InvalidOperationException($"Département {departement.IdDepartement} non trouvé");
+            .FirstOrDefaultAsync(d => d.Id == departement.Id, cancellationToken)
+            ?? throw new InvalidOperationException($"Département {departement.Id} non trouvé");
 
         existing.CodeDepartement = departement.CodeDepartement;
         existing.NomDepartement = departement.NomDepartement;

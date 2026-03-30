@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,7 +13,8 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
     {
         builder.ToTable("T_ParametresSysteme", "dbo");
 
-        builder.HasKey(p => p.IdParametre);
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id).HasColumnName("IdParametre").ValueGeneratedOnAdd();
 
         builder.Property(p => p.Cle)
             .IsRequired()
@@ -47,7 +48,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             // Catégorie: General
             new ParametreSysteme
             {
-                IdParametre = 1,
+                Id =1,
                 Cle = "APP_NOM",
                 Valeur = "KCC Material Flow",
                 TypeDonnee = "String",
@@ -60,7 +61,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 2,
+                Id =2,
                 Cle = "APP_VERSION",
                 Valeur = "1.0.0",
                 TypeDonnee = "String",
@@ -76,7 +77,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             // Catégorie: Workflow
             new ParametreSysteme
             {
-                IdParametre = 10,
+                Id =10,
                 Cle = "WORKFLOW_DUREE_VALIDITE_DEFAUT",
                 Valeur = "30",
                 TypeDonnee = "Integer",
@@ -93,7 +94,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 11,
+                Id =11,
                 Cle = "WORKFLOW_DELAI_RAPPEL_EXPIRATION",
                 Valeur = "3",
                 TypeDonnee = "Integer",
@@ -110,7 +111,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 12,
+                Id =12,
                 Cle = "WORKFLOW_DELAI_APPROBATION_MAX",
                 Valeur = "7",
                 TypeDonnee = "Integer",
@@ -129,7 +130,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             // Catégorie: Email
             new ParametreSysteme
             {
-                IdParametre = 20,
+                Id =20,
                 Cle = "EMAIL_ACTIVER_NOTIFICATIONS",
                 Valeur = "true",
                 TypeDonnee = "Boolean",
@@ -144,7 +145,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 21,
+                Id =21,
                 Cle = "EMAIL_EXPEDITEUR",
                 Valeur = "noreply@kccmaterialflow.local",
                 TypeDonnee = "String",
@@ -157,7 +158,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 22,
+                Id =22,
                 Cle = "EMAIL_ADMIN",
                 Valeur = "admin@kccmaterialflow.local",
                 TypeDonnee = "String",
@@ -172,7 +173,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             // Catégorie: Securite
             new ParametreSysteme
             {
-                IdParametre = 30,
+                Id =30,
                 Cle = "SECURITE_QRCODE_DUREE_VALIDITE",
                 Valeur = "60",
                 TypeDonnee = "Integer",
@@ -189,7 +190,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 31,
+                Id =31,
                 Cle = "SECURITE_MAX_SCANS_JOUR",
                 Valeur = "10",
                 TypeDonnee = "Integer",
@@ -205,7 +206,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 32,
+                Id =32,
                 Cle = "SECURITE_DETECTER_ANOMALIES_AUTO",
                 Valeur = "true",
                 TypeDonnee = "Boolean",
@@ -222,7 +223,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             // Catégorie: Interface
             new ParametreSysteme
             {
-                IdParametre = 40,
+                Id =40,
                 Cle = "UI_ITEMS_PAR_PAGE",
                 Valeur = "20",
                 TypeDonnee = "Integer",
@@ -239,7 +240,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 41,
+                Id =41,
                 Cle = "UI_THEME_DEFAUT",
                 Valeur = "light",
                 TypeDonnee = "String",
@@ -254,7 +255,7 @@ public class ParametreSystemeConfiguration : IEntityTypeConfiguration<ParametreS
             },
             new ParametreSysteme
             {
-                IdParametre = 42,
+                Id =42,
                 Cle = "UI_LANGUE_DEFAUT",
                 Valeur = "fr",
                 TypeDonnee = "String",

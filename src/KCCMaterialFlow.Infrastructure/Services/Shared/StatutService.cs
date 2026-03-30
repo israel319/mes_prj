@@ -1,6 +1,6 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -58,7 +58,7 @@ public class StatutService : IStatutService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var statut = await context.Set<Statut>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.IdStatut == id, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
         if (statut != null)
             _cache.Set(cacheKey, statut, CacheDuration);
@@ -114,10 +114,10 @@ public class StatutService : IStatutService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var existing = await context.Set<Statut>()
-            .FirstOrDefaultAsync(s => s.IdStatut == statut.IdStatut, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == statut.Id, cancellationToken);
 
         if (existing == null)
-            throw new InvalidOperationException($"Statut {statut.IdStatut} non trouvé");
+            throw new InvalidOperationException($"Statut {statut.Id} non trouvé");
 
         if (existing.EstSysteme)
         {
@@ -156,7 +156,7 @@ public class StatutService : IStatutService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var statut = await context.Set<Statut>()
-            .FirstOrDefaultAsync(s => s.IdStatut == id, cancellationToken);
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
 
         if (statut == null)
             return false;
@@ -181,7 +181,7 @@ public class StatutService : IStatutService
             .Where(s => s.CodeStatut.ToUpper() == code.ToUpper());
 
         if (excludeId.HasValue)
-            query = query.Where(s => s.IdStatut != excludeId.Value);
+            query = query.Where(s => s.Id != excludeId.Value);
 
         return await query.AnyAsync(cancellationToken);
     }
@@ -204,7 +204,7 @@ public class StatutService : IStatutService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await context.Set<Statut>()
             .AsNoTracking()
-            .Where(s => nextIds.Contains(s.IdStatut) && s.EstActif)
+            .Where(s => nextIds.Contains(s.Id) && s.EstActif)
             .OrderBy(s => s.Ordre)
             .ToListAsync(cancellationToken);
     }

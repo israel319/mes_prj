@@ -1,127 +1,673 @@
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @inject IActiviteService ActiviteService
 @inject ICurrentUserService CurrentUserService
 @inject DialogService DialogService
 @inject Microsoft.Extensions.Caching.Memory.IMemoryCache MemoryCache
 
-<RadzenStack Gap="1rem">
-    <RadzenCard Style="background: linear-gradient(135deg, var(--kcc-primary) 0%, var(--kcc-primary-dark) 100%); color: white; padding: 1rem 1.5rem; margin: -1rem -1rem 1.5rem -1rem; border-radius: 8px 8px 0 0;">
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-            <RadzenIcon Icon="task_alt" />
-            <RadzenText TextStyle="TextStyle.H6" Style="color: white; margin: 0; font-weight: 600;">Activités autorisées</RadzenText>
-        </RadzenStack>
-        <RadzenText TextStyle="TextStyle.Body2" Style="color: rgba(255,255,255,0.9); margin-top: 0.25rem;">@Utilisateur?.NomComplet</RadzenText>
-    </RadzenCard>
+<div class="kcc-modal">
+    @* ─── BANDEAU SUPÉRIEUR ─── *@
+    <div class="kcc-modal__topbar">
+        <div class="kcc-modal__topbar-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+        </div>
+        <div class="kcc-modal__topbar-text">
+            <h2 class="kcc-modal__title">Gérer les activités</h2>
+            <p class="kcc-modal__desc">Sélectionnez les activités autorisées pour cet utilisateur</p>
+        </div>
+        <button type="button" class="kcc-modal__close" @onclick="@Close" title="Fermer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
 
+    @* ─── FICHE UTILISATEUR ─── *@
+    <div class="kcc-modal__user-card">
+        <div class="kcc-modal__user-avatar">
+            @GetInitials(Utilisateur?.NomComplet)
+        </div>
+        <div class="kcc-modal__user-info">
+            <span class="kcc-modal__user-name">@Utilisateur?.NomComplet</span>
+            <span class="kcc-modal__user-login">@Utilisateur?.Login</span>
+        </div>
+        <div class="kcc-modal__user-stat">
+            <span class="kcc-modal__user-stat-num">@assignedActiviteIds.Count</span>
+            <span class="kcc-modal__user-stat-label">activité(s)</span>
+        </div>
+    </div>
+
+    @* ─── ACTIONS RAPIDES ─── *@
+    <div class="kcc-modal__toolbar">
+        <button type="button" class="kcc-modal__toolbar-btn" @onclick="@SelectAll">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <polyline points="9 11 12 14 22 4"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+            </svg>
+            Tout sélectionner
+        </button>
+        <button type="button" class="kcc-modal__toolbar-btn" @onclick="@DeselectAll">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            </svg>
+            Tout désélectionner
+        </button>
+        <span class="kcc-modal__toolbar-count">@assignedActiviteIds.Count / @allActivites.Count</span>
+    </div>
+
+    @* ─── INSTRUCTION ─── *@
+    <p class="kcc-modal__hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        Cliquez sur une activité pour l'activer ou la désactiver. Les modules sont regroupés par section.
+    </p>
+
+    @* ─── LISTE PAR MODULE ─── *@
     @if (isLoading)
     {
-        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem;">
-            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
-            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted);">Chargement des activités...</RadzenText>
-        </RadzenStack>
+        <div class="kcc-modal__empty">Chargement des activités...</div>
     }
     else if (!activitesGrouped.Any())
     {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter">
-            Aucune activité disponible dans le système.
-        </RadzenAlert>
+        <div class="kcc-modal__empty">Aucune activité disponible dans le système.</div>
     }
     else
     {
-        @* Barre d'actions rapides *@
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
-            <RadzenButton Text="Tout sélectionner" Icon="check_box" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                          Click="@SelectAll" />
-            <RadzenButton Text="Tout désélectionner" Icon="check_box_outline_blank" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                          Click="@DeselectAll" />
-            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin-left: auto;">
-                @assignedActiviteIds.Count / @allActivites.Count activités sélectionnées
-            </RadzenText>
-        </RadzenStack>
-
-        @* Liste groupée par module *@
-        <div style="max-height: 450px; overflow-y: auto; padding-right: 0.25rem;">
+        <div class="kcc-modal__list">
             @foreach (var group in activitesGrouped)
             {
                 var moduleLabel = GetModuleLabel(group.Key);
                 var moduleIcon = GetModuleIcon(group.Key);
-                var moduleColor = GetModuleColor(group.Key);
-                var allInModule = group.Value.Select(a => a.IdActivite).ToList();
+                var allInModule = group.Value.Select(a => a.Id).ToList();
                 var allSelected = allInModule.All(id => assignedActiviteIds.Contains(id));
-                var someSelected = !allSelected && allInModule.Any(id => assignedActiviteIds.Contains(id));
+                var isCollapsed = collapsedModules.Contains(group.Key);
+                var selectedCount = allInModule.Count(id => assignedActiviteIds.Contains(id));
 
-                <RadzenCard Style="margin-bottom: 0.75rem; padding: 0.75rem;">
-                    @* En-tête du module *@
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem"
-                                 Style="@($"cursor: pointer; padding-bottom: 0.5rem; border-bottom: 2px solid {moduleColor};")"
-                                 @onclick="@(() => ToggleModule(group.Key))">
-                        <RadzenIcon Icon="@moduleIcon" Style="@($"color: {moduleColor}; font-size: 1.2rem;")" />
-                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0; flex: 1;">@moduleLabel</RadzenText>
-                        <RadzenBadge Text="@($"{allInModule.Count(id => assignedActiviteIds.Contains(id))}/{allInModule.Count}")"
-                                     Style="@($"background: {moduleColor}; color: white;")" />
-                        <RadzenCheckBox TValue="bool" Value="@allSelected" @onclick:stopPropagation="true"
-                                        Change="@(val => ToggleAllInModule(group.Key, val))"
-                                        title="Sélectionner / Désélectionner tout le module"
-                                        Style="@(someSelected ? "opacity: 0.6;" : "")" />
-                    </RadzenStack>
+                @* En-tête module *@
+                <button type="button" class="kcc-modal__module-header" @onclick="@(() => ToggleModule(group.Key))">
+                    <div class="kcc-modal__module-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="@GetModuleIconPath(group.Key)"/>
+                        </svg>
+                    </div>
+                    <span class="kcc-modal__module-name">@moduleLabel</span>
+                    <span class="kcc-modal__module-count">@selectedCount/@allInModule.Count</span>
+                    <button type="button" class="kcc-modal__module-toggle-all @(allSelected ? "kcc-modal__module-toggle-all--on" : "")"
+                            @onclick="@(() => ToggleAllInModule(group.Key, !allSelected))" @onclick:stopPropagation="true"
+                            title="@(allSelected ? "Désélectionner le module" : "Sélectionner le module")">
+                        @if (allSelected)
+                        {
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        }
+                    </button>
+                    <svg class="kcc-modal__module-chevron @(isCollapsed ? "" : "kcc-modal__module-chevron--open")" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
 
-                    @* Activités du module *@
-                    @if (!collapsedModules.Contains(group.Key))
+                @* Activités du module *@
+                @if (!isCollapsed)
+                {
+                    @foreach (var activite in group.Value)
                     {
-                        <RadzenStack Gap="0.25rem" Style="margin-top: 0.5rem;">
-                            @foreach (var activite in group.Value)
-                            {
-                                var isAssigned = assignedActiviteIds.Contains(activite.IdActivite);
-                                <div style="@($"display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer; background: {(isAssigned ? "#e6f7f4" : "transparent")}; border: 1px solid {(isAssigned ? "var(--kcc-primary)" : "transparent")}; transition: all 0.15s;")"
-                                     @onclick="@(() => ToggleActivite(activite.IdActivite, !isAssigned))">
-                                    <RadzenCheckBox TValue="bool" Value="@isAssigned" @onclick:stopPropagation="true"
-                                                    Change="@(val => ToggleActivite(activite.IdActivite, val))" />
-                                    <RadzenStack Gap="0.1rem" Style="flex: 1;">
-                                        <RadzenText TextStyle="TextStyle.Body2" Style="@($"font-weight: {(isAssigned ? "600" : "400")}; color: var(--kcc-text); margin: 0;")">
-                                            @activite.NomActivite
-                                        </RadzenText>
-                                        @if (!string.IsNullOrEmpty(activite.Description))
-                                        {
-                                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light); margin: 0;">
-                                                @activite.Description
-                                            </RadzenText>
-                                        }
-                                    </RadzenStack>
-                                    @if (!string.IsNullOrEmpty(activite.Categorie))
+                        var isAssigned = assignedActiviteIds.Contains(activite.Id);
+                        <button type="button"
+                                class="kcc-modal__item @(isAssigned ? "kcc-modal__item--on" : "")"
+                                @onclick="@(() => ToggleActivite(activite.Id, !isAssigned))">
+
+                            <div class="kcc-modal__item-indicator @(isAssigned ? "kcc-modal__item-indicator--on" : "")"></div>
+
+                            <div class="kcc-modal__item-body">
+                                <div class="kcc-modal__item-top">
+                                    <span class="kcc-modal__item-name">@activite.NomActivite</span>
+                                    @if (!string.IsNullOrEmpty(activite.CodeActivite))
                                     {
-                                        <RadzenBadge Text="@activite.Categorie" Style="background: #f3f4f6; color: #6b7280; font-size: 0.7rem;" />
+                                        <span class="kcc-modal__item-badge">@activite.CodeActivite</span>
                                     }
                                 </div>
-                            }
-                        </RadzenStack>
+                                @if (!string.IsNullOrEmpty(activite.Description))
+                                {
+                                    <span class="kcc-modal__item-desc">@activite.Description</span>
+                                }
+                            </div>
+
+                            <div class="kcc-modal__item-toggle @(isAssigned ? "kcc-modal__item-toggle--on" : "")">
+                                <div class="kcc-modal__item-toggle-dot"></div>
+                            </div>
+                        </button>
                     }
-                </RadzenCard>
+                }
             }
         </div>
-
-        @if (HasChanges)
-        {
-            <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" AllowClose="false">
-                <strong>Modifications en attente:</strong>
-                @if (addedActivites.Any())
-                {
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-primary); display: inline;"> +@addedActivites.Count ajoutée(s)</RadzenText>
-                }
-                @if (removedActivites.Any())
-                {
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: #dc2626; display: inline;"> -@removedActivites.Count retirée(s)</RadzenText>
-                }
-            </RadzenAlert>
-        }
     }
 
-    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" class="rz-mt-2">
-        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Close" />
-        <RadzenButton Text="Enregistrer" ButtonStyle="ButtonStyle.Primary" Click="@Save"
-                      Icon="save" Disabled="@(!HasChanges || isSaving)" IsBusy="@isSaving" />
-    </RadzenStack>
-</RadzenStack>
+    @* ─── BARRE DE CHANGEMENTS ─── *@
+    @if (HasChanges)
+    {
+        <div class="kcc-modal__changes">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </svg>
+            <span>Modifications non enregistrées</span>
+            @if (addedActivites.Any())
+            {
+                <span class="kcc-modal__changes-add">+@addedActivites.Count</span>
+            }
+            @if (removedActivites.Any())
+            {
+                <span class="kcc-modal__changes-rm">-@removedActivites.Count</span>
+            }
+        </div>
+    }
+
+    @* ─── ACTIONS ─── *@
+    <div class="kcc-modal__footer">
+        <button type="button" class="kcc-modal__btn kcc-modal__btn--ghost" @onclick="@Close">
+            Annuler
+        </button>
+        <button type="button" class="kcc-modal__btn kcc-modal__btn--primary" @onclick="@Save" disabled="@(!HasChanges || isSaving)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Enregistrer les activités
+        </button>
+    </div>
+</div>
+
+<style>
+    /* ============================================================
+       KCC MODAL — Activités Dialog
+       Mêmes styles que le Roles Dialog
+       Couleurs : Vert #00B193 | Cuivre #BB8748 | Slate #253C45
+       Border-radius : 0 partout
+       ============================================================ */
+
+    .kcc-modal {
+        display: flex;
+        flex-direction: column;
+        background: #ffffff;
+    }
+
+    /* ─── BANDEAU SUPÉRIEUR ─── */
+    .kcc-modal__topbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.25rem 1.5rem;
+        background: #253C45;
+        color: #ffffff;
+    }
+
+    .kcc-modal__topbar-icon {
+        width: 38px;
+        height: 38px;
+        background: rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #ffffff;
+    }
+
+    .kcc-modal__title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+    }
+
+    .kcc-modal__desc {
+        margin: 0;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .kcc-modal__topbar-text {
+        flex: 1;
+    }
+
+    .kcc-modal__close {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__close:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+    }
+
+    /* ─── FICHE UTILISATEUR ─── */
+    .kcc-modal__user-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        background: #f8f9fb;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .kcc-modal__user-avatar {
+        width: 40px;
+        height: 40px;
+        background: #BB8748;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__user-info {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .kcc-modal__user-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #1a1a1a;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .kcc-modal__user-login {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .kcc-modal__user-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.3rem 0.75rem;
+        background: rgba(0, 177, 147, 0.08);
+        border: 1px solid rgba(0, 177, 147, 0.2);
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__user-stat-num {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #00B193;
+        line-height: 1;
+    }
+
+    .kcc-modal__user-stat-label {
+        font-size: 0.65rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    /* ─── TOOLBAR ─── */
+    .kcc-modal__toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .kcc-modal__toolbar-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        font-family: inherit;
+        background: #f3f4f6;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        color: #4a5568;
+        cursor: pointer;
+    }
+
+    .kcc-modal__toolbar-btn:hover {
+        background: #e5e7eb;
+    }
+
+    .kcc-modal__toolbar-count {
+        margin-left: auto;
+        font-size: 0.72rem;
+        color: #6b7280;
+    }
+
+    /* ─── INSTRUCTION ─── */
+    .kcc-modal__hint {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0;
+        padding: 0.6rem 1.5rem;
+        font-size: 0.75rem;
+        color: #6b7280;
+        background: #ffffff;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .kcc-modal__hint svg {
+        flex-shrink: 0;
+        color: #BB8748;
+    }
+
+    /* ─── EMPTY ─── */
+    .kcc-modal__empty {
+        padding: 2rem 1.5rem;
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+
+    /* ─── LISTE ─── */
+    .kcc-modal__list {
+        display: flex;
+        flex-direction: column;
+        max-height: 380px;
+        overflow-y: auto;
+        padding: 0.5rem 0;
+    }
+
+    /* ─── MODULE HEADER ─── */
+    .kcc-modal__module-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.5rem;
+        background: #f8f9fb;
+        border: none;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        font-family: inherit;
+    }
+
+    .kcc-modal__module-header:hover {
+        background: #f0f2f5;
+    }
+
+    .kcc-modal__module-icon {
+        width: 28px;
+        height: 28px;
+        background: rgba(37, 60, 69, 0.08);
+        color: #253C45;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__module-name {
+        flex: 1;
+        font-weight: 600;
+        font-size: 0.82rem;
+        color: #253C45;
+    }
+
+    .kcc-modal__module-count {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #6b7280;
+        padding: 0.1rem 0.4rem;
+        background: rgba(0, 0, 0, 0.04);
+    }
+
+    .kcc-modal__module-toggle-all {
+        width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        color: transparent;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__module-toggle-all--on {
+        background: #00B193;
+        border-color: #00B193;
+        color: #ffffff;
+    }
+
+    .kcc-modal__module-chevron {
+        flex-shrink: 0;
+        color: #9ca3af;
+        transition: transform 0.15s;
+    }
+
+    .kcc-modal__module-chevron--open {
+        transform: rotate(180deg);
+    }
+
+    /* ─── ITEM ─── */
+    .kcc-modal__item {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        padding: 0;
+        margin: 0 0.75rem;
+        border: 1px solid transparent;
+        background: #ffffff;
+        cursor: pointer;
+        width: calc(100% - 1.5rem);
+        text-align: left;
+        font-family: inherit;
+        font-size: inherit;
+        transition: background-color 0.1s, border-color 0.1s;
+        position: relative;
+    }
+
+    .kcc-modal__item + .kcc-modal__item {
+        margin-top: 0.25rem;
+    }
+
+    .kcc-modal__item:hover:not(:disabled) {
+        background: #f9fafb;
+        border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .kcc-modal__item--on {
+        background: rgba(0, 177, 147, 0.03);
+        border-color: rgba(0, 177, 147, 0.25);
+    }
+
+    .kcc-modal__item--on:hover:not(:disabled) {
+        background: rgba(0, 177, 147, 0.06);
+        border-color: rgba(0, 177, 147, 0.4);
+    }
+
+    .kcc-modal__item-indicator {
+        width: 3px;
+        align-self: stretch;
+        background: transparent;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__item-indicator--on {
+        background: #00B193;
+    }
+
+    .kcc-modal__item-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        padding: 0.5rem 0.75rem;
+        min-width: 0;
+    }
+
+    .kcc-modal__item-top {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
+    .kcc-modal__item-name {
+        font-weight: 600;
+        font-size: 0.82rem;
+        color: #1a1a1a;
+    }
+
+    .kcc-modal__item-badge {
+        font-size: 0.6rem;
+        font-weight: 700;
+        padding: 0.1rem 0.35rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        background: rgba(37, 60, 69, 0.08);
+        color: #253C45;
+    }
+
+    .kcc-modal__item-desc {
+        font-size: 0.72rem;
+        color: #6b7280;
+        line-height: 1.3;
+    }
+
+    /* Toggle switch */
+    .kcc-modal__item-toggle {
+        width: 36px;
+        height: 20px;
+        background: #d1d5db;
+        position: relative;
+        flex-shrink: 0;
+        margin-right: 0.75rem;
+        transition: background-color 0.15s;
+    }
+
+    .kcc-modal__item-toggle--on {
+        background: #00B193;
+    }
+
+    .kcc-modal__item-toggle-dot {
+        width: 16px;
+        height: 16px;
+        background: #ffffff;
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        transition: transform 0.15s;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    .kcc-modal__item-toggle--on .kcc-modal__item-toggle-dot {
+        transform: translateX(16px);
+    }
+
+    /* ─── BARRE CHANGEMENTS ─── */
+    .kcc-modal__changes {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 1.5rem;
+        background: #FFF8EE;
+        border-top: 1px solid #BB8748;
+        border-bottom: 1px solid #BB8748;
+        font-size: 0.78rem;
+        color: #92400e;
+    }
+
+    .kcc-modal__changes svg {
+        color: #BB8748;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__changes-add {
+        font-weight: 700;
+        color: #00B193;
+    }
+
+    .kcc-modal__changes-rm {
+        font-weight: 700;
+        color: #dc2626;
+    }
+
+    /* ─── FOOTER ─── */
+    .kcc-modal__footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        background: #f8f9fb;
+    }
+
+    .kcc-modal__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.55rem 1.25rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        font-family: inherit;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.1s;
+    }
+
+    .kcc-modal__btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .kcc-modal__btn--ghost {
+        background: #ffffff;
+        color: #4a4a4a;
+        border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    .kcc-modal__btn--ghost:hover:not(:disabled) {
+        background: #f0f2f5;
+    }
+
+    .kcc-modal__btn--primary {
+        background: #00B193;
+        color: #ffffff;
+        border-color: #00B193;
+    }
+
+    .kcc-modal__btn--primary:hover:not(:disabled) {
+        background: #008F76;
+        border-color: #008F76;
+    }
+
+    /* Scrollbar */
+    .kcc-modal__list::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .kcc-modal__list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .kcc-modal__list::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+    }
+</style>
 
 @code {
     [Parameter]
@@ -145,12 +691,10 @@
 
         try
         {
-            // Charger toutes les activités groupées par module
             activitesGrouped = await ActiviteService.GetActivitesGroupedByModuleAsync();
             allActivites = activitesGrouped.SelectMany(g => g.Value).ToList();
 
-            // Charger les activités assignées à cet utilisateur
-            var userActiviteIds = await ActiviteService.GetActiviteIdsForUserAsync(Utilisateur.IdUtilisateur);
+            var userActiviteIds = await ActiviteService.GetActiviteIdsForUserAsync(Utilisateur.Id);
             assignedActiviteIds = userActiviteIds.ToList();
             originalActiviteIds = [.. assignedActiviteIds];
         }
@@ -167,27 +711,20 @@
     private void ToggleActivite(int activiteId, bool assigned)
     {
         if (assigned && !assignedActiviteIds.Contains(activiteId))
-        {
             assignedActiviteIds.Add(activiteId);
-        }
         else if (!assigned && assignedActiviteIds.Contains(activiteId))
-        {
             assignedActiviteIds.Remove(activiteId);
-        }
     }
 
     private void ToggleAllInModule(string module, bool selectAll)
     {
         if (!activitesGrouped.ContainsKey(module)) return;
-
-        var moduleIds = activitesGrouped[module].Select(a => a.IdActivite).ToList();
+        var moduleIds = activitesGrouped[module].Select(a => a.Id).ToList();
 
         if (selectAll)
         {
             foreach (var id in moduleIds.Where(id => !assignedActiviteIds.Contains(id)))
-            {
                 assignedActiviteIds.Add(id);
-            }
         }
         else
         {
@@ -198,14 +735,12 @@
     private void ToggleModule(string module)
     {
         if (!collapsedModules.Remove(module))
-        {
             collapsedModules.Add(module);
-        }
     }
 
     private void SelectAll()
     {
-        assignedActiviteIds = allActivites.Select(a => a.IdActivite).ToList();
+        assignedActiviteIds = allActivites.Select(a => a.Id).ToList();
     }
 
     private void DeselectAll()
@@ -222,13 +757,11 @@
         {
             var currentLogin = CurrentUserService.GetUserLogin();
             await ActiviteService.UpdateUserActivitesAsync(
-                Utilisateur.IdUtilisateur,
+                Utilisateur.Id,
                 assignedActiviteIds,
                 currentLogin);
 
-            // Invalider le cache des activités de cet utilisateur
             MemoryCache.Remove($"DbActivites_{Utilisateur.Login}");
-
             DialogService.Close(true);
         }
         catch (Exception ex)
@@ -241,6 +774,15 @@
     private void Close()
     {
         DialogService.Close(false);
+    }
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[^1][0])}";
+        return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
     }
 
     private static string GetModuleLabel(string module) => module switch
@@ -263,13 +805,13 @@
         _ => "category"
     };
 
-    private static string GetModuleColor(string module) => module switch
+    private static string GetModuleIconPath(string module) => module switch
     {
-        "BonEntree" => "#0891b2",
-        "BonSortie" => "#d97706",
-        "Securite" => "#dc2626",
-        "Admin" => "#7c3aed",
-        "Transversal" => "#059669",
-        _ => "#6b7280"
+        "BonEntree" => "M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M13.8 12H3",
+        "BonSortie" => "M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9",
+        "Securite" => "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+        "Admin" => "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4",
+        "Transversal" => "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3",
+        _ => "M4 6h16M4 12h16M4 18h16"
     };
 }

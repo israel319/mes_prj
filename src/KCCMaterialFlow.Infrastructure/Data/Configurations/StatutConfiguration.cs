@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,7 +13,8 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
     {
         builder.ToTable("T_Statuts", "dbo");
 
-        builder.HasKey(s => s.IdStatut);
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.Id).HasColumnName("IdStatut").ValueGeneratedOnAdd();
 
         builder.Property(s => s.CodeStatut)
             .IsRequired()
@@ -45,7 +46,7 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
             // Statuts communs
             new Statut
             {
-                IdStatut = 1,
+                Id =1,
                 CodeStatut = "BROUILLON",
                 LibelleStatut = "Brouillon",
                 Description = "Bon en cours de création",
@@ -63,7 +64,7 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
             },
             new Statut
             {
-                IdStatut = 2,
+                Id =2,
                 CodeStatut = "EN_ATTENTE_APPROBATION",
                 LibelleStatut = "En attente d'approbation",
                 Description = "Bon soumis, en attente de validation",
@@ -81,7 +82,7 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
             },
             new Statut
             {
-                IdStatut = 3,
+                Id =3,
                 CodeStatut = "APPROUVE",
                 LibelleStatut = "Approuvé",
                 Description = "Bon approuvé par le responsable",
@@ -99,7 +100,7 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
             },
             new Statut
             {
-                IdStatut = 4,
+                Id =4,
                 CodeStatut = "REJETE",
                 LibelleStatut = "Rejeté",
                 Description = "Bon rejeté par le responsable",
@@ -116,7 +117,7 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
             },
             new Statut
             {
-                IdStatut = 5,
+                Id =5,
                 CodeStatut = "EN_COURS",
                 LibelleStatut = "En cours",
                 Description = "Matériel en cours d'utilisation/sortie",
@@ -134,7 +135,7 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
             },
             new Statut
             {
-                IdStatut = 6,
+                Id =6,
                 CodeStatut = "TERMINE",
                 LibelleStatut = "Terminé",
                 Description = "Processus terminé avec succès",
@@ -151,7 +152,7 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
             },
             new Statut
             {
-                IdStatut = 7,
+                Id =7,
                 CodeStatut = "EXPIRE",
                 LibelleStatut = "Expiré",
                 Description = "Bon expiré - matériel non retourné à temps",
@@ -169,7 +170,7 @@ public class StatutConfiguration : IEntityTypeConfiguration<Statut>
             },
             new Statut
             {
-                IdStatut = 8,
+                Id =8,
                 CodeStatut = "ANNULE",
                 LibelleStatut = "Annulé",
                 Description = "Bon annulé par l'utilisateur ou le système",

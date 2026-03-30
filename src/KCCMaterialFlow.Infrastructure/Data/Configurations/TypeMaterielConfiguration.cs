@@ -1,21 +1,20 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-
-using KCCMaterialFlow.Module.BonEntree.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
 /// <summary>
 /// Configuration Entity Framework pour l'entité TypeMateriel
 /// </summary>
-public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMateriel>
+public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMaterielEntity>
 {
-    public void Configure(EntityTypeBuilder<TypeMateriel> builder)
+    public void Configure(EntityTypeBuilder<TypeMaterielEntity> builder)
     {
         builder.ToTable("T_TypesMateriels", "dbo");
 
-        builder.HasKey(t => t.IdTypeMateriel);
+        builder.HasKey(t => t.Id);
+        builder.Property(t => t.Id).HasColumnName("IdTypeMateriel").ValueGeneratedOnAdd();
 
         builder.Property(t => t.CodeType)
             .IsRequired()
@@ -46,9 +45,9 @@ public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMateriel>
 
         // Données de base pour les types de matériel
         builder.HasData(
-            new TypeMateriel
+            new TypeMaterielEntity
             {
-                IdTypeMateriel = 1,
+                Id =1,
                 CodeType = "VEHICULE",
                 NomType = "Véhicule",
                 Description = "Véhicules de société (voitures, camions, engins)",
@@ -66,9 +65,9 @@ public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMateriel>
                 EstActif = true,
                 DateCreation = new DateTime(2024, 1, 1)
             },
-            new TypeMateriel
+            new TypeMaterielEntity
             {
-                IdTypeMateriel = 2,
+                Id =2,
                 CodeType = "EQUIPEMENT_IT",
                 NomType = "Équipement informatique",
                 Description = "Ordinateurs, laptops, serveurs, équipements réseau",
@@ -86,9 +85,9 @@ public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMateriel>
                 EstActif = true,
                 DateCreation = new DateTime(2024, 1, 1)
             },
-            new TypeMateriel
+            new TypeMaterielEntity
             {
-                IdTypeMateriel = 3,
+                Id =3,
                 CodeType = "OUTILLAGE",
                 NomType = "Outillage",
                 Description = "Outils et équipements de travail",
@@ -106,9 +105,9 @@ public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMateriel>
                 EstActif = true,
                 DateCreation = new DateTime(2024, 1, 1)
             },
-            new TypeMateriel
+            new TypeMaterielEntity
             {
-                IdTypeMateriel = 4,
+                Id =4,
                 CodeType = "DOCUMENT",
                 NomType = "Document",
                 Description = "Documents confidentiels, plans, archives",
@@ -126,9 +125,9 @@ public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMateriel>
                 EstActif = true,
                 DateCreation = new DateTime(2024, 1, 1)
             },
-            new TypeMateriel
+            new TypeMaterielEntity
             {
-                IdTypeMateriel = 5,
+                Id =5,
                 CodeType = "MATERIEL_DIVERS",
                 NomType = "Matériel divers",
                 Description = "Autre matériel non catégorisé",

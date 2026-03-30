@@ -1,5 +1,3 @@
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @inject IParametreSystemeService ParametreService
 @inject DialogService DialogService
 
@@ -133,7 +131,7 @@
             isEditMode = true;
             model = new ParametreSysteme
             {
-                IdParametre = Parametre.IdParametre,
+                Id = Parametre.Id,
                 Cle = Parametre.Cle,
                 Valeur = Parametre.Valeur,
                 Libelle = Parametre.Libelle,

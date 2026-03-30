@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.Securite.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -14,9 +14,9 @@ public class HistoriqueScanConfiguration : IEntityTypeConfiguration<HistoriqueSc
     {
         builder.ToTable("T_HistoriqueScans", "dbo");
 
-        builder.HasKey(h => h.IdHistorique);
+        builder.HasKey(h => h.Id);
 
-        builder.Property(h => h.IdHistorique)
+        builder.Property(h => h.Id)
             .HasColumnName("IdHistorique")
             .ValueGeneratedOnAdd();
 
@@ -121,7 +121,7 @@ public class HistoriqueScanConfiguration : IEntityTypeConfiguration<HistoriqueSc
             .HasDefaultValue(0);
 
         // FK vers ScanEvenement
-        builder.HasOne(h => h.ScanEvenement)
+        builder.HasOne<ScanEvenement>()
             .WithMany()
             .HasForeignKey(h => h.ScanId)
             .OnDelete(DeleteBehavior.Cascade);

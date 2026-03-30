@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.Securite.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -14,9 +14,9 @@ public class ScanEvenementConfiguration : IEntityTypeConfiguration<ScanEvenement
     {
         builder.ToTable("T_ScanEvenements", "dbo");
 
-        builder.HasKey(s => s.IdScan);
+        builder.HasKey(s => s.Id);
 
-        builder.Property(s => s.IdScan)
+        builder.Property(s => s.Id)
             .HasColumnName("IdScan")
             .ValueGeneratedOnAdd();
 
@@ -82,17 +82,13 @@ public class ScanEvenementConfiguration : IEntityTypeConfiguration<ScanEvenement
             .HasColumnName("AnomalieSignalee")
             .HasDefaultValue(false);
 
-        // FK vers Barriere
+        // FK vers Barriere (using nav property to avoid shadow FK)
         builder.HasOne(s => s.Barriere)
             .WithMany()
             .HasForeignKey(s => s.BarriereId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Collection d'anomalies
-        builder.HasMany(s => s.Anomalies)
-            .WithOne(a => a.ScanEvenement)
-            .HasForeignKey(a => a.ScanId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // Note: Anomalies relationship is configured in AnomalieConfiguration
 
         // Index pour optimiser les requêtes fréquentes
         builder.HasIndex(s => s.DateHeureScan)

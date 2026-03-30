@@ -1,0 +1,131 @@
+@namespace KCCMaterialFlow.Host.Components.Shared.Workflow
+@using Radzen
+@using Radzen.Blazor
+
+@* Modal de saisie de commentaire pour les actions workflow *@
+
+<RadzenDialog Style="min-width: 400px;">
+    <div class="comment-modal p-3">
+        <h5 class="mb-3">
+            <RadzenIcon Icon="@GetActionIcon()" class="me-2" Style="@GetIconStyle()" />
+            @Title
+        </h5>
+
+        @if (!string.IsNullOrEmpty(Description))
+        {
+            <p class="text-muted mb-3">@Description</p>
+        }
+
+        <div class="mb-3">
+            <label class="form-label">
+                @CommentLabel
+                @if (IsCommentRequired)
+                {
+                    <span class="text-danger">*</span>
+                }
+            </label>
+            <RadzenTextArea @bind-Value="@Comment"
+                            Rows="4"
+                            Placeholder="@CommentPlaceholder"
+                            class="w-100"
+                            MaxLength="@MaxLength" />
+            <small class="text-muted">@Comment?.Length / @MaxLength caractères</small>
+
+            @if (_showValidationError)
+            {
+                <div class="text-danger small mt-1">
+                    <RadzenIcon Icon="error" Style="font-size: 0.9em;" />
+                    Le commentaire est obligatoire.
+                </div>
+            }
+        </div>
+
+        @ChildContent
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <RadzenButton Text="Annuler"
+                          ButtonStyle="ButtonStyle.Light"
+                          Click="@HandleCancel"
+                          Disabled="@IsProcessing" />
+            <RadzenButton Text="@ConfirmButtonText"
+                          ButtonStyle="@ConfirmButtonStyle"
+                          Icon="@GetActionIcon()"
+                          Click="@HandleConfirm"
+                          IsBusy="@IsProcessing"
+                          BusyText="Traitement..." />
+        </div>
+    </div>
+</RadzenDialog>
+
+@code {
+    private bool _showValidationError;
+
+    [Parameter] public string Title { get; set; } = "Commentaire";
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string CommentLabel { get; set; } = "Commentaire";
+    [Parameter] public string CommentPlaceholder { get; set; } = "Saisissez votre commentaire...";
+    [Parameter] public string ConfirmButtonText { get; set; } = "Confirmer";
+    [Parameter] public ButtonStyle ConfirmButtonStyle { get; set; } = ButtonStyle.Primary;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public string? Comment { get; set; }
+    [Parameter] public EventCallback<string> CommentChanged { get; set; }
+
+    [Parameter] public bool IsCommentRequired { get; set; } = true;
+    [Parameter] public int MaxLength { get; set; } = 1000;
+    [Parameter] public bool IsProcessing { get; set; }
+
+    [Parameter] public WorkflowActionType ActionType { get; set; } = WorkflowActionType.Approve;
+
+    [Parameter] public EventCallback<CommentModalResult> OnClose { get; set; }
+
+    private string GetActionIcon()
+    {
+        return ActionType switch
+        {
+            WorkflowActionType.Approve => "check_circle",
+            WorkflowActionType.Reject => "cancel",
+            WorkflowActionType.Return => "undo",
+            WorkflowActionType.RequestInfo => "help",
+            _ => "comment"
+        };
+    }
+
+    private string GetIconStyle()
+    {
+        var color = ActionType switch
+        {
+            WorkflowActionType.Approve => "var(--rz-success)",
+            WorkflowActionType.Reject => "var(--rz-danger)",
+            WorkflowActionType.Return => "var(--rz-warning)",
+            WorkflowActionType.RequestInfo => "var(--rz-info)",
+            _ => "var(--rz-text-color)"
+        };
+        return $"color: {color};";
+    }
+
+    private async Task HandleConfirm()
+    {
+        if (IsCommentRequired && string.IsNullOrWhiteSpace(Comment))
+        {
+            _showValidationError = true;
+            return;
+        }
+
+        _showValidationError = false;
+        await OnClose.InvokeAsync(new CommentModalResult
+        {
+            Confirmed = true,
+            Comment = Comment ?? string.Empty
+        });
+    }
+
+    private async Task HandleCancel()
+    {
+        await OnClose.InvokeAsync(new CommentModalResult
+        {
+            Confirmed = false,
+            Comment = string.Empty
+        });
+    }
+}

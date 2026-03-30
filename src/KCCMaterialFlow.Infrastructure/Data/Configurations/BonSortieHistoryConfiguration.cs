@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonSortie.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -15,18 +15,19 @@ public class BonSortieHistoryConfiguration : IEntityTypeConfiguration<BonSortieH
     {
         builder.ToTable("T_BonSortieHistories", "dbo");
 
-        builder.HasKey(h => h.IdHistory);
+        builder.HasKey(h => h.Id);
 
-        builder.Property(h => h.IdHistory)
+        builder.Property(h => h.Id)
             .HasColumnName("IdHistory")
             .ValueGeneratedOnAdd();
 
-        builder.Property(h => h.BonSortieId)
+        builder.Property(h => h.BonId)
             .HasColumnName("BonSortieId")
             .IsRequired();
 
-        builder.Property(h => h.TypeAction)
+        builder.Property(h => h.Action)
             .HasColumnName("TypeAction")
+            .HasConversion<string>()
             .HasMaxLength(50)
             .IsRequired();
 
@@ -38,37 +39,45 @@ public class BonSortieHistoryConfiguration : IEntityTypeConfiguration<BonSortieH
             .HasColumnName("StatutApres")
             .HasMaxLength(50);
 
-        builder.Property(h => h.Description)
+        builder.Property(h => h.ActionDescription)
             .HasColumnName("Description")
             .HasMaxLength(1000);
 
-        builder.Property(h => h.UtilisateurLogin)
+        builder.Property(h => h.ActionBy)
             .HasColumnName("UtilisateurLogin")
             .HasMaxLength(100)
             .IsRequired();
 
-        builder.Property(h => h.UtilisateurNom)
+        builder.Property(h => h.ActionByNom)
             .HasColumnName("UtilisateurNom")
             .HasMaxLength(200);
 
-        builder.Property(h => h.DateAction)
+        builder.Property(h => h.ActionDate)
             .HasColumnName("DateAction")
             .HasDefaultValueSql("GETDATE()");
+
+        builder.Property(h => h.Comment)
+            .HasColumnName("Comment")
+            .HasMaxLength(1000);
+
+        builder.Property(h => h.ChangementsJson)
+            .HasColumnName("ChangementsJson")
+            .HasColumnType("nvarchar(max)");
 
         builder.Property(h => h.AdresseIP)
             .HasColumnName("AdresseIP")
             .HasMaxLength(50);
 
         // Index sur le bon de sortie pour récupérer l'historique
-        builder.HasIndex(h => h.BonSortieId)
+        builder.HasIndex(h => h.BonId)
             .HasDatabaseName("IX_BonSortieHistories_BonSortieId");
 
         // Index sur la date d'action pour le tri chronologique
-        builder.HasIndex(h => h.DateAction)
+        builder.HasIndex(h => h.ActionDate)
             .HasDatabaseName("IX_BonSortieHistories_DateAction");
 
         // Index sur l'utilisateur pour audit
-        builder.HasIndex(h => h.UtilisateurLogin)
+        builder.HasIndex(h => h.ActionBy)
             .HasDatabaseName("IX_BonSortieHistories_Utilisateur");
     }
 }

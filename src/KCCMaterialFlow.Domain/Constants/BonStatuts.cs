@@ -33,35 +33,6 @@ public static class BonStatuts
     };
 
     /// <summary>
-    /// Classe CSS pour le badge
-    /// </summary>
-    public static string GetBadgeClass(string statut) => statut switch
-    {
-        Draft => "bg-secondary",
-        PendingSup or PendingGM or PendingOPJ => "bg-warning text-dark",
-        Approved => "bg-success",
-        InTransit => "bg-info",
-        Completed => "bg-primary",
-        Rejected or Cancelled => "bg-danger",
-        _ => "bg-secondary"
-    };
-
-    /// <summary>
-    /// Icône Material du statut
-    /// </summary>
-    public static string GetIcon(string statut) => statut switch
-    {
-        Draft => "edit",
-        PendingSup or PendingGM or PendingOPJ => "hourglass_empty",
-        Approved => "check_circle",
-        InTransit => "local_shipping",
-        Completed => "done_all",
-        Rejected => "cancel",
-        Cancelled => "block",
-        _ => "info"
-    };
-
-    /// <summary>
     /// Vérifie si le statut est en attente d'approbation
     /// </summary>
     public static bool IsPending(string statut) => 

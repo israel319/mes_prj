@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using KCCMaterialFlow.Module.BonEntree.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -15,9 +15,9 @@ public class MaterielConfiguration : IEntityTypeConfiguration<Materiel>
     {
         builder.ToTable("T_Materiels", "dbo");
 
-        builder.HasKey(m => m.IdMateriel);
+        builder.HasKey(m => m.Id);
 
-        builder.Property(m => m.IdMateriel)
+        builder.Property(m => m.Id)
             .HasColumnName("IdMateriel")
             .ValueGeneratedOnAdd();
 

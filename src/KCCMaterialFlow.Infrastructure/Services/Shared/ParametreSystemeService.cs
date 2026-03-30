@@ -1,9 +1,10 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
 namespace KCCMaterialFlow.Infrastructure.Services.Shared;
 
@@ -21,6 +22,7 @@ public class ParametreSystemeService : IParametreSystemeService
     private const string CacheKeyAll = "ParametresSysteme_All";
     private const string CacheKeyPrefix = "ParametreSysteme_";
     private const string CacheKeyCategories = "ParametresSysteme_Categories";
+    private static CancellationTokenSource _cacheTokenSource = new();
 
     public ParametreSystemeService(
         IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory,
@@ -46,7 +48,10 @@ public class ParametreSystemeService : IParametreSystemeService
             .ThenBy(p => p.Libelle)
             .ToListAsync(cancellationToken);
 
-        _cache.Set(CacheKeyAll, (IReadOnlyList<ParametreSysteme>)parametres, CacheDuration);
+        _cache.Set(CacheKeyAll, (IReadOnlyList<ParametreSysteme>)parametres,
+            new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(CacheDuration)
+                .AddExpirationToken(new CancellationChangeToken(_cacheTokenSource.Token)));
         return parametres;
     }
 
@@ -66,7 +71,12 @@ public class ParametreSystemeService : IParametreSystemeService
             .FirstOrDefaultAsync(p => p.Cle.ToUpper() == cle.ToUpper(), cancellationToken);
 
         if (parametre != null)
-            _cache.Set(cacheKey, parametre, CacheDuration);
+        {
+            var options = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(CacheDuration)
+                .AddExpirationToken(new CancellationChangeToken(_cacheTokenSource.Token));
+            _cache.Set(cacheKey, parametre, options);
+        }
 
         return parametre;
     }
@@ -147,10 +157,10 @@ public class ParametreSystemeService : IParametreSystemeService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var existing = await context.Set<ParametreSysteme>()
-            .FirstOrDefaultAsync(p => p.IdParametre == parametre.IdParametre, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == parametre.Id, cancellationToken);
 
         if (existing == null)
-            throw new InvalidOperationException($"Paramètre {parametre.IdParametre} non trouvé");
+            throw new InvalidOperationException($"Paramètre {parametre.Id} non trouvé");
 
         if (existing.EstSysteme)
         {
@@ -189,7 +199,7 @@ public class ParametreSystemeService : IParametreSystemeService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var parametre = await context.Set<ParametreSysteme>()
-            .FirstOrDefaultAsync(p => p.IdParametre == id, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (parametre == null)
             return false;
@@ -219,7 +229,10 @@ public class ParametreSystemeService : IParametreSystemeService
             .OrderBy(c => c)
             .ToListAsync(cancellationToken);
 
-        _cache.Set(CacheKeyCategories, (IReadOnlyList<string>)categories, CacheDuration);
+        _cache.Set(CacheKeyCategories, (IReadOnlyList<string>)categories,
+            new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(CacheDuration)
+                .AddExpirationToken(new CancellationChangeToken(_cacheTokenSource.Token)));
         return categories;
     }
 
@@ -227,5 +240,10 @@ public class ParametreSystemeService : IParametreSystemeService
     {
         _cache.Remove(CacheKeyAll);
         _cache.Remove(CacheKeyCategories);
+
+        // Annuler le token pour expirer toutes les entrées individuelles d'un coup
+        var oldTokenSource = Interlocked.Exchange(ref _cacheTokenSource, new CancellationTokenSource());
+        oldTokenSource.Cancel();
+        oldTokenSource.Dispose();
     }
 }

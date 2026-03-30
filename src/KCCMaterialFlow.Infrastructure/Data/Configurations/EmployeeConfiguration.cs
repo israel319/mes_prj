@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -13,10 +13,10 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
     {
         builder.ToTable("T_Employees", "dbo");
 
-        builder.HasKey(e => e.IdEmployee);
+        builder.HasKey(e => e.Id);
 
         // Mapping temporaire : la colonne BD est encore "Id" (sera renommée par Phase1_PK_Rename.sql)
-        builder.Property(e => e.IdEmployee).HasColumnName("Id");
+        builder.Property(e => e.Id).HasColumnName("Id");
 
         builder.Property(e => e.Matricule)
             .HasMaxLength(20);

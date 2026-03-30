@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Infrastructure.Data.Configurations;
 
@@ -13,9 +13,9 @@ public class DepartementConfiguration : IEntityTypeConfiguration<Departement>
     {
         builder.ToTable("T_Departements", "dbo");
 
-        builder.HasKey(d => d.IdDepartement);
+        builder.HasKey(d => d.Id);
 
-        builder.Property(d => d.IdDepartement)
+        builder.Property(d => d.Id)
             .HasColumnName("IdDepartement");
 
         builder.Property(d => d.CodeDepartement)
@@ -53,10 +53,6 @@ public class DepartementConfiguration : IEntityTypeConfiguration<Departement>
 
         builder.Property(d => d.DateModification)
             .HasColumnName("DateModification");
-
-        // Propriétés calculées non-mappées (commodité pour Radzen DropDown)
-        builder.Ignore(d => d.Id);
-        builder.Ignore(d => d.Nom);
 
         builder.HasMany(d => d.Employees)
             .WithOne(e => e.Departement)

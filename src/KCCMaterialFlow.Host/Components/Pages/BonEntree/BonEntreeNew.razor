@@ -1,0 +1,387 @@
+@page "/bon-entree/nouveau"
+@attribute [Authorize]
+@using KCCMaterialFlow.Application.Features.BonEntree.DTOs
+@using KCCMaterialFlow.Application.Common.Interfaces
+@using KCCMaterialFlow.Domain.Entities
+@inject IBonEntreeService BonEntreeService
+@inject NavigationManager Navigation
+@inject NotificationService NotificationService
+
+<PageTitle>Nouveau BEM - KCC Material Flow</PageTitle>
+
+<RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    @* ===== Formulaire (colonne principale) ===== *@
+    <div style="flex: 1; min-width: 0;">
+        <EditForm Model="@request" OnValidSubmit="@HandleSubmit">
+            <DataAnnotationsValidator />
+
+            @* ===== EN-TÊTE ===== *@
+            <div class="kcc-form-header">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 48px; height: 48px; background: rgba(0, 177, 147, 0.1); display: flex; align-items: center; justify-content: center; color: #00B193; font-weight: 700; font-size: 0.75rem;">KCC</div>
+                    <span style="font-size: 0.85rem; color: #6b7280;">KCC Material Flow</span>
+                </div>
+                <div style="text-align: center;">
+                    <h1 style="margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--kcc-text);">Bon d'Entrée de Matériel</h1>
+                    <p style="margin: 0.15rem 0 0; font-size: 0.7rem; color: #6b7280;">SEC-FM-141(B) — COMPANY INFORMATION</p>
+                </div>
+                <div style="text-align: right;">
+                    <RadzenLabel Text="Date validité" Style="font-size: 0.7rem; color: #6b7280; display: block; margin-bottom: 0.25rem;" />
+                    <RadzenDatePicker @bind-Value="@request.DateExpiration" DateFormat="dd/MM/yyyy"
+                                      Min="@DateTime.Today" Style="width: 150px;" />
+                </div>
+            </div>
+
+            <div style="width: 100%; height: 2px; background: linear-gradient(to right, #00B193, rgba(0, 177, 147, 0.3), transparent); margin-bottom: 1.5rem;"></div>
+
+            @* ===== INFORMATIONS COMPAGNIE ===== *@
+            <RadzenCard Variant="Variant.Flat" class="kcc-form-section">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.8rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--kcc-border);">Informations Compagnie</RadzenText>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem" Style="margin-bottom: 0.75rem;">
+                                <RadzenLabel Text="Company Name" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenDropDown @bind-Value="@selectedCompagnieId" Data="@compagnies"
+                                                TextProperty="Nom" ValueProperty="Id"
+                                                Placeholder="Sélectionner une compagnie"
+                                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                Change="@OnCompagnieChanged" Style="width: 100%;" Density="Density.Compact" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem" Style="margin-bottom: 0.75rem;">
+                                <RadzenLabel Text="Contract Number (PO)" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenDropDown @bind-Value="@selectedContratId" Data="@contratsFiltered"
+                                                TextProperty="PoNumber" ValueProperty="Id"
+                                                Placeholder="Sélectionner un contrat"
+                                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                Change="@OnContratChanged" Style="width: 100%;" Density="Density.Compact"
+                                                Disabled="@(!selectedCompagnieId.HasValue)" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem" Style="margin-bottom: 0.75rem;">
+                                <RadzenLabel Text="Contractor Email Address" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenTextBox @bind-Value="@request.EmailContractant" Placeholder="email@exemple.com" Style="width: 100%;" Density="Density.Compact" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem" Style="margin-bottom: 0.75rem;">
+                                <RadzenLabel Text="Site Manager (Contractor)" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenTextBox @bind-Value="@request.SiteManager" Placeholder="Nom du responsable site" Style="width: 100%;" Density="Density.Compact" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem" Style="margin-bottom: 0.75rem;">
+                                <RadzenLabel Text="Host Department" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenDropDown @bind-Value="@selectedDepartementId" Data="@departements"
+                                                TextProperty="NomDepartement" ValueProperty="Id"
+                                                Placeholder="Sélectionner un département"
+                                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                                Change="@OnDepartementChanged" Style="width: 100%;" Density="Density.Compact" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <RadzenStack Gap="0.25rem">
+                        <RadzenLabel Text="Reason Required on Site" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                        <RadzenTextArea @bind-Value="@request.ReasonOnSite" Placeholder="Décrivez le motif..." Rows="2" Style="width: 100%; font-size: 0.75rem;" />
+                    </RadzenStack>
+            </RadzenCard>
+
+            @* ===== DÉTAIL ESCORTEUR ===== *@
+            <RadzenCard Variant="Variant.Flat" class="kcc-form-section">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.8rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--kcc-border);">Détail de l'Escorteur</RadzenText>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="Nom / Name" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenTextBox @bind-Value="@request.NomEscorteur" Placeholder="Nom de l'escorteur" Style="width: 100%;" Density="Density.Compact" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="Fonction / Function" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenTextBox @bind-Value="@request.FonctionEscorteur" Placeholder="Fonction" Style="width: 100%;" Density="Density.Compact" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                    </RadzenRow>
+            </RadzenCard>
+
+            @* ===== TRAJET ===== *@
+            <RadzenCard Variant="Variant.Flat" class="kcc-form-section">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.8rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--kcc-border);">Trajet</RadzenText>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="FROM (Provenance)" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenDropDown TValue="int?" @bind-Value="@selectedProvenanceId"
+                                                Data="@sites" TextProperty="Nom" ValueProperty="Id"
+                                                Placeholder="Sélectionner provenance" AllowFiltering="true"
+                                                Change="@OnProvenanceChanged" Style="width: 100%;" Density="Density.Compact" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenLabel Text="TO (Destination)" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em;" />
+                                <RadzenDropDown TValue="int?" @bind-Value="@selectedDestinationId"
+                                                Data="@availableDestinations" TextProperty="Nom" ValueProperty="Id"
+                                                Placeholder="Sélectionner destination" AllowFiltering="true"
+                                                Change="@OnDestinationChanged" Style="width: 100%;" Density="Density.Compact" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                    </RadzenRow>
+            </RadzenCard>
+
+            @* ===== MATÉRIELS ===== *@
+            <RadzenCard Variant="Variant.Flat" class="kcc-form-section">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.8rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--kcc-border);">Matériels</RadzenText>
+                    <RadzenDataGrid TItem="MaterielRequest" Data="@request.Materiels" Density="Density.Compact" Style="font-size: 0.75rem;">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="MaterielRequest" Title="Code produit / N° Serial" Width="25%">
+                                <Template Context="item">
+                                    <RadzenTextBox @bind-Value="item.CodeProduitSerial" Placeholder="Code/Serial" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.75rem;" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MaterielRequest" Title="Désignation" Width="45%">
+                                <Template Context="item">
+                                    <RadzenTextBox @bind-Value="item.Designation" Placeholder="Description" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.75rem;" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MaterielRequest" Title="Quantité" Width="15%" TextAlign="TextAlign.Center">
+                                <Template Context="item">
+                                    <RadzenNumeric @bind-Value="item.Quantite" Min="1" Style="width: 100%; border: none; box-shadow: none; font-size: 0.75rem; text-align: center;" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                            <RadzenDataGridColumn TItem="MaterielRequest" Width="15%" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                                <Template Context="item">
+                                    <RadzenButton Icon="delete_outline" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.ExtraSmall"
+                                                  Click="@(() => RemoveMateriel(item))" Disabled="@(request.Materiels.Count <= 1)" />
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="margin-top: 0.5rem;">
+                        <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.Span" Style="font-size: 0.65rem; color: var(--kcc-text-muted);">
+                            Total : <strong style="color: var(--kcc-text);">@request.Materiels.Sum(m => m.Quantite)</strong> articles
+                        </RadzenText>
+                        <RadzenButton Text="Ajouter" Icon="add" Variant="Variant.Text" Size="ButtonSize.ExtraSmall"
+                                      ButtonStyle="ButtonStyle.Light" Click="@AddMateriel"
+                                      Style="font-size: 0.65rem; gap: 0.25rem;" />
+                    </RadzenStack>
+            </RadzenCard>
+
+            @* ===== RÉSERVES ===== *@
+            <RadzenCard Variant="Variant.Flat" class="kcc-form-section">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.8rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--kcc-border);">Réserves Éventuelles</RadzenText>
+                    <RadzenTextArea @bind-Value="@request.Description" Placeholder="Observations, réserves ou commentaires..." Rows="3" Style="width: 100%; font-size: 0.75rem;" />
+            </RadzenCard>
+
+
+            @* ===== ACTIONS ===== *@
+            <div class="kcc-form-actions">
+                <RadzenButton Text="Brouillon" Icon="save" class="kcc-btn-brouillon"
+                              ButtonType="ButtonType.Submit" Disabled="@isSaving" />
+                <RadzenButton Text="Soumettre" Icon="send" class="kcc-btn-soumettre"
+                              Click="@HandleSubmitAndSend" Disabled="@isSaving" />
+            </div>
+        </EditForm>
+    </div>
+
+    @* ===== PANNEAU REVIEW (Droite) - Style carré ===== *@
+    <div style="width: 340px; min-width: 300px; flex-shrink: 0; position: sticky; top: 1.5rem; align-self: flex-start;">
+        <RadzenCard Variant="Variant.Flat" class="kcc-review-panel" Style="padding: 0; overflow: hidden;">
+            @* En-tête Review *@
+            <div style="background: var(--kcc-primary); color: #fff; padding: 0.75rem 1rem;">
+                <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-size: 0.85rem; font-weight: 600; margin: 0; color: #fff;">
+                    <RadzenIcon Icon="fact_check" Style="font-size: 1rem; vertical-align: middle; margin-right: 0.35rem;" />
+                    Review
+                </RadzenText>
+            </div>
+
+            <div style="padding: 1rem; max-height: calc(100vh - 150px); overflow-y: auto;">
+                @* Section: Compagnie *@
+                <div style="margin-bottom: 1rem;">
+                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
+                        <RadzenIcon Icon="business" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
+                        Compagnie
+                    </RadzenText>
+                    @if (!string.IsNullOrWhiteSpace(request.NomCompagnie))
+                    {
+                        <div style="background: var(--rz-info-lighter); padding: 0.6rem; border-left: 3px solid var(--rz-info);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.75rem; font-weight: 600; color: var(--kcc-text); margin: 0;">
+                                @request.NomCompagnie
+                            </RadzenText>
+                            @if (!string.IsNullOrWhiteSpace(request.NumeroContrat))
+                            {
+                                <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; color: var(--kcc-text-muted); margin: 0.2rem 0 0;">
+                                    PO: @request.NumeroContrat
+                                </RadzenText>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; color: var(--kcc-text-muted); font-style: italic;">
+                            Aucune compagnie sélectionnée
+                        </RadzenText>
+                    }
+                </div>
+
+                @* Section: Host Department *@
+                <div style="margin-bottom: 1rem;">
+                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
+                        <RadzenIcon Icon="domain" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
+                        Département Hôte
+                    </RadzenText>
+                    @if (!string.IsNullOrWhiteSpace(request.HostDepartment))
+                    {
+                        <RadzenBadge Text="@request.HostDepartment" BadgeStyle="BadgeStyle.Primary" Style="font-size: 0.65rem;" />
+                    }
+                    else
+                    {
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; color: var(--kcc-text-muted); font-style: italic;">
+                            Non défini
+                        </RadzenText>
+                    }
+                </div>
+
+                @* Section: Trajet *@
+                <div style="margin-bottom: 1rem;">
+                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
+                        <RadzenIcon Icon="swap_horiz" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
+                        Trajet
+                    </RadzenText>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="flex: 1; text-align: center; padding: 0.5rem; background: var(--kcc-bg-page);">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.55rem; color: var(--kcc-text-muted); margin: 0;">FROM</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 600; color: var(--kcc-text); margin: 0.15rem 0 0;">
+                                @(string.IsNullOrWhiteSpace(request.Provenance) ? "—" : request.Provenance)
+                            </RadzenText>
+                        </div>
+                        <RadzenIcon Icon="arrow_forward" Style="color: var(--kcc-primary); font-size: 1.25rem;" />
+                        <div style="flex: 1; text-align: center; padding: 0.5rem; background: var(--kcc-bg-page);">
+                            <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.55rem; color: var(--kcc-text-muted); margin: 0;">TO</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 600; color: var(--kcc-text); margin: 0.15rem 0 0;">
+                                @(string.IsNullOrWhiteSpace(request.Destination) ? "—" : request.Destination)
+                            </RadzenText>
+                        </div>
+                    </div>
+                </div>
+
+                @* Section: Matériels *@
+                <div style="margin-bottom: 1rem;">
+                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
+                        <RadzenIcon Icon="category" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
+                        Matériels (@request.Materiels.Count)
+                    </RadzenText>
+                    @if (request.Materiels.Any(m => !string.IsNullOrWhiteSpace(m.Designation) || !string.IsNullOrWhiteSpace(m.CodeProduitSerial)))
+                    {
+                        <div style="max-height: 150px; overflow-y: auto;">
+                            @foreach (var mat in request.Materiels.Where(m => !string.IsNullOrWhiteSpace(m.Designation) || !string.IsNullOrWhiteSpace(m.CodeProduitSerial)).Take(5))
+                            {
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--kcc-border);">
+                                    <div style="flex: 1; min-width: 0;">
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.65rem; font-weight: 500; color: var(--kcc-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;">
+                                            @(string.IsNullOrWhiteSpace(mat.Designation) ? "(Sans désignation)" : mat.Designation)
+                                        </RadzenText>
+                                        @if (!string.IsNullOrWhiteSpace(mat.CodeProduitSerial))
+                                        {
+                                            <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.55rem; color: var(--kcc-text-muted); margin: 0;">
+                                                @mat.CodeProduitSerial
+                                            </RadzenText>
+                                        }
+                                    </div>
+                                    <RadzenBadge Text="@mat.Quantite.ToString()" BadgeStyle="BadgeStyle.Primary" Style="font-size: 0.6rem; min-width: 24px;" />
+                                </div>
+                            }
+                            @{
+                                var materielsValides = request.Materiels.Count(m => !string.IsNullOrWhiteSpace(m.Designation) || !string.IsNullOrWhiteSpace(m.CodeProduitSerial));
+                                if (materielsValides > 5)
+                                {
+                                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.6rem; color: var(--kcc-text-muted); text-align: center; padding: 0.35rem 0; font-style: italic;">
+                                        + @(materielsValides - 5) autre(s)...
+                                    </RadzenText>
+                                }
+                            }
+                        </div>
+                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--kcc-border);">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; color: var(--kcc-text);">
+                                Total: <strong>@request.Materiels.Sum(m => m.Quantite)</strong> articles
+                            </RadzenText>
+                        </div>
+                    }
+                    else
+                    {
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; color: var(--kcc-text-muted); font-style: italic;">
+                            Aucun matériel saisi
+                        </RadzenText>
+                    }
+                </div>
+
+                @* Section: Escorteur *@
+                <div style="margin-bottom: 1rem;">
+                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
+                        <RadzenIcon Icon="person" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
+                        Escorteur
+                    </RadzenText>
+                    @if (!string.IsNullOrWhiteSpace(request.NomEscorteur))
+                    {
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 500; color: var(--kcc-text); margin: 0;">
+                            @request.NomEscorteur
+                        </RadzenText>
+                        @if (!string.IsNullOrWhiteSpace(request.FonctionEscorteur))
+                        {
+                            <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.6rem; color: var(--kcc-text-muted); margin: 0.15rem 0 0;">
+                                @request.FonctionEscorteur
+                            </RadzenText>
+                        }
+                    }
+                    else
+                    {
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; color: var(--kcc-text-muted); font-style: italic;">
+                            Non renseigné
+                        </RadzenText>
+                    }
+                </div>
+
+                @* Section: Validité *@
+                <div>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
+                        <RadzenIcon Icon="event" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
+                        Validité
+                    </RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; color: var(--kcc-text);">
+                        Expire le: <strong>@request.DateExpiration.ToString("dd/MM/yyyy")</strong>
+                    </RadzenText>
+                </div>
+            </div>
+
+            @* Footer avec statut de validation *@
+            <div style="padding: 0.75rem 1rem; border-top: 1px solid var(--kcc-border); background: var(--kcc-bg-page);">
+                @if (CanSubmit())
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem" Style="color: #16a34a;">
+                        <RadzenIcon Icon="check_circle" Style="font-size: 1rem;" />
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 500; margin: 0; color: #16a34a;">
+                            Prêt à soumettre
+                        </RadzenText>
+                    </RadzenStack>
+                }
+                else
+                {
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem" Style="color: var(--kcc-text-muted);">
+                        <RadzenIcon Icon="info" Style="font-size: 1rem;" />
+                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; margin: 0; color: var(--kcc-text-muted);">
+                            Complétez le formulaire
+                        </RadzenText>
+                    </RadzenStack>
+                }
+            </div>
+        </RadzenCard>
+    </div>
+</RadzenStack>
+

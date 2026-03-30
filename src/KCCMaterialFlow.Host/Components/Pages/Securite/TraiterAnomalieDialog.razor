@@ -1,0 +1,105 @@
+@inject IAnomalieService AnomalieService
+@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
+    @if (Anomalie != null)
+    {
+        @* Résumé de l'anomalie *@
+        <RadzenCard Variant="Variant.Flat" Style="background: #fef3c7; border: 1px solid #fbbf24; border-radius: 12px; padding: 1rem;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="0.75rem">
+                <RadzenIcon Icon="warning" Style="color: #d97706; font-size: 1.5rem;" />
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText FontWeight="FontWeight.Bold" Style="color: #92400e;">
+                        @GetTypeLabel(Anomalie.TypeAnomalie)
+                    </RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #a16207;">
+                        @Anomalie.Description
+                    </RadzenText>
+                    @if (!string.IsNullOrEmpty(Anomalie.NumeroReferenceBon))
+                    {
+                        <RadzenText TextStyle="TextStyle.Caption" Style="font-family: monospace; color: #92400e;">
+                            Document: @Anomalie.NumeroReferenceBon
+                        </RadzenText>
+                    }
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
+
+        @* Formulaire de traitement SEC-036 *@
+        <RadzenStack Gap="1rem">
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                    Résolution <span style="color: #e31b23;">*</span>
+                </RadzenText>
+                <RadzenTextArea @bind-Value="@resolution" Rows="3" Placeholder="Décrivez comment l'anomalie a été résolue..." 
+                                Style="width: 100%; border-radius: 6px;" />
+            </RadzenStack>
+
+            <RadzenStack Gap="0.25rem">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Actions Correctives</RadzenText>
+                <RadzenTextArea @bind-Value="@actionsCorrectives" Rows="2" 
+                                Placeholder="Actions prises pour éviter que cela ne se reproduise (optionnel)..." 
+                                Style="width: 100%; border-radius: 6px;" />
+            </RadzenStack>
+        </RadzenStack>
+
+        @* Actions *@
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+            <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+            <RadzenButton Text="Marquer comme traitée" Icon="check_circle" ButtonStyle="ButtonStyle.Success" 
+                          Click="@Submit" Disabled="@(string.IsNullOrWhiteSpace(resolution))" />
+        </RadzenStack>
+    }
+</RadzenStack>
+
+@code {
+    [Parameter] public Anomalie? Anomalie { get; set; }
+
+    private string resolution = "";
+    private string? actionsCorrectives;
+
+    private async Task Submit()
+    {
+        if (Anomalie == null || string.IsNullOrWhiteSpace(resolution))
+            return;
+
+        try
+        {
+            var result = await AnomalieService.MarkAsTraiteeAsync(
+                Anomalie.Id,
+                resolution, 
+                actionsCorrectives);
+
+            if (result.Success)
+            {
+                DialogService.Close(true);
+            }
+            else
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de traiter l'anomalie: {ex.Message}");
+        }
+    }
+
+    private void Cancel()
+    {
+        DialogService.Close(false);
+    }
+
+    private string GetTypeLabel(string type) => type switch
+    {
+        "BarriereNonAutorisee" => "Barrière non autorisée",
+        "DocumentExpire" => "Document expiré",
+        "DocumentInexistant" => "Document inexistant",
+        "ScanDuplique" => "Scan dupliqué",
+        "QRCodeInvalide" => "QR Code invalide",
+        "ItineraireNonRespectee" => "Itinéraire non respecté",
+        "SignalementManuel" => "Signalement manuel",
+        _ => type
+    };
+}

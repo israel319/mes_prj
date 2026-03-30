@@ -1,79 +1,530 @@
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @inject IRoleService RoleService
+@inject IActiviteService ActiviteService
 @inject ICurrentUserService CurrentUserService
 @inject DialogService DialogService
+@inject NotificationService NotificationService
 
-<RadzenStack Gap="1rem">
-    <RadzenCard Style="background: linear-gradient(135deg, var(--kcc-primary) 0%, var(--kcc-primary-dark) 100%); color: white; padding: 1rem 1.5rem; margin: -1rem -1rem 1.5rem -1rem; border-radius: 8px 8px 0 0;">
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-            <RadzenIcon Icon="vpn_key" />
-            <RadzenText TextStyle="TextStyle.H6" Style="color: white; margin: 0; font-weight: 600;">Gestion des rôles</RadzenText>
-        </RadzenStack>
-        <RadzenText TextStyle="TextStyle.Body2" Style="color: rgba(255,255,255,0.9); margin-top: 0.25rem;">@Utilisateur?.NomComplet</RadzenText>
-    </RadzenCard>
-    
+<div class="kcc-modal">
+    @* ─── BANDEAU SUPÉRIEUR ─── *@
+    <div class="kcc-modal__topbar">
+        <div class="kcc-modal__topbar-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+        </div>
+        <div class="kcc-modal__topbar-text">
+            <h2 class="kcc-modal__title">Gérer les rôles</h2>
+            <p class="kcc-modal__desc">Sélectionnez les rôles à attribuer à cet utilisateur</p>
+        </div>
+        <button type="button" class="kcc-modal__close" @onclick="@Close" title="Fermer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    @* ─── FICHE UTILISATEUR ─── *@
+    <div class="kcc-modal__user-card">
+        <div class="kcc-modal__user-avatar">
+            @GetInitials(Utilisateur?.NomComplet)
+        </div>
+        <div class="kcc-modal__user-info">
+            <span class="kcc-modal__user-name">@Utilisateur?.NomComplet</span>
+            <span class="kcc-modal__user-login">@Utilisateur?.Login</span>
+        </div>
+        <div class="kcc-modal__user-stat">
+            <span class="kcc-modal__user-stat-num">@assignedRoleIds.Count</span>
+            <span class="kcc-modal__user-stat-label">rôle(s)</span>
+        </div>
+    </div>
+
+    @* ─── INSTRUCTION ─── *@
+    <p class="kcc-modal__hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        Cliquez sur un rôle pour l'activer ou le désactiver.
+    </p>
+
+    @* ─── LISTE DES RÔLES ─── *@
     @if (allRoles.Count == 0)
     {
-        <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter">
+        <div class="kcc-modal__empty">
             Aucun rôle disponible dans le système.
-        </RadzenAlert>
+        </div>
     }
     else
     {
-        @foreach (var role in allRoles)
-        {
-            var isAssigned = IsRoleAssigned(role.IdRole);
-            <RadzenCard Style="@($"padding: 0.75rem 1rem; margin-bottom: 0.5rem; cursor: {(role.EstSysteme ? "not-allowed" : "pointer")}; border: 1px solid {(isAssigned ? "var(--kcc-primary)" : "var(--kcc-border)")}; background: {(isAssigned ? "#e6f7f4" : "var(--kcc-bg-subtle)")}; opacity: {(role.EstSysteme ? "0.7" : "1")};")"
-                 @onclick="@(() => { if (!role.EstSysteme) ToggleRole(role.IdRole, !isAssigned); })">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                    <RadzenStack Gap="0.25rem" Style="flex: 1;">
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                            <RadzenText TextStyle="TextStyle.Body1" Style="font-weight: 600; color: var(--kcc-text);">@role.NomRole</RadzenText>
-                            <RadzenBadge Text="@role.CodeRole" Style="@GetRoleBadgeStyle(role.CodeRole)" />
-                            @if (role.EstSysteme)
-                            {
-                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #9ca3af;">(système)</RadzenText>
-                            }
-                        </RadzenStack>
+        <div class="kcc-modal__list">
+            @foreach (var role in allRoles)
+            {
+                var isAssigned = IsRoleAssigned(role.Id);
+                <button type="button"
+                        class="kcc-modal__item @(isAssigned ? "kcc-modal__item--on" : "")"
+                        @onclick="@(() => ToggleRole(role.Id, !isAssigned))">
+
+                    @* Indicateur gauche *@
+                    <div class="kcc-modal__item-indicator @(isAssigned ? "kcc-modal__item-indicator--on" : "")"></div>
+
+                    @* Icône rôle *@
+                    <div class="kcc-modal__item-icon" style="@GetRoleIconBg(role.CodeRole)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="@GetRoleIconPath(role.CodeRole)"/>
+                        </svg>
+                    </div>
+
+                    @* Contenu *@
+                    <div class="kcc-modal__item-body">
+                        <div class="kcc-modal__item-top">
+                            <span class="kcc-modal__item-name">@role.NomRole</span>
+                            <span class="kcc-modal__item-badge" style="@GetRoleBadgeStyle(role.CodeRole)">@role.CodeRole</span>
+                        </div>
                         @if (!string.IsNullOrEmpty(role.Description))
                         {
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light);">@role.Description</RadzenText>
+                            <span class="kcc-modal__item-desc">@role.Description</span>
                         }
-                    </RadzenStack>
-                    <RadzenCheckBox TValue="bool" Value="@isAssigned" 
-                                    Disabled="@role.EstSysteme" />
-                </RadzenStack>
-            </RadzenCard>
-        }
-        
-        @if (HasChanges)
-        {
-            <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" AllowClose="false" Style="margin-top: 1rem;">
-                <strong>Modifications en attente:</strong>
-                @if (addedRoles.Any())
-                {
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-primary); display: inline;"> +@addedRoles.Count ajouté(s)</RadzenText>
-                }
-                @if (removedRoles.Any())
-                {
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: #dc2626; display: inline;"> -@removedRoles.Count retiré(s)</RadzenText>
-                }
-            </RadzenAlert>
-        }
+                    </div>
+
+                    @* Toggle visuel *@
+                    <div class="kcc-modal__item-toggle @(isAssigned ? "kcc-modal__item-toggle--on" : "")">
+                        <div class="kcc-modal__item-toggle-dot"></div>
+                    </div>
+                </button>
+            }
+        </div>
     }
-    
-    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" class="rz-mt-2">
-        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Close" />
-        <RadzenButton Text="Enregistrer les rôles" ButtonStyle="ButtonStyle.Primary" Click="@Save" 
-                      Icon="save" Disabled="@(!HasChanges)" />
-    </RadzenStack>
-</RadzenStack>
+
+    @* ─── BARRE DE CHANGEMENTS ─── *@
+    @if (HasChanges)
+    {
+        <div class="kcc-modal__changes">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </svg>
+            <span>Modifications non enregistrées</span>
+            @if (addedRoles.Any())
+            {
+                <span class="kcc-modal__changes-add">+@addedRoles.Count</span>
+            }
+            @if (removedRoles.Any())
+            {
+                <span class="kcc-modal__changes-rm">-@removedRoles.Count</span>
+            }
+        </div>
+    }
+
+    @* ─── ACTIONS ─── *@
+    <div class="kcc-modal__footer">
+        <button type="button" class="kcc-modal__btn kcc-modal__btn--ghost" @onclick="@Close">
+            Annuler
+        </button>
+        <button type="button" class="kcc-modal__btn kcc-modal__btn--primary" @onclick="@Save" disabled="@(!HasChanges)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            Enregistrer les rôles
+        </button>
+    </div>
+</div>
+
+<style>
+    /* ============================================================
+       KCC MODAL — Template de base pour toutes les modales KCC
+       Couleurs : Vert #00B193 | Cuivre #BB8748 | Slate #253C45
+       Border-radius : 0 partout
+       ============================================================ */
+
+    .kcc-modal {
+        display: flex;
+        flex-direction: column;
+        background: #ffffff;
+    }
+
+    /* ─── BANDEAU SUPÉRIEUR ─── */
+    .kcc-modal__topbar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1.25rem 1.5rem;
+        background: #253C45;
+        color: #ffffff;
+    }
+
+    .kcc-modal__topbar-icon {
+        width: 38px;
+        height: 38px;
+        background: rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: #ffffff;
+    }
+
+    .kcc-modal__title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: -0.01em;
+    }
+
+    .kcc-modal__desc {
+        margin: 0;
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .kcc-modal__topbar-text {
+        flex: 1;
+    }
+
+    .kcc-modal__close {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.7);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__close:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+    }
+
+    /* ─── FICHE UTILISATEUR ─── */
+    .kcc-modal__user-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        background: #f8f9fb;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .kcc-modal__user-avatar {
+        width: 40px;
+        height: 40px;
+        background: #BB8748;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__user-info {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .kcc-modal__user-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #1a1a1a;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .kcc-modal__user-login {
+        font-size: 0.75rem;
+        color: #6b7280;
+    }
+
+    .kcc-modal__user-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.3rem 0.75rem;
+        background: rgba(0, 177, 147, 0.08);
+        border: 1px solid rgba(0, 177, 147, 0.2);
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__user-stat-num {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #00B193;
+        line-height: 1;
+    }
+
+    .kcc-modal__user-stat-label {
+        font-size: 0.65rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    /* ─── INSTRUCTION ─── */
+    .kcc-modal__hint {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0;
+        padding: 0.6rem 1.5rem;
+        font-size: 0.75rem;
+        color: #6b7280;
+        background: #ffffff;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .kcc-modal__hint svg {
+        flex-shrink: 0;
+        color: #BB8748;
+    }
+
+    /* ─── EMPTY ─── */
+    .kcc-modal__empty {
+        padding: 2rem 1.5rem;
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+
+    /* ─── LISTE ─── */
+    .kcc-modal__list {
+        display: flex;
+        flex-direction: column;
+        max-height: 340px;
+        overflow-y: auto;
+        padding: 0.5rem 0;
+    }
+
+    /* ─── ITEM ─── */
+    .kcc-modal__item {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        padding: 0;
+        margin: 0 0.75rem;
+        border: 1px solid transparent;
+        background: #ffffff;
+        cursor: pointer;
+        width: calc(100% - 1.5rem);
+        text-align: left;
+        font-family: inherit;
+        font-size: inherit;
+        transition: background-color 0.1s, border-color 0.1s;
+        position: relative;
+    }
+
+    .kcc-modal__item + .kcc-modal__item {
+        margin-top: 0.35rem;
+    }
+
+    .kcc-modal__item:hover:not(:disabled) {
+        background: #f9fafb;
+        border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .kcc-modal__item--on {
+        background: rgba(0, 177, 147, 0.03);
+        border-color: rgba(0, 177, 147, 0.25);
+    }
+
+    .kcc-modal__item--on:hover:not(:disabled) {
+        background: rgba(0, 177, 147, 0.06);
+        border-color: rgba(0, 177, 147, 0.4);
+    }
+
+    /* Barre indicateur à gauche */
+    .kcc-modal__item-indicator {
+        width: 3px;
+        align-self: stretch;
+        background: transparent;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__item-indicator--on {
+        background: #00B193;
+    }
+
+    /* Icône par rôle */
+    .kcc-modal__item-icon {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin: 0.6rem 0 0.6rem 0.6rem;
+    }
+
+    /* Contenu */
+    .kcc-modal__item-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        padding: 0.6rem 0.75rem;
+        min-width: 0;
+    }
+
+    .kcc-modal__item-top {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
+    .kcc-modal__item-name {
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #1a1a1a;
+    }
+
+    .kcc-modal__item-badge {
+        font-size: 0.6rem;
+        font-weight: 700;
+        padding: 0.1rem 0.35rem;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+
+    .kcc-modal__item-desc {
+        font-size: 0.75rem;
+        color: #6b7280;
+        line-height: 1.3;
+    }
+
+    /* Toggle switch */
+    .kcc-modal__item-toggle {
+        width: 36px;
+        height: 20px;
+        background: #d1d5db;
+        position: relative;
+        flex-shrink: 0;
+        margin-right: 0.75rem;
+        transition: background-color 0.15s;
+    }
+
+    .kcc-modal__item-toggle--on {
+        background: #00B193;
+    }
+
+    .kcc-modal__item-toggle-dot {
+        width: 16px;
+        height: 16px;
+        background: #ffffff;
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        transition: transform 0.15s;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    .kcc-modal__item-toggle--on .kcc-modal__item-toggle-dot {
+        transform: translateX(16px);
+    }
+
+    /* ─── BARRE CHANGEMENTS ─── */
+    .kcc-modal__changes {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 1.5rem;
+        background: #FFF8EE;
+        border-top: 1px solid #BB8748;
+        border-bottom: 1px solid #BB8748;
+        font-size: 0.78rem;
+        color: #92400e;
+    }
+
+    .kcc-modal__changes svg {
+        color: #BB8748;
+        flex-shrink: 0;
+    }
+
+    .kcc-modal__changes-add {
+        font-weight: 700;
+        color: #00B193;
+    }
+
+    .kcc-modal__changes-rm {
+        font-weight: 700;
+        color: #dc2626;
+    }
+
+    /* ─── FOOTER ─── */
+    .kcc-modal__footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        background: #f8f9fb;
+    }
+
+    .kcc-modal__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.55rem 1.25rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        font-family: inherit;
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.1s;
+    }
+
+    .kcc-modal__btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .kcc-modal__btn--ghost {
+        background: #ffffff;
+        color: #4a4a4a;
+        border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    .kcc-modal__btn--ghost:hover:not(:disabled) {
+        background: #f0f2f5;
+    }
+
+    .kcc-modal__btn--primary {
+        background: #00B193;
+        color: #ffffff;
+        border-color: #00B193;
+    }
+
+    .kcc-modal__btn--primary:hover:not(:disabled) {
+        background: #008F76;
+        border-color: #008F76;
+    }
+
+    /* Scrollbar dans la liste */
+    .kcc-modal__list::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .kcc-modal__list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .kcc-modal__list::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+    }
+</style>
 
 @code {
     [Parameter]
     public Utilisateur? Utilisateur { get; set; }
-    
+
     private List<Role> allRoles = [];
     private List<int> assignedRoleIds = [];
     private List<int> originalRoleIds = [];
@@ -85,10 +536,10 @@
     protected override async Task OnInitializedAsync()
     {
         if (Utilisateur == null) return;
-        
+
         allRoles = (await RoleService.GetAllAsync()).ToList();
-        var userRoles = await RoleService.GetRolesForUserAsync(Utilisateur.IdUtilisateur);
-        assignedRoleIds = userRoles.Select(r => r.IdRole).ToList();
+        var userRoles = await RoleService.GetRolesForUserAsync(Utilisateur.Id);
+        assignedRoleIds = userRoles.Select(r => r.Id).ToList();
         originalRoleIds = [.. assignedRoleIds];
     }
 
@@ -106,40 +557,68 @@
         }
     }
 
-    private static string GetRoleBadgeStyle(string roleCode) => roleCode?.ToUpperInvariant() switch
+    private static string GetInitials(string? name)
     {
-        "ADMIN" => "background: #fee2e2; color: #dc2626;",
-        "GM" => "background: #ede9fe; color: #7c3aed;",
-        "SUPERVISEUR" => "background: #fef3c7; color: #d97706;",
-        "OPJ" => "background: #fce7f3; color: #be185d;",
-        "IT" => "background: #e0f2fe; color: #0284c7;",
-        "ENVIRONNEMENT" => "background: #d1fae5; color: #059669;",
-        "IDENTIFICATION" => "background: #cffafe; color: #0891b2;",
-        "BARRIERE" => "background: #e0e7ff; color: #4f46e5;",
-        "INVESTIGATION" => "background: #f3e8ff; color: #9333ea;",
-        _ => "background: #f3f4f6; color: #6b7280;"
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[^1][0])}";
+        return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
+    }
+
+    private static string GetRoleBadgeStyle(string? roleCode) => "background: rgba(37, 60, 69, 0.08); color: #253C45;";
+
+    private static string GetRoleIconBg(string? roleCode) => "background: rgba(37, 60, 69, 0.08); color: #253C45;";
+
+    private static string GetRoleIconPath(string? roleCode) => roleCode?.ToUpperInvariant() switch
+    {
+        "ADMIN" => "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4",
+        "GM" => "M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M12 3a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
+        "SUPERVISEUR" => "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z",
+        "OPJ" => "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+        "IT" => "M22 12h-4l-3 9L9 3l-3 9H2",
+        "ENVIRONNEMENT" => "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM2 12h20",
+        "IDENTIFICATION" => "M7 20l4-16m2 16l4-16M6 9h14M4 15h14",
+        "BARRIERE" => "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3",
+        "INVESTIGATION" => "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+        _ => "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M12 7a4 4 0 100-8 4 4 0 000 8z"
     };
 
     private async Task Save()
     {
         if (Utilisateur == null) return;
-        
+
         try
         {
             var currentLogin = CurrentUserService.GetUserLogin();
-            
-            // Retirer les rôles désélectionnés
+
+            // 1. Retirer les rôles désélectionnés
             foreach (var roleId in originalRoleIds.Where(id => !assignedRoleIds.Contains(id)))
             {
-                await RoleService.RemoveRoleFromUserAsync(Utilisateur.IdUtilisateur, roleId);
+                await RoleService.RemoveRoleFromUserAsync(Utilisateur.Id, roleId);
             }
-            
-            // Ajouter les nouveaux rôles
+
+            // 2. Ajouter les nouveaux rôles
             foreach (var roleId in assignedRoleIds.Where(id => !originalRoleIds.Contains(id)))
             {
-                await RoleService.AssignRoleToUserAsync(Utilisateur.IdUtilisateur, roleId, currentLogin);
+                await RoleService.AssignRoleToUserAsync(Utilisateur.Id, roleId, currentLogin);
             }
-            
+
+            // 3. Synchroniser les activités par défaut en fonction de tous les rôles actifs
+            var activeRoleCodes = allRoles
+                .Where(r => assignedRoleIds.Contains(r.Id))
+                .Select(r => r.CodeRole)
+                .ToList();
+
+            var activitesAdded = await ActiviteService.SyncActivitesFromRolesAsync(
+                Utilisateur.Id, activeRoleCodes, currentLogin);
+
+            if (activitesAdded > 0)
+            {
+                NotificationService.Notify(NotificationSeverity.Info, "Activités synchronisées",
+                    $"{activitesAdded} activité(s) ajoutée(s) automatiquement selon les rôles");
+            }
+
             DialogService.Close(true);
         }
         catch (Exception ex)

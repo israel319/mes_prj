@@ -1,5 +1,5 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace KCCMaterialFlow.Infrastructure.Performance;
@@ -41,7 +41,7 @@ public static class OptimizedQueries
             .OrderBy(u => u.NomComplet)
             .Select(u => new UtilisateurListDto
             {
-                IdUtilisateur = u.IdUtilisateur,
+                IdUtilisateur = u.Id,
                 Login = u.Login,
                 NomComplet = u.NomComplet,
                 Matricule = null, // Pas de matricule dans l'entité actuelle
@@ -70,7 +70,7 @@ public static class OptimizedQueries
             .OrderBy(u => u.NomComplet)
             .Select(u => new UtilisateurLookupDto
             {
-                IdUtilisateur = u.IdUtilisateur,
+                IdUtilisateur = u.Id,
                 Login = u.Login,
                 NomComplet = u.NomComplet
             });
@@ -96,7 +96,7 @@ public static class OptimizedQueries
             .OrderBy(d => d.NomDepartement)
             .Select(d => new DepartementListDto
             {
-                IdDepartement = d.IdDepartement,
+                IdDepartement = d.Id,
                 CodeDepartement = d.CodeDepartement,
                 NomDepartement = d.NomDepartement,
                 NomResponsable = d.ResponsableNom,
@@ -123,7 +123,7 @@ public static class OptimizedQueries
             .OrderBy(d => d.NomDepartement)
             .Select(d => new DepartementLookupDto
             {
-                IdDepartement = d.IdDepartement,
+                IdDepartement = d.Id,
                 CodeDepartement = d.CodeDepartement,
                 NomDepartement = d.NomDepartement
             });

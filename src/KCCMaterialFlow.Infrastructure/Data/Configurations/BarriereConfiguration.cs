@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,9 +13,9 @@ public class BarriereConfiguration : IEntityTypeConfiguration<Barriere>
     {
         builder.ToTable("T_Barrieres", "dbo");
 
-        builder.HasKey(b => b.IdBarriere);
+        builder.HasKey(b => b.Id);
 
-        builder.Property(b => b.IdBarriere)
+        builder.Property(b => b.Id)
             .HasColumnName("IdBarriere")
             .ValueGeneratedOnAdd();
 

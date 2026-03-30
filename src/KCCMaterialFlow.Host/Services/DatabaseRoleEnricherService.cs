@@ -1,6 +1,6 @@
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -158,17 +158,17 @@ public class DatabaseRoleEnricherService : ICurrentUserService
             // Récupérer les rôles via UtilisateurRoles
             var roles = dbContext.Set<UtilisateurRole>()
                 .AsNoTracking()
-                .Where(ur => ur.IdUtilisateur == utilisateur.IdUtilisateur)
+                .Where(ur => ur.IdUtilisateur == utilisateur.Id)
                 .Join(dbContext.Set<Role>().Where(r => r.EstActif),
                     ur => ur.IdRole,
-                    r => r.IdRole,
+                    r => r.Id,
                     (ur, r) => r.CodeRole)
                 .ToList();
 
             // Ajouter le rôle principal via la FK IdRole
             var directRole = dbContext.Set<Role>()
                 .AsNoTracking()
-                .Where(r => r.IdRole == utilisateur.IdRole && r.EstActif)
+                .Where(r => r.Id == utilisateur.IdRole && r.EstActif)
                 .Select(r => r.CodeRole)
                 .FirstOrDefault();
 
@@ -240,10 +240,10 @@ public class DatabaseRoleEnricherService : ICurrentUserService
 
             var activiteCodes = dbContext.Set<UtilisateurActivite>()
                 .AsNoTracking()
-                .Where(ua => ua.IdUtilisateur == utilisateur.IdUtilisateur && ua.EstActif)
+                .Where(ua => ua.IdUtilisateur == utilisateur.Id && ua.EstActif)
                 .Join(dbContext.Set<Activite>().Where(a => a.EstActif),
                     ua => ua.IdActivite,
-                    a => a.IdActivite,
+                    a => a.Id,
                     (ua, a) => a.CodeActivite)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
 

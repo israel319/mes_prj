@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Module.Shared.Entities;
+using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -13,7 +13,8 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
     {
         builder.ToTable("T_Permissions", "dbo");
 
-        builder.HasKey(p => p.IdPermission);
+        builder.HasKey(p => p.Id);
+        builder.Property(p => p.Id).HasColumnName("IdPermission").ValueGeneratedOnAdd();
 
         builder.Property(p => p.CodePermission)
             .IsRequired()
@@ -47,7 +48,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             // === Catégorie: Bons ===
             new Permission
             {
-                IdPermission = 1,
+                Id =1,
                 CodePermission = "ALL",
                 NomPermission = "Accès complet",
                 Description = "Accès complet à toutes les fonctionnalités",
@@ -59,7 +60,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             },
             new Permission
             {
-                IdPermission = 2,
+                Id =2,
                 CodePermission = "CREATE_BON",
                 NomPermission = "Créer des bons",
                 Description = "Créer des bons d'entrée/sortie de matériel",
@@ -71,7 +72,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             },
             new Permission
             {
-                IdPermission = 3,
+                Id =3,
                 CodePermission = "VIEW_BON",
                 NomPermission = "Voir tous les bons",
                 Description = "Consulter tous les bons du système",
@@ -83,7 +84,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             },
             new Permission
             {
-                IdPermission = 4,
+                Id =4,
                 CodePermission = "VIEW_OWN_BON",
                 NomPermission = "Voir ses propres bons",
                 Description = "Consulter uniquement ses propres bons",
@@ -95,7 +96,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             },
             new Permission
             {
-                IdPermission = 5,
+                Id =5,
                 CodePermission = "APPROVE_BON",
                 NomPermission = "Approuver les bons",
                 Description = "Approuver les bons de son département",
@@ -107,7 +108,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             },
             new Permission
             {
-                IdPermission = 6,
+                Id =6,
                 CodePermission = "REJECT_BON",
                 NomPermission = "Rejeter les bons",
                 Description = "Rejeter les bons de son département",
@@ -120,7 +121,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             // === Catégorie: Sécurité ===
             new Permission
             {
-                IdPermission = 7,
+                Id =7,
                 CodePermission = "SCAN_BON",
                 NomPermission = "Scanner les QR codes",
                 Description = "Scanner les QR codes des bons aux barrières",
@@ -132,7 +133,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             },
             new Permission
             {
-                IdPermission = 8,
+                Id =8,
                 CodePermission = "CREATE_ANOMALIE",
                 NomPermission = "Signaler des anomalies",
                 Description = "Créer des signalements d'anomalies",
@@ -145,7 +146,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             // === Catégorie: Rapports ===
             new Permission
             {
-                IdPermission = 9,
+                Id =9,
                 CodePermission = "VIEW_REPORTS",
                 NomPermission = "Accéder aux rapports",
                 Description = "Consulter les rapports et statistiques",
@@ -158,7 +159,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             // === Catégorie: Administration ===
             new Permission
             {
-                IdPermission = 10,
+                Id =10,
                 CodePermission = "MANAGE_USERS",
                 NomPermission = "Gérer les utilisateurs",
                 Description = "Ajouter, modifier et désactiver les utilisateurs",
@@ -170,7 +171,7 @@ public class PermissionConfiguration : IEntityTypeConfiguration<Permission>
             },
             new Permission
             {
-                IdPermission = 11,
+                Id =11,
                 CodePermission = "MANAGE_SETTINGS",
                 NomPermission = "Gérer les paramètres",
                 Description = "Modifier les paramètres système",
@@ -193,7 +194,8 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
     {
         builder.ToTable("T_RolePermissions", "dbo");
 
-        builder.HasKey(rp => rp.IdRolePermission);
+        builder.HasKey(rp => rp.Id);
+        builder.Property(rp => rp.Id).HasColumnName("IdRolePermission").ValueGeneratedOnAdd();
 
         builder.HasIndex(rp => new { rp.IdRole, rp.IdPermission })
             .IsUnique()
@@ -212,21 +214,21 @@ public class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermissi
         // Seed : attribution des permissions aux rôles système
         builder.HasData(
             // ADMIN (IdRole=1) → ALL (IdPermission=1)
-            new RolePermission { IdRolePermission = 1, IdRole = 1, IdPermission = 1, DateAttribution = new DateTime(2024, 1, 1) },
+            new RolePermission { Id = 1, IdRole = 1, IdPermission = 1, DateAttribution = new DateTime(2024, 1, 1) },
 
             // APPROBATEUR (IdRole=2) → VIEW_BON, APPROVE_BON, REJECT_BON
-            new RolePermission { IdRolePermission = 2, IdRole = 2, IdPermission = 3, DateAttribution = new DateTime(2024, 1, 1) },
-            new RolePermission { IdRolePermission = 3, IdRole = 2, IdPermission = 5, DateAttribution = new DateTime(2024, 1, 1) },
-            new RolePermission { IdRolePermission = 4, IdRole = 2, IdPermission = 6, DateAttribution = new DateTime(2024, 1, 1) },
+            new RolePermission { Id = 2, IdRole = 2, IdPermission = 3, DateAttribution = new DateTime(2024, 1, 1) },
+            new RolePermission { Id = 3, IdRole = 2, IdPermission = 5, DateAttribution = new DateTime(2024, 1, 1) },
+            new RolePermission { Id = 4, IdRole = 2, IdPermission = 6, DateAttribution = new DateTime(2024, 1, 1) },
 
             // AGENT_SECURITE (IdRole=3) → VIEW_BON, SCAN_BON, CREATE_ANOMALIE
-            new RolePermission { IdRolePermission = 5, IdRole = 3, IdPermission = 3, DateAttribution = new DateTime(2024, 1, 1) },
-            new RolePermission { IdRolePermission = 6, IdRole = 3, IdPermission = 7, DateAttribution = new DateTime(2024, 1, 1) },
-            new RolePermission { IdRolePermission = 7, IdRole = 3, IdPermission = 8, DateAttribution = new DateTime(2024, 1, 1) },
+            new RolePermission { Id = 5, IdRole = 3, IdPermission = 3, DateAttribution = new DateTime(2024, 1, 1) },
+            new RolePermission { Id = 6, IdRole = 3, IdPermission = 7, DateAttribution = new DateTime(2024, 1, 1) },
+            new RolePermission { Id = 7, IdRole = 3, IdPermission = 8, DateAttribution = new DateTime(2024, 1, 1) },
 
             // UTILISATEUR (IdRole=4) → CREATE_BON, VIEW_OWN_BON
-            new RolePermission { IdRolePermission = 8, IdRole = 4, IdPermission = 2, DateAttribution = new DateTime(2024, 1, 1) },
-            new RolePermission { IdRolePermission = 9, IdRole = 4, IdPermission = 4, DateAttribution = new DateTime(2024, 1, 1) }
+            new RolePermission { Id = 8, IdRole = 4, IdPermission = 2, DateAttribution = new DateTime(2024, 1, 1) },
+            new RolePermission { Id = 9, IdRole = 4, IdPermission = 4, DateAttribution = new DateTime(2024, 1, 1) }
         );
     }
 }

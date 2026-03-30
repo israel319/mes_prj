@@ -15,6 +15,16 @@
     --kcc-primary-dark: #008F76;
     --kcc-primary-light: rgba(0, 177, 147, 0.10);
 
+    /* Cuivre KCC (badges, accents chaleureux) */
+    --kcc-copper: #BB8748;
+    --kcc-copper-dark: #9A6E38;
+    --kcc-copper-light: rgba(187, 135, 72, 0.10);
+
+    /* Bleu KCC (en-têtes, éléments de confiance) */
+    --kcc-blue-brand: #003468;
+    --kcc-blue-brand-dark: #002651;
+    --kcc-blue-brand-light: rgba(0, 52, 104, 0.10);
+
     /* 10% - Accent (erreurs, alertes critiques, suppression) */
     --kcc-accent: #A61B0C;
     --kcc-accent-hover: #8B1709;

@@ -1,7 +1,5 @@
 @page "/admin/workflows"
 @attribute [Authorize(Roles = "Admin")]
-@using KCCMaterialFlow.Module.Shared.Entities
-@using KCCMaterialFlow.Module.Shared.Services
 @using Microsoft.AspNetCore.Authorization
 @inject IWorkflowConfigService WorkflowConfigService
 @inject IRoleService RoleService
@@ -10,21 +8,22 @@
 
 <PageTitle>Administration - Workflows</PageTitle>
 
-<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    <AdminNav />
+    <RadzenStack Gap="1rem">
 
     @* ── En-tête ── *@
-    <RadzenCard Style="background: linear-gradient(135deg, var(--kcc-primary) 0%, var(--kcc-primary-dark) 100%); color: white; border-radius: 12px;">
-        <RadzenText TextStyle="TextStyle.Caption" Style="color: rgba(255,255,255,0.7);">
-            <RadzenIcon Icon="home" Style="font-size: 0.85rem; vertical-align: middle;" /> Accueil / Administration / Workflows
-        </RadzenText>
-        <RadzenText TextStyle="TextStyle.H5" Style="color: white; margin: 0;">
-            <RadzenIcon Icon="route" Style="vertical-align: middle; margin-right: 0.5rem;" />
-            Configuration des étapes d'approbation
-        </RadzenText>
-        <RadzenText TextStyle="TextStyle.Body2" Style="color: rgba(255,255,255,0.8); margin-top: 0.25rem;">
-            Chaque motif peut avoir son propre workflow ou hériter du workflow générique.
-        </RadzenText>
-    </RadzenCard>
+    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenColumn>
+            <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
+                <RadzenIcon Icon="route" Style="margin-right: 0.5rem; vertical-align: middle;" />
+                Configuration des étapes d'approbation
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin-top: 0.25rem;">
+                Chaque motif peut avoir son propre workflow ou hériter du workflow générique.
+            </RadzenText>
+        </RadzenColumn>
+    </RadzenRow>
 
     @* ── Sélecteur de type de bon ── *@
     <RadzenCard>
@@ -74,7 +73,7 @@
                         {
                             var isSelected = ctx.RaisonSortieCode == selectedRaisonCode;
                             <div @onclick="@(() => SelectContext(ctx))"
-                                 style="cursor:pointer; border-radius:8px; padding:0.6rem 0.75rem;
+                                 style="cursor:pointer; padding:0.6rem 0.75rem;
                                         background:@(isSelected ? "var(--kcc-primary-light, #e8f5e9)" : "transparent");
                                         border: 1px solid @(isSelected ? "var(--kcc-primary)" : "transparent");
                                         transition: background 0.15s;">
@@ -90,11 +89,11 @@
                                     </RadzenStack>
                                     @if (ctx.EstPersonnalise)
                                     {
-                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Personnalisé" />
+                                        <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(5,150,105,0.1); color: #059669;">Personnalisé</span>
                                     }
                                     else
                                     {
-                                        <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="Hérité" />
+                                        <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: #f3f4f6; color: #374151;">Hérité</span>
                                     }
                                 </RadzenStack>
                             </div>
@@ -210,6 +209,7 @@
         </RadzenRow>
     }
 </RadzenStack>
+</div>
 
 @code {
     private sealed class StepVm

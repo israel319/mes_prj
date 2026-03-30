@@ -1,6 +1,6 @@
 using System.Runtime.Versioning;
 using System.Security.Principal;
-using KCCMaterialFlow.Application.Interfaces;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 

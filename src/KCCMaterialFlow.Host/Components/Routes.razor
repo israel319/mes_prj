@@ -1,12 +1,6 @@
 @using KCCMaterialFlow.Host.Components.Layout
 
-<Router AppAssembly="typeof(Program).Assembly"
-        AdditionalAssemblies="new[] { 
-            typeof(KCCMaterialFlow.Module.Shared.ModuleInfo).Assembly,
-            typeof(KCCMaterialFlow.Module.BonEntree.Presentation.PresentationInfo).Assembly,
-            typeof(KCCMaterialFlow.Module.BonSortie.Presentation.PresentationInfo).Assembly,
-            typeof(KCCMaterialFlow.Module.Securite.Presentation.PresentationInfo).Assembly 
-        }">
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />

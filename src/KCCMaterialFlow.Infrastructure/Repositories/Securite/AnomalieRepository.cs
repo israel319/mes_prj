@@ -1,9 +1,9 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Securite.Entities;
-using KCCMaterialFlow.Module.Securite.Repositories;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace KCCMaterialFlow.Infrastructure.Repositories.Securite;
+namespace KCCMaterialFlow.Infrastructure.Repositories;
 
 /// <summary>
 /// SEC-010: Implémentation du repository pour les anomalies.
@@ -30,7 +30,7 @@ public class AnomalieRepository : IAnomalieRepository
         return await _context.Set<Anomalie>()
             .Include(a => a.ScanEvenement)
             .Include(a => a.Barriere)
-            .FirstOrDefaultAsync(a => a.IdAnomalie == id, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
     }
 
     public async Task<Anomalie> CreateAsync(Anomalie anomalie, CancellationToken cancellationToken = default)

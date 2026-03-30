@@ -1,6 +1,6 @@
 using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Module.Shared.Entities;
-using KCCMaterialFlow.Module.Shared.Services;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -66,7 +66,7 @@ public class BarriereService : IBarriereService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var barriere = await context.Set<Barriere>()
             .AsNoTracking()
-            .FirstOrDefaultAsync(b => b.IdBarriere == id, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
 
         if (barriere != null)
         {
@@ -167,8 +167,8 @@ public class BarriereService : IBarriereService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var existing = await context.Set<Barriere>()
-            .FirstOrDefaultAsync(b => b.IdBarriere == barriere.IdBarriere, cancellationToken)
-            ?? throw new InvalidOperationException($"Barrière {barriere.IdBarriere} non trouvée");
+            .FirstOrDefaultAsync(b => b.Id == barriere.Id, cancellationToken)
+            ?? throw new InvalidOperationException($"Barrière {barriere.Id} non trouvée");
 
         existing.CodeBarriere = barriere.CodeBarriere;
         existing.NomBarriere = barriere.NomBarriere;

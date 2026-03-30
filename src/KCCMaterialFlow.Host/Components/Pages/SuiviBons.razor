@@ -1,10 +1,8 @@
 @page "/suivi-bons"
 @page "/mes-bons-en-attente"
 @attribute [Authorize]
-@using KCCMaterialFlow.Module.BonEntree.Services
-@using KCCMaterialFlow.Module.BonSortie.Services
-@using BEMEntities = KCCMaterialFlow.Module.BonEntree.Entities
-@using BSMEntities = KCCMaterialFlow.Module.BonSortie.Entities
+@using BonEntreeEntity = KCCMaterialFlow.Domain.Entities.BonEntree
+@using BonSortieEntity = KCCMaterialFlow.Domain.Entities.BonSortie
 
 @inject ICurrentUserService CurrentUserService
 @inject IBonEntreeService BonEntreeService
@@ -14,7 +12,7 @@
 
 <PageTitle>Suivi de mes bons - KCC Material Flow</PageTitle>
 
-<RadzenStack Gap="1.5rem" Style="max-width: 1200px; margin: 0 auto; padding: 1.5rem;">
+<RadzenStack Gap="1.5rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
 
     <RadzenStack Gap="0.25rem">
         <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">Suivi de mes bons</RadzenText>
@@ -53,12 +51,12 @@
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
                              Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border);">
                     <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600; color: var(--kcc-slate);">Bons d'entrée en attente (@bemPending.Count)</RadzenText>
-                    <RadzenBadge Text="BEM" BadgeStyle="BadgeStyle.Info" IsPill="true" />
+                    <RadzenBadge Text="BEM" BadgeStyle="BadgeStyle.Info" />
                 </RadzenStack>
 
                 @foreach (var bon in bemPending)
                 {
-                    <RadzenStack Gap="0.75rem" @onclick="@(() => NavigateTo($"/bon-entree/{bon.IdBon}"))"
+                    <RadzenStack Gap="0.75rem" @onclick="@(() => NavigateTo($"/bon-entree/{bon.Id}"))"
                                  Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border); cursor: pointer;">
                         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
                             <RadzenStack Gap="0.25rem">
@@ -66,7 +64,7 @@
                                 <RadzenText Style="font-size: 0.8125rem; color: #374151; margin: 0;">@bon.NomCompagnie - @bon.ReasonOnSite</RadzenText>
                             </RadzenStack>
                             <RadzenStack Gap="0.25rem" Style="text-align: right;">
-                                <RadzenBadge Text="@GetStatutLibelle(bon.StatutActuel)" BadgeStyle="BadgeStyle.Warning" IsPill="true" />
+                                <RadzenBadge Text="@GetStatutLibelle(bon.StatutActuel)" BadgeStyle="BadgeStyle.Warning" />
                                 <RadzenText Style="font-size: 0.75rem; color: var(--kcc-text-light); margin: 0;">@bon.DateCreation.ToString("dd/MM/yyyy HH:mm")</RadzenText>
                             </RadzenStack>
                         </RadzenStack>
@@ -115,12 +113,12 @@
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
                              Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border);">
                     <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600; color: var(--kcc-slate);">Bons de sortie en attente (@bsmPending.Count)</RadzenText>
-                    <RadzenBadge Text="BSM" BadgeStyle="BadgeStyle.Success" IsPill="true" />
+                    <RadzenBadge Text="BSM" BadgeStyle="BadgeStyle.Success" />
                 </RadzenStack>
 
                 @foreach (var bon in bsmPending)
                 {
-                    <RadzenStack Gap="0.75rem" @onclick="@(() => NavigateTo($"/bon-sortie/{bon.IdBon}"))"
+                    <RadzenStack Gap="0.75rem" @onclick="@(() => NavigateTo($"/bon-sortie/{bon.Id}"))"
                                  Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border); cursor: pointer;">
                         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
                             <RadzenStack Gap="0.25rem">
@@ -128,7 +126,7 @@
                                 <RadzenText Style="font-size: 0.8125rem; color: #374151; margin: 0;">@bon.MotifSortie</RadzenText>
                             </RadzenStack>
                             <RadzenStack Gap="0.25rem" Style="text-align: right;">
-                                <RadzenBadge Text="@GetStatutLibelle(bon.StatutActuel)" BadgeStyle="BadgeStyle.Warning" IsPill="true" />
+                                <RadzenBadge Text="@GetStatutLibelle(bon.StatutActuel)" BadgeStyle="BadgeStyle.Warning" />
                                 <RadzenText Style="font-size: 0.75rem; color: var(--kcc-text-light); margin: 0;">@bon.DateCreation.ToString("dd/MM/yyyy HH:mm")</RadzenText>
                             </RadzenStack>
                         </RadzenStack>
@@ -174,8 +172,8 @@
 
 @code {
     private bool isLoading = true;
-    private List<BEMEntities.BonEntree> bemPending = new();
-    private List<BSMEntities.BonSortie> bsmPending = new();
+    private List<BonEntreeEntity> bemPending = new();
+    private List<BonSortieEntity> bsmPending = new();
     private IEnumerable<object> bonsPending => bemPending.Cast<object>().Concat(bsmPending.Cast<object>());
 
     protected override async Task OnInitializedAsync()
@@ -192,8 +190,8 @@
             var currentName = CurrentUserService.GetUserDisplayName();
 
             // Récupérer tous les bons de l'utilisateur
-            var bemResult = await BonEntreeService.GetListAsync(new KCCMaterialFlow.Module.BonEntree.Repositories.BonEntreeFilter { Take = 500 });
-            var bsmResult = await BonSortieService.GetListAsync(new KCCMaterialFlow.Module.BonSortie.Services.BonSortieFilter { Take = 500 });
+            var bemResult = await BonEntreeService.GetListAsync(new BonEntreeFilter { Take = 500 });
+            var bsmResult = await BonSortieService.GetListAsync(new BonSortieFilter { Take = 500 });
 
             // Filtrer les bons créés par l'utilisateur et en attente
             bemPending = bemResult.Items
@@ -231,7 +229,7 @@
         public string CssClass => IsCompleted ? "completed" : (IsCurrent ? "current" : "pending");
     }
 
-    private List<WorkflowStep> GetBEMWorkflowSteps(BEMEntities.BonEntree bon)
+    private List<WorkflowStep> GetBEMWorkflowSteps(BonEntreeEntity bon)
     {
         // Chaîne standard BEM: Superviseur → GM → OPJ → Identification
         var steps = new List<WorkflowStep>
@@ -256,7 +254,7 @@
         return steps;
     }
 
-    private List<WorkflowStep> GetBSMWorkflowSteps(BSMEntities.BonSortie bon)
+    private List<WorkflowStep> GetBSMWorkflowSteps(BonSortieEntity bon)
     {
         // Déterminer la chaîne selon le type de matériel
         var steps = new List<WorkflowStep>();

@@ -1,9 +1,6 @@
 using ClosedXML.Excel;
-using KCCMaterialFlow.Module.BonEntree.Services;
-using KCCMaterialFlow.Module.BonEntree.Repositories;
-using KCCMaterialFlow.Module.BonSortie.Services;
-using BEMEntities = KCCMaterialFlow.Module.BonEntree.Entities;
-using BSMEntities = KCCMaterialFlow.Module.BonSortie.Entities;
+using KCCMaterialFlow.Application.Common.Interfaces;
+using KCCMaterialFlow.Domain.Entities;
 
 namespace KCCMaterialFlow.Host.Services;
 
@@ -66,7 +63,7 @@ public class ExcelExportService : IExcelExportService
         int row = 2;
         foreach (var bon in bons)
         {
-            ws.Cell(row, 1).Value = bon.IdBon;
+            ws.Cell(row, 1).Value = bon.Id;
             ws.Cell(row, 2).Value = bon.NumeroReference;
             ws.Cell(row, 3).Value = bon.NomCompagnie;
             ws.Cell(row, 4).Value = bon.NomDemandeur;
@@ -120,7 +117,7 @@ public class ExcelExportService : IExcelExportService
         int row = 2;
         foreach (var bon in bons)
         {
-            ws.Cell(row, 1).Value = bon.IdBon;
+            ws.Cell(row, 1).Value = bon.Id;
             ws.Cell(row, 2).Value = bon.NumeroReference;
             ws.Cell(row, 3).Value = GetTypeBSM(bon);
             ws.Cell(row, 4).Value = bon.NomDemandeur;
@@ -169,7 +166,7 @@ public class ExcelExportService : IExcelExportService
         return WorkbookToBytes(workbook);
     }
 
-    private static void WriteBEMHistoriqueSheet(IXLWorksheet ws, IReadOnlyList<BEMEntities.BonEntree> bons)
+    private static void WriteBEMHistoriqueSheet(IXLWorksheet ws, IReadOnlyList<BonEntree> bons)
     {
         var headers = new[] { "Référence", "Compagnie", "Demandeur", "Action", "Par", "Date Action", "Commentaire", "Statut" };
         WriteHeaders(ws, headers, "#1B6EC2");
@@ -219,7 +216,7 @@ public class ExcelExportService : IExcelExportService
         ws.RangeUsed()?.SetAutoFilter();
     }
 
-    private static void WriteBSMHistoriqueSheet(IXLWorksheet ws, IReadOnlyList<BSMEntities.BonSortie> bons)
+    private static void WriteBSMHistoriqueSheet(IXLWorksheet ws, IReadOnlyList<BonSortie> bons)
     {
         var headers = new[] { "Référence", "Type", "Demandeur", "Action", "Par", "Date Action", "Description", "Statut" };
         WriteHeaders(ws, headers, "#16A34A");
@@ -229,15 +226,15 @@ public class ExcelExportService : IExcelExportService
         {
             if (bon.Historiques.Any())
             {
-                foreach (var h in bon.Historiques.OrderBy(x => x.DateAction))
+                foreach (var h in bon.Historiques.OrderBy(x => x.ActionDate))
                 {
                     ws.Cell(row, 1).Value = bon.NumeroReference;
                     ws.Cell(row, 2).Value = GetTypeBSM(bon);
                     ws.Cell(row, 3).Value = bon.NomDemandeur;
-                    ws.Cell(row, 4).Value = GetActionLabel(h.TypeAction);
-                    ws.Cell(row, 5).Value = h.UtilisateurNom ?? h.UtilisateurLogin;
-                    ws.Cell(row, 6).Value = h.DateAction.ToString("dd/MM/yyyy HH:mm");
-                    ws.Cell(row, 7).Value = h.Description ?? "";
+                    ws.Cell(row, 4).Value = GetActionLabel(h.ActionDescription);
+                    ws.Cell(row, 5).Value = h.ActionByNom ?? h.ActionBy;
+                    ws.Cell(row, 6).Value = h.ActionDate.ToString("dd/MM/yyyy HH:mm");
+                    ws.Cell(row, 7).Value = h.Comment ?? "";
                     ws.Cell(row, 8).Value = GetStatutLabel(h.StatutApres);
 
                     if (row % 2 == 0)
@@ -269,7 +266,7 @@ public class ExcelExportService : IExcelExportService
         ws.RangeUsed()?.SetAutoFilter();
     }
 
-    private static void WriteSummarySheet(IXLWorksheet ws, IReadOnlyList<BEMEntities.BonEntree> bonsEntree, IReadOnlyList<BSMEntities.BonSortie> bonsSortie)
+    private static void WriteSummarySheet(IXLWorksheet ws, IReadOnlyList<BonEntree> bonsEntree, IReadOnlyList<BonSortie> bonsSortie)
     {
         ws.Cell(1, 1).Value = "KCC Material Flow - Résumé Export";
         ws.Cell(1, 1).Style.Font.Bold = true;
@@ -330,11 +327,11 @@ public class ExcelExportService : IExcelExportService
         return stream.ToArray();
     }
 
-    private static string GetTypeBSM(BSMEntities.BonSortie bon) => bon switch
+    private static string GetTypeBSM(BonSortie bon) => bon switch
     {
-        BSMEntities.Pret => "Prêt",
-        BSMEntities.BonSortieExterne => "Externe",
-        BSMEntities.BonSortieInterne => "Interne",
+        Pret => "Prêt",
+        BonSortieExterne => "Externe",
+        BonSortieInterne => "Interne",
         _ => "Sortie"
     };
 
