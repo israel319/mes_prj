@@ -548,11 +548,15 @@ body {
     padding: 0.4rem 0.75rem;
     flex-shrink: 0;
     cursor: default;
+    border: none !important;
+    outline: none !important;
+    background: transparent !important;
 }
 
 .kcc-topbar__avatar {
     width: 28px;
     height: 28px;
+    border-radius: 50%;
     background: #00B193;
     display: flex;
     align-items: center;
@@ -569,6 +573,17 @@ body {
     font-weight: 500;
     color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
+}
+
+.kcc-topbar__role-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    background: rgba(0, 177, 147, 0.2);
+    color: #00B193;
+    border: 1px solid rgba(0, 177, 147, 0.35);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
 }
 
 /* ============ FORMULAIRE BEM/BSM — Sections et champs ============ */
@@ -991,4 +1006,415 @@ body {
 .kcc-action-btn:hover {
     color: var(--kcc-primary-dark) !important;
     background-color: var(--kcc-primary-light) !important;
+}
+
+/* ============ BON VIEW — Affichage BEM / BSM ============ */
+.bon-view {
+    max-width: 960px;
+    margin: 1.5rem auto;
+    padding: 2rem 2.5rem;
+    background: #ffffff;
+}
+
+.bon-view section {
+    margin-bottom: 1.75rem;
+}
+
+.bon-view__section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #00B193;
+    margin: 0 0 0.25rem 0;
+}
+
+.bon-view__section-line {
+    height: 1px;
+    background: #e5e7eb;
+    margin-bottom: 1rem;
+}
+
+.bon-view__field-row {
+    display: flex;
+    align-items: baseline;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f3f4f6;
+    gap: 1rem;
+}
+
+.bon-view__field-label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    width: 180px;
+    min-width: 180px;
+    flex-shrink: 0;
+}
+
+.bon-view__field-value {
+    font-size: 0.88rem;
+    color: #1a1a1a;
+    font-weight: 500;
+}
+
+/* Overline label (used in grid layouts, e.g. BSM demandeur info) */
+.bon-view__overline-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9ca3af;
+    margin-bottom: 0.15rem;
+}
+
+.bon-view__inline-value {
+    font-size: 0.88rem;
+    color: #1a1a1a;
+    font-weight: 500;
+    margin: 0;
+}
+
+/* Print-friendly */
+@media print {
+    .bon-view {
+        max-width: 100%;
+        margin: 0;
+        padding: 1rem;
+        box-shadow: none;
+    }
+}
+
+/* ============ BON FORM — Formulaire création BEM / BSM ============ */
+.bon-form {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.bon-form__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.bon-form__header-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.bon-form__header-icon {
+    width: 36px;
+    height: 36px;
+    background: #00B193;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.bon-form__header-brand {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.bon-form__header-title {
+    text-align: center;
+}
+
+.bon-form__header-title h1 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #1a1a1a;
+}
+
+.bon-form__header-title p {
+    margin: 0.15rem 0 0;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #6b7280;
+}
+
+.bon-form__header-meta {
+    text-align: right;
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.bon-form__header-meta strong {
+    color: #1a1a1a;
+}
+
+.bon-form__divider {
+    margin-top: 1rem;
+    height: 2px;
+    background: #00B193;
+}
+
+.bon-form__section {
+    margin-top: 2.5rem;
+}
+
+.bon-form__section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #00B193;
+    margin: 0;
+}
+
+.bon-form__section-line {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 0.25rem 0 1.25rem;
+}
+
+.bon-form__label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+    margin-bottom: 0.25rem;
+}
+
+.bon-form__actions {
+    margin-top: 3.5rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 2rem;
+    padding-bottom: 2.5rem;
+}
+
+.bon-form__btn-draft {
+    height: 40px;
+    padding: 0 2rem;
+    background: #ffffff !important;
+    color: #6b7280 !important;
+    border: 1px solid #cdd3db !important;
+    font-weight: 500;
+    font-size: 0.82rem;
+}
+
+.bon-form__btn-draft:hover {
+    background: #f9fafb !important;
+}
+
+.bon-form__btn-submit {
+    height: 40px;
+    padding: 0 2rem;
+    background: #00B193 !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 500;
+    font-size: 0.82rem;
+}
+
+.bon-form__btn-submit:hover {
+    background: #009980 !important;
+}
+
+/* Inputs dans bon-form : border visible, fond blanc, style épuré */
+.bon-form .rz-textbox,
+.bon-form .rz-inputtext,
+.bon-form .rz-dropdown,
+.bon-form .rz-multiselect,
+.bon-form .rz-datepicker,
+.bon-form .rz-numeric,
+.bon-form .rz-textarea,
+.bon-form textarea {
+    background-color: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 0 !important;
+    height: 42px;
+    font-size: 0.875rem;
+    padding: 0 0.875rem;
+}
+
+.bon-form .rz-textarea,
+.bon-form textarea {
+    height: auto;
+}
+
+/* Supprimer les lignes internes des dropdowns */
+.bon-form .rz-dropdown * {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Supprimer la barre animée au focus/hover sur tous les champs */
+.bon-form .rz-textbox::after,
+.bon-form .rz-textbox::before,
+.bon-form .rz-dropdown::after,
+.bon-form .rz-dropdown::before,
+.bon-form .rz-inputtext::after,
+.bon-form .rz-inputtext::before,
+.bon-form .rz-multiselect::after,
+.bon-form .rz-multiselect::before,
+.bon-form .rz-datepicker::after,
+.bon-form .rz-datepicker::before,
+.bon-form .rz-numeric::after,
+.bon-form .rz-numeric::before,
+.bon-form .mat-form-field-underline,
+.bon-form .rz-textbox-box::after,
+.bon-form .rz-textbox-box::before {
+    display: none !important;
+    height: 0 !important;
+    border: none !important;
+}
+
+.bon-form .rz-textbox:hover,
+.bon-form .rz-dropdown:hover,
+.bon-form .rz-inputtext:hover,
+.bon-form .rz-multiselect:hover,
+.bon-form .rz-datepicker:hover,
+.bon-form .rz-numeric:hover {
+    border-color: #d1d5db !important;
+}
+
+.bon-form .rz-textbox:focus,
+.bon-form .rz-dropdown.rz-state-focused,
+.bon-form .rz-inputtext:focus,
+.bon-form .rz-multiselect.rz-state-focused,
+.bon-form .rz-datepicker.rz-state-focused,
+.bon-form .rz-numeric.rz-state-focused {
+    border-color: #d1d5db !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* Asterisque rouge pour les champs obligatoires */
+.bon-form__label .required-star {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+/* DataGrid dans bon-form : borders légers */
+.bon-form .rz-datatable {
+    border: none;
+}
+
+.bon-form .rz-datatable thead th {
+    background: transparent;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.68rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+    padding: 0 0.75rem 0.5rem;
+}
+
+.bon-form .rz-datatable tbody td {
+    background: transparent;
+    border-bottom: 1px solid #f3f4f6;
+    padding: 0.625rem 0.75rem;
+}
+
+/* ============ BON FORM — Layout deux colonnes (form + review) ============ */
+.bon-form-layout {
+    display: flex;
+    gap: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.bon-form-layout > .bon-form {
+    flex: 1;
+    min-width: 0;
+    padding: 2rem 2rem 1rem;
+    max-width: none;
+}
+
+/* ============ BON FORM — Review Panel ============ */
+.bon-form__review {
+    width: 320px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 1.5rem;
+    align-self: flex-start;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 5rem);
+}
+
+.bon-form__review-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-bottom: 2px solid #00B193;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #00B193;
+}
+
+.bon-form__review-body {
+    padding: 0.75rem 1rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.bon-form__review-section {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.bon-form__review-section:last-child {
+    border-bottom: none;
+}
+
+.bon-form__review-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9ca3af;
+    margin-bottom: 0.35rem;
+}
+
+.bon-form__review-empty {
+    font-size: 0.72rem;
+    color: #d1d5db;
+    font-style: italic;
+}
+
+.bon-form__review-footer {
+    padding: 0.65rem 1rem;
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+/* Responsive: stack on smaller screens */
+@media (max-width: 1100px) {
+    .bon-form-layout {
+        flex-direction: column;
+    }
+    .bon-form__review {
+        width: 100%;
+        position: static;
+        max-height: none;
+    }
 }

@@ -339,6 +339,20 @@
             return;
         }
 
+        // Vérifier les doublons de Code/N° Série
+        var duplicates = materiels
+            .Where(m => !string.IsNullOrWhiteSpace(m.CodeProduitSerial))
+            .GroupBy(m => m.CodeProduitSerial!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (duplicates.Any())
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "Doublons détectés",
+                $"Code/N° série en doublon : {string.Join(", ", duplicates)}");
+            return;
+        }
+
         isSaving = true;
         try
         {

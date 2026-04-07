@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject IUtilisateurService UtilisateurService
 @inject IParametreSystemeService ParametreSystemeService
+@inject KCCMaterialFlow.Host.Services.UserRoleCacheService RoleCacheService
 
 <RadzenComponents @rendermode="InteractiveServer" />
 
@@ -77,15 +78,6 @@
                         </div>
                     </div>
                 }
-                @if (CanViewPrets)
-                {
-                    <a href="/bon-sortie/prets" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("prets")">
-                        <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>
-                        </svg>
-                        <span>Prêts</span>
-                    </a>
-                }
                 @if (CanScan)
                 {
                     <a href="/securite/scanner" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("scanner")">
@@ -111,6 +103,10 @@
                 <div class="kcc-topbar__user">
                     <div class="kcc-topbar__avatar">@userInitials</div>
                     <span class="kcc-topbar__username">@displayName</span>
+                    @if (!string.IsNullOrEmpty(currentRoleName))
+                    {
+                        <span class="kcc-topbar__role-badge">@currentRoleName</span>
+                    }
                 </div>
             </nav>
         </div>
@@ -119,7 +115,22 @@
     @* ─── CONTENU ─── *@
     <RadzenBody>
         <div class="kcc-content">
-            @Body
+            <ErrorBoundary @ref="errorBoundary">
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent Context="ex">
+                    <div style="padding: 2rem; text-align: center;">
+                        <RadzenIcon Icon="error_outline" Style="font-size: 3rem; color: var(--kcc-accent); margin-bottom: 1rem;" />
+                        <RadzenText TextStyle="TextStyle.H5" Style="color: var(--kcc-text-title); margin-bottom: 0.5rem;">Une erreur est survenue</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin-bottom: 1.5rem;">
+                            La page n'a pas pu se charger correctement. Veuillez réessayer.
+                        </RadzenText>
+                        <RadzenButton Text="Réessayer" Icon="refresh" ButtonStyle="ButtonStyle.Primary"
+                                      Click="RecoverFromError" />
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
         </div>
     </RadzenBody>
 </RadzenLayout>
@@ -129,20 +140,19 @@
 <RadzenTooltip />
 <RadzenContextMenu />
 
-<DevRoleSwitcher />
-
 @code {
     private string displayName = "";
     private string userInitials = "";
+    private string currentRoleName = "";
     private string appName = "KCC Material Flow";
     private Utilisateur? currentDbUser;
     private bool mobileMenuOpen;
+    private ErrorBoundary? errorBoundary;
 
-    // Permissions pour la topbar (initialisées une seule fois dans LoadDataAsync)
+    // Permissions pour la topbar (recalculées à chaque navigation)
     private bool CanApprove;
     private bool CanCreateBEM;
     private bool CanCreateBSM;
-    private bool CanViewPrets;
     private bool CanScan;
     private bool IsAdmin;
 
@@ -153,11 +163,10 @@
         {
             "dashboard" => path == "/" || path == "",
             "bons" => path.StartsWith("/liste-bons") || path.StartsWith("/suivi-bons")
-                       || (path.StartsWith("/bon-sortie/") && !path.Contains("/nouveau") && !path.Contains("/prets"))
+                       || (path.StartsWith("/bon-sortie/") && !path.Contains("/nouveau"))
                        || (path.StartsWith("/bon-entree/") && !path.Contains("/nouveau")),
             "approbations" => path.StartsWith("/mes-approbations") || path.StartsWith("/liste-rejets"),
             "nouveau" => path.Contains("/nouveau"),
-            "prets" => path.StartsWith("/bon-sortie/prets"),
             "scanner" => path.StartsWith("/securite"),
             "admin" => path.StartsWith("/admin"),
             _ => false
@@ -166,6 +175,11 @@
     }
 
     private void ToggleMobileMenu() => mobileMenuOpen = !mobileMenuOpen;
+
+    private void RecoverFromError()
+    {
+        errorBoundary?.Recover();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -176,8 +190,52 @@
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         mobileMenuOpen = false;
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            // Recalculer les permissions à chaque navigation (lecture du cache frais)
+            RefreshPermissions();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Circuit déjà fermé — ignorer silencieusement
+        }
     }
+
+    /// <summary>
+    /// Recalcule les permissions navbar depuis le cache centralisé (UserRoleCacheService).
+    /// Appelé à l'init ET à chaque navigation pour refléter immédiatement les changements de rôle.
+    /// </summary>
+    private void RefreshPermissions()
+    {
+        // Lire le rôle FRAIS depuis le cache centralisé (pas de cache local)
+        var login = CurrentUserService.GetUserLogin();
+        var roleCode = RoleCacheService.GetUserRole(login);
+
+        currentRoleName = GetRoleDisplayName(roleCode);
+        IsAdmin = !string.IsNullOrEmpty(roleCode) && roleCode.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+        CanApprove = CurrentUserService.HasAnyActivite("BEM_APPROUVER", "BEM_REJETER", "BEM_RETOURNER", "BSM_APPROUVER", "BSM_REJETER", "BSM_RETOURNER");
+        CanCreateBEM = CurrentUserService.HasActivite("BEM_CREER");
+        CanCreateBSM = CurrentUserService.HasActivite("BSM_CREER");
+        CanScan = CurrentUserService.HasActivite("SEC_SCANNER");
+    }
+
+    private static string GetRoleDisplayName(string? roleCode) => roleCode?.ToUpperInvariant() switch
+    {
+        "ADMIN" => "Admin",
+        "GM" => "GM",
+        "SUPERVISEUR" => "Superviseur",
+        "OPJ" => "OPJ",
+        "IT" => "IT",
+        "ENVIRONNEMENT" => "Environnement",
+        "IDENTIFICATION" => "Identification",
+        "INVESTIGATION" => "Investigation",
+        "BARRIERE" => "Barrière",
+        "AGENT_SECURITE" => "Sécurité",
+        "UTILISATEUR" => "Utilisateur",
+        "DEMANDEUR" => "Demandeur",
+        _ => roleCode ?? ""
+    };
 
     private async Task LoadDataAsync()
     {
@@ -185,13 +243,8 @@
         {
             var login = CurrentUserService.GetUserLogin();
 
-            // Charger les permissions une seule fois (pas sur chaque render)
-            CanApprove = CurrentUserService.HasAnyActivite("BEM_APPROUVER", "BEM_REJETER", "BEM_RETOURNER", "BSM_APPROUVER", "BSM_REJETER", "BSM_RETOURNER");
-            CanCreateBEM = CurrentUserService.HasActivite("BEM_CREER");
-            CanCreateBSM = CurrentUserService.HasActivite("BSM_CREER");
-            CanViewPrets = CurrentUserService.HasAnyActivite("PRET_RETOUR", "PRET_EXTENSION", "BSM_CREER");
-            CanScan = CurrentUserService.HasActivite("SEC_SCANNER");
-            IsAdmin = CurrentUserService.IsInRole("Admin");
+            // Permissions recalculées à chaque navigation via RefreshPermissions()
+            RefreshPermissions();
 
             // Lancer les deux appels DB en parallèle
             Task<Utilisateur?> userTask =

@@ -64,29 +64,30 @@ public class BonSortieRepository : IBonSortieRepository
     public async Task UpdateAsync(BonSortie bonSortie, CancellationToken cancellationToken = default)
     {
         using var context = _dbContextFactory.CreateDbContext();
-        
-        // Recharger l'entité depuis la base avec tracking
+
+        // Recharger l'entité depuis la base avec tracking + collections enfants
         var existing = await context.Set<BonSortie>()
+            .Include(b => b.Approbations)
             .FirstOrDefaultAsync(b => b.Id == bonSortie.Id, cancellationToken);
-        
+
         if (existing == null)
         {
             throw new InvalidOperationException($"Bon de sortie {bonSortie.Id} non trouvé");
         }
-        
-        // Copier les propriétés modifiées
-        existing.StatutActuel = bonSortie.StatutActuel;
-        existing.Provenance = bonSortie.Provenance;
-        existing.Destination = bonSortie.Destination;
-        existing.Description = bonSortie.Description;
-        existing.DateExpiration = bonSortie.DateExpiration;
-        existing.MotifSortie = bonSortie.MotifSortie;
-        existing.QRCodeBase64 = bonSortie.QRCodeBase64;
-        existing.QRCodeHash = bonSortie.QRCodeHash;
-        existing.QRCodeData = bonSortie.QRCodeData;
-        existing.DateGenerationQR = bonSortie.DateGenerationQR;
-        existing.Quantite = bonSortie.Quantite;
-        
+
+        // Copier les propriétés scalaires (StatutActuel, QR, etc.)
+        context.Entry(existing).CurrentValues.SetValues(bonSortie);
+
+        // Synchroniser les approbations modifiées (Decision, DateAction, NomApprobateur, etc.)
+        foreach (var approbation in bonSortie.Approbations)
+        {
+            var existingAppro = existing.Approbations.FirstOrDefault(a => a.Id == approbation.Id);
+            if (existingAppro != null)
+            {
+                context.Entry(existingAppro).CurrentValues.SetValues(approbation);
+            }
+        }
+
         await context.SaveChangesAsync(cancellationToken);
     }
 

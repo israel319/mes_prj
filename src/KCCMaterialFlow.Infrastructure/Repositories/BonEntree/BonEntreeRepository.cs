@@ -177,9 +177,9 @@ public class BonEntreeRepository : IBonEntreeRepository
 
     public async Task<BonEntreeSearchResult> GetByCreateurAsync(string login, int skip = 0, int take = 20, CancellationToken cancellationToken = default)
     {
-        // Simplifié: renvoie tous les bons non annulés
         var filter = new BonEntreeFilter
         {
+            Demandeur = login,
             Skip = skip,
             Take = take
         };
@@ -189,59 +189,73 @@ public class BonEntreeRepository : IBonEntreeRepository
 
     public async Task<IReadOnlyList<BonEntree>> GetPendingApprovalsAsync(IEnumerable<string> userRoles, CancellationToken cancellationToken = default)
     {
-        // Mapper les rôles utilisateur vers les statuts correspondants
-        // Chaîne standard BEM: Superviseur → GM → OPJ → Identification
-        var roleToStatus = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "Superviseur", "PendingSup" },
-            { "GM", "PendingGM" },
-            { "OPJ", "PendingOPJ" },
-            { "Identification", "PendingIdentification" },
-            { "Admin", "*" } // Admin voit tout
-        };
-
         var roles = userRoles.ToList();
         var isAdmin = roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
+        var rolesLower = roles.Select(r => r.ToLowerInvariant()).ToHashSet();
 
-        // Construire la liste des statuts que l'utilisateur peut approuver
-        var allowedStatuses = new List<string>();
-        foreach (var role in roles)
-        {
-            if (roleToStatus.TryGetValue(role, out var status) && status != "*")
-            {
-                allowedStatuses.Add(status);
-            }
-        }
+        _logger.LogDebug("GetPendingApprovalsAsync - Rôles: {Roles}, IsAdmin: {IsAdmin}",
+            string.Join(", ", roles), isAdmin);
 
-        _logger.LogDebug("GetPendingApprovalsAsync - Rôles: {Roles}, Statuts autorisés: {Statuses}, IsAdmin: {IsAdmin}",
-            string.Join(", ", roles), string.Join(", ", allowedStatuses), isAdmin);
-
-        // Requête pour les bons
-        var query = _dbContext.Set<BonEntree>()
-            .AsNoTracking()
-            .Where(b => b.StatutActuel != "Cancelled" && b.StatutActuel != "Draft" && b.StatutActuel != "Approved" && b.StatutActuel != "Rejected");
-
-        // Si Admin, voir tous les bons en attente; sinon filtrer par statut
-        if (!isAdmin && allowedStatuses.Count > 0)
-        {
-            query = query.Where(b => allowedStatuses.Contains(b.StatutActuel));
-        }
-        else if (!isAdmin && allowedStatuses.Count == 0)
-        {
-            // L'utilisateur n'a aucun rôle d'approbation
+        if (!isAdmin && rolesLower.Count == 0)
             return new List<BonEntree>();
-        }
 
-        var bons = await query
+        // Récupérer tous les bons en attente d'approbation (pas Draft, Cancelled, Approved, Rejected)
+        var bons = await _dbContext.Set<BonEntree>()
+            .AsNoTracking()
+            .Where(b => b.StatutActuel != "Cancelled" && b.StatutActuel != "Draft"
+                      && b.StatutActuel != "Approved" && b.StatutActuel != "Rejected")
             .Include(b => b.Materiels)
             .Include(b => b.Approbations)
             .Include(b => b.Historiques)
             .OrderByDescending(b => b.DateCreation)
             .ToListAsync(cancellationToken);
 
-        _logger.LogInformation("GetPendingApprovalsAsync - {Count} bons trouvés pour les rôles {Roles}", bons.Count, string.Join(", ", roles));
+        if (isAdmin)
+        {
+            _logger.LogInformation("GetPendingApprovalsAsync - Admin: {Count} bons en attente", bons.Count);
+            return bons;
+        }
 
-        return bons;
+        // Filtrer: ne garder que les bons dont l'étape courante (première "En attente") correspond au rôle de l'utilisateur
+        var filtered = bons.Where(b =>
+        {
+            var currentStep = b.Approbations
+                .OrderBy(a => a.OrdreEtape)
+                .FirstOrDefault(a => a.Decision == "En attente");
+
+            if (currentStep?.NomEtape == null) return false;
+
+            // Convertir le NomEtape (display name) en code rôle pour matching correct
+            // Ex: "General Manager" → "gm", "Superviseur" → "superviseur", "Département IT" → "it"
+            var stepRole = MapNomEtapeToRoleCode(currentStep.NomEtape).ToLowerInvariant();
+            var stepNameLower = currentStep.NomEtape.ToLowerInvariant();
+
+            return rolesLower.Any(r => stepRole == r || stepNameLower == r || stepNameLower.Contains(r));
+        }).ToList();
+
+        _logger.LogInformation("GetPendingApprovalsAsync - {Count} bons filtrés pour les rôles {Roles}", filtered.Count, string.Join(", ", roles));
+
+        return filtered;
+    }
+
+    /// <summary>
+    /// Mappe un NomEtape (display name) vers le code rôle correspondant.
+    /// Nécessaire car les BEM stockent le nom d'affichage dans Approbation.NomEtape.
+    /// </summary>
+    private static string MapNomEtapeToRoleCode(string nomEtape)
+    {
+        return nomEtape.ToLowerInvariant() switch
+        {
+            "superviseur" => "Superviseur",
+            "general manager" => "GM",
+            "opj" => "OPJ",
+            "identification" => "Identification",
+            "département it" or "departement it" => "IT",
+            "département environnement" or "departement environnement" => "Environnement",
+            "investigation" => "Investigation",
+            "barrière" or "barriere" => "Barriere",
+            _ => nomEtape
+        };
     }
 
     #endregion
@@ -554,6 +568,46 @@ public class BonEntreeRepository : IBonEntreeRepository
     }
 
     /// <summary>
+    /// Ré-incrémente la quantité disponible des matériels lors du retour d'un prêt.
+    /// </summary>
+    public async Task<StockUpdateResult> IncrementMaterielStockAsync(IEnumerable<MaterielStockDecrement> materielsARestituer, CancellationToken cancellationToken = default)
+    {
+        using var dbContext = _dbContextFactory.CreateDbContext();
+
+        var materielsList = materielsARestituer.ToList();
+        var warnings = new List<string>();
+
+        foreach (var item in materielsList)
+        {
+            var materiel = await dbContext.Set<Materiel>()
+                .FirstOrDefaultAsync(m => m.Id == item.MaterielEntreeId, cancellationToken);
+
+            if (materiel == null)
+            {
+                _logger.LogWarning("Matériel {Id} non trouvé pour restitution", item.MaterielEntreeId);
+                warnings.Add($"Matériel {item.MaterielEntreeId} non trouvé");
+                continue;
+            }
+
+            var oldQty = materiel.QuantiteDisponible;
+            materiel.QuantiteDisponible += item.QuantiteASortir;
+
+            // Ne pas dépasser la quantité initiale
+            if (materiel.QuantiteDisponible > materiel.Quantite)
+                materiel.QuantiteDisponible = materiel.Quantite;
+
+            _logger.LogInformation("Stock restauré pour matériel {Id} ({Designation}): {OldQty} -> {NewQty}",
+                materiel.Id, materiel.Designation, oldQty, materiel.QuantiteDisponible);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var result = StockUpdateResult.Ok();
+        result.Warnings = warnings;
+        return result;
+    }
+
+    /// <summary>
     /// Récupère tous les bons d'entrée disponibles pour sortie (approuvés, non expirés, avec quantité > 0).
     /// </summary>
     public async Task<IReadOnlyList<BonEntreeForDropdown>> GetAllAvailableForSortieAsync(string? hostDepartmentFilter = null, CancellationToken cancellationToken = default)
@@ -647,8 +701,8 @@ public class BonEntreeRepository : IBonEntreeRepository
 
         if (!string.IsNullOrWhiteSpace(filter.Demandeur))
         {
-            var demandeur = filter.Demandeur;
-            query = query.Where(b => b.NomDemandeur == demandeur);
+            var demandeur = filter.Demandeur.ToUpper();
+            query = query.Where(b => b.NomDemandeur.ToUpper() == demandeur);
         }
 
         return query;

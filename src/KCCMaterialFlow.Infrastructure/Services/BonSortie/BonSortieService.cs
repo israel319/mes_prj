@@ -20,6 +20,7 @@ public class BonSortieService : IBonSortieService
     private readonly IEmailNotificationService _emailService;
     private readonly IBonEntreeLockService _bonEntreeLockService;
     private readonly INotificationRejetService _notificationRejetService;
+    private readonly ICategorieSortieService _categorieSortieService;
     private readonly ILogger<BonSortieService> _logger;
 
     public BonSortieService(
@@ -31,6 +32,7 @@ public class BonSortieService : IBonSortieService
         IEmailNotificationService emailService,
         IBonEntreeLockService bonEntreeLockService,
         INotificationRejetService notificationRejetService,
+        ICategorieSortieService categorieSortieService,
         ILogger<BonSortieService> logger)
     {
         _repository = repository;
@@ -41,6 +43,7 @@ public class BonSortieService : IBonSortieService
         _emailService = emailService;
         _bonEntreeLockService = bonEntreeLockService;
         _notificationRejetService = notificationRejetService;
+        _categorieSortieService = categorieSortieService;
         _logger = logger;
     }
 
@@ -522,10 +525,14 @@ public class BonSortieService : IBonSortieService
 
     private async Task<string?> ValidateBonEntreeMotifCoherenceAsync(int bonEntreeId, string? raisonSortieCode, TypeMateriel typeMateriel, CancellationToken cancellationToken)
     {
-        var expectedHostDepartment = ResolveExpectedHostDepartment(raisonSortieCode, typeMateriel);
-        if (string.IsNullOrWhiteSpace(expectedHostDepartment))
+        // Résoudre le département attendu depuis la BD (remplace le mapping hardcodé)
+        var expectedDeptCode = !string.IsNullOrWhiteSpace(raisonSortieCode)
+            ? await _categorieSortieService.GetDepartementCodeForRaisonAsync(raisonSortieCode)
+            : null;
+
+        if (string.IsNullOrWhiteSpace(expectedDeptCode))
         {
-            return null;
+            return null; // Raison fait partie du mapping par défaut, pas de contrainte de département
         }
 
         var bemDetails = await _bonEntreeLockService.GetDetailsForSortieAsync(bonEntreeId, cancellationToken);
@@ -540,26 +547,12 @@ public class BonSortieService : IBonSortieService
             return $"Le BEM {bemDetails.NumeroReference} n'a pas de département hôte renseigné. Impossible de valider la cohérence avec le motif sélectionné.";
         }
 
-        if (!hostDepartment.Contains(expectedHostDepartment, StringComparison.OrdinalIgnoreCase))
+        if (!hostDepartment.Contains(expectedDeptCode, StringComparison.OrdinalIgnoreCase))
         {
-            return $"Incohérence métier: le motif '{raisonSortieCode ?? typeMateriel.ToString()}' requiert un BEM du département '{expectedHostDepartment}', mais le BEM sélectionné est rattaché à '{hostDepartment}'.";
+            return $"Incohérence métier: le motif '{raisonSortieCode ?? typeMateriel.ToString()}' requiert un BEM du département '{expectedDeptCode}', mais le BEM sélectionné est rattaché à '{hostDepartment}'.";
         }
 
         return null;
-    }
-
-    private static string? ResolveExpectedHostDepartment(string? raisonSortieCode, TypeMateriel typeMateriel)
-    {
-        var normalizedRaison = raisonSortieCode?.Trim().ToUpperInvariant();
-        if (normalizedRaison == "INFO") return "IT";
-        if (normalizedRaison is "RESIDU" or "RADIO_PROT" or "MODIF") return "ENV";
-
-        return typeMateriel switch
-        {
-            TypeMateriel.Informatique => "IT",
-            TypeMateriel.Residu or TypeMateriel.Radioprotection or TypeMateriel.Modification => "ENV",
-            _ => null
-        };
     }
 
     #region User Specific
@@ -1122,22 +1115,59 @@ public class BonSortieService : IBonSortieService
             await _repository.UpdateAsync(pret, cancellationToken);
 
             var retardInfo = pret.JoursRetard > 0 ? $" ({pret.JoursRetard} jours de retard)" : "";
+            var commentInfo = !string.IsNullOrWhiteSpace(request.Commentaire) ? $". Commentaire: {request.Commentaire}" : "";
             await AddHistoryAsync(pret.Id, ActionBonSortie.RetourPret, "Approved", "Completed",
-                $"Matériel retourné{retardInfo}. État: {request.EtatRetour ?? "Non spécifié"}", cancellationToken);
+                $"Matériel retourné{retardInfo}. État: {request.EtatRetour ?? "Non spécifié"}{commentInfo}", cancellationToken);
 
-            // INT-006: Archiver le BEM associé si présent
+            // PRÊT: Restaurer le stock et déverrouiller le BEM (les matériels reviennent)
             if (pret.BonEntreeAssocieId.HasValue)
             {
+                // 1. Restaurer le stock des matériels
+                if (pret.Materiels.Any(m => m.MaterielEntreeId.HasValue))
+                {
+                    try
+                    {
+                        var materielsARestituer = pret.Materiels
+                            .Where(m => m.MaterielEntreeId.HasValue)
+                            .Select(m => new MaterielStockDecrement
+                            {
+                                MaterielEntreeId = m.MaterielEntreeId!.Value,
+                                QuantiteASortir = m.Quantite
+                            })
+                            .ToList();
+
+                        var stockResult = await _bonEntreeLockService.IncrementStockAsync(materielsARestituer, cancellationToken);
+                        if (!stockResult.Success)
+                        {
+                            _logger.LogWarning("Échec de la restauration du stock pour prêt {Numero}: {Message}",
+                                pret.NumeroReference, stockResult.ErrorMessage);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Stock restauré pour {Count} matériels du prêt {Numero}",
+                                materielsARestituer.Count, pret.NumeroReference);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Erreur lors de la restauration du stock pour prêt {Numero}",
+                            pret.NumeroReference);
+                    }
+                }
+
+                // 2. Déverrouiller le BEM (pas archiver — les matériels sont de retour)
                 try
                 {
-                    await _bonEntreeLockService.ArchiveAfterSortieAsync(
+                    await _bonEntreeLockService.UnlockAsync(
                         pret.BonEntreeAssocieId.Value,
-                        pret.NumeroReference,
                         cancellationToken);
+
+                    _logger.LogInformation("BEM {BemId} déverrouillé après retour du prêt {PrtNumero}",
+                        pret.BonEntreeAssocieId, pret.NumeroReference);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "INT-006: Échec de l'archivage du BEM {BemId} après retour du prêt {BsmNumero}",
+                    _logger.LogWarning(ex, "Échec du déverrouillage du BEM {BemId} après retour du prêt {PrtNumero}",
                         pret.BonEntreeAssocieId, pret.NumeroReference);
                 }
             }

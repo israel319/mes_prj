@@ -12,6 +12,7 @@ public interface IUtilisateurService
     Task<IReadOnlyList<Utilisateur>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Utilisateur>> GetByRoleAsync(string role, CancellationToken cancellationToken = default);
     Task<Utilisateur> UpsertAsync(Utilisateur utilisateur, CancellationToken cancellationToken = default);
+    Task DeleteAsync(int utilisateurId, CancellationToken cancellationToken = default);
     Task UpdateLastLoginAsync(string login, CancellationToken cancellationToken = default);
     void InvalidateCache();
 }

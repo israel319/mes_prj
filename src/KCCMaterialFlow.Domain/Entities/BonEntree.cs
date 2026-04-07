@@ -51,6 +51,8 @@ public sealed class BonEntree : BaseAuditableEntity
     public string SiteManager { get; set; } = string.Empty;
     [MaxLength(100)]
     public string HostDepartment { get; set; } = string.Empty;
+    public int? DepartementId { get; set; }
+    public int? RaisonEntreeId { get; set; }
     [MaxLength(1000)]
     public string ReasonOnSite { get; set; } = string.Empty;
     [MaxLength(200)]

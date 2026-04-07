@@ -11,6 +11,7 @@ namespace KCCMaterialFlow.Host.Components.Pages.BonEntree;
 public partial class BonEntreeNew
 {
     [Inject] private IReferenceDataService ReferenceDataService { get; set; } = default!;
+    [Inject] private IRaisonEntreeService RaisonEntreeService { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
     [Inject] private ILogger<BonEntreeNew> Logger { get; set; } = default!;
 
@@ -27,6 +28,7 @@ public partial class BonEntreeNew
     private IEnumerable<Contrat> contrats = [];
     private IEnumerable<Departement> departements = [];
     private IEnumerable<Site> sites = [];
+    private IReadOnlyList<RaisonEntree> raisonsEntree = [];
 
     // Selections
     private int? selectedCompagnieId;
@@ -34,6 +36,9 @@ public partial class BonEntreeNew
     private int? selectedDepartementId;
     private int? selectedProvenanceId;
     private int? selectedDestinationId;
+    private int? selectedRaisonEntreeId;
+    private string? selectedRaisonEntreeCode;
+    private string autreMotifEntreeTexte = string.Empty;
 
     // Contrats filtrés par compagnie sélectionnée
     private IEnumerable<Contrat> contratsFiltered =>
@@ -63,6 +68,7 @@ public partial class BonEntreeNew
         contrats = await ReferenceDataService.GetContratsAsync();
         departements = await ReferenceDataService.GetDepartementsAsync();
         sites = await ReferenceDataService.GetSitesAsync();
+        raisonsEntree = await RaisonEntreeService.GetAllActiveAsync();
     }
 
     private void OnCompagnieChanged(object value)
@@ -114,11 +120,39 @@ public partial class BonEntreeNew
         {
             var dept = departements.FirstOrDefault(d => d.Id == departementId);
             request.HostDepartment = dept?.NomDepartement ?? string.Empty;
+            request.DepartementId = dept?.Id;
         }
         else
         {
             request.HostDepartment = string.Empty;
+            request.DepartementId = null;
         }
+    }
+
+    private void OnRaisonEntreeChanged(object value)
+    {
+        if (value is int raisonId)
+        {
+            var raison = raisonsEntree.FirstOrDefault(r => r.Id == raisonId);
+            request.RaisonEntreeId = raisonId;
+            selectedRaisonEntreeCode = raison?.Code;
+            request.ReasonOnSite = raison?.Nom ?? string.Empty;
+        }
+        else
+        {
+            request.RaisonEntreeId = null;
+            selectedRaisonEntreeCode = null;
+            request.ReasonOnSite = string.Empty;
+            autreMotifEntreeTexte = string.Empty;
+        }
+    }
+
+    private void OnAutreMotifChanged(string value)
+    {
+        autreMotifEntreeTexte = value;
+        request.ReasonOnSite = string.IsNullOrWhiteSpace(value)
+            ? "Autre"
+            : $"Autre: {value}";
     }
 
     private void OnProvenanceChanged(object value)
@@ -175,7 +209,8 @@ public partial class BonEntreeNew
         return !string.IsNullOrWhiteSpace(request.NomCompagnie)
             && !string.IsNullOrWhiteSpace(request.Provenance)
             && !string.IsNullOrWhiteSpace(request.Destination)
-            && request.Materiels.Any(m => !string.IsNullOrWhiteSpace(m.Designation) || !string.IsNullOrWhiteSpace(m.CodeProduitSerial));
+            && request.Materiels.Count > 0
+            && request.Materiels.All(m => !string.IsNullOrWhiteSpace(m.Designation) && !string.IsNullOrWhiteSpace(m.CodeProduitSerial));
     }
 
     private async Task HandleRetour()
@@ -195,9 +230,29 @@ public partial class BonEntreeNew
 
     private async Task SaveAsync(bool submitAfterSave)
     {
-        if (request.Materiels.Count == 0)
+        // Validation avec messages d'erreur
+        var validationErrors = new List<string>();
+        if (string.IsNullOrWhiteSpace(request.NomCompagnie)) validationErrors.Add("Compagnie");
+        if (string.IsNullOrWhiteSpace(request.Provenance)) validationErrors.Add("Provenance");
+        if (string.IsNullOrWhiteSpace(request.Destination)) validationErrors.Add("Destination");
+        if (request.Materiels.Count == 0) validationErrors.Add("Au moins un matériel");
+        if (request.Materiels.Any(m => string.IsNullOrWhiteSpace(m.Designation) || string.IsNullOrWhiteSpace(m.CodeProduitSerial)))
+            validationErrors.Add("Désignation et code série de chaque matériel");
+
+        // Vérifier les doublons de Code/N° Série
+        var duplicates = request.Materiels
+            .Where(m => !string.IsNullOrWhiteSpace(m.CodeProduitSerial))
+            .GroupBy(m => m.CodeProduitSerial!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (duplicates.Any())
+            validationErrors.Add($"Code/N° série en doublon : {string.Join(", ", duplicates)}");
+
+        if (validationErrors.Any())
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Veuillez ajouter au moins un materiel.");
+            NotificationService.Notify(NotificationSeverity.Warning, "Champs obligatoires manquants",
+                string.Join(", ", validationErrors));
             return;
         }
 

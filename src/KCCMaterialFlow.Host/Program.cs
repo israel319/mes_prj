@@ -56,6 +56,9 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
+    // ── Service centralisé de cache rôles BD (Singleton, partagé par tous) ──
+    builder.Services.AddSingleton<KCCMaterialFlow.Host.Services.UserRoleCacheService>();
+
     // ── ICurrentUserService (Windows-only + decorator pattern) ───────────
     // Stays in Program.cs due to CA1416 platform guard and decorator wiring
 #pragma warning disable CA1416 // Validate platform compatibility
@@ -67,18 +70,14 @@ try
         // Service de base pour Windows Authentication
         builder.Services.AddScoped<CurrentUserService>();
 
-        // Service de simulation de rôles pour le développement (Singleton pour persister entre les requêtes)
-        builder.Services.AddSingleton<KCCMaterialFlow.Host.Services.DevRoleSwitcherService>();
-
-        // Décorateur qui ajoute les rôles de la base de données et le DevRoleSwitcher
+        // Décorateur qui ajoute les rôles BD et les activités (dérivées du rôle)
         builder.Services.AddScoped<ICurrentUserService>(sp =>
         {
             CurrentUserService baseService = sp.GetRequiredService<CurrentUserService>();
-            IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory = sp.GetRequiredService<IDbContextFactory<KCCMaterialFlowDbContext>>();
-            IMemoryCache cache = sp.GetRequiredService<IMemoryCache>();
-            var devRoleSwitcher = sp.GetRequiredService<KCCMaterialFlow.Host.Services.DevRoleSwitcherService>();
+            var roleCacheService = sp.GetRequiredService<KCCMaterialFlow.Host.Services.UserRoleCacheService>();
+            IActiviteService activiteService = sp.GetRequiredService<IActiviteService>();
             ILogger<KCCMaterialFlow.Host.Services.DatabaseRoleEnricherService> logger = sp.GetRequiredService<ILogger<KCCMaterialFlow.Host.Services.DatabaseRoleEnricherService>>();
-            return new KCCMaterialFlow.Host.Services.DatabaseRoleEnricherService(baseService, dbContextFactory, cache, devRoleSwitcher, logger);
+            return new KCCMaterialFlow.Host.Services.DatabaseRoleEnricherService(baseService, roleCacheService, activiteService, logger);
         });
     }
 #pragma warning restore CA1416 // Validate platform compatibility
@@ -136,13 +135,25 @@ try
         app.UseHsts();
     }
 
+    // ── Fichiers statiques : servis AVANT l'auth pour éviter le 401 Negotiate ──
+    app.UseStaticFiles();
     app.UseHttpsRedirection();
 
-    // Les fichiers statiques doivent être servis AVANT l'authentification
-    app.UseStaticFiles();
+    // Rediriger les 403 (Forbidden) vers la page Access Denied (AVANT auth pour intercepter)
+    app.UseStatusCodePages(context =>
+    {
+        if (context.HttpContext.Response.StatusCode == 403)
+        {
+            context.HttpContext.Response.Redirect("/access-denied");
+        }
+        return Task.CompletedTask;
+    });
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    // Vérifier en BD si l'utilisateur est actif AVANT de charger Blazor
+    app.UseMiddleware<KCCMaterialFlow.Host.Services.UserAccessMiddleware>();
 
     app.UseAntiforgery();
 

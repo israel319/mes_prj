@@ -145,7 +145,7 @@ public class RoleService : IRoleService
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await context.Set<UtilisateurRole>()
             .AsNoTracking()
-            .Where(ur => ur.Id == userId)
+            .Where(ur => ur.IdUtilisateur == userId)
             .Include(ur => ur.Role)
             .Where(ur => ur.Role != null && ur.Role.EstActif)
             .Select(ur => ur.Role!)
@@ -157,7 +157,7 @@ public class RoleService : IRoleService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var exists = await context.Set<UtilisateurRole>()
-            .AnyAsync(ur => ur.Id == userId && ur.Id == roleId, cancellationToken);
+            .AnyAsync(ur => ur.IdUtilisateur == userId && ur.IdRole == roleId, cancellationToken);
 
         if (exists)
             return false;
@@ -181,7 +181,7 @@ public class RoleService : IRoleService
     {
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var userRole = await context.Set<UtilisateurRole>()
-            .FirstOrDefaultAsync(ur => ur.Id == userId && ur.Id == roleId, cancellationToken);
+            .FirstOrDefaultAsync(ur => ur.IdUtilisateur == userId && ur.IdRole == roleId, cancellationToken);
 
         if (userRole == null)
             return false;

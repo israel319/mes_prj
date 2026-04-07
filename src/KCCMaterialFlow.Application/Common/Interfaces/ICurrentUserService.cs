@@ -19,9 +19,6 @@ public interface ICurrentUserService
     bool IsAuthenticated();
     bool HasActivite(string codeActivite);
     bool HasAnyActivite(params string[] codeActivites);
-    void SetSimulatedUser(string login, string displayName, string? email, string? department, IEnumerable<string> roles);
-    void ClearSimulation();
-    bool IsSimulationActive { get; }
 }
 
 /// <summary>

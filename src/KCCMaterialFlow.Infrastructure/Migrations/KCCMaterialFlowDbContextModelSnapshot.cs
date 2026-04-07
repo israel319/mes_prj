@@ -1130,6 +1130,10 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnType("datetime2")
                         .HasColumnName("DateVerrouillage");
 
+                    b.Property<int?>("DepartementId")
+                        .HasColumnType("int")
+                        .HasColumnName("DepartementId");
+
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)")
@@ -1218,6 +1222,10 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0)
                         .HasColumnName("Quantite");
+
+                    b.Property<int?>("RaisonEntreeId")
+                        .HasColumnType("int")
+                        .HasColumnName("RaisonEntreeId");
 
                     b.Property<string>("ReasonOnSite")
                         .IsRequired()
@@ -1808,6 +1816,50 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("T_Departements", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.DepartementRaisonSortie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AutoSelection")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("AutoSelection");
+
+                    b.Property<int?>("DepartementId")
+                        .HasColumnType("int")
+                        .HasColumnName("DepartementId");
+
+                    b.Property<int>("OrdreAffichage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("OrdreAffichage");
+
+                    b.Property<int>("RaisonSortieId")
+                        .HasColumnType("int")
+                        .HasColumnName("RaisonSortieId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartementId")
+                        .HasDatabaseName("IX_DeptRaisonSortie_DeptId");
+
+                    b.HasIndex("RaisonSortieId");
+
+                    b.HasIndex("DepartementId", "RaisonSortieId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DeptRaisonSortie_DeptId_RaisonId")
+                        .HasFilter("[DepartementId] IS NOT NULL");
+
+                    b.ToTable("T_DepartementRaisonsSortie", "dbo");
                 });
 
             modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Employee", b =>
@@ -2907,6 +2959,106 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                             NomPermission = "Gérer les paramètres",
                             OrdreAffichage = 70
                         });
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonEntree", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("Code");
+
+                    b.Property<string>("Couleur")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("Couleur");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Description");
+
+                    b.Property<bool>("EstActif")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true)
+                        .HasColumnName("EstActif");
+
+                    b.Property<string>("Icone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("Icone");
+
+                    b.Property<string>("Nom")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("Nom");
+
+                    b.Property<int>("OrdreAffichage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("OrdreAffichage");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RaisonsEntree_Code")
+                        .HasFilter("[Code] IS NOT NULL");
+
+                    b.ToTable("T_RaisonsEntree", "dbo");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonEntreeRaisonSortie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("Id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AutoSelection")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("AutoSelection");
+
+                    b.Property<int>("OrdreAffichage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("OrdreAffichage");
+
+                    b.Property<int>("RaisonEntreeId")
+                        .HasColumnType("int")
+                        .HasColumnName("RaisonEntreeId");
+
+                    b.Property<int>("RaisonSortieId")
+                        .HasColumnType("int")
+                        .HasColumnName("RaisonSortieId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RaisonEntreeId")
+                        .HasDatabaseName("IX_RaisonEntreeRaisonsSortie_EntreeId");
+
+                    b.HasIndex("RaisonSortieId");
+
+                    b.HasIndex("RaisonEntreeId", "RaisonSortieId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_RaisonEntreeRaisonsSortie_EntreeId_SortieId");
+
+                    b.ToTable("T_RaisonEntreeRaisonsSortie", "dbo");
                 });
 
             modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonSortie", b =>
@@ -4234,6 +4386,24 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                     b.Navigation("Compagnie");
                 });
 
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.DepartementRaisonSortie", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.Departement", "Departement")
+                        .WithMany("RaisonsAutorisees")
+                        .HasForeignKey("DepartementId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.RaisonSortie", "RaisonSortie")
+                        .WithMany("DepartementsAutorises")
+                        .HasForeignKey("RaisonSortieId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Departement");
+
+                    b.Navigation("RaisonSortie");
+                });
+
             modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Employee", b =>
                 {
                     b.HasOne("KCCMaterialFlow.Domain.Entities.Compagnie", "Compagnie")
@@ -4303,6 +4473,25 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Checkpoint");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonEntreeRaisonSortie", b =>
+                {
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.RaisonEntree", "RaisonEntree")
+                        .WithMany("RaisonsSortieAutorisees")
+                        .HasForeignKey("RaisonEntreeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("KCCMaterialFlow.Domain.Entities.RaisonSortie", "RaisonSortie")
+                        .WithMany("RaisonsEntreeAutorisees")
+                        .HasForeignKey("RaisonSortieId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RaisonEntree");
+
+                    b.Navigation("RaisonSortie");
                 });
 
             modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonSortie", b =>
@@ -4445,11 +4634,25 @@ namespace KCCMaterialFlow.Infrastructure.Migrations
             modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Departement", b =>
                 {
                     b.Navigation("Employees");
+
+                    b.Navigation("RaisonsAutorisees");
                 });
 
             modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonEntree", b =>
+                {
+                    b.Navigation("RaisonsSortieAutorisees");
+                });
+
+            modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.RaisonSortie", b =>
+                {
+                    b.Navigation("DepartementsAutorises");
+
+                    b.Navigation("RaisonsEntreeAutorisees");
                 });
 
             modelBuilder.Entity("KCCMaterialFlow.Domain.Entities.Role", b =>

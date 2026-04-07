@@ -1,6 +1,8 @@
 @inject IRoleService RoleService
 @inject IActiviteService ActiviteService
 @inject ICurrentUserService CurrentUserService
+@inject IUtilisateurService UtilisateurService
+@inject KCCMaterialFlow.Host.Services.UserRoleCacheService RoleCacheService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
 
@@ -14,7 +16,7 @@
         </div>
         <div class="kcc-modal__topbar-text">
             <h2 class="kcc-modal__title">Gérer les rôles</h2>
-            <p class="kcc-modal__desc">Sélectionnez les rôles à attribuer à cet utilisateur</p>
+            <p class="kcc-modal__desc">Sélectionnez le rôle à attribuer à cet utilisateur</p>
         </div>
         <button type="button" class="kcc-modal__close" @onclick="@Close" title="Fermer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -33,8 +35,8 @@
             <span class="kcc-modal__user-login">@Utilisateur?.Login</span>
         </div>
         <div class="kcc-modal__user-stat">
-            <span class="kcc-modal__user-stat-num">@assignedRoleIds.Count</span>
-            <span class="kcc-modal__user-stat-label">rôle(s)</span>
+            <span class="kcc-modal__user-stat-num">@(selectedRoleId.HasValue ? "1" : "0")</span>
+            <span class="kcc-modal__user-stat-label">rôle</span>
         </div>
     </div>
 
@@ -43,7 +45,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
         </svg>
-        Cliquez sur un rôle pour l'activer ou le désactiver.
+        Sélectionnez le rôle à attribuer à cet utilisateur.
     </p>
 
     @* ─── LISTE DES RÔLES ─── *@
@@ -58,13 +60,13 @@
         <div class="kcc-modal__list">
             @foreach (var role in allRoles)
             {
-                var isAssigned = IsRoleAssigned(role.Id);
+                var isSelected = selectedRoleId == role.Id;
                 <button type="button"
-                        class="kcc-modal__item @(isAssigned ? "kcc-modal__item--on" : "")"
-                        @onclick="@(() => ToggleRole(role.Id, !isAssigned))">
+                        class="kcc-modal__item @(isSelected ? "kcc-modal__item--on" : "")"
+                        @onclick="@(() => SelectRole(role.Id))">
 
                     @* Indicateur gauche *@
-                    <div class="kcc-modal__item-indicator @(isAssigned ? "kcc-modal__item-indicator--on" : "")"></div>
+                    <div class="kcc-modal__item-indicator @(isSelected ? "kcc-modal__item-indicator--on" : "")"></div>
 
                     @* Icône rôle *@
                     <div class="kcc-modal__item-icon" style="@GetRoleIconBg(role.CodeRole)">
@@ -85,9 +87,12 @@
                         }
                     </div>
 
-                    @* Toggle visuel *@
-                    <div class="kcc-modal__item-toggle @(isAssigned ? "kcc-modal__item-toggle--on" : "")">
-                        <div class="kcc-modal__item-toggle-dot"></div>
+                    @* Radio visuel *@
+                    <div class="kcc-modal__item-radio @(isSelected ? "kcc-modal__item-radio--on" : "")">
+                        @if (isSelected)
+                        {
+                            <div class="kcc-modal__item-radio-dot"></div>
+                        }
                     </div>
                 </button>
             }
@@ -101,15 +106,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
             </svg>
-            <span>Modifications non enregistrées</span>
-            @if (addedRoles.Any())
-            {
-                <span class="kcc-modal__changes-add">+@addedRoles.Count</span>
-            }
-            @if (removedRoles.Any())
-            {
-                <span class="kcc-modal__changes-rm">-@removedRoles.Count</span>
-            }
+            <span>Changement de rôle : @GetSelectedRoleName()</span>
         </div>
     }
 
@@ -400,34 +397,30 @@
         line-height: 1.3;
     }
 
-    /* Toggle switch */
-    .kcc-modal__item-toggle {
-        width: 36px;
+    /* Radio button */
+    .kcc-modal__item-radio {
+        width: 20px;
         height: 20px;
-        background: #d1d5db;
+        border: 2px solid #d1d5db;
+        border-radius: 50%;
         position: relative;
         flex-shrink: 0;
         margin-right: 0.75rem;
-        transition: background-color 0.15s;
+        transition: border-color 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    .kcc-modal__item-toggle--on {
+    .kcc-modal__item-radio--on {
+        border-color: #00B193;
+    }
+
+    .kcc-modal__item-radio-dot {
+        width: 10px;
+        height: 10px;
         background: #00B193;
-    }
-
-    .kcc-modal__item-toggle-dot {
-        width: 16px;
-        height: 16px;
-        background: #ffffff;
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        transition: transform 0.15s;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-    }
-
-    .kcc-modal__item-toggle--on .kcc-modal__item-toggle-dot {
-        transform: translateX(16px);
+        border-radius: 50%;
     }
 
     /* ─── BARRE CHANGEMENTS ─── */
@@ -526,35 +519,35 @@
     public Utilisateur? Utilisateur { get; set; }
 
     private List<Role> allRoles = [];
-    private List<int> assignedRoleIds = [];
-    private List<int> originalRoleIds = [];
+    private int? selectedRoleId;
+    private int? originalRoleId;
 
-    private List<int> addedRoles => assignedRoleIds.Where(id => !originalRoleIds.Contains(id)).ToList();
-    private List<int> removedRoles => originalRoleIds.Where(id => !assignedRoleIds.Contains(id)).ToList();
-    private bool HasChanges => addedRoles.Any() || removedRoles.Any();
+    private bool HasChanges => selectedRoleId != originalRoleId;
 
     protected override async Task OnInitializedAsync()
     {
         if (Utilisateur == null) return;
 
         allRoles = (await RoleService.GetAllAsync()).ToList();
-        var userRoles = await RoleService.GetRolesForUserAsync(Utilisateur.Id);
-        assignedRoleIds = userRoles.Select(r => r.Id).ToList();
-        originalRoleIds = [.. assignedRoleIds];
+
+        // Source de vérité unique : FK IdRole
+        if (Utilisateur.IdRole > 0)
+        {
+            selectedRoleId = Utilisateur.IdRole;
+        }
+
+        originalRoleId = selectedRoleId;
     }
 
-    private bool IsRoleAssigned(int roleId) => assignedRoleIds.Contains(roleId);
-
-    private void ToggleRole(int roleId, bool assigned)
+    private void SelectRole(int roleId)
     {
-        if (assigned && !assignedRoleIds.Contains(roleId))
-        {
-            assignedRoleIds.Add(roleId);
-        }
-        else if (!assigned && assignedRoleIds.Contains(roleId))
-        {
-            assignedRoleIds.Remove(roleId);
-        }
+        selectedRoleId = roleId;
+    }
+
+    private string GetSelectedRoleName()
+    {
+        if (selectedRoleId == null) return "Aucun";
+        return allRoles.FirstOrDefault(r => r.Id == selectedRoleId)?.NomRole ?? "Inconnu";
     }
 
     private static string GetInitials(string? name)
@@ -586,40 +579,23 @@
 
     private async Task Save()
     {
-        if (Utilisateur == null) return;
+        if (Utilisateur == null || selectedRoleId == null) return;
 
         try
         {
             var currentLogin = CurrentUserService.GetUserLogin();
 
-            // 1. Retirer les rôles désélectionnés
-            foreach (var roleId in originalRoleIds.Where(id => !assignedRoleIds.Contains(id)))
-            {
-                await RoleService.RemoveRoleFromUserAsync(Utilisateur.Id, roleId);
-            }
+            // 1. Mettre à jour le FK IdRole (source de vérité unique)
+            Utilisateur.IdRole = selectedRoleId.Value;
+            Utilisateur.DateModification = DateTime.Now;
+            await UtilisateurService.UpsertAsync(Utilisateur);
 
-            // 2. Ajouter les nouveaux rôles
-            foreach (var roleId in assignedRoleIds.Where(id => !originalRoleIds.Contains(id)))
-            {
-                await RoleService.AssignRoleToUserAsync(Utilisateur.Id, roleId, currentLogin);
-            }
+            // 2. Invalider le cache centralisé pour effet immédiat
+            RoleCacheService.InvalidateUser(Utilisateur.Login);
+            UtilisateurService.InvalidateCache();
 
-            // 3. Synchroniser les activités par défaut en fonction de tous les rôles actifs
-            var activeRoleCodes = allRoles
-                .Where(r => assignedRoleIds.Contains(r.Id))
-                .Select(r => r.CodeRole)
-                .ToList();
-
-            var activitesAdded = await ActiviteService.SyncActivitesFromRolesAsync(
-                Utilisateur.Id, activeRoleCodes, currentLogin);
-
-            if (activitesAdded > 0)
-            {
-                NotificationService.Notify(NotificationSeverity.Info, "Activités synchronisées",
-                    $"{activitesAdded} activité(s) ajoutée(s) automatiquement selon les rôles");
-            }
-
-            DialogService.Close(true);
+            // Retourner le login pour détection self-change
+            DialogService.Close(Utilisateur.Login);
         }
         catch (Exception ex)
         {

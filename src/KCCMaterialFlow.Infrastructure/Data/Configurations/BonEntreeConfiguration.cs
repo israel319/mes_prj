@@ -91,6 +91,12 @@ public class BonEntreeConfiguration : IEntityTypeConfiguration<BonEntree>
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(b => b.DepartementId)
+            .HasColumnName("DepartementId");
+
+        builder.Property(b => b.RaisonEntreeId)
+            .HasColumnName("RaisonEntreeId");
+
         builder.Property(b => b.ReasonOnSite)
             .HasColumnName("ReasonOnSite")
             .HasMaxLength(500)

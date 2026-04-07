@@ -32,4 +32,5 @@ public sealed class Departement : BaseEntity
     public DateTime? DateModification { get; set; }
 
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+    public ICollection<DepartementRaisonSortie> RaisonsAutorisees { get; set; } = new List<DepartementRaisonSortie>();
 }

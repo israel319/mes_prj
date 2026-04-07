@@ -76,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IParametreSystemeService, ParametreSystemeService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<ICategorieSortieService, CategorieSortieService>();
+        services.AddScoped<IRaisonEntreeService, RaisonEntreeService>();
         services.AddScoped<IWorkflowConfigService, WorkflowConfigService>();
 
         // ── Services BonEntree ───────────────────────────────────────────

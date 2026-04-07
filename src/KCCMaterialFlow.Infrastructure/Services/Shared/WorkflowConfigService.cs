@@ -4,6 +4,7 @@ using KCCMaterialFlow.Domain.Entities;
 using KCCMaterialFlow.Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using DomainTypeMateriel = KCCMaterialFlow.Domain.Enums.TypeMateriel;
 
 namespace KCCMaterialFlow.Infrastructure.Services.Shared;
@@ -12,14 +13,16 @@ public class WorkflowConfigService : IWorkflowConfigService
 {
     private readonly IDbContextFactory<KCCMaterialFlowDbContext> _dbContextFactory;
     private readonly IMemoryCache _cache;
+    private readonly ILogger<WorkflowConfigService> _logger;
 
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
     private const string CachePrefix = "WorkflowConfig_";
 
-    public WorkflowConfigService(IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory, IMemoryCache cache)
+    public WorkflowConfigService(IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory, IMemoryCache cache, ILogger<WorkflowConfigService> logger)
     {
         _dbContextFactory = dbContextFactory;
         _cache = cache;
+        _logger = logger;
     }
 
     // ─── Résolution du workflow effectif (sans écriture BD) ─────────────────
@@ -249,50 +252,17 @@ public class WorkflowConfigService : IWorkflowConfigService
 
     private async Task<IReadOnlyList<WorkflowEtapeConfig>> BuildBusinessDefaultWorkflowAsync(string bonType, string? raisonSortieCode, CancellationToken cancellationToken)
     {
-        if (bonType == "BEM")
-        {
-            return
-            [
-                new WorkflowEtapeConfig { BonType = "BEM", RaisonSortieCode = raisonSortieCode, OrdreEtape = 1, RoleCode = "Superviseur", NomEtape = "Superviseur", EstActif = true },
-                new WorkflowEtapeConfig { BonType = "BEM", RaisonSortieCode = raisonSortieCode, OrdreEtape = 2, RoleCode = "GM", NomEtape = "General Manager", EstActif = true },
-                new WorkflowEtapeConfig { BonType = "BEM", RaisonSortieCode = raisonSortieCode, OrdreEtape = 3, RoleCode = "OPJ", NomEtape = "OPJ", EstActif = true },
-                new WorkflowEtapeConfig { BonType = "BEM", RaisonSortieCode = raisonSortieCode, OrdreEtape = 4, RoleCode = "Identification", NomEtape = "Identification", EstActif = true }
-            ];
-        }
+        // Fallback simplifié : chaîne standard sans branching IT/Env.
+        // La BD (T_WorkflowEtapesConfig) est la source de vérité pour les chaînes spécifiques.
+        // Ce fallback n'est atteint que si aucune config n'existe en BD.
+        _logger.LogWarning("Aucune config workflow en BD pour {BonType}/{Raison}, utilisation du fallback standard", bonType, raisonSortieCode ?? "DEFAULT");
 
-        var typeMateriel = await ResolveTypeMaterielDefautAsync(raisonSortieCode, cancellationToken);
-        var etapes = new List<WorkflowEtapeConfig>();
-        var ordre = 1;
-
-        if (typeMateriel == DomainTypeMateriel.Informatique)
-        {
-            etapes.Add(new WorkflowEtapeConfig { BonType = "BSM", RaisonSortieCode = raisonSortieCode, OrdreEtape = ordre++, RoleCode = "IT", NomEtape = "IT", EstActif = true });
-        }
-
-        if (typeMateriel is DomainTypeMateriel.Residu or DomainTypeMateriel.Radioprotection or DomainTypeMateriel.Modification)
-        {
-            etapes.Add(new WorkflowEtapeConfig { BonType = "BSM", RaisonSortieCode = raisonSortieCode, OrdreEtape = ordre++, RoleCode = "Environnement", NomEtape = "Environnement", EstActif = true });
-        }
-
-        etapes.Add(new WorkflowEtapeConfig { BonType = "BSM", RaisonSortieCode = raisonSortieCode, OrdreEtape = ordre++, RoleCode = "Superviseur", NomEtape = "Superviseur", EstActif = true });
-        etapes.Add(new WorkflowEtapeConfig { BonType = "BSM", RaisonSortieCode = raisonSortieCode, OrdreEtape = ordre++, RoleCode = "GM", NomEtape = "General Manager", EstActif = true });
-        etapes.Add(new WorkflowEtapeConfig { BonType = "BSM", RaisonSortieCode = raisonSortieCode, OrdreEtape = ordre++, RoleCode = "OPJ", NomEtape = "OPJ", EstActif = true });
-        etapes.Add(new WorkflowEtapeConfig { BonType = "BSM", RaisonSortieCode = raisonSortieCode, OrdreEtape = ordre++, RoleCode = "Identification", NomEtape = "Identification", EstActif = true });
-
-        return etapes;
-    }
-
-    private async Task<DomainTypeMateriel?> ResolveTypeMaterielDefautAsync(string? raisonSortieCode, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(raisonSortieCode))
-        {
-            return null;
-        }
-
-        await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await context.Set<RaisonSortie>()
-            .Where(x => x.EstActif && x.Code != null && x.Code.ToUpper() == raisonSortieCode)
-            .Select(x => x.TypeMaterielDefaut)
-            .FirstOrDefaultAsync(cancellationToken);
+        return
+        [
+            new WorkflowEtapeConfig { BonType = bonType, RaisonSortieCode = raisonSortieCode, OrdreEtape = 1, RoleCode = "SUPERVISEUR", NomEtape = "Superviseur", EstActif = true },
+            new WorkflowEtapeConfig { BonType = bonType, RaisonSortieCode = raisonSortieCode, OrdreEtape = 2, RoleCode = "GM", NomEtape = "General Manager", EstActif = true },
+            new WorkflowEtapeConfig { BonType = bonType, RaisonSortieCode = raisonSortieCode, OrdreEtape = 3, RoleCode = "OPJ", NomEtape = "OPJ", EstActif = true },
+            new WorkflowEtapeConfig { BonType = bonType, RaisonSortieCode = raisonSortieCode, OrdreEtape = 4, RoleCode = "IDENTIFICATION", NomEtape = "Identification", EstActif = true }
+        ];
     }
 }

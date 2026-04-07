@@ -77,6 +77,11 @@ public interface IBonEntreeLockService
     Task<StockUpdateResult> DecrementStockAsync(IEnumerable<MaterielStockDecrement> materielsASortir, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Ré-incrémente la quantité disponible des matériels lors du retour d'un prêt.
+    /// </summary>
+    Task<StockUpdateResult> IncrementStockAsync(IEnumerable<MaterielStockDecrement> materielsARestituer, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Récupère les bons d'entrée disponibles pour sortie (pour affichage dans dropdown).
     /// Un BEM est disponible si: approuvé, non expiré, et avec quantité disponible > 0.
     /// Possibilité de filtrer par département hôte (ex: IT, Environnement).
@@ -160,6 +165,10 @@ public class BonEntreeDetailsForSortie
     public string? NumeroContrat { get; set; }
     public string SiteManager { get; set; } = string.Empty;
     public string HostDepartment { get; set; } = string.Empty;
+    public int? DepartementId { get; set; }
+    public string? DepartementCode { get; set; }
+    public int? RaisonEntreeId { get; set; }
+    public string? RaisonEntreeCode { get; set; }
     public string ReasonOnSite { get; set; } = string.Empty;
     public string Provenance { get; set; } = string.Empty;
     public string Destination { get; set; } = string.Empty;

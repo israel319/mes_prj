@@ -6,106 +6,98 @@
 
 <PageTitle>Administration - Journal d'Audit</PageTitle>
 
-<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
     <AdminNav />
-    <RadzenStack Gap="1.5rem">
-        @* En-tête *@
-        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-            <RadzenColumn>
-                <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
-                    <RadzenIcon Icon="history" Style="margin-right: 0.5rem; vertical-align: middle;" />
-                    Journal d'Audit
-                </RadzenText>
+
+    @* ─── En-tête ─── *@
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
+                Journal d'Audit
+            </RadzenText>
+        </RadzenStack>
+        <RadzenButton Icon="refresh" Text="Actualiser" Variant="Variant.Outlined"
+                      ButtonStyle="ButtonStyle.Secondary" Click="@LoadDataAsync" />
+    </RadzenStack>
+
+    @* ─── Statistiques ─── *@
+    @if (stats != null)
+    {
+        <RadzenRow Gap="1rem">
+            <RadzenColumn Size="6" SizeMD="3">
+                <RadzenCard Style="text-align: center; background-color: rgba(59,130,246,0.08);">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #2563eb;">@stats.TotalActions</div>
+                    <div style="font-size: 0.72rem; color: #666;">Total actions</div>
+                </RadzenCard>
             </RadzenColumn>
-            <RadzenColumn>
-                <RadzenButton Text="Actualiser" Icon="refresh" ButtonStyle="ButtonStyle.Light" 
-                              Click="@LoadDataAsync" />
+            <RadzenColumn Size="6" SizeMD="3">
+                <RadzenCard Style="text-align: center; background-color: rgba(5,150,105,0.08);">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">@stats.TotalUsers</div>
+                    <div style="font-size: 0.72rem; color: #666;">Utilisateurs</div>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="6" SizeMD="3">
+                <RadzenCard Style="text-align: center; background-color: rgba(245,158,11,0.08);">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #d97706;">@stats.ActionsByType.Count</div>
+                    <div style="font-size: 0.72rem; color: #666;">Types d'actions</div>
+                </RadzenCard>
+            </RadzenColumn>
+            <RadzenColumn Size="6" SizeMD="3">
+                <RadzenCard Style="text-align: center; background-color: rgba(220,38,38,0.08);">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #dc2626;">@stats.TotalErrors</div>
+                    <div style="font-size: 0.72rem; color: #666;">Erreurs</div>
+                </RadzenCard>
             </RadzenColumn>
         </RadzenRow>
+    }
 
-        @* Statistiques *@
-        @if (stats != null)
-        {
-            <RadzenRow Gap="1rem">
-                <RadzenColumn Size="6" SizeMD="3">
-                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: rgba(59,130,246,0.08);">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #2563eb;">@stats.TotalActions</div>
-                        <div style="font-size: 0.72rem; color: #666;">Total actions</div>
-                    </RadzenCard>
-                </RadzenColumn>
-                <RadzenColumn Size="6" SizeMD="3">
-                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: rgba(5,150,105,0.08);">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #059669;">@stats.TotalUsers</div>
-                        <div style="font-size: 0.72rem; color: #666;">Utilisateurs</div>
-                    </RadzenCard>
-                </RadzenColumn>
-                <RadzenColumn Size="6" SizeMD="3">
-                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: rgba(245,158,11,0.08);">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #d97706;">@stats.ActionsByType.Count</div>
-                        <div style="font-size: 0.72rem; color: #666;">Types d'actions</div>
-                    </RadzenCard>
-                </RadzenColumn>
-                <RadzenColumn Size="6" SizeMD="3">
-                    <RadzenCard Variant="Variant.Flat" Style="text-align: center; background-color: rgba(220,38,38,0.08);">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #dc2626;">@stats.TotalErrors</div>
-                        <div style="font-size: 0.72rem; color: #666;">Erreurs</div>
-                    </RadzenCard>
-                </RadzenColumn>
-            </RadzenRow>
-        }
+    @* ─── Filtres ─── *@
+    <RadzenCard>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Wrap="FlexWrap.Wrap" Gap="1rem" Style="padding: 0.5rem 0;">
+            <RadzenStack Gap="0.15rem">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Date début</RadzenText>
+                <RadzenDatePicker @bind-Value="@filterDateDebut" Style="min-width: 150px;"
+                                  ShowTime="false" DateFormat="dd/MM/yyyy" />
+            </RadzenStack>
+            <RadzenStack Gap="0.15rem">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Date fin</RadzenText>
+                <RadzenDatePicker @bind-Value="@filterDateFin" Style="min-width: 150px;"
+                                  ShowTime="false" DateFormat="dd/MM/yyyy" />
+            </RadzenStack>
+            <RadzenStack Gap="0.15rem">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Utilisateur</RadzenText>
+                <RadzenTextBox @bind-Value="@filterUtilisateur" Style="min-width: 150px;"
+                               Placeholder="Login..." />
+            </RadzenStack>
+            <RadzenStack Gap="0.15rem">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Type d'action</RadzenText>
+                <RadzenDropDown TValue="string" Data="@typesAction" @bind-Value="@filterTypeAction"
+                                AllowClear="true" Placeholder="Tous" Style="min-width: 140px;" />
+            </RadzenStack>
+            <RadzenStack Gap="0.15rem">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Catégorie</RadzenText>
+                <RadzenDropDown TValue="string" Data="@categories" @bind-Value="@filterCategorie"
+                                AllowClear="true" Placeholder="Toutes" Style="min-width: 140px;" />
+            </RadzenStack>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                <RadzenButton Text="Rechercher" Icon="search" ButtonStyle="ButtonStyle.Primary"
+                              Click="@(() => SearchAsync())" />
+                <RadzenButton Icon="clear" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
+                              Click="@ResetFilters" title="Réinitialiser" class="kcc-btn-clear" />
+            </RadzenStack>
+        </RadzenStack>
+    </RadzenCard>
 
-        @* Filtres *@
-        <RadzenCard Variant="Variant.Flat" Style="padding: 1rem;">
-            <RadzenRow Gap="1rem" AlignItems="AlignItems.End">
-                <RadzenColumn Size="12" SizeMD="2">
-                    <RadzenFormField Text="Date début" Style="width: 100%;">
-                        <RadzenDatePicker @bind-Value="@filterDateDebut" Style="width: 100%;" 
-                                          ShowTime="false" DateFormat="dd/MM/yyyy" />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="2">
-                    <RadzenFormField Text="Date fin" Style="width: 100%;">
-                        <RadzenDatePicker @bind-Value="@filterDateFin" Style="width: 100%;" 
-                                          ShowTime="false" DateFormat="dd/MM/yyyy" />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="2">
-                    <RadzenFormField Text="Utilisateur" Style="width: 100%;">
-                        <RadzenTextBox @bind-Value="@filterUtilisateur" Style="width: 100%;" 
-                                       Placeholder="Login..." />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="2">
-                    <RadzenFormField Text="Type d'action" Style="width: 100%;">
-                        <RadzenDropDown TValue="string" Data="@typesAction" @bind-Value="@filterTypeAction"
-                                        AllowClear="true" Placeholder="Tous" Style="width: 100%;" />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="2">
-                    <RadzenFormField Text="Catégorie" Style="width: 100%;">
-                        <RadzenDropDown TValue="string" Data="@categories" @bind-Value="@filterCategorie"
-                                        AllowClear="true" Placeholder="Toutes" Style="width: 100%;" />
-                    </RadzenFormField>
-                </RadzenColumn>
-                <RadzenColumn Size="12" SizeMD="2">
-                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
-                        <RadzenButton Text="Rechercher" Icon="search" ButtonStyle="ButtonStyle.Primary" 
-                                      Click="@(() => SearchAsync())" Style="flex: 1;" />
-                        <RadzenButton Icon="clear" ButtonStyle="ButtonStyle.Light" 
-                                      Click="@ResetFilters" title="Réinitialiser" />
-                    </RadzenStack>
-                </RadzenColumn>
-            </RadzenRow>
-        </RadzenCard>
-
-        @* Grille des logs *@
-        <RadzenCard Variant="Variant.Flat">
-            <RadzenDataGrid @ref="grid" Data="@logs" TItem="AuditLog" 
-                            AllowFiltering="false" AllowSorting="true" AllowPaging="true" 
-                            PageSize="20" Count="@totalCount"
-                            LoadData="@LoadDataGrid"
-                            PagerHorizontalAlign="HorizontalAlign.Center"
-                            Style="border: none;">
+    @* ─── Grille des logs ─── *@
+    <RadzenCard>
+        <RadzenDataGrid @ref="grid" Data="@logs" TItem="AuditLog"
+                        AllowFiltering="false" AllowSorting="true" AllowPaging="true"
+                        PageSize="20" Count="@totalCount"
+                        LoadData="@LoadDataGrid"
+                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        AllowColumnResize="true"
+                        Density="Density.Compact"
+                        EmptyText="Aucun log trouvé">
                 <Columns>
                     <RadzenDataGridColumn TItem="AuditLog" Property="DateAction" Title="Date" Width="150px">
                         <Template Context="log">
@@ -177,8 +169,7 @@
                 </Columns>
             </RadzenDataGrid>
         </RadzenCard>
-    </RadzenStack>
-</div>
+</RadzenStack>
 
 @inject DialogService DialogService
 

@@ -13,8 +13,7 @@
 
 <PageTitle>@(bon?.NumeroReference ?? "Bon d'Entree") - KCC</PageTitle>
 
-<div style="background: var(--rz-base-100); min-height: 100vh; padding: 2rem 1rem;">
-    <div style="max-width: 860px; margin: 0 auto;">
+<div style="max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem;">
         @if (isLoading)
         {
             <RadzenCard Style="text-align: center; padding: 3rem;">
@@ -76,6 +75,54 @@
                     <strong>Retourne pour modification :</strong> @dernierCommentaireRetour
                 </RadzenAlert>
             }
+
+            @* === ACTIONS (en haut) === *@
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+                <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+                              Size="ButtonSize.Small" Click="@GoBack" />
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+                    @if (bon.StatutActuel == "Draft" && CanEdit)
+                    {
+                        <RadzenButton Text="Modifier" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Outlined"
+                                      Size="ButtonSize.Small" Click="@(() => Navigation.NavigateTo($"/bon-entree/{Id}/modifier"))" />
+                    }
+                    @if (CanDelete)
+                    {
+                        <RadzenButton Text="Supprimer" Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
+                                      Size="ButtonSize.Small" Click="@ShowDeleteDialog" />
+                    }
+                    @if (CanSubmit)
+                    {
+                        <RadzenButton Text="Soumettre" Icon="send" ButtonStyle="ButtonStyle.Primary"
+                                      Size="ButtonSize.Small" Click="@SubmitForApproval" />
+                    }
+                    @if (CanApprove)
+                    {
+                        <RadzenButton Text="Approuver" Icon="check" ButtonStyle="ButtonStyle.Success"
+                                      Size="ButtonSize.Small" Click="@ShowApproveDialog" />
+                    }
+                    @if (CanReject)
+                    {
+                        <RadzenButton Text="Rejeter" Icon="close" ButtonStyle="ButtonStyle.Danger"
+                                      Size="ButtonSize.Small" Click="@ShowRejectDialog" />
+                    }
+                    @if (bon.StatutActuel == "Approved" && HasStock)
+                    {
+                        <RadzenButton Text="Creer BSE" Icon="exit_to_app" ButtonStyle="ButtonStyle.Success"
+                                      Size="ButtonSize.Small" Click="@(() => Navigation.NavigateTo($"/bon-sortie/nouveau?bemId={bon.Id}"))" />
+                    }
+                    @if (bon.StatutActuel == "Approved" && !string.IsNullOrEmpty(bon.QRCodeBase64) && CanPrint)
+                    {
+                        <RadzenButton Text="Imprimer" Icon="print" ButtonStyle="ButtonStyle.Primary"
+                                      Size="ButtonSize.Small" Click="@(() => Navigation.NavigateTo($"/bon-entree/{Id}/print"))" />
+                    }
+                    @if (CanDownloadPdf)
+                    {
+                        <RadzenButton Text="Telecharger PDF" Icon="picture_as_pdf" ButtonStyle="ButtonStyle.Info" Variant="Variant.Outlined"
+                                      Size="ButtonSize.Small" Click="@DownloadPdf" />
+                    }
+                </RadzenStack>
+            </div>
 
             @* === SECTION VISITEUR/COMPAGNIE === *@
             <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
@@ -257,60 +304,8 @@
             </RadzenCard>
             }
 
-            @* === ACTIONS === *@
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; flex-wrap: wrap; gap: 0.5rem;">
-                <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
-                              Click="@GoBack" />
-                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                    @if (bon.StatutActuel == "Draft" && CanEdit)
-                    {
-                        <RadzenButton Text="Modifier" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Outlined"
-                                      Click="@(() => Navigation.NavigateTo($"/bon-entree/{Id}/modifier"))" />
-                    }
-                    @if (CanDelete)
-                    {
-                        <RadzenButton Text="Supprimer" Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
-                                      Click="@ShowDeleteDialog" />
-                    }
-                    @if (CanSubmit)
-                    {
-                        <RadzenButton Text="Soumettre" Icon="send" ButtonStyle="ButtonStyle.Primary"
-                                      Click="@SubmitForApproval" />
-                    }
-                    @if (CanApprove)
-                    {
-                        <RadzenButton Text="Approuver" Icon="check" ButtonStyle="ButtonStyle.Success"
-                                      Click="@ShowApproveDialog" />
-                    }
-                    @if (CanReturn)
-                    {
-                        <RadzenButton Text="Retourner" Icon="replay" ButtonStyle="ButtonStyle.Warning"
-                                      Click="@ShowReturnToUserDialog" />
-                    }
-                    @if (CanReject)
-                    {
-                        <RadzenButton Text="Rejeter" Icon="close" ButtonStyle="ButtonStyle.Danger"
-                                      Click="@ShowRejectDialog" />
-                    }
-                    @if (bon.StatutActuel == "Approved" && HasStock)
-                    {
-                        <RadzenButton Text="Creer BSE" Icon="exit_to_app" ButtonStyle="ButtonStyle.Success"
-                                      Click="@(() => Navigation.NavigateTo($"/bon-sortie/nouveau?bemId={bon.Id}"))" />
-                    }
-                    @if (bon.StatutActuel == "Approved" && !string.IsNullOrEmpty(bon.QRCodeBase64) && CanPrint)
-                    {
-                        <RadzenButton Text="Imprimer" Icon="print" ButtonStyle="ButtonStyle.Primary"
-                                      Click="@(() => Navigation.NavigateTo($"/bon-entree/{Id}/print"))" />
-                    }
-                    @if (CanDownloadPdf)
-                    {
-                        <RadzenButton Text="Telecharger PDF" Icon="picture_as_pdf" ButtonStyle="ButtonStyle.Info" Variant="Variant.Outlined"
-                                      Click="@DownloadPdf" />
-                    }
-                </RadzenStack>
-            </div>
+            @* === ACTIONS SUPPRIMÉES DU BAS — déplacées en haut === *@
         }
-    </div>
 </div>
 
 @code {

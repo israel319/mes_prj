@@ -5,20 +5,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    
-    @* Pr�chargement de la police Material Icons pour �viter le flash des noms d'ic�nes *@
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+    <link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons" as="style" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
     
     <RadzenTheme Theme="standard" />
     <link rel="stylesheet" href="css/kcc-variables.css" />
     <link rel="stylesheet" href="css/kcc-radzen-overrides.css" />
     <link rel="stylesheet" href="css/modules/bon-entree/bon-entree-print.css" />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["KCCMaterialFlow.Host.styles.css"]" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="KCCMaterialFlow.Host.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    
+
     <ImportMap />
     <HeadOutlet />
 </head>
@@ -28,6 +26,9 @@
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js?v=@(typeof(Radzen.Colors).Assembly.GetName().Version)"></script>
     <script src="_framework/blazor.web.js"></script>
     <script>
+        // Force un vrai rechargement HTTP (contourne la navigation améliorée de Blazor)
+        window.forceReload = (url) => { window.location.href = url; };
+
         window.downloadFileFromStream = async (fileName, contentStreamReference) => {
             const arrayBuffer = await contentStreamReference.arrayBuffer();
             const blob = new Blob([arrayBuffer]);

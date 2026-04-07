@@ -217,6 +217,10 @@ public class CreateBonEntreeRequest
     [Required(ErrorMessage = "Le département hôte est obligatoire")]
     public string HostDepartment { get; set; } = string.Empty;
 
+    public int? DepartementId { get; set; }
+
+    public int? RaisonEntreeId { get; set; }
+
     [Required(ErrorMessage = "Le motif de la visite est obligatoire")]
     public string ReasonOnSite { get; set; } = string.Empty;
 
@@ -256,6 +260,8 @@ public class UpdateBonEntreeRequest
     public string? EmailContractant { get; set; }
     public string SiteManager { get; set; } = string.Empty;
     public string HostDepartment { get; set; } = string.Empty;
+    public int? DepartementId { get; set; }
+    public int? RaisonEntreeId { get; set; }
     public string ReasonOnSite { get; set; } = string.Empty;
     public string NomEscorteur { get; set; } = string.Empty;
     public string? FonctionEscorteur { get; set; }

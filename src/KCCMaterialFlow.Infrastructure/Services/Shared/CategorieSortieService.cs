@@ -101,4 +101,143 @@ public class CategorieSortieService : ICategorieSortieService
                 .ToListAsync();
         }) ?? [];
     }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<RaisonSortie>> GetRaisonsAutoriseesByDepartementAsync(string departementCode)
+    {
+        var cacheKey = $"RaisonsAutorisees_{departementCode}";
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15);
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+            // 1. Trouver le département par code OU par nom
+            var dept = await context.Departements
+                .FirstOrDefaultAsync(d => (d.CodeDepartement == departementCode || d.NomDepartement == departementCode) && d.EstActif);
+
+            IReadOnlyList<RaisonSortie> raisons;
+
+            if (dept != null)
+            {
+                // 2. Chercher mappings spécifiques au département
+                raisons = await context.Set<DepartementRaisonSortie>()
+                    .Where(m => m.DepartementId == dept.Id)
+                    .Include(m => m.RaisonSortie)
+                        .ThenInclude(r => r!.Categorie)
+                    .OrderBy(m => m.OrdreAffichage)
+                    .Select(m => m.RaisonSortie)
+                    .Where(r => r != null && r.EstActif)
+                    .Cast<RaisonSortie>()
+                    .ToListAsync();
+
+                if (raisons.Count > 0)
+                    return raisons;
+            }
+
+            // 3. Fallback : mappings par défaut (DepartementId = NULL)
+            raisons = await context.Set<DepartementRaisonSortie>()
+                .Where(m => m.DepartementId == null)
+                .Include(m => m.RaisonSortie)
+                    .ThenInclude(r => r!.Categorie)
+                .OrderBy(m => m.OrdreAffichage)
+                .Select(m => m.RaisonSortie)
+                .Where(r => r != null && r.EstActif)
+                .Cast<RaisonSortie>()
+                .ToListAsync();
+
+            return raisons;
+        }) ?? [];
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<RaisonSortie>> GetRaisonsAutoriseesByDepartementIdAsync(int? departementId)
+    {
+        var cacheKey = $"RaisonsAutorisees_Id_{departementId?.ToString() ?? "DEFAULT"}";
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15);
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+            if (departementId.HasValue)
+            {
+                // Mappings spécifiques au département
+                var raisons = await context.Set<DepartementRaisonSortie>()
+                    .Where(m => m.DepartementId == departementId.Value)
+                    .Include(m => m.RaisonSortie)
+                        .ThenInclude(r => r!.Categorie)
+                    .OrderBy(m => m.OrdreAffichage)
+                    .Select(m => m.RaisonSortie)
+                    .Where(r => r != null && r.EstActif)
+                    .Cast<RaisonSortie>()
+                    .ToListAsync();
+
+                if (raisons.Count > 0)
+                    return (IReadOnlyList<RaisonSortie>)raisons;
+            }
+
+            // Fallback : mappings par défaut (DepartementId = NULL)
+            return (IReadOnlyList<RaisonSortie>)await context.Set<DepartementRaisonSortie>()
+                .Where(m => m.DepartementId == null)
+                .Include(m => m.RaisonSortie)
+                    .ThenInclude(r => r!.Categorie)
+                .OrderBy(m => m.OrdreAffichage)
+                .Select(m => m.RaisonSortie)
+                .Where(r => r != null && r.EstActif)
+                .Cast<RaisonSortie>()
+                .ToListAsync();
+        }) ?? [];
+    }
+
+    /// <inheritdoc />
+    public async Task<string?> GetDepartementCodeForRaisonAsync(string raisonSortieCode)
+    {
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+        var mapping = await context.Set<DepartementRaisonSortie>()
+            .Include(m => m.Departement)
+            .Include(m => m.RaisonSortie)
+            .Where(m => m.DepartementId != null
+                     && m.RaisonSortie.Code == raisonSortieCode)
+            .FirstOrDefaultAsync();
+
+        return mapping?.Departement?.CodeDepartement;
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<DepartementRaisonSortie>> GetDepartementRaisonMappingsAsync(int? departementId)
+    {
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        return await context.Set<DepartementRaisonSortie>()
+            .Where(m => m.DepartementId == departementId)
+            .Include(m => m.RaisonSortie)
+            .OrderBy(m => m.OrdreAffichage)
+            .ToListAsync();
+    }
+
+    /// <inheritdoc />
+    public async Task SaveDepartementRaisonMappingsAsync(int? departementId, List<int> raisonSortieIds)
+    {
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+        // Supprimer les mappings existants
+        var existing = await context.Set<DepartementRaisonSortie>()
+            .Where(m => m.DepartementId == departementId)
+            .ToListAsync();
+        context.Set<DepartementRaisonSortie>().RemoveRange(existing);
+
+        // Recréer
+        var newMappings = raisonSortieIds.Select((id, index) => new DepartementRaisonSortie
+        {
+            DepartementId = departementId,
+            RaisonSortieId = id,
+            AutoSelection = raisonSortieIds.Count == 1,
+            OrdreAffichage = index + 1
+        });
+        await context.Set<DepartementRaisonSortie>().AddRangeAsync(newMappings);
+        await context.SaveChangesAsync();
+
+        // Invalider le cache
+        _cache.Remove(CacheCategoriesKey);
+        _cache.Remove(CacheCategoriesWithRaisonsKey);
+    }
 }

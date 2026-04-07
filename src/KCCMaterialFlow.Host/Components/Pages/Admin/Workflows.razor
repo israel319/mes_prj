@@ -8,40 +8,35 @@
 
 <PageTitle>Administration - Workflows</PageTitle>
 
-<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
     <AdminNav />
-    <RadzenStack Gap="1rem">
 
     @* ── En-tête ── *@
-    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-        <RadzenColumn>
-            <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
-                <RadzenIcon Icon="route" Style="margin-right: 0.5rem; vertical-align: middle;" />
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
                 Configuration des étapes d'approbation
             </RadzenText>
             <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin-top: 0.25rem;">
                 Chaque motif peut avoir son propre workflow ou hériter du workflow générique.
             </RadzenText>
-        </RadzenColumn>
-    </RadzenRow>
+        </RadzenStack>
+    </RadzenStack>
 
     @* ── Sélecteur de type de bon ── *@
     <RadzenCard>
-        <RadzenRow AlignItems="AlignItems.Center" Gap="1rem">
-            <RadzenColumn Size="12" SizeMD="3">
-                <RadzenFormField Text="Type de bon" Style="width:100%;">
-                    <RadzenDropDown TValue="string" Data="@bonTypes" @bind-Value="@selectedBonType"
-                                   Style="width:100%;" Change="@OnBonTypeChanged" />
-                </RadzenFormField>
-            </RadzenColumn>
-            <RadzenColumn Size="12" SizeMD="9">
-                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light);">
-                    @(selectedBonType == "BSM"
-                        ? "Bon de Sortie Matériel – chaque motif de sortie peut avoir un circuit d'approbation personnalisé."
-                        : "Bon d'Entrée Matériel – circuit unique : Superviseur → General Manager → OPJ → Identification.")
-                </RadzenText>
-            </RadzenColumn>
-        </RadzenRow>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Wrap="FlexWrap.Wrap" Gap="1rem" Style="padding: 0.5rem 0;">
+            <RadzenStack Gap="0.15rem">
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Type de bon</RadzenText>
+                <RadzenDropDown TValue="string" Data="@bonTypes" @bind-Value="@selectedBonType"
+                                Style="min-width: 160px;" Change="@OnBonTypeChanged" />
+            </RadzenStack>
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); padding-bottom: 0.15rem;">
+                @(selectedBonType == "BSM"
+                    ? "Bon de Sortie Matériel – chaque motif de sortie peut avoir un circuit d'approbation personnalisé."
+                    : "Bon d'Entrée Matériel – circuit unique : Superviseur → General Manager → OPJ → Identification.")
+            </RadzenText>
+        </RadzenStack>
     </RadzenCard>
 
     @if (isLoading)
@@ -209,7 +204,6 @@
         </RadzenRow>
     }
 </RadzenStack>
-</div>
 
 @code {
     private sealed class StepVm

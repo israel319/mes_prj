@@ -42,6 +42,7 @@ public class KCCMaterialFlowDbContext : DbContext, IApplicationDbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UtilisateurRole> UtilisateurRoles => Set<UtilisateurRole>();
     public DbSet<Departement> Departements => Set<Departement>();
+    public DbSet<DepartementRaisonSortie> DepartementRaisonsSortie => Set<DepartementRaisonSortie>();
     public DbSet<WorkflowEtapeConfig> WorkflowEtapeConfigs => Set<WorkflowEtapeConfig>();
     public DbSet<Activite> Activites => Set<Activite>();
     public DbSet<UtilisateurActivite> UtilisateurActivites => Set<UtilisateurActivite>();
@@ -50,6 +51,8 @@ public class KCCMaterialFlowDbContext : DbContext, IApplicationDbContext
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<CategorieSortie> CategoriesSortie => Set<CategorieSortie>();
     public DbSet<RaisonSortie> RaisonsSortie => Set<RaisonSortie>();
+    public DbSet<RaisonEntree> RaisonsEntree => Set<RaisonEntree>();
+    public DbSet<RaisonEntreeRaisonSortie> RaisonEntreeRaisonsSortie => Set<RaisonEntreeRaisonSortie>();
     public DbSet<Site> Sites => Set<Site>();
     public DbSet<NotificationRejet> NotificationsRejet => Set<NotificationRejet>();
     public DbSet<SoldeMateriel> SoldeMateriels => Set<SoldeMateriel>();

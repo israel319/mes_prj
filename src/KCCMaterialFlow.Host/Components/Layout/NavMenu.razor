@@ -16,11 +16,6 @@
 {
     <RadzenPanelMenuItem Text="Nouveau BSM" Icon="output" Path="/bon-sortie/nouveau" />
 }
-@if (CanViewPrets)
-{
-    <RadzenPanelMenuItem Text="Prêts" Icon="schedule" Path="/bon-sortie/prets" />
-}
-
 @if (CanScan)
 {
     <RadzenPanelMenuItem Text="Scanner" Icon="qr_code_scanner" Path="/securite/scanner" />
@@ -30,13 +25,13 @@
 {
     <RadzenPanelMenuItem Text="Admin" Icon="settings" Path="/admin/utilisateurs" />
     <RadzenPanelMenuItem Text="Workflows" Icon="route" Path="/admin/workflows" />
+    <RadzenPanelMenuItem Text="Dept / Motifs" Icon="account_tree" Path="/admin/departement-motifs" />
 }
 
 @code {
     private bool CanApprove => CurrentUserService.HasAnyActivite("BEM_APPROUVER", "BEM_REJETER", "BEM_RETOURNER", "BSM_APPROUVER", "BSM_REJETER", "BSM_RETOURNER");
     private bool CanCreateBEM => CurrentUserService.HasActivite("BEM_CREER");
     private bool CanCreateBSM => CurrentUserService.HasActivite("BSM_CREER");
-    private bool CanViewPrets => CurrentUserService.HasAnyActivite("PRET_RETOUR", "PRET_EXTENSION", "BSM_CREER");
     private bool CanScan => CurrentUserService.HasActivite("SEC_SCANNER");
     private bool IsAdmin => CurrentUserService.IsInRole("Admin");
 }

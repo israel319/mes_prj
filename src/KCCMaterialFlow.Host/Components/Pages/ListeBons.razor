@@ -9,12 +9,15 @@
 @using BonSortieInterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieInterne
 @using PretEntity = KCCMaterialFlow.Domain.Entities.Pret
 
+@using BonSortiePages = KCCMaterialFlow.Host.Components.Pages.BonSortie
+
 @inject ICurrentUserService CurrentUserService
 @inject IBonEntreeService BonEntreeService
 @inject IBonSortieService BonSortieService
 @inject IStatutService StatutService
 @inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
+@inject DialogService DialogService
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Gestion des Bons - KCC Material Flow</PageTitle>
@@ -24,7 +27,7 @@
     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
         <RadzenStack Gap="0.25rem">
             <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
-                @(selectedTabIndex == 0 ? "Bons d'entrée" : "Bons de sortie")
+                @(selectedTabIndex switch { 0 => "Bons d'entrée", 1 => "Bons de sortie", 2 => "Prêts", _ => "Bons" })
             </RadzenText>
             <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin-top: 0.25rem;">
                 Traçabilité complète des bons de matériel • @CurrentUserService.GetUserDisplayName()
@@ -38,8 +41,8 @@
                               Click="@ExportExcel" />
             }
             <RadzenButton Icon="refresh" Text="Actualiser" Variant="Variant.Outlined"
-                          ButtonStyle="ButtonStyle.Light" Click="@LoadDataAsync" />
-            <RadzenButton Text="@($"Nouveau bon {(selectedTabIndex == 0 ? "d'entrée" : "de sortie")}")"
+                          ButtonStyle="ButtonStyle.Secondary" Click="@LoadDataAsync" />
+            <RadzenButton Text="@(selectedTabIndex == 0 ? "Nouveau bon d'entrée" : "Nouveau bon de sortie")"
                           Icon="add_circle" ButtonStyle="ButtonStyle.Primary"
                           Click="@(() => NavigateTo(selectedTabIndex == 0 ? "/bon-entree/nouveau" : "/bon-sortie/nouveau"))" />
         </RadzenStack>
@@ -257,6 +260,84 @@
                         </Columns>
                     </RadzenDataGrid>
                 </RadzenTabsItem>
+
+                @* === TAB PRÊTS === *@
+                <RadzenTabsItem Text="@($"Prêts ({filteredPretsSummary.Count})")">
+                    <RadzenDataGrid Data="@filteredPretsSummary" TItem="PretSummary"
+                                    AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                                    AllowSorting="true" AllowColumnResize="true"
+                                    Style="margin-top: 0.5rem;"
+                                    EmptyText="Aucun prêt trouvé"
+                                    Density="Density.Compact">
+                        <Columns>
+                            @* Indicateur échéance *@
+                            <RadzenDataGridColumn TItem="PretSummary" Width="50px" Sortable="false" Filterable="false">
+                                <Template Context="pret">
+                                    @{
+                                        var (couleur, icon, tooltip) = GetIndicateurEcheance(pret);
+                                    }
+                                    <div title="@tooltip" style="text-align: center;">
+                                        <RadzenIcon Icon="@icon" Style="@($"color: {couleur}; font-size: 1.4rem;")" />
+                                    </div>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="PretSummary" Property="NumeroReference" Title="Référence" Width="160px">
+                                <Template Context="pret">
+                                    <a href="@($"/bon-sortie/{pret.BonId}")" style="font-weight: 600; text-decoration: none; color: var(--kcc-primary);">
+                                        @pret.NumeroReference
+                                    </a>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="PretSummary" Property="NomDemandeur" Title="Demandeur" Width="160px" />
+                            <RadzenDataGridColumn TItem="PretSummary" Property="NomDestinataire" Title="Destinataire" Width="140px" />
+
+                            <RadzenDataGridColumn TItem="PretSummary" Property="DateCreation" Title="Date sortie" Width="110px">
+                                <Template Context="pret">@pret.DateCreation.ToString("dd/MM/yyyy")</Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="PretSummary" Property="DateRetourPrevue" Title="Retour prévu" Width="120px" SortOrder="SortOrder.Ascending">
+                                <Template Context="pret">
+                                    <span style="@GetDateRetourStyle(pret)">@pret.DateRetourPrevue.ToString("dd/MM/yyyy")</span>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="PretSummary" Title="Échéance" Width="120px" Sortable="false">
+                                <Template Context="pret">
+                                    @{
+                                        var (badgeStyle, text) = GetEcheanceBadge(pret);
+                                    }
+                                    <RadzenBadge BadgeStyle="@badgeStyle" Text="@text" />
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="PretSummary" Property="NbMateriels" Title="Mat." Width="60px" TextAlign="TextAlign.Center" />
+
+                            <RadzenDataGridColumn TItem="PretSummary" Property="StatutActuel" Title="Statut" Width="120px">
+                                <Template Context="pret">
+                                    <span style="font-weight: 500; color: @GetStatutColor(pret.StatutActuel);">@GetStatutLabel(pret.StatutActuel)</span>
+                                </Template>
+                            </RadzenDataGridColumn>
+
+                            <RadzenDataGridColumn TItem="PretSummary" Title="" Width="140px" TextAlign="TextAlign.Center" Sortable="false">
+                                <Template Context="pret">
+                                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
+                                        <RadzenButton Icon="visibility" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Info"
+                                            Click="@(() => NavigateTo($"/bon-sortie/{pret.BonId}"))" title="Voir" />
+                                        @if (!pret.EstRetourne && pret.StatutActuel == "Approved")
+                                        {
+                                            <RadzenButton Icon="assignment_return" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Success"
+                                                Click="@(() => EnregistrerRetourPret(pret))" title="Retour" />
+                                            <RadzenButton Icon="event" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Warning"
+                                                Click="@(() => DemanderExtensionPret(pret))" title="Extension" />
+                                        }
+                                    </RadzenStack>
+                                </Template>
+                            </RadzenDataGridColumn>
+                        </Columns>
+                    </RadzenDataGrid>
+                </RadzenTabsItem>
             </Tabs>
         </RadzenTabs>
     </RadzenCard>
@@ -283,9 +364,11 @@
 
     private List<BonSummary> bemSummaryItems = new();
     private List<BonSummary> bsmSummaryItems = new();
+    private List<PretSummary> pretsSummaryItems = new();
 
     private List<BonSummary> filteredBEMSummary => ApplyFilters(bemSummaryItems);
     private List<BonSummary> filteredBSMSummary => ApplyFilters(bsmSummaryItems);
+    private List<PretSummary> filteredPretsSummary => ApplyPretFilters(pretsSummaryItems);
 
     private List<StatutOption> statutOptions = new();
     private List<Statut> allDbStatuts = new();
@@ -307,7 +390,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        selectedTabIndex = TabName?.ToLowerInvariant() == "bsm" ? 1 : 0;
+        selectedTabIndex = TabName?.ToLowerInvariant() switch { "bsm" => 1, "prets" => 2, _ => 0 };
 
         if (!string.IsNullOrWhiteSpace(SearchQuery))
             searchTerm = SearchQuery;
@@ -338,7 +421,8 @@
     private void OnTabChange(int index)
     {
         selectedTabIndex = index;
-        NavigationManager.NavigateTo($"/liste-bons/{(index == 1 ? "bsm" : "bem")}", replace: true);
+        var tab = index switch { 1 => "bsm", 2 => "prets", _ => "bem" };
+        NavigationManager.NavigateTo($"/liste-bons/{tab}", replace: true);
     }
 
     private async Task LoadDataAsync()
@@ -354,95 +438,59 @@
             var isApprover = userRoles.Any(r => approverRoles.Contains(r, StringComparer.OrdinalIgnoreCase));
             var isIdentification = userRoles.Any(r => r.Equals("Identification", StringComparison.OrdinalIgnoreCase));
 
-            var bemResultTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Take = 5000 });
-            var bsmResultTask = BonSortieService.GetListAsync(new BonSortieFilter { Take = 5000 });
-            await Task.WhenAll(bemResultTask, bsmResultTask);
-            var bemResult = bemResultTask.Result;
-            var bsmResult = bsmResultTask.Result;
-
             IEnumerable<BonEntreeEntity> visibleBEM;
             IEnumerable<BonSortieEntity> visibleBSM;
 
             if (canSeeAll)
             {
-                visibleBEM = bemResult.Items;
-                visibleBSM = bsmResult.Items;
-            }
-            else if (isIdentification)
-            {
-                visibleBEM = bemResult.Items
-                    .Where(b => b.Historiques.Any(h => h.ActionBy.Equals(currentLogin, StringComparison.OrdinalIgnoreCase))
-                             || b.StatutActuel.Equals("Approved", StringComparison.OrdinalIgnoreCase)
-                             || b.StatutActuel.Equals("PendingIdentification", StringComparison.OrdinalIgnoreCase));
+                // Admin : tout voir
+                var bemResultTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Take = 5000 });
+                var bsmResultTask = BonSortieService.GetListAsync(new BonSortieFilter { Take = 5000 });
+                await Task.WhenAll(bemResultTask, bsmResultTask);
 
-                visibleBSM = bsmResult.Items
-                    .Where(b => b.Historiques.Any(h => h.ActionBy.Equals(currentLogin, StringComparison.OrdinalIgnoreCase))
-                             || b.StatutActuel.Equals("Approved", StringComparison.OrdinalIgnoreCase)
-                             || b.StatutActuel.Equals("PendingIdentification", StringComparison.OrdinalIgnoreCase));
+                visibleBEM = bemResultTask.Result.Items;
+                visibleBSM = bsmResultTask.Result.Items;
             }
-            else if (isApprover)
+            else if (isApprover || isIdentification)
             {
+                // Approbateurs : bons créés par moi + bons en attente à mon niveau d'approbation
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 5000 });
+                var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 5000 });
+                var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
+                var pendingBSMTask = BonSortieService.GetPendingApprovalsAsync();
+                await Task.WhenAll(myBEMTask, myBSMTask, pendingBEMTask, pendingBSMTask);
+
+                // BEM : mes bons + pending à mon niveau (dédupliqué)
                 var myBEMIds = new HashSet<int>();
-                var myBEM = bemResult.Items
-                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                var myBEM = myBEMTask.Result.Items.ToList();
                 foreach (var b in myBEM) myBEMIds.Add(b.Id);
-
-                var pendingBEM = await BonEntreeService.GetPendingApprovalsAsync();
-                foreach (var bon in pendingBEM)
+                foreach (var bon in pendingBEMTask.Result)
                 {
-                    if (!myBEMIds.Contains(bon.Id))
-                    {
+                    if (myBEMIds.Add(bon.Id))
                         myBEM.Add(bon);
-                        myBEMIds.Add(bon.Id);
-                    }
                 }
-
-                var allBEM = bemResult.Items
-                    .Where(b => !myBEMIds.Contains(b.Id) &&
-                                b.Historiques.Any(h => h.ActionBy.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)))
-                    .ToList();
-                foreach (var b in allBEM) myBEM.Add(b);
-
                 visibleBEM = myBEM;
 
+                // BSM : mes bons + pending à mon niveau (dédupliqué)
                 var myBSMIds = new HashSet<int>();
-                var myBSM = bsmResult.Items
-                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
-                                b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                var myBSM = myBSMTask.Result.Items.ToList();
                 foreach (var b in myBSM) myBSMIds.Add(b.Id);
-
-                var pendingBSM = await BonSortieService.GetPendingApprovalsAsync();
-                foreach (var bon in pendingBSM)
+                foreach (var bon in pendingBSMTask.Result)
                 {
-                    if (!myBSMIds.Contains(bon.Id))
-                    {
+                    if (myBSMIds.Add(bon.Id))
                         myBSM.Add(bon);
-                        myBSMIds.Add(bon.Id);
-                    }
                 }
-
-                var allBSM = bsmResult.Items
-                    .Where(b => !myBSMIds.Contains(b.Id) &&
-                                b.Historiques.Any(h => h.ActionBy.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)))
-                    .ToList();
-                foreach (var b in allBSM) myBSM.Add(b);
-
                 visibleBSM = myBSM;
             }
             else
             {
-                visibleBEM = bemResult.Items
-                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase));
+                // Demandeur simple : uniquement ses propres bons (server-side)
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 5000 });
+                var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 5000 });
+                await Task.WhenAll(myBEMTask, myBSMTask);
 
-                visibleBSM = bsmResult.Items
-                    .Where(b => b.NomDemandeur.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) ||
-                                b.NomDemandeur.Equals(currentName, StringComparison.OrdinalIgnoreCase) ||
-                                b.CreatedByLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase));
+                visibleBEM = myBEMTask.Result.Items;
+                visibleBSM = myBSMTask.Result.Items;
             }
 
             bemSummaryItems = visibleBEM.Select(bon =>
@@ -536,6 +584,39 @@
             })
             .OrderByDescending(x => x.DateDerniereAction)
             .ToList();
+
+            // === PRÊTS ===
+            try
+            {
+                var activeLoans = await BonSortieService.GetActiveLoansAsync();
+                var allPrets = activeLoans.ToList();
+                // Include returned loans from visible BSM
+                var returnedPrets = visibleBSM.OfType<PretEntity>().Where(p => p.EstRetourne);
+                var pretIds = new HashSet<int>(allPrets.Select(p => p.Id));
+                foreach (var rp in returnedPrets)
+                {
+                    if (pretIds.Add(rp.Id)) allPrets.Add(rp);
+                }
+
+                pretsSummaryItems = allPrets.Select(p => new PretSummary
+                {
+                    BonId = p.Id,
+                    NumeroReference = p.NumeroReference,
+                    NomDemandeur = p.NomDemandeur,
+                    NomDestinataire = p.NomDestinataire ?? "",
+                    DateCreation = p.DateCreation,
+                    DateRetourPrevue = p.DateRetourPrevue,
+                    DateRetourEffective = p.DateRetourEffective,
+                    EstRetourne = p.EstRetourne,
+                    NbMateriels = p.Materiels.Count,
+                    StatutActuel = p.StatutActuel,
+                    JoursRetard = p.JoursRetard
+                })
+                .OrderBy(p => p.EstRetourne)
+                .ThenBy(p => p.DateRetourPrevue)
+                .ToList();
+            }
+            catch { pretsSummaryItems = new(); }
         }
         catch (Exception ex)
         {
@@ -841,5 +922,132 @@
         public string Commentaire { get; set; } = "";
         public string? StatutAvant { get; set; }
         public string? StatutApres { get; set; }
+    }
+
+    // === PRÊTS: Model + Helpers ===
+
+    private class PretSummary
+    {
+        public int BonId { get; set; }
+        public string NumeroReference { get; set; } = "";
+        public string NomDemandeur { get; set; } = "";
+        public string NomDestinataire { get; set; } = "";
+        public DateTime DateCreation { get; set; }
+        public DateTime DateRetourPrevue { get; set; }
+        public DateTime? DateRetourEffective { get; set; }
+        public bool EstRetourne { get; set; }
+        public int NbMateriels { get; set; }
+        public string StatutActuel { get; set; } = "";
+        public int JoursRetard { get; set; }
+    }
+
+    private List<PretSummary> ApplyPretFilters(List<PretSummary> items)
+    {
+        var result = items.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.ToLowerInvariant();
+            result = result.Where(p =>
+                p.NumeroReference.ToLowerInvariant().Contains(search) ||
+                p.NomDemandeur.ToLowerInvariant().Contains(search) ||
+                p.NomDestinataire.ToLowerInvariant().Contains(search));
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedStatut))
+        {
+            if (CodeStatutToActuelMap.TryGetValue(selectedStatut, out var prefixes))
+                result = result.Where(p => prefixes.Any(pfx => p.StatutActuel.StartsWith(pfx, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (dateDebut.HasValue)
+            result = result.Where(p => p.DateCreation >= dateDebut.Value.Date);
+        if (dateFin.HasValue)
+            result = result.Where(p => p.DateCreation <= dateFin.Value.Date.AddDays(1));
+
+        return result.OrderBy(p => p.EstRetourne).ThenBy(p => p.DateRetourPrevue).ToList();
+    }
+
+    private static int GetJoursRestants(PretSummary pret) => (pret.DateRetourPrevue.Date - DateTime.Today).Days;
+
+    private static (string Couleur, string Icon, string Tooltip) GetIndicateurEcheance(PretSummary pret)
+    {
+        if (pret.EstRetourne)
+            return ("#059669", "check_circle", "Retourné");
+
+        var jours = GetJoursRestants(pret);
+        if (jours <= -7) return ("#721c24", "error", $"Retard critique: {-jours} jours");
+        if (jours < 0) return ("#A61B0C", "warning", $"En retard de {-jours} jour(s)");
+        if (jours == 0) return ("#F59E0B", "today", "Retour aujourd'hui");
+        if (jours <= 3) return ("#F59E0B", "schedule", $"Expire dans {jours} jour(s)");
+        if (jours <= 7) return ("#3B82F6", "event", $"Expire dans {jours} jours");
+        return ("#6c757d", "event_available", $"Expire dans {jours} jours");
+    }
+
+    private static (BadgeStyle Style, string Text) GetEcheanceBadge(PretSummary pret)
+    {
+        if (pret.EstRetourne) return (BadgeStyle.Success, "Retourné");
+        var jours = GetJoursRestants(pret);
+        if (jours < 0) return (BadgeStyle.Danger, $"Retard {-jours}j");
+        if (jours == 0) return (BadgeStyle.Warning, "Aujourd'hui");
+        if (jours == 1) return (BadgeStyle.Warning, "Demain");
+        if (jours <= 7) return (BadgeStyle.Info, $"{jours} jours");
+        return (BadgeStyle.Light, $"{jours} jours");
+    }
+
+    private static string GetDateRetourStyle(PretSummary pret)
+    {
+        if (pret.EstRetourne) return "";
+        var jours = GetJoursRestants(pret);
+        if (jours < 0) return "color: var(--kcc-accent); font-weight: bold;";
+        if (jours <= 3) return "color: var(--kcc-warning); font-weight: bold;";
+        return "";
+    }
+
+    private async Task EnregistrerRetourPret(PretSummary pret)
+    {
+        var result = await DialogService.OpenAsync<BonSortiePages.ReturnLoanDialog>("Enregistrer le Retour",
+            options: new DialogOptions { Width = "400px" });
+
+        if (result is BonSortiePages.ReturnLoanDialog.ReturnData returnData)
+        {
+            try
+            {
+                var request = new ReturnLoanRequest
+                {
+                    IdBon = pret.BonId,
+                    EtatRetour = returnData.EtatRetour,
+                    Commentaire = returnData.Commentaire
+                };
+
+                var response = await BonSortieService.ReturnLoanAsync(request);
+                if (response.Success)
+                {
+                    NotificationService.Notify(NotificationSeverity.Success, "Succès", "Retour enregistré");
+                    await LoadDataAsync();
+                }
+                else
+                {
+                    NotificationService.Notify(NotificationSeverity.Error, "Erreur", response.Message ?? "Erreur");
+                }
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+
+    private async Task DemanderExtensionPret(PretSummary pret)
+    {
+        var result = await DialogService.OpenAsync<BonSortiePages.PretExtension>("Demander une Extension",
+            new Dictionary<string, object> { { "PretId", pret.BonId }, { "CurrentDate", pret.DateRetourPrevue } },
+            new DialogOptions { Width = "450px" });
+
+        if (result == true)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Extension enregistrée");
+            await LoadDataAsync();
+        }
     }
 }

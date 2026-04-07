@@ -124,6 +124,11 @@ public interface IBonEntreeRepository
     Task<StockUpdateResult> DecrementMaterielStockAsync(IEnumerable<MaterielStockDecrement> materielsASortir, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Ré-incrémente la quantité disponible des matériels lors du retour d'un prêt.
+    /// </summary>
+    Task<StockUpdateResult> IncrementMaterielStockAsync(IEnumerable<MaterielStockDecrement> materielsARestituer, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Récupère tous les bons d'entrée disponibles pour sortie (approuvés, non expirés, avec quantité > 0).
     /// Permet un filtre optionnel par département hôte.
     /// </summary>

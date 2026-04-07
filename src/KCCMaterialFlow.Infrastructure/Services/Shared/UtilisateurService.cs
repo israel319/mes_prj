@@ -45,11 +45,18 @@ public class UtilisateurService : IUtilisateurService
             return cachedUser;
         }
 
+        // Construire les variantes de login (DOMAIN\user → aussi chercher "user")
+        var loginVariants = new List<string> { login.ToUpper() };
+        if (login.Contains('\\'))
+        {
+            loginVariants.Add(login.Split('\\').Last().ToUpper());
+        }
+
         await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var user = await context.Set<Utilisateur>()
             .AsNoTracking()
             .Include(u => u.RolePrincipal)
-            .FirstOrDefaultAsync(u => u.Login.ToUpper() == login.ToUpper() && u.EstActif, cancellationToken);
+            .FirstOrDefaultAsync(u => loginVariants.Contains(u.Login.ToUpper()) && u.EstActif, cancellationToken);
 
         if (user != null)
         {
@@ -225,7 +232,7 @@ public class UtilisateurService : IUtilisateurService
             existing.Departement = utilisateur.Departement;
             existing.Email = utilisateur.Email;
             existing.Telephone = utilisateur.Telephone;
-            existing.Id = utilisateur.Id;
+            existing.IdRole = utilisateur.IdRole;
             existing.EstActif = utilisateur.EstActif;
             existing.DateModification = DateTime.Now;
 
@@ -233,8 +240,8 @@ public class UtilisateurService : IUtilisateurService
             await context.SaveChangesAsync(cancellationToken);
 
             InvalidateCache();
-            _logger.LogInformation("Utilisateur {Login} mis à jour (IdRole: {IdRole}, Actif: {Actif})", 
-                utilisateur.Login, utilisateur.Id, utilisateur.EstActif);
+            _logger.LogInformation("Utilisateur {Login} mis à jour (IdRole: {IdRole}, Actif: {Actif})",
+                utilisateur.Login, utilisateur.IdRole, utilisateur.EstActif);
 
             return existing;
         }
@@ -276,5 +283,22 @@ public class UtilisateurService : IUtilisateurService
         _cache.Remove(CacheKeyAllActive);
         _cache.Remove("Utilisateurs_All");
         _logger.LogDebug("Cache des utilisateurs invalidé");
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteAsync(int utilisateurId, CancellationToken cancellationToken = default)
+    {
+        await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var user = await context.Set<Utilisateur>()
+            .FirstOrDefaultAsync(u => u.Id == utilisateurId, cancellationToken);
+
+        if (user != null)
+        {
+            context.Set<Utilisateur>().Remove(user);
+            await context.SaveChangesAsync(cancellationToken);
+            InvalidateCache();
+            _logger.LogInformation("Utilisateur {Id} supprimé", utilisateurId);
+        }
     }
 }

@@ -154,6 +154,8 @@ public class BonEntreeLockService : IBonEntreeLockService
                 NumeroContrat = bonEntree.NumeroContrat,
                 SiteManager = bonEntree.SiteManager,
                 HostDepartment = bonEntree.HostDepartment,
+                DepartementId = bonEntree.DepartementId,
+                RaisonEntreeId = bonEntree.RaisonEntreeId,
                 ReasonOnSite = bonEntree.ReasonOnSite,
                 Provenance = bonEntree.Provenance,
                 Destination = bonEntree.Destination,
@@ -204,6 +206,8 @@ public class BonEntreeLockService : IBonEntreeLockService
                 NumeroContrat = bonEntreeComplet.NumeroContrat,
                 SiteManager = bonEntreeComplet.SiteManager,
                 HostDepartment = bonEntreeComplet.HostDepartment,
+                DepartementId = bonEntreeComplet.DepartementId,
+                RaisonEntreeId = bonEntreeComplet.RaisonEntreeId,
                 ReasonOnSite = bonEntreeComplet.ReasonOnSite,
                 Provenance = bonEntreeComplet.Provenance,
                 Destination = bonEntreeComplet.Destination,
@@ -294,6 +298,35 @@ public class BonEntreeLockService : IBonEntreeLockService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erreur lors de la décrémentation du stock");
+            return StockUpdateResult.Fail($"Erreur: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Ré-incrémente la quantité disponible des matériels lors du retour d'un prêt.
+    /// </summary>
+    public async Task<StockUpdateResult> IncrementStockAsync(IEnumerable<MaterielStockDecrement> materielsARestituer, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var materielsList = materielsARestituer.ToList();
+            if (!materielsList.Any())
+                return StockUpdateResult.Ok();
+
+            _logger.LogInformation("Restauration du stock pour {Count} matériels (retour prêt)", materielsList.Count);
+
+            var result = await _repository.IncrementMaterielStockAsync(materielsList, cancellationToken);
+
+            if (result.Success)
+                _logger.LogInformation("Stock restauré avec succès pour {Count} matériels", materielsList.Count);
+            else
+                _logger.LogWarning("Échec de la restauration du stock: {Error}", result.ErrorMessage);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur lors de la restauration du stock");
             return StockUpdateResult.Fail($"Erreur: {ex.Message}");
         }
     }

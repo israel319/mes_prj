@@ -1,20 +1,39 @@
 @using KCCMaterialFlow.Host.Components.Layout
+@using Microsoft.AspNetCore.Components.Authorization
 
-<Router AppAssembly="typeof(Program).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Page non trouv�e</PageTitle>
-        <LayoutView Layout="typeof(MainLayout)">
-            <div class="rz-p-4 rz-text-align-center">
-                <h1>404 - Page non trouv�e</h1>
-                <p>La page que vous recherchez n'existe pas.</p>
-                <a href="/" class="rz-button rz-button-md rz-variant-filled rz-primary">
-                    Retour � l'accueil
-                </a>
-            </div>
-        </LayoutView>
-    </NotFound>
-</Router>
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
+                <NotAuthorized>
+                    <div style="padding: 3rem; text-align: center;">
+                        <RadzenIcon Icon="lock" Style="font-size: 3rem; color: var(--kcc-accent); margin-bottom: 1rem;" />
+                        <RadzenText TextStyle="TextStyle.H5" Style="margin-bottom: 0.5rem;">Accès non autorisé</RadzenText>
+                        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin-bottom: 1.5rem;">
+                            Vous n'avez pas les permissions nécessaires pour accéder à cette page.
+                        </RadzenText>
+                        <RadzenButton Text="Retour à l'accueil" Icon="home" ButtonStyle="ButtonStyle.Primary"
+                                      Click="@(() => Navigation.NavigateTo("/"))" />
+                    </div>
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Page non trouvée</PageTitle>
+            <LayoutView Layout="typeof(MainLayout)">
+                <div class="rz-p-4 rz-text-align-center">
+                    <h1>404 - Page non trouvée</h1>
+                    <p>La page que vous recherchez n'existe pas.</p>
+                    <a href="/" class="rz-button rz-button-md rz-variant-filled rz-primary">
+                        Retour à l'accueil
+                    </a>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+}

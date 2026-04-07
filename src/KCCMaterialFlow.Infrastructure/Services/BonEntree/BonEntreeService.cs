@@ -16,6 +16,7 @@ public class BonEntreeService : IBonEntreeService
     private readonly IQRCodeService _qrCodeService;
     private readonly IBarriereService _barriereService;
     private readonly INotificationRejetService _notificationRejetService;
+    private readonly IWorkflowConfigService _workflowConfigService;
     private readonly ILogger<BonEntreeService> _logger;
 
     private const int DefaultValidityDays = 7;
@@ -26,6 +27,7 @@ public class BonEntreeService : IBonEntreeService
         IQRCodeService qrCodeService,
         IBarriereService barriereService,
         INotificationRejetService notificationRejetService,
+        IWorkflowConfigService workflowConfigService,
         ILogger<BonEntreeService> logger)
     {
         _repository = repository;
@@ -33,6 +35,7 @@ public class BonEntreeService : IBonEntreeService
         _qrCodeService = qrCodeService;
         _barriereService = barriereService;
         _notificationRejetService = notificationRejetService;
+        _workflowConfigService = workflowConfigService;
         _logger = logger;
     }
 
@@ -73,6 +76,8 @@ public class BonEntreeService : IBonEntreeService
         }
 
         var bonEntree = createResult.Value;
+        bonEntree.DepartementId = request.DepartementId;
+        bonEntree.RaisonEntreeId = request.RaisonEntreeId;
 
         // Ajouter les matériels via la méthode Domain
         foreach (var mat in request.Materiels)
@@ -113,6 +118,8 @@ public class BonEntreeService : IBonEntreeService
         bonEntree.EmailContractant = request.EmailContractant;
         bonEntree.SiteManager = request.SiteManager;
         bonEntree.HostDepartment = request.HostDepartment;
+        bonEntree.DepartementId = request.DepartementId;
+        bonEntree.RaisonEntreeId = request.RaisonEntreeId;
         bonEntree.ReasonOnSite = request.ReasonOnSite;
         bonEntree.NomEscorteur = request.NomEscorteur;
         bonEntree.FonctionEscorteur = request.FonctionEscorteur;
@@ -650,17 +657,25 @@ public class BonEntreeService : IBonEntreeService
 
     private async Task CreateApprovalStepsAsync(Domain.Entities.BonEntree bon, CancellationToken cancellationToken)
     {
-        // Chaîne d'approbation standard BEM: Superviseur → GM → OPJ → Identification
-        var steps = new List<Approbation>
-        {
-            new(bon.Id, 1, "Superviseur"),
-            new(bon.Id, 2, "General Manager"),
-            new(bon.Id, 3, "OPJ"),
-            new(bon.Id, 4, "Identification")
-        };
+        // Chaîne d'approbation BEM depuis la BD (via WorkflowConfigService)
+        var etapes = await _workflowConfigService.GetResolvedWorkflowEtapesAsync("BEM", null);
 
-        foreach (var step in steps)
+        if (etapes == null || !etapes.Any())
         {
+            // Fallback de sécurité si aucune config en BD
+            _logger.LogWarning("Aucune config workflow BEM trouvée en BD, utilisation du fallback");
+            etapes = new List<WorkflowEtapeConfig>
+            {
+                new() { OrdreEtape = 1, RoleCode = "SUPERVISEUR", NomEtape = "Superviseur" },
+                new() { OrdreEtape = 2, RoleCode = "GM", NomEtape = "General Manager" },
+                new() { OrdreEtape = 3, RoleCode = "OPJ", NomEtape = "OPJ" },
+                new() { OrdreEtape = 4, RoleCode = "IDENTIFICATION", NomEtape = "Identification" }
+            };
+        }
+
+        foreach (var etape in etapes.OrderBy(e => e.OrdreEtape))
+        {
+            var step = new Approbation(bon.Id, etape.OrdreEtape, etape.NomEtape);
             await _repository.UpsertApprobationAsync(step, cancellationToken);
         }
     }

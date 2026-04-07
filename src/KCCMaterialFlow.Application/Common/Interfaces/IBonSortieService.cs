@@ -462,6 +462,7 @@ public class ReturnLoanRequest
     public int IdBon { get; set; }
     public string? EtatRetour { get; set; }
     public string? ReceptionnePar { get; set; }
+    public string? Commentaire { get; set; }
 }
 
 /// <summary>

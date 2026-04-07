@@ -97,6 +97,23 @@
                 </RadzenStack>
             </RadzenStack>
         </RadzenCard>
+
+        @* Prêts actifs *@
+        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: rgba(139,92,246,0.08);" @onclick="@(() => NavigateTo("/liste-bons/prets"))">
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
+                <RadzenStack Gap="0.25rem">
+                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Prêts</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: #8B5CF6; margin: 0;">@stats.PretsActifs</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">
+                        @(stats.PretsEnRetard > 0 ? $"{stats.PretsEnRetard} en retard" : "Aucun retard")
+                    </RadzenText>
+                </RadzenStack>
+                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
+                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: #8B5CF6;">
+                    <RadzenIcon Icon="swap_horiz" />
+                </RadzenStack>
+            </RadzenStack>
+        </RadzenCard>
     </RadzenStack>
 
     @* === ACTIONS RAPIDES === *@
@@ -217,6 +234,8 @@
         public int Approuves { get; set; }
         public int Rejetes { get; set; }
         public int RejetsNonLus { get; set; }
+        public int PretsActifs { get; set; }
+        public int PretsEnRetard { get; set; }
     }
     
     private class BonItem
@@ -284,8 +303,10 @@
                 var pendingBSMTask = BonSortieService.GetPendingApprovalsAsync();
                 var allRejetsTask = NotificationRejetService.GetNotificationsAsync();
                 var rejetsNonLusTask = NotificationRejetService.CompterNotificationsNonLuesAsync();
+                var activeLoansTask = BonSortieService.GetActiveLoansAsync();
+                var overdueLoansTask = BonSortieService.GetOverdueLoansAsync();
 
-                await Task.WhenAll(bemStatsTask, bsmStatsTask, pendingBEMTask, pendingBSMTask, allRejetsTask, rejetsNonLusTask);
+                await Task.WhenAll(bemStatsTask, bsmStatsTask, pendingBEMTask, pendingBSMTask, allRejetsTask, rejetsNonLusTask, activeLoansTask, overdueLoansTask);
 
                 var bemStats = bemStatsTask.Result;
                 var bsmStats = bsmStatsTask.Result;
@@ -297,19 +318,25 @@
                     EnAttente = pendingBEMTask.Result.Count + pendingBSMTask.Result.Count,
                     Approuves = bemStats.BonsApprouves + bsmStats.BonsApprouves,
                     Rejetes = allRejetsTask.Result.Count(),
-                    RejetsNonLus = rejetsNonLusTask.Result
+                    RejetsNonLus = rejetsNonLusTask.Result,
+                    PretsActifs = activeLoansTask.Result.Count,
+                    PretsEnRetard = overdueLoansTask.Result.Count
                 };
             }
             else if (isApprover)
             {
                 // Approbateurs : bons propres (server-side) + pending approvals en parallèle
-                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentLogin, Take = 100 });
+                // BEM: NomDemandeur stores display name → use currentName
+                // BSM: filter checks both NomDemandeur and CreatedByLogin → use currentLogin
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 100 });
                 var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 100 });
                 var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
                 var pendingBSMTask = BonSortieService.GetPendingApprovalsAsync();
                 var allRejetsTask = NotificationRejetService.GetNotificationsAsync();
+                var activeLoansTask = BonSortieService.GetActiveLoansAsync();
+                var overdueLoansTask = BonSortieService.GetOverdueLoansAsync();
 
-                await Task.WhenAll(myBEMTask, myBSMTask, pendingBEMTask, pendingBSMTask, allRejetsTask);
+                await Task.WhenAll(myBEMTask, myBSMTask, pendingBEMTask, pendingBSMTask, allRejetsTask, activeLoansTask, overdueLoansTask);
 
                 var myBEM = myBEMTask.Result;
                 var myBSM = myBSMTask.Result;
@@ -329,14 +356,18 @@
                 // Tous les bons visibles pour compter les approuvés
                 var allVisibleBEM = userBEM.Concat(pendingBEM.Where(b => !userBEM.Any(u => u.Id == b.Id))).ToList();
                 var allVisibleBSM = userBSM.Concat(pendingBSM.Where(b => !userBSM.Any(u => u.Id == b.Id))).ToList();
-                
-                // Charger les rejets liés à l'utilisateur
+
+                // Filtrer les rejets liés à l'utilisateur
                 var allRejets = allRejetsTask.Result;
-                var userRejets = allRejets.Where(r => 
+                var userRejets = allRejets.Where(r =>
                     (r.DemandeurNom?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true) ||
                     (r.DemandeurNom?.Equals(currentName, StringComparison.OrdinalIgnoreCase) == true) ||
                     (r.ApprobateurLogin?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true)).ToList();
-                
+
+                // Filtrer les prêts : uniquement ceux liés aux BSM visibles (propres + pending)
+                var userActiveLoans = activeLoansTask.Result.Where(p => allVisibleBSMIds.Contains(p.Id)).ToList();
+                var userOverdueLoans = overdueLoansTask.Result.Where(p => allVisibleBSMIds.Contains(p.Id)).ToList();
+
                 stats = new DashboardStats
                 {
                     TotalBEM = allVisibleBEMIds.Count,
@@ -345,27 +376,38 @@
                     Approuves = allVisibleBEM.Count(b => b.StatutActuel.Equals("Approved", StringComparison.OrdinalIgnoreCase)) +
                                 allVisibleBSM.Count(b => b.StatutActuel.Equals("Approved", StringComparison.OrdinalIgnoreCase)),
                     Rejetes = userRejets.Count,
-                    RejetsNonLus = userRejets.Count(r => !r.EstLue)
+                    RejetsNonLus = userRejets.Count(r => !r.EstLue),
+                    PretsActifs = userActiveLoans.Count,
+                    PretsEnRetard = userOverdueLoans.Count
                 };
             }
             else
             {
                 // Utilisateurs normaux : filtrage server-side par demandeur
-                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentLogin, Take = 100 });
+                // BEM: NomDemandeur stores display name → use currentName
+                // BSM: filter checks both NomDemandeur and CreatedByLogin → use currentLogin
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 100 });
                 var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 100 });
                 var allRejetsTask = NotificationRejetService.GetNotificationsAsync();
+                var activeLoansTask = BonSortieService.GetActiveLoansAsync();
+                var overdueLoansTask = BonSortieService.GetOverdueLoansAsync();
 
-                await Task.WhenAll(myBEMTask, myBSMTask, allRejetsTask);
+                await Task.WhenAll(myBEMTask, myBSMTask, allRejetsTask, activeLoansTask, overdueLoansTask);
 
                 var userBEM = myBEMTask.Result.Items.ToList();
                 var userBSM = myBSMTask.Result.Items.ToList();
 
-                // Charger les rejets liés à l'utilisateur (comme demandeur)
+                // Filtrer les rejets : uniquement ceux où l'utilisateur est le demandeur
                 var allRejets = allRejetsTask.Result;
-                var userRejets = allRejets.Where(r => 
+                var userRejets = allRejets.Where(r =>
                     (r.DemandeurNom?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true) ||
                     (r.DemandeurNom?.Equals(currentName, StringComparison.OrdinalIgnoreCase) == true)).ToList();
-                
+
+                // Filtrer les prêts : uniquement ceux liés aux BSM de l'utilisateur
+                var userBSMIds = new HashSet<int>(userBSM.Select(b => b.Id));
+                var userActiveLoans = activeLoansTask.Result.Where(p => userBSMIds.Contains(p.Id)).ToList();
+                var userOverdueLoans = overdueLoansTask.Result.Where(p => userBSMIds.Contains(p.Id)).ToList();
+
                 stats = new DashboardStats
                 {
                     TotalBEM = userBEM.Count,
@@ -375,7 +417,9 @@
                     Approuves = userBEM.Count(b => b.StatutActuel.Equals("Approved", StringComparison.OrdinalIgnoreCase)) +
                                 userBSM.Count(b => b.StatutActuel.Equals("Approved", StringComparison.OrdinalIgnoreCase)),
                     Rejetes = userRejets.Count,
-                    RejetsNonLus = userRejets.Count(r => !r.EstLue)
+                    RejetsNonLus = userRejets.Count(r => !r.EstLue),
+                    PretsActifs = userActiveLoans.Count,
+                    PretsEnRetard = userOverdueLoans.Count
                 };
             }
         }
@@ -414,10 +458,55 @@
                     Url = $"/bon-sortie/{b.Id}"
                 }).ToList();
             }
+            else if (isApprover)
+            {
+                // Approbateurs : bons propres + pending à mon niveau, triés par date, top 5
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 20 });
+                var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 20 });
+                var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
+                var pendingBSMTask = BonSortieService.GetPendingApprovalsAsync();
+                await Task.WhenAll(myBEMTask, myBSMTask, pendingBEMTask, pendingBSMTask);
+
+                var bemIds = new HashSet<int>();
+                var allBEM = new List<BonEntreeEntity>();
+                foreach (var b in myBEMTask.Result.Items) { if (bemIds.Add(b.Id)) allBEM.Add(b); }
+                foreach (var b in pendingBEMTask.Result) { if (bemIds.Add(b.Id)) allBEM.Add(b); }
+
+                entreesRecentes = allBEM
+                    .OrderByDescending(b => b.DateCreation)
+                    .Take(5)
+                    .Select(b => new BonItem
+                    {
+                        Reference = b.NumeroReference,
+                        NomEntreprise = b.NomCompagnie ?? "N/A",
+                        StatutCode = MapStatutCode(b.StatutActuel),
+                        StatutLibelle = GetStatutDisplay(b.StatutActuel),
+                        Url = $"/bon-entree/{b.Id}"
+                    }).ToList();
+
+                var bsmIds = new HashSet<int>();
+                var allBSM = new List<BonSortieEntity>();
+                foreach (var b in myBSMTask.Result.Items) { if (bsmIds.Add(b.Id)) allBSM.Add(b); }
+                foreach (var b in pendingBSMTask.Result) { if (bsmIds.Add(b.Id)) allBSM.Add(b); }
+
+                sortiesRecentes = allBSM
+                    .OrderByDescending(b => b.DateCreation)
+                    .Take(5)
+                    .Select(b => new BonItem
+                    {
+                        Reference = b.NumeroReference,
+                        NomEntreprise = GetBSMType(b),
+                        StatutCode = MapStatutCode(b.StatutActuel),
+                        StatutLibelle = GetStatutDisplay(b.StatutActuel),
+                        Url = $"/bon-sortie/{b.Id}"
+                    }).ToList();
+            }
             else
             {
-                // Utilisateurs normaux : filtrage server-side, seulement 5 résultats
-                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentLogin, Take = 5 });
+                // Utilisateurs normaux : uniquement leurs propres bons
+                // BEM: NomDemandeur stores display name → use currentName
+                // BSM: filter checks both NomDemandeur and CreatedByLogin → use currentLogin
+                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 5 });
                 var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 5 });
                 await Task.WhenAll(myBEMTask, myBSMTask);
 

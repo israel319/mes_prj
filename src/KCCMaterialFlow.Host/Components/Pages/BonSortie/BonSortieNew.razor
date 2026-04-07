@@ -1,4 +1,4 @@
-﻿@page "/bon-sortie/creer"
+@page "/bon-sortie/creer"
 @page "/bon-sortie/nouveau"
 @attribute [Authorize]
 @using KCCMaterialFlow.Domain.Entities
@@ -7,6 +7,7 @@
 @inject ICurrentUserService CurrentUserService
 @inject IReferenceDataService ReferenceDataService
 @inject ICategorieSortieService CategorieSortieService
+@inject IRaisonEntreeService RaisonEntreeService
 @inject IBonEntreeLockService BonEntreeLockService
 @inject NavigationManager Navigation
 @inject NotificationService NotificationService
@@ -17,574 +18,499 @@
 
 @if (isLoading)
 {
-    <div style="text-align: center; padding: 2rem;">
+    <div style="text-align: center; padding: 3rem;">
         <RadzenProgressBar ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
     </div>
 }
 else
 {
-<RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
-    @* ===== Formulaire (colonne principale) ===== *@
-    <div style="flex: 1; min-width: 0;">
+<div class="bon-form-layout">
 
-        @* ===== EN-TÊTE ===== *@
-        <div class="kcc-form-header">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <div style="width: 48px; height: 48px; background: rgba(0, 177, 147, 0.1); display: flex; align-items: center; justify-content: center; color: #00B193; font-weight: 700; font-size: 0.75rem;">KCC</div>
-                <span style="font-size: 0.85rem; color: #6b7280;">KCC Material Flow</span>
-            </div>
-            <div style="text-align: center;">
-                <h1 style="margin: 0; font-size: 1rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--kcc-text);">Bon de Sortie de Matériel</h1>
-                <p style="margin: 0.15rem 0 0; font-size: 0.7rem; color: #6b7280;">PROPERTY REMOVAL PERMIT</p>
-            </div>
-            <div style="text-align: right;">
-                <p style="margin: 0; font-size: 0.7rem; color: #6b7280;">Expire date: <strong style="color: var(--kcc-text);">@DateTime.Today.AddMonths(6).ToString("dd/MM/yyyy")</strong></p>
-                <p style="margin: 0.2rem 0 0; font-size: 0.7rem; color: #6b7280;">No: <em>@(generatedNumero ?? "(auto)")</em></p>
-            </div>
+<div class="bon-form">
+
+    @* ── Header ── *@
+    <div class="bon-form__header">
+        <div class="bon-form__header-logo">
+            <div class="bon-form__header-icon">KCC</div>
+            <span class="bon-form__header-brand">KCC Material Flow</span>
         </div>
+        <div class="bon-form__header-title">
+            <h1>Bon de Sortie de Matériel</h1>
+            <p>Property Removal Permit</p>
+        </div>
+        <div class="bon-form__header-meta">
+            <p style="margin: 0;">Expire : <strong>@DateTime.Today.AddMonths(6).ToString("dd/MM/yyyy")</strong></p>
+            <p style="margin: 0.2rem 0 0;">No : <em>@(generatedNumero ?? "(auto)")</em></p>
+        </div>
+    </div>
+    <div class="bon-form__divider"></div>
 
-        <div style="width: 100%; height: 2px; background: linear-gradient(to right, #00B193, rgba(0, 177, 147, 0.3), transparent); margin-bottom: 1.5rem;"></div>
+    @* ── Informations du demandeur ── *@
+    <section class="bon-form__section">
+        <h2 class="bon-form__section-title">Informations du demandeur</h2>
+        <div class="bon-form__section-line"></div>
+        <RadzenRow Gap="1.25rem">
+            <RadzenColumn Size="4">
+                <label class="bon-form__label">Name / Nom</label>
+                <RadzenTextBox @bind-Value="model.NomDemandeur" Placeholder="Nom complet" Style="width: 100%;" Density="Density.Compact" />
+            </RadzenColumn>
+            <RadzenColumn Size="4">
+                <label class="bon-form__label">Function / Fonction</label>
+                <RadzenTextBox @bind-Value="model.FonctionDemandeur" Placeholder="Fonction" Style="width: 100%;" Density="Density.Compact" />
+            </RadzenColumn>
+            <RadzenColumn Size="4">
+                <label class="bon-form__label">Department / Département</label>
+                <RadzenTextBox @bind-Value="model.DepartementDemandeur" Placeholder="Département" Style="width: 100%;" Density="Density.Compact" />
+            </RadzenColumn>
+        </RadzenRow>
+    </section>
 
-        @* ===== INFORMATIONS DU DEMANDEUR ===== *@
-        <RadzenCard class="kcc-form-section">
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.75rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Informations du Demandeur</RadzenText>
-                <RadzenRow Gap="1.25rem">
-                    <RadzenColumn Size="4">
-                        <RadzenLabel Text="Name / Nom" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; display: block;" />
-                        <RadzenTextBox @bind-Value="model.NomDemandeur" Placeholder="Nom du demandeur" Style="width: 100%;" Density="Density.Compact" />
-                    </RadzenColumn>
-                    <RadzenColumn Size="4">
-                        <RadzenLabel Text="Function / Fonction" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; display: block;" />
-                        <RadzenTextBox @bind-Value="model.FonctionDemandeur" Placeholder="Fonction" Style="width: 100%;" Density="Density.Compact" />
-                    </RadzenColumn>
-                    <RadzenColumn Size="4">
-                        <RadzenLabel Text="Department / Département" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; display: block;" />
-                        <RadzenTextBox @bind-Value="model.DepartementDemandeur" Placeholder="Département" Style="width: 100%;" Density="Density.Compact" />
-                    </RadzenColumn>
-                </RadzenRow>
-        </RadzenCard>
+    @* ── BEM Source (EXTERNE depuis un BEM) ── *@
+    @if (fromBemLink && selectedBemDetails != null)
+    {
+    <section class="bon-form__section">
+        <h2 class="bon-form__section-title">Bon d'Entrée (BEM) source - EXTERNE</h2>
+        <div class="bon-form__section-line"></div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: rgba(59,130,246,0.06); border-left: 3px solid var(--rz-info);">
+            <RadzenIcon Icon="link" Style="color: var(--rz-info);" />
+            <span style="flex: 1; font-size: 0.8rem;">
+                <strong>@selectedBemDetails.NumeroReference</strong> — @selectedBemDetails.NomCompagnie (@selectedBemDetails.HostDepartment)
+            </span>
+            <RadzenBadge Text="Lié" BadgeStyle="BadgeStyle.Info" />
+        </div>
+    </section>
+    }
+    else
+    {
+    @* ── Motif (INTERNE) ── *@
+    <section class="bon-form__section">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="display: flex; gap: 0.25rem;">
+                <span style="padding: 0.25rem 0.75rem; font-size: 0.68rem; font-weight: 700; background: #00B193; color: #fff;">INTERNE</span>
+            </div>
+            <span class="bon-form__section-title" style="margin: 0;">Motif</span>
+        </div>
+        <div class="bon-form__section-line"></div>
+        <RadzenDropDown TValue="string" @bind-Value="selectedRaisonCode" Data="@availableRaisons"
+                        TextProperty="Nom" ValueProperty="Code"
+                        Placeholder="-- Sélectionnez le motif --" Style="width: 100%;" Density="Density.Compact"
+                        Change="@OnRaisonDropdownChanged" />
+        @if (selectedRaisonCode == "AUTRE")
+        {
+            <RadzenTextBox @bind-Value="autreMotifTexte" Placeholder="Précisez le motif..." Style="width: 100%; margin-top: 0.5rem;" />
+        }
+        @if (selectedRaisonCode == "PRET")
+        {
+            <div style="margin-top: 0.75rem;">
+                <label class="bon-form__label">Date de retour prévue <span class="required-star">*</span></label>
+                <RadzenDatePicker @bind-Value="@pretDateRetourPrevue" DateFormat="dd/MM/yyyy" Min="@DateTime.Today.AddDays(1)"
+                                  Placeholder="Sélectionner la date de retour" Style="width: 100%;" Density="Density.Compact" />
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(selectedRaisonCode))
+        {
+            <RadzenTextBox @bind-Value="commentaireMotif" Placeholder="Commentaire optionnel (affiché entre parenthèses à l'impression)" Style="width: 100%; margin-top: 0.5rem; font-size: 0.78rem;" />
+        }
+    </section>
+    }
 
-        @* ===== SÉLECTION BEM (UNIQUEMENT POUR LES BONS EXTERNES - DEPUIS UN BEM) ===== *@
+    @* ── Provenance / Destination ── *@
+    <section class="bon-form__section">
+        <h2 class="bon-form__section-title">Provenance / Destination</h2>
+        <div class="bon-form__section-line"></div>
+        <RadzenRow Gap="1.25rem">
+            <RadzenColumn Size="6">
+                <label class="bon-form__label">From (Provenance)</label>
+                <RadzenDropDown TValue="int?" @bind-Value="siteFromId" Data="@sites" TextProperty="Nom" ValueProperty="Id"
+                                Placeholder="-- Sélectionner la provenance --" Style="width: 100%;" Density="Density.Compact"
+                                Disabled="@destinationFromBem" Change="@OnSiteFromChanged" />
+            </RadzenColumn>
+            <RadzenColumn Size="6">
+                <label class="bon-form__label">To (Destination)</label>
+                <RadzenDropDown TValue="int?" @bind-Value="siteToId" Data="@SitesExcludingFrom" TextProperty="Nom" ValueProperty="Id"
+                                Placeholder="-- Sélectionner la destination --" Style="width: 100%;" Density="Density.Compact" />
+            </RadzenColumn>
+        </RadzenRow>
+        @if (destinationFromBem)
+        {
+            <p style="font-size: 0.7rem; color: #6b7280; margin: 0.5rem 0 0; font-style: italic;">
+                <RadzenIcon Icon="info" Style="font-size: 0.75rem; vertical-align: middle;" /> La provenance est définie par le BEM source.
+            </p>
+        }
+    </section>
+
+    @* ── Matériels ── *@
+    <section class="bon-form__section">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h2 class="bon-form__section-title" style="margin: 0;">Matériels</h2>
+            @if (fromBemLink && selectedBemDetails != null)
+            {
+                <RadzenButton Text="@($"Modifier ({selectedMateriels.Count})")" Icon="edit" ButtonStyle="ButtonStyle.Primary"
+                              Variant="Variant.Flat" Size="ButtonSize.ExtraSmall" Click="@OpenMaterielModal"
+                              Style="font-size: 0.68rem; gap: 0.2rem;" />
+            }
+        </div>
+        <div class="bon-form__section-line"></div>
         @if (fromBemLink && selectedBemDetails != null)
         {
-        <RadzenCard class="kcc-form-section">
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.75rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Bon d'Entrée (BEM) source - EXTERNE</RadzenText>
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="padding: 0.5rem; background: var(--rz-info-lighter); border-radius: 4px; border: 1px solid var(--rz-info);">
-                <RadzenIcon Icon="link" Style="color: var(--rz-info);" />
-                <RadzenText TextStyle="TextStyle.Body2" Style="flex: 1;">
-                    <strong>@selectedBemDetails.NumeroReference</strong> — @selectedBemDetails.NomCompagnie (@selectedBemDetails.HostDepartment)
-                </RadzenText>
-                <RadzenBadge Text="Lié" BadgeStyle="BadgeStyle.Info" />
-            </RadzenStack>
-        </RadzenCard>
+            @* Mode EXTERNE (depuis BEM) *@
+            <RadzenDataGrid TItem="MaterielSelectable" Data="@selectedMateriels" Density="Density.Compact" Style="font-size: 0.8rem;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Qté" Width="15%" TextAlign="TextAlign.Center">
+                        <Template Context="mat">
+                            <RadzenNumeric @bind-Value="mat.QuantiteASortir" Min="1" Max="mat.QuantiteDisponible" Style="width: 55px; font-size: 0.8rem; text-align: center; margin: 0 auto;" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Code / N° Série" Width="25%">
+                        <Template Context="mat">
+                            <code style="font-size: 0.75rem;">@mat.CodeProduitSerial</code>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Description" Width="60%">
+                        <Template Context="mat">
+                            <span style="font-size: 0.8rem; font-weight: 500;">@mat.Designation</span>
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+                <EmptyTemplate>
+                    <p style="text-align: center; padding: 1.5rem; color: #6b7280;">Sélectionnez des matériels depuis le BEM source</p>
+                </EmptyTemplate>
+            </RadzenDataGrid>
         }
         else
         {
-        @* ===== TYPE INTERNE (CRÉATION DIRECTE) ===== *@
-        <RadzenCard class="kcc-form-section">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="margin-bottom: 0;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                    <RadzenBadge Text="INTERNE" BadgeStyle="BadgeStyle.Info" Style="font-size: 0.65rem;" />
-                    <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.75rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Motif</RadzenText>
-                </RadzenStack>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1.5rem">
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.3rem" Style="cursor: pointer;" @onclick="@(() => SelectInterneMotif("INFO"))">
-                        <RadzenRadioButtonList TValue="string" Value="@motif.SelectedInterneCode" Visible="false" />
-                        <div style="width: 16px; height: 16px; border: 2px solid @(motif.SelectedInterneCode == "INFO" ? "var(--kcc-primary)" : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                            @if (motif.SelectedInterneCode == "INFO") { <div style="width: 8px; height: 8px; background: var(--kcc-primary);"></div> }
-                        </div>
-                        <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.Span" Style="font-size: 0.7rem; font-weight: 500;">Informatique</RadzenText>
-                    </RadzenStack>
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.3rem" Style="cursor: pointer;" @onclick="@(() => SelectInterneMotif("CIRC"))">
-                        <div style="width: 16px; height: 16px; border: 2px solid @(motif.SelectedInterneCode == "CIRC" ? "var(--kcc-primary)" : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                            @if (motif.SelectedInterneCode == "CIRC") { <div style="width: 8px; height: 8px; background: var(--kcc-primary);"></div> }
-                        </div>
-                        <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.Span" Style="font-size: 0.7rem; font-weight: 500;">Circulaire</RadzenText>
-                    </RadzenStack>
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.3rem" Style="cursor: pointer;" @onclick="@(() => SelectInterneMotif("PRET"))">
-                        <div style="width: 16px; height: 16px; border: 2px solid @(motif.SelectedInterneCode == "PRET" ? "var(--kcc-primary)" : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                            @if (motif.SelectedInterneCode == "PRET") { <div style="width: 8px; height: 8px; background: var(--kcc-primary);"></div> }
-                        </div>
-                        <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.Span" Style="font-size: 0.7rem; font-weight: 500;">Prêt</RadzenText>
-                    </RadzenStack>
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.3rem" Style="cursor: pointer;" @onclick="@(() => SelectInterneMotif("AUTRE"))">
-                        <div style="width: 16px; height: 16px; border: 2px solid @(motif.SelectedInterneCode == "AUTRE" ? "var(--kcc-primary)" : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                            @if (motif.SelectedInterneCode == "AUTRE") { <div style="width: 8px; height: 8px; background: var(--kcc-primary);"></div> }
-                        </div>
-                        <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.Span" Style="font-size: 0.7rem; font-weight: 500;">Autre</RadzenText>
-                    </RadzenStack>
-                </RadzenStack>
-            </RadzenStack>
-            @if (motif.SelectedInterneCode == "AUTRE")
-            {
-                <RadzenTextBox @bind-Value="motif.AutreMotifTexte" Placeholder="Précisez le motif..." Style="width: 100%; margin-top: 0.5rem;" />
-            }
-        </RadzenCard>
+            @* Mode INTERNE - Grille éditable *@
+            <RadzenDataGrid TItem="MaterielSelectable" Data="@selectedMateriels" Density="Density.Compact" Style="font-size: 0.8rem;">
+                <Columns>
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Code produit / N° Serial" Width="25%">
+                        <Template Context="mat">
+                            <RadzenTextBox @bind-Value="mat.CodeProduitSerial" Placeholder="Code/Serial" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.8rem;" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Désignation" Width="45%">
+                        <Template Context="mat">
+                            <RadzenTextBox @bind-Value="mat.Designation" Placeholder="Description du matériel" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.8rem;" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Quantité" Width="15%" TextAlign="TextAlign.Center">
+                        <Template Context="mat">
+                            <RadzenNumeric @bind-Value="mat.QuantiteASortir" Min="1" Style="width: 100%; border: none; box-shadow: none; font-size: 0.8rem; text-align: center;" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Width="15%" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                        <Template Context="mat">
+                            <RadzenButton Icon="delete_outline" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.ExtraSmall"
+                                          Click="@(() => RemoveMateriel(mat))" Disabled="@(selectedMateriels.Count <= 1)" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+                <EmptyTemplate>
+                    <p style="text-align: center; padding: 1rem; color: #6b7280;">Ajoutez des matériels ci-dessous</p>
+                </EmptyTemplate>
+            </RadzenDataGrid>
+            <div style="margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.75rem; color: #6b7280;">Total : <strong style="color: #1a1a1a;">@selectedMateriels.Sum(m => m.QuantiteASortir)</strong> article@(selectedMateriels.Sum(m => m.QuantiteASortir) > 1 ? "s" : "")</span>
+                <button type="button" @onclick="AddEmptyMateriel" style="background: none; border: none; cursor: pointer; font-size: 0.75rem; font-weight: 500; color: #6b7280; display: flex; align-items: center; gap: 0.25rem;">
+                    <RadzenIcon Icon="add" Style="font-size: 0.85rem;" /> Ajouter
+                </button>
+            </div>
         }
+    </section>
 
-        @* ===== PROVENANCE / DESTINATION ===== *@
-        <RadzenCard class="kcc-form-section">
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.75rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Provenance / Destination</RadzenText>
-            <RadzenRow Gap="1.25rem">
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="FROM (Provenance)" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; display: block;" />
-                    <RadzenDropDown TValue="int?" @bind-Value="siteFromId" Data="@sites" TextProperty="Nom" ValueProperty="Id"
-                                    Placeholder="-- Sélectionner la provenance --" Style="width: 100%;" Density="Density.Compact"
-                                    Disabled="@destinationFromBem" Change="@OnSiteFromChanged" />
-                </RadzenColumn>
-                <RadzenColumn Size="6">
-                    <RadzenLabel Text="TO (Destination)" Style="font-size: 0.6rem; font-weight: 500; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; display: block;" />
-                    <RadzenDropDown TValue="int?" @bind-Value="siteToId" Data="@SitesExcludingFrom" TextProperty="Nom" ValueProperty="Id"
-                                    Placeholder="-- Sélectionner la destination --" Style="width: 100%;" Density="Density.Compact" />
-                </RadzenColumn>
-            </RadzenRow>
-            @if (destinationFromBem)
-            {
-                <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.55rem; color: var(--kcc-text-muted); margin-top: 0.35rem; font-style: italic;">
-                    <RadzenIcon Icon="info" Style="font-size: 0.65rem; vertical-align: middle;" /> La provenance est définie par le BEM source.
-                </RadzenText>
-            }
-        </RadzenCard>
-
-        @* ===== MATÉRIELS ===== *@
-        <RadzenCard class="kcc-form-section">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">
-                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.75rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Matériels</RadzenText>
-                @if (fromBemLink && selectedBemDetails != null)
-                {
-                    <RadzenButton Text="@($"Modifier ({selectedMateriels.Count})")" Icon="edit" ButtonStyle="ButtonStyle.Primary"
-                                  Variant="Variant.Flat" Size="ButtonSize.ExtraSmall" Click="@OpenMaterielModal"
-                                  Style="font-size: 0.6rem; gap: 0.2rem;" />
-                }
-            </RadzenStack>
-            @if (fromBemLink && selectedBemDetails != null)
-            {
-                @* ===== MODE EXTERNE (DEPUIS BEM) - Grille en lecture avec quantités modifiables ===== *@
-                <RadzenDataGrid TItem="MaterielSelectable" Data="@selectedMateriels" Density="Density.Compact" Style="font-size: 0.75rem;">
-                    <Columns>
-                        <RadzenDataGridColumn TItem="MaterielSelectable" Title="QTY" Width="15%" TextAlign="TextAlign.Center">
-                            <Template Context="mat">
-                                <RadzenNumeric @bind-Value="mat.QuantiteASortir" Min="1" Max="mat.QuantiteDisponible" Style="width: 55px; font-size: 0.75rem; text-align: center; margin: 0 auto;" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MaterielSelectable" Title="CODE / N° SÉRIE" Width="25%">
-                            <Template Context="mat">
-                                <code style="font-size: 0.7rem;">@mat.CodeProduitSerial</code>
-                            </Template>
-                        </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MaterielSelectable" Title="DESCRIPTION" Width="60%">
-                            <Template Context="mat">
-                                <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 500;">@mat.Designation</RadzenText>
-                            </Template>
-                        </RadzenDataGridColumn>
-                    </Columns>
-                    <EmptyTemplate>
-                        <RadzenText TextStyle="TextStyle.Body2" Style="text-align: center; padding: 1.5rem; color: var(--kcc-text-muted);">Sélectionnez des matériels depuis le BEM source</RadzenText>
-                    </EmptyTemplate>
-                </RadzenDataGrid>
-            }
-            else
-            {
-                @* ===== MODE INTERNE - Grille éditable style BonEntreeNew ===== *@
-                <RadzenDataGrid TItem="MaterielSelectable" Data="@selectedMateriels" Density="Density.Compact" Style="font-size: 0.75rem;">
-                    <Columns>
-                        <RadzenDataGridColumn TItem="MaterielSelectable" Title="Code produit / N° Serial" Width="25%">
-                            <Template Context="mat">
-                                <RadzenTextBox @bind-Value="mat.CodeProduitSerial" Placeholder="Code/Serial" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.75rem;" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MaterielSelectable" Title="Désignation" Width="45%">
-                            <Template Context="mat">
-                                <RadzenTextBox @bind-Value="mat.Designation" Placeholder="Description du matériel" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.75rem;" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MaterielSelectable" Title="Quantité" Width="15%" TextAlign="TextAlign.Center">
-                            <Template Context="mat">
-                                <RadzenNumeric @bind-Value="mat.QuantiteASortir" Min="1" Style="width: 100%; border: none; box-shadow: none; font-size: 0.75rem; text-align: center;" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                        <RadzenDataGridColumn TItem="MaterielSelectable" Width="15%" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
-                            <Template Context="mat">
-                                <RadzenButton Icon="delete_outline" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.ExtraSmall"
-                                              Click="@(() => RemoveMateriel(mat))" Disabled="@(selectedMateriels.Count <= 1)" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                    </Columns>
-                    <EmptyTemplate>
-                        <RadzenText TextStyle="TextStyle.Body2" Style="text-align: center; padding: 1rem; color: var(--kcc-text-muted);">Ajoutez des matériels ci-dessous</RadzenText>
-                    </EmptyTemplate>
-                </RadzenDataGrid>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="margin-top: 0.5rem;">
-                    <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.Span" Style="font-size: 0.65rem; color: var(--kcc-text-muted);">
-                        Total : <strong style="color: var(--kcc-text);">@selectedMateriels.Sum(m => m.QuantiteASortir)</strong> articles
-                    </RadzenText>
-                    <RadzenButton Text="Ajouter" Icon="add" Variant="Variant.Text" Size="ButtonSize.ExtraSmall"
-                                  ButtonStyle="ButtonStyle.Light" Click="@AddEmptyMateriel"
-                                  Style="font-size: 0.65rem; gap: 0.25rem;" />
-                </RadzenStack>
-            }
-        </RadzenCard>
-
-        @* ===== MOTIF EXTERNE (UNIQUEMENT DEPUIS UN BEM) ===== *@
-        @if (fromBemLink && selectedBemDetails != null)
+    @* ── Motif EXTERNE (depuis un BEM) ── *@
+    @if (fromBemLink && selectedBemDetails != null)
+    {
+    <section class="bon-form__section">
+        <h2 class="bon-form__section-title">Motif - EXTERNE</h2>
+        <div class="bon-form__section-line"></div>
+        @if (availableRaisons.Count > 0)
         {
-        <RadzenCard class="kcc-form-section">
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.75rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Motif - EXTERNE</RadzenText>
-                @if (allowedMotifGroupsByBem is { Count: > 0 })
+            <p style="font-size: 0.68rem; color: #6b7280; font-style: italic; margin: 0 0 0.75rem;">
+                Motifs autorisés pour ce BEM (@selectedBemDetails.HostDepartment): @string.Join(", ", availableRaisons.Select(r => r.Nom))
+            </p>
+        }
+        @if (motifLocked)
+        {
+            <div style="padding: 0.6rem 0.75rem; background: rgba(59,130,246,0.06); border-left: 3px solid var(--rz-info);">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <RadzenIcon Icon="lock" Style="color: var(--rz-info); font-size: 1rem;" />
+                    <span style="font-size: 0.8rem; font-weight: 600; color: #1a1a1a;">
+                        @(availableRaisons.FirstOrDefault()?.Nom ?? selectedRaisonCode)
+                    </span>
+                    <span style="font-size: 0.68rem; color: #6b7280;">(auto-sélectionné)</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                @foreach (var raison in availableRaisons)
                 {
-                    <RadzenText TextStyle="TextStyle.Caption" Style="display:block; margin-bottom:0.5rem; font-size:0.6rem; color: var(--kcc-text-muted); font-style: italic;">
-                        Motifs autorisés pour ce BEM (@selectedBemDetails.HostDepartment): @string.Join(", ", allowedMotifGroupsByBem)
-                    </RadzenText>
-                }
-                <RadzenRow Gap="1rem">
-                    @* COLONNE EXTERNE *@
-                    <RadzenColumn Size="12">
-
-                        @* --- Groupe: Fin de Chantier --- *@
-                        @if (IsGroupAllowed("FIN_CHANTIER"))
-                        {
-                        <div style="margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid @(motif.ActiveGroup == "FIN_CHANTIER" ? "var(--kcc-primary)" : "transparent"); background: @(motif.ActiveGroup == "FIN_CHANTIER" ? "var(--kcc-primary-light)" : "transparent"); opacity: @(motif.ActiveGroup != null && motif.ActiveGroup != "FIN_CHANTIER" ? "0.35" : "1");">
-                            <div style="font-size: 0.55rem; font-weight: 700; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Fin de Chantier</div>
-                            <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" Gap="0.5rem 1.25rem">
-                                @foreach (var item in new[] { ("FinChantier", "Fin chantier"), ("FinContrat", "Fin Contrat"), ("MaterielUsage", "Matériel usagé"), ("MaterielDeclasse", "Matériel déclassé") })
-                                {
-                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.3rem" Style="cursor: pointer;" @onclick="@(() => SelectSingleMotifInGroup("FIN_CHANTIER", item.Item1))">
-                                        <div style="width: 16px; height: 16px; border: 2px solid @(GetMotifBoolValue(item.Item1) ? "var(--kcc-primary)" : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                                            @if (GetMotifBoolValue(item.Item1)) { <div style="width: 8px; height: 8px; background: var(--kcc-primary);"></div> }
-                                        </div>
-                                        <span style="font-size: 0.65rem;">@item.Item2</span>
-                                    </RadzenStack>
-                                }
-                            </RadzenStack>
-                        </div>
-                        }
-
-                        @* --- Groupe: Résidu / Déchet --- *@
-                        @if (IsGroupAllowed("RESIDU"))
-                        {
-                        <div style="margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid @(motif.ActiveGroup == "RESIDU" ? "#16a34a" : "transparent"); background: @(motif.ActiveGroup == "RESIDU" ? "rgba(22,163,74,0.06)" : "transparent"); opacity: @(motif.ActiveGroup != null && motif.ActiveGroup != "RESIDU" ? "0.35" : "1");">
-                            <div style="font-size: 0.55rem; font-weight: 700; color: #16a34a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Résidu / Déchet</div>
-                            <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" Gap="0.5rem 1.25rem">
-                                @foreach (var item in new[] { ("Residu", "Résidu"), ("Dechet", "Déchet"), ("Emballage", "Emballage"), ("MaterielDesaffecte", "Matériel désaffecté") })
-                                {
-                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.3rem" Style="cursor: pointer;" @onclick="@(() => SelectSingleMotifInGroup("RESIDU", item.Item1))">
-                                        <div style="width: 16px; height: 16px; border: 2px solid @(GetMotifBoolValue(item.Item1) ? "#16a34a" : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                                            @if (GetMotifBoolValue(item.Item1)) { <div style="width: 8px; height: 8px; background: #16a34a;"></div> }
-                                        </div>
-                                        <span style="font-size: 0.65rem;">@item.Item2</span>
-                                    </RadzenStack>
-                                }
-                            </RadzenStack>
-                        </div>
-                        }
-
-                        @* --- Groupe: Radio Protection --- *@
-                        @if (IsGroupAllowed("RADIO_PROT"))
-                        {
-                        <div style="margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid @(motif.ActiveGroup == "RADIO_PROT" ? "#dc3545" : "transparent"); background: @(motif.ActiveGroup == "RADIO_PROT" ? "rgba(220,53,69,0.06)" : "transparent"); opacity: @(motif.ActiveGroup != null && motif.ActiveGroup != "RADIO_PROT" ? "0.35" : "1");">
-                            <div style="font-size: 0.55rem; font-weight: 700; color: #dc3545; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Radio Protection</div>
-                            <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" Gap="0.5rem 1.25rem">
-                                @foreach (var item in new[] { ("RadioProtection", "Radio protection"), ("Troxilaire", "Troxilaire") })
-                                {
-                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.3rem" Style="cursor: pointer;" @onclick="@(() => SelectSingleMotifInGroup("RADIO_PROT", item.Item1))">
-                                        <div style="width: 16px; height: 16px; border: 2px solid @(GetMotifBoolValue(item.Item1) ? "#dc3545" : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                                            @if (GetMotifBoolValue(item.Item1)) { <div style="width: 8px; height: 8px; background: #dc3545;"></div> }
-                                        </div>
-                                        <span style="font-size: 0.65rem;">@item.Item2</span>
-                                    </RadzenStack>
-                                }
-                            </RadzenStack>
-                        </div>
-                        }
-
-                        @* --- Groupe: Modification --- *@
-                        @if (IsGroupAllowed("MODIF"))
-                        {
-                        <div style="padding: 0.5rem; border: 1px solid @(motif.ActiveGroup == "MODIF" ? "#fd7e14" : "transparent"); background: @(motif.ActiveGroup == "MODIF" ? "rgba(253,126,20,0.06)" : "transparent"); opacity: @(motif.ActiveGroup != null && motif.ActiveGroup != "MODIF" ? "0.35" : "1");">
-                            <div style="font-size: 0.55rem; font-weight: 700; color: #fd7e14; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;">Modification</div>
-                            <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" Gap="0.5rem 1.25rem">
-                                @foreach (var item in new[] { ("Modification", "Modification"), ("Reparation", "Réparation"), ("Renovation", "Rénovation") })
-                                {
-                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.3rem" Style="cursor: pointer;" @onclick="@(() => SelectSingleMotifInGroup("MODIF", item.Item1))">
-                                        <div style="width: 16px; height: 16px; border: 2px solid @(GetMotifBoolValue(item.Item1) ? "#fd7e14" : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                                            @if (GetMotifBoolValue(item.Item1)) { <div style="width: 8px; height: 8px; background: #fd7e14;"></div> }
-                                        </div>
-                                        <span style="font-size: 0.65rem;">@item.Item2</span>
-                                    </RadzenStack>
-                                }
-                            </RadzenStack>
-                        </div>
-                        }
-
-                        @* --- Commentaire motif --- *@
-                        @if (motif.ActiveGroup != null)
-                        {
-                            <div style="margin-top: 0.75rem;">
-                                <RadzenTextBox @bind-Value="motif.CommentaireMotif" Placeholder="Commentaire optionnel (affiché entre parenthèses à l'impression)" Style="width: 100%; font-size: 0.72rem;" />
+                    var color = raison.Couleur ?? "#00B193";
+                    var isActive = selectedRaisonCode == raison.Code;
+                    var isOther = selectedRaisonCode != null && selectedRaisonCode != raison.Code;
+                    <div style="padding: 0.5rem 0.75rem; border: 1px solid @(isActive ? color : "transparent"); background: @(isActive ? $"color-mix(in srgb, {color} 6%, transparent)" : "transparent"); opacity: @(isOther ? "0.35" : "1"); cursor: pointer;" @onclick="@(() => SelectRaison(raison))">
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <div style="width: 16px; height: 16px; border: 2px solid @(isActive ? color : "#ccc"); display: flex; align-items: center; justify-content: center;">
+                                @if (isActive) { <div style="width: 8px; height: 8px; background: @color;"></div> }
                             </div>
-                        }
-                    </RadzenColumn>
-                </RadzenRow>
-        </RadzenCard>
+                            @if (!string.IsNullOrWhiteSpace(raison.Icone))
+                            {
+                                <RadzenIcon Icon="@raison.Icone" Style="@($"font-size: 0.85rem; color: {color};")" />
+                            }
+                            <span style="font-size: 0.75rem; font-weight: 600; color: @color; text-transform: uppercase; letter-spacing: 0.05em;">@raison.Nom</span>
+                        </div>
+                    </div>
+                }
+            </div>
         }
-
-        @* ===== CHECKPOINTS (SI EXTERNE OU MOTIF AUTRE) ===== *@
-        @if (IsExterne() || motif.SelectedInterneCode == "AUTRE")
+        @if (selectedRaisonCode != null)
         {
-            <RadzenCard class="kcc-form-section">
-                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-size: 0.75rem; font-weight: 600; color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Checkpoints</RadzenText>
-                    <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" Gap="0.75rem">
-                        @foreach (var chk in checkpoints)
+            <RadzenTextBox @bind-Value="commentaireMotif" Placeholder="Commentaire optionnel (affiché entre parenthèses à l'impression)" Style="width: 100%; margin-top: 0.75rem; font-size: 0.78rem;" />
+        }
+        @if (selectedRaisonCode == "PRET")
+        {
+            <div style="margin-top: 0.75rem;">
+                <label class="bon-form__label">Date de retour prévue <span class="required-star">*</span></label>
+                <RadzenDatePicker @bind-Value="@pretDateRetourPrevue" DateFormat="dd/MM/yyyy" Min="@DateTime.Today.AddDays(1)"
+                                  Placeholder="Sélectionner la date de retour" Style="width: 100%;" Density="Density.Compact" />
+            </div>
+        }
+    </section>
+    }
+
+    @* ── Checkpoints ── *@
+    @if (!string.IsNullOrWhiteSpace(selectedRaisonCode))
+    {
+        <section class="bon-form__section">
+            <h2 class="bon-form__section-title">Checkpoints</h2>
+            <div class="bon-form__section-line"></div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                @foreach (var chk in checkpoints)
+                {
+                    <div style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.75rem;">
+                        <RadzenCheckBox TValue="bool" Value="@chk.EstSelectionne" Change="@(val => ToggleCheckpoint(chk, val))" />
+                        <span style="color: #1a1a1a;">@chk.Checkpoint.Nom</span>
+                        @if (chk.EstSelectionne)
                         {
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem" Style="cursor: pointer; font-size: 0.65rem;">
-                                <RadzenCheckBox TValue="bool" Value="@chk.EstSelectionne" Change="@(val => ToggleCheckpoint(chk, val))" />
-                                <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.Span" Style="color: var(--kcc-text);">@chk.Checkpoint.Nom</RadzenText>
-                                @if (chk.EstSelectionne)
-                                {
-                                    <RadzenText TextStyle="TextStyle.Body2" TagName="TagName.Span" Style="background: var(--kcc-primary); color: #fff; font-size: 0.5rem; font-weight: 700; border-radius: 50%; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;">
-                                        @chk.OrdrePrevu
-                                    </RadzenText>
-                                }
-                            </RadzenStack>
+                            <span style="background: #00B193; color: #fff; font-size: 0.55rem; font-weight: 700; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;">
+                                @chk.OrdrePrevu
+                            </span>
                         }
-                    </RadzenStack>
-            </RadzenCard>
-        }
-        
+                    </div>
+                }
+            </div>
+        </section>
+    }
 
-        @* ===== ERREUR ===== *@
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Size="AlertSize.Small" ShowIcon="false" Style="margin-bottom: 1rem; font-size: 0.7rem;">
-                @errorMessage
-            </RadzenAlert>
-        }
+    @* ── Erreur ── *@
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" Size="AlertSize.Small" ShowIcon="false" Style="margin-top: 1.5rem; font-size: 0.78rem;">
+            @errorMessage
+        </RadzenAlert>
+    }
 
-        @* ===== ACTIONS ===== *@
-        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 1rem; padding: 1.25rem 0; margin-top: 0.5rem; border-top: 1px solid var(--kcc-border);">
-            <RadzenButton Text="Brouillon" Icon="save"
-                          Style="height: 44px; padding: 0 1.5rem; background: #ffffff; color: #253C45; border: 2px solid #253C45; font-weight: 600; font-size: 0.8rem;"
-                          Click="@(() => HandleSubmitAsync(false))"
-                          Disabled="@(!CanSubmit() || isSubmitting)" />
-            <RadzenButton Text="@(isSubmitting ? "En cours..." : "Soumettre")" Icon="send"
-                          Style="height: 44px; padding: 0 1.5rem; background: #00B193; color: #fff; border: none; font-weight: 600; font-size: 0.8rem;"
-                          Click="@(() => HandleSubmitAsync(true))"
-                          Disabled="@(!CanSubmit() || isSubmitting)" IsBusy="@isSubmitting" />
-        </div>
-
+    @* ── Actions ── *@
+    <div class="bon-form__actions">
+        <RadzenButton Text="Brouillon" Icon="save" class="bon-form__btn-draft"
+                      Click="@(() => HandleSubmitAsync(false))"
+                      Disabled="@isSubmitting" />
+        <RadzenButton Text="@(isSubmitting ? "En cours..." : "Soumettre")" Icon="send" class="bon-form__btn-submit"
+                      Click="@(() => HandleSubmitAsync(true))"
+                      Disabled="@isSubmitting" IsBusy="@isSubmitting" />
     </div>
 
-    @* ===== PANNEAU REVIEW (Droite) ===== *@
-    <div style="width: 340px; min-width: 300px; flex-shrink: 0; position: sticky; top: 1.5rem; align-self: flex-start;">
-        <RadzenCard Variant="Variant.Flat" class="kcc-review-panel" Style="padding: 0; overflow: hidden;">
-            @* En-tête Review *@
-            <div style="background: var(--kcc-primary); color: #fff; padding: 0.75rem 1rem;">
-                <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-size: 0.85rem; font-weight: 600; margin: 0; color: #fff;">
-                    <RadzenIcon Icon="fact_check" Style="font-size: 1rem; vertical-align: middle; margin-right: 0.35rem;" />
-                    Review
-                </RadzenText>
-            </div>
+</div>
 
-            <div style="padding: 1rem; max-height: calc(100vh - 150px); overflow-y: auto;">
-                @* Section: Type de Bon *@
-                <div style="margin-bottom: 1rem;">
-                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
-                        <RadzenIcon Icon="label" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
-                        Type
-                    </RadzenText>
-                    @if (fromBemLink && selectedBemDetails != null)
-                    {
-                        <div style="background: var(--rz-warning-lighter); border-radius: 6px; padding: 0.6rem; border-left: 3px solid var(--rz-warning);">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                <RadzenBadge Text="EXTERNE" BadgeStyle="BadgeStyle.Warning" Style="font-size: 0.6rem;" />
-                                <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 500; color: var(--kcc-text); margin: 0;">
-                                    via BEM
-                                </RadzenText>
-                            </RadzenStack>
-                            <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; color: var(--kcc-text-muted); margin: 0.3rem 0 0;">
-                                @selectedBemDetails.NumeroReference — @selectedBemDetails.NomCompagnie
-                            </RadzenText>
-                        </div>
-                    }
-                    else
-                    {
-                        <div style="background: var(--rz-info-lighter); border-radius: 6px; padding: 0.6rem; border-left: 3px solid var(--rz-info);">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                <RadzenBadge Text="INTERNE" BadgeStyle="BadgeStyle.Info" Style="font-size: 0.6rem;" />
-                                <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 500; color: var(--kcc-text); margin: 0;">
-                                    @(motif.GetMotifText() != "" ? motif.GetMotifText() : "Sélectionnez un motif")
-                                </RadzenText>
-                            </RadzenStack>
-                        </div>
-                    }
-                </div>
+    @* ===== REVIEW PANEL (droite) ===== *@
+    <div class="bon-form__review">
+        <div class="bon-form__review-header">
+            <RadzenIcon Icon="fact_check" Style="font-size: 1rem;" />
+            <span>Review</span>
+        </div>
 
-                @* Section: Provenance / Destination *@
-                <div style="margin-bottom: 1rem;">
-                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
-                        <RadzenIcon Icon="swap_horiz" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
-                        Trajet
-                    </RadzenText>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <div style="flex: 1; text-align: center; padding: 0.5rem; background: var(--kcc-bg-page); border-radius: 6px;">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.55rem; color: var(--kcc-text-muted); margin: 0;">FROM</RadzenText>
-                            <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 600; color: var(--kcc-text); margin: 0.15rem 0 0;">
-                                @(sites.FirstOrDefault(s => s.Id == siteFromId)?.Nom ?? "—")
-                            </RadzenText>
-                        </div>
-                        <RadzenIcon Icon="arrow_forward" Style="color: var(--kcc-primary); font-size: 1.25rem;" />
-                        <div style="flex: 1; text-align: center; padding: 0.5rem; background: var(--kcc-bg-page); border-radius: 6px;">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.55rem; color: var(--kcc-text-muted); margin: 0;">TO</RadzenText>
-                            <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 600; color: var(--kcc-text); margin: 0.15rem 0 0;">
-                                @(sites.FirstOrDefault(s => s.Id == siteToId)?.Nom ?? "—")
-                            </RadzenText>
-                        </div>
-                    </div>
-                </div>
-
-                @* Section: Matériels *@
-                <div style="margin-bottom: 1rem;">
-                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
-                        <RadzenIcon Icon="category" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
-                        Matériels (@GetValidMaterielsCount())
-                    </RadzenText>
-                    @{
-                        var validMateriels = selectedMateriels.Where(m => !string.IsNullOrWhiteSpace(m.Designation)).ToList();
-                    }
-                    @if (validMateriels.Any())
-                    {
-                        <div style="max-height: 150px; overflow-y: auto;">
-                            @foreach (var mat in validMateriels.Take(5))
-                            {
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--kcc-border);">
-                                    <div style="flex: 1; min-width: 0;">
-                                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.65rem; font-weight: 500; color: var(--kcc-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;">
-                                            @mat.Designation
-                                        </RadzenText>
-                                        <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.55rem; color: var(--kcc-text-muted); margin: 0;">
-                                            @mat.CodeProduitSerial
-                                        </RadzenText>
-                                    </div>
-                                    <RadzenBadge Text="@mat.QuantiteASortir.ToString("0")" BadgeStyle="BadgeStyle.Primary" Style="font-size: 0.6rem; min-width: 24px;" />
-                                </div>
-                            }
-                            @if (validMateriels.Count > 5)
-                            {
-                                <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.6rem; color: var(--kcc-text-muted); text-align: center; padding: 0.35rem 0; font-style: italic;">
-                                    + @(validMateriels.Count - 5) autre(s)...
-                                </RadzenText>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; color: var(--kcc-text-muted); font-style: italic;">
-                            Aucun matériel saisi
-                        </RadzenText>
-                    }
-                </div>
-
-                @* Section: Motif *@
-                <div style="margin-bottom: 1rem;">
-                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
-                        <RadzenIcon Icon="label" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
-                        Motif
-                    </RadzenText>
-                    @if (!string.IsNullOrWhiteSpace(motif.GetMotifText()))
-                    {
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
-                            @foreach (var m in motif.GetMotifText().Split(", "))
-                            {
-                                <RadzenBadge Text="@m" BadgeStyle="@(fromBemLink ? BadgeStyle.Warning : BadgeStyle.Info)" Style="font-size: 0.6rem;" />
-                            }
-                        </div>
-                        <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.6rem; color: var(--kcc-text-muted); margin-top: 0.35rem;">
-                            Type: <strong>@(fromBemLink ? "EXTERNE" : "INTERNE")</strong>
-                        </RadzenText>
-                    }
-                    else
-                    {
-                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; color: var(--kcc-text-muted); font-style: italic;">
-                            Aucun motif sélectionné
-                        </RadzenText>
-                    }
-                </div>
-
-                @* Section: Checkpoints (si externe ou Autre) *@
-                @if ((IsExterne() || motif.SelectedInterneCode == "AUTRE") && checkpoints.Any(c => c.EstSelectionne))
+        <div class="bon-form__review-body">
+            @* Demandeur *@
+            <div class="bon-form__review-section">
+                <div class="bon-form__review-label"><RadzenIcon Icon="person" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Demandeur</div>
+                @if (!string.IsNullOrWhiteSpace(model.NomDemandeur))
                 {
-                    <div style="margin-bottom: 1rem;">
-                        <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
-                            <RadzenIcon Icon="route" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
-                            Checkpoints (@checkpoints.Count(c => c.EstSelectionne))
-                        </RadzenText>
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
-                            @foreach (var chk in checkpoints.Where(c => c.EstSelectionne).OrderBy(c => c.OrdrePrevu))
-                            {
-                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.2rem" Style="background: var(--kcc-bg-page); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.6rem;">
-                                    <span style="background: var(--kcc-primary); color: #fff; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.5rem; font-weight: 700;">@chk.OrdrePrevu</span>
-                                    <span>@chk.Checkpoint.Nom</span>
-                                </RadzenStack>
-                            }
-                        </div>
-                    </div>
-                }
-
-                @* Section: Demandeur *@
-                <div>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.65rem; font-weight: 600; color: var(--kcc-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: block;">
-                        <RadzenIcon Icon="person" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.25rem;" />
-                        Demandeur
-                    </RadzenText>
-                    <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 500; color: var(--kcc-text); margin: 0;">
-                        @(string.IsNullOrWhiteSpace(model.NomDemandeur) ? "—" : model.NomDemandeur)
-                    </RadzenText>
-                    @if (!string.IsNullOrWhiteSpace(model.FonctionDemandeur) || !string.IsNullOrWhiteSpace(model.DepartementDemandeur))
+                    <div style="font-size: 0.78rem; font-weight: 600; color: #1a1a1a;">@model.NomDemandeur</div>
+                    @if (!string.IsNullOrWhiteSpace(model.FonctionDemandeur))
                     {
-                        <RadzenText TextStyle="TextStyle.Caption" Style="font-size: 0.6rem; color: var(--kcc-text-muted); margin: 0.15rem 0 0;">
-                            @model.FonctionDemandeur @(!string.IsNullOrWhiteSpace(model.FonctionDemandeur) && !string.IsNullOrWhiteSpace(model.DepartementDemandeur) ? "•" : "") @model.DepartementDemandeur
-                        </RadzenText>
+                        <div style="font-size: 0.65rem; color: #9ca3af; margin-top: 0.1rem;">@model.FonctionDemandeur</div>
                     }
-                </div>
-            </div>
-
-            @* Footer avec statut de validation *@
-            <div style="padding: 0.75rem 1rem; border-top: 1px solid var(--kcc-border); background: var(--kcc-bg-page);">
-                @if (CanSubmit())
-                {
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem" Style="color: #16a34a;">
-                        <RadzenIcon Icon="check_circle" Style="font-size: 1rem;" />
-                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; font-weight: 500; margin: 0; color: #16a34a;">
-                            Prêt à soumettre
-                        </RadzenText>
-                    </RadzenStack>
+                    @if (!string.IsNullOrWhiteSpace(model.DepartementDemandeur))
+                    {
+                        <div style="font-size: 0.65rem; color: #9ca3af;">@model.DepartementDemandeur</div>
+                    }
                 }
                 else
                 {
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem" Style="color: var(--kcc-text-muted);">
-                        <RadzenIcon Icon="info" Style="font-size: 1rem;" />
-                        <RadzenText TextStyle="TextStyle.Body2" Style="font-size: 0.7rem; margin: 0; color: var(--kcc-text-muted);">
-                            Complétez le formulaire
-                        </RadzenText>
-                    </RadzenStack>
+                    <span class="bon-form__review-empty">Non renseigné</span>
                 }
             </div>
-        </RadzenCard>
+
+            @* Type *@
+            <div class="bon-form__review-section">
+                <div class="bon-form__review-label"><RadzenIcon Icon="category" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Type</div>
+                @if (fromBemLink && selectedBemDetails != null)
+                {
+                    <div style="display: flex; align-items: center; gap: 0.3rem;">
+                        <RadzenBadge Text="EXTERNE" BadgeStyle="BadgeStyle.Info" Style="font-size: 0.6rem;" />
+                        <span style="font-size: 0.68rem; color: #6b7280;">via @selectedBemDetails.NumeroReference</span>
+                    </div>
+                }
+                else
+                {
+                    <RadzenBadge Text="INTERNE" BadgeStyle="BadgeStyle.Primary" Style="font-size: 0.6rem;" />
+                }
+            </div>
+
+            @* Motif *@
+            <div class="bon-form__review-section">
+                <div class="bon-form__review-label"><RadzenIcon Icon="label" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Motif</div>
+                @if (!string.IsNullOrWhiteSpace(selectedRaisonCode))
+                {
+                    var motifDisplay = selectedRaisonNom ?? selectedRaisonCode;
+                    if (selectedRaisonCode == "AUTRE" && !string.IsNullOrWhiteSpace(autreMotifTexte))
+                    {
+                        motifDisplay = $"Autre: {autreMotifTexte}";
+                    }
+                    <RadzenBadge Text="@motifDisplay" BadgeStyle="BadgeStyle.Warning" Style="font-size: 0.65rem;" />
+                    @if (!string.IsNullOrWhiteSpace(commentaireMotif))
+                    {
+                        <div style="font-size: 0.65rem; color: #9ca3af; margin-top: 0.15rem; font-style: italic;">@commentaireMotif</div>
+                    }
+                    @if (selectedRaisonCode == "PRET" && pretDateRetourPrevue.HasValue)
+                    {
+                        <div style="font-size: 0.65rem; color: #6b7280; margin-top: 0.15rem;">
+                            <RadzenIcon Icon="event" Style="font-size: 0.7rem; vertical-align: middle;" /> Retour: @pretDateRetourPrevue.Value.ToString("dd/MM/yyyy")
+                        </div>
+                    }
+                }
+                else
+                {
+                    <span class="bon-form__review-empty">Aucun motif sélectionné</span>
+                }
+            </div>
+
+            @* Trajet *@
+            <div class="bon-form__review-section">
+                <div class="bon-form__review-label"><RadzenIcon Icon="swap_horiz" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Trajet</div>
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <div style="flex: 1; text-align: center; padding: 0.4rem; background: #f9fafb;">
+                        <div style="font-size: 0.55rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em;">From</div>
+                        <div style="font-size: 0.75rem; font-weight: 600; color: #1a1a1a; margin-top: 0.1rem;">@(siteFromId.HasValue ? sites.FirstOrDefault(s => s.Id == siteFromId)?.Nom ?? "—" : "—")</div>
+                    </div>
+                    <RadzenIcon Icon="arrow_forward" Style="color: #00B193; font-size: 1rem;" />
+                    <div style="flex: 1; text-align: center; padding: 0.4rem; background: #f9fafb;">
+                        <div style="font-size: 0.55rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em;">To</div>
+                        <div style="font-size: 0.75rem; font-weight: 600; color: #1a1a1a; margin-top: 0.1rem;">@(siteToId.HasValue ? sites.FirstOrDefault(s => s.Id == siteToId)?.Nom ?? "—" : "—")</div>
+                    </div>
+                </div>
+            </div>
+
+            @* Matériels *@
+            <div class="bon-form__review-section">
+                <div class="bon-form__review-label"><RadzenIcon Icon="inventory_2" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Matériels (@GetValidMaterielsCount())</div>
+                @{
+                    var reviewMateriels = selectedMateriels.Where(m => !string.IsNullOrWhiteSpace(m.Designation) || !string.IsNullOrWhiteSpace(m.CodeProduitSerial)).ToList();
+                }
+                @if (reviewMateriels.Any())
+                {
+                    <div style="max-height: 140px; overflow-y: auto;">
+                        @foreach (var mat in reviewMateriels.Take(5))
+                        {
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid #f3f4f6;">
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-size: 0.72rem; font-weight: 500; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        @(string.IsNullOrWhiteSpace(mat.Designation) ? "(Sans désignation)" : mat.Designation)
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(mat.CodeProduitSerial))
+                                    {
+                                        <div style="font-size: 0.6rem; color: #9ca3af;">@mat.CodeProduitSerial</div>
+                                    }
+                                </div>
+                                <RadzenBadge Text="@mat.QuantiteASortir.ToString()" BadgeStyle="BadgeStyle.Primary" Style="font-size: 0.6rem; min-width: 22px;" />
+                            </div>
+                        }
+                        @if (reviewMateriels.Count > 5)
+                        {
+                            <div style="font-size: 0.65rem; color: #9ca3af; text-align: center; padding: 0.3rem 0; font-style: italic;">
+                                + @(reviewMateriels.Count - 5) autre(s)...
+                            </div>
+                        }
+                    </div>
+                    <div style="margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid #e5e7eb; font-size: 0.72rem; color: #1a1a1a;">
+                        Total: <strong>@selectedMateriels.Sum(m => m.QuantiteASortir)</strong> articles
+                    </div>
+                }
+                else
+                {
+                    <span class="bon-form__review-empty">Aucun matériel saisi</span>
+                }
+            </div>
+
+            @* Checkpoints *@
+            <div class="bon-form__review-section">
+                <div class="bon-form__review-label"><RadzenIcon Icon="route" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Checkpoints</div>
+                @{
+                    var selectedCheckpoints = checkpoints.Where(c => c.EstSelectionne).OrderBy(c => c.OrdrePrevu).ToList();
+                }
+                @if (selectedCheckpoints.Any())
+                {
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
+                        @foreach (var chk in selectedCheckpoints)
+                        {
+                            <div style="display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.15rem 0.4rem; background: rgba(0,177,147,0.08); font-size: 0.65rem; color: #00B193; font-weight: 500;">
+                                <span style="font-size: 0.55rem; font-weight: 700;">@chk.OrdrePrevu</span>
+                                @chk.Checkpoint.Nom
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="bon-form__review-empty">Aucun checkpoint</span>
+                }
+            </div>
+        </div>
+
+        @* Footer statut *@
+        <div class="bon-form__review-footer">
+            @if (CanSubmit())
+            {
+                <div style="display: flex; align-items: center; gap: 0.35rem; color: #16a34a;">
+                    <RadzenIcon Icon="check_circle" Style="font-size: 1rem;" />
+                    <span style="font-size: 0.75rem; font-weight: 500;">Prêt à soumettre</span>
+                </div>
+            }
+            else
+            {
+                <div style="display: flex; align-items: center; gap: 0.35rem; color: #9ca3af;">
+                    <RadzenIcon Icon="info" Style="font-size: 1rem;" />
+                    <span style="font-size: 0.75rem;">Complétez le formulaire</span>
+                </div>
+            }
+        </div>
     </div>
-</RadzenStack>
+
+</div>
 }
 
-@* ===== MODAL SÉLECTION MATÉRIELS (UNIQUEMENT POUR BEM EXTERNE) ===== *@
+@* ── Modal sélection matériels (BEM EXTERNE uniquement) ── *@
 @if (showMaterielModal && fromBemLink && selectedBemDetails != null)
 {
     <div style="position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(37,60,69,0.35);"
          @onclick="CloseMaterielModal">
-        <div style="background: white; border: 1px solid var(--kcc-border); box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 90%; max-width: 600px; display: flex; flex-direction: column; max-height: 80vh;" @onclick:stopPropagation="true">
+        <div style="background: white; border: 1px solid #e5e7eb; box-shadow: 0 4px 20px rgba(0,0,0,0.15); width: 90%; max-width: 600px; display: flex; flex-direction: column; max-height: 80vh;" @onclick:stopPropagation="true">
             @* Header *@
-            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--kcc-border); display: flex; justify-content: space-between; align-items: center; background: var(--kcc-bg-page);">
+            <div style="padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb;">
                 <div>
                     <div style="font-size: 0.85rem; font-weight: 600; color: #1a1a1a;">Sélection des matériels</div>
-                    <div style="font-size: 0.72rem; color: #666; margin-top: 0.15rem;">@selectedBemDetails.NumeroReference</div>
+                    <div style="font-size: 0.72rem; color: #6b7280; margin-top: 0.15rem;">@selectedBemDetails.NumeroReference</div>
                 </div>
                 <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@CloseMaterielModal" />
             </div>
@@ -595,20 +521,20 @@ else
                 {
                     @foreach (var mat in materielsBemSelectables)
                     {
-                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.75rem; border: 1px solid @(mat.EstSelectionne ? "var(--kcc-primary)" : "rgba(0,0,0,0.08)"); margin-bottom: 0.5rem; background: @(mat.EstSelectionne ? "var(--kcc-primary-light)" : "white"); transition: background 0.15s, border-color 0.15s;">
-                            <RadzenCheckBox TValue="bool" Value="@mat.EstSelectionne" Change="@(val => OnMaterielToggle(mat, val))" />
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="font-size: 0.78rem; font-weight: 600; color: #1a1a1a;">@mat.Designation</div>
-                                <div style="font-size: 0.68rem; color: #666; margin-top: 0.1rem;">
-                                    @mat.CodeProduitSerial
-                                    <span style="margin-left: 0.5rem; font-size: 0.65rem; padding: 0.1rem 0.35rem; background: rgba(59,130,246,0.1); color: #2563eb;">Dispo: @mat.QuantiteDisponible</span>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.75rem; border: 1px solid @(mat.EstSelectionne ? "#00B193" : "rgba(0,0,0,0.08)"); margin-bottom: 0.5rem; background: @(mat.EstSelectionne ? "rgba(0,177,147,0.04)" : "white"); transition: background 0.15s, border-color 0.15s;">
+                                <RadzenCheckBox TValue="bool" Value="@mat.EstSelectionne" Change="@(val => OnMaterielToggle(mat, val))" />
+                                <div style="flex: 1; min-width: 0;">
+                                    <div style="font-size: 0.78rem; font-weight: 600; color: #1a1a1a;">@mat.Designation</div>
+                                    <div style="font-size: 0.68rem; color: #6b7280; margin-top: 0.1rem;">
+                                        @mat.CodeProduitSerial
+                                        <span style="margin-left: 0.5rem; font-size: 0.65rem; padding: 0.1rem 0.35rem; background: rgba(59,130,246,0.1); color: #2563eb;">Dispo: @mat.QuantiteDisponible</span>
+                                    </div>
                                 </div>
-                            </div>
-                            @if (mat.EstSelectionne)
-                            {
-                                <RadzenNumeric TValue="decimal" @bind-Value="mat.QuantiteASortir" Min="1" Max="mat.QuantiteDisponible"
-                                               Style="width: 80px; font-size: 0.75rem;" Density="Density.Compact" />
-                            }
+                                @if (mat.EstSelectionne)
+                                {
+                                    <RadzenNumeric TValue="decimal" @bind-Value="mat.QuantiteASortir" Min="1" Max="mat.QuantiteDisponible"
+                                                   Style="width: 80px; font-size: 0.75rem;" Density="Density.Compact" />
+                                }
                         </div>
                     }
                 }
@@ -621,8 +547,8 @@ else
             </div>
 
             @* Footer *@
-            <div style="padding: 1rem 1.25rem; border-top: 1px solid var(--kcc-border); display: flex; justify-content: space-between; align-items: center; background: var(--kcc-bg-page);">
-                <span style="font-size: 0.72rem; color: #666;">@materielsBemSelectables.Count(m => m.EstSelectionne) sélectionné(s)</span>
+            <div style="padding: 1rem 1.25rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb;">
+                <span style="font-size: 0.72rem; color: #6b7280;">@materielsBemSelectables.Count(m => m.EstSelectionne) sélectionné(s)</span>
                 <div style="display: flex; gap: 0.75rem;">
                     <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium"
                                   Click="@CloseMaterielModal" Style="font-size: 0.75rem;" />
@@ -647,19 +573,23 @@ else
     private bool showMaterielModal = false;
     private string? errorMessage;
     private string? generatedNumero = "(auto)";
-    private bool fromBemLink = false; // true si on vient du bouton "Créer BSE" d'un BEM
-    
+    private bool fromBemLink = false;
+
     // === DONNÉES DE RÉFÉRENCE ===
     private List<KCCMaterialFlow.Domain.Entities.Site> sites = new();
     private List<CheckpointSelection> checkpoints = new();
     private List<BonEntreeForDropdown> bemsDisponibles = new();
     private List<BonEntreeForDropdown> bemsDisponiblesAll = new();
-    private string? expectedHostDepartmentFilter;
-    private HashSet<string>? allowedMotifGroupsByBem;
-    
-    // === MOTIF (CHECKBOXES COMME PAPIER) ===
-    private MotifSelection motif = new();
-    
+
+    // === MOTIF (DB-DRIVEN) ===
+    private List<RaisonSortie> availableRaisons = new();
+    private string? selectedRaisonCode;
+    private string? selectedRaisonNom;
+    private string autreMotifTexte = "";
+    private string commentaireMotif = "";
+    private bool motifLocked = false;
+    private DateTime? pretDateRetourPrevue = DateTime.Today.AddMonths(1);
+
     // === BEM ===
     private BonEntreeDetailsForSortie? selectedBemDetails;
     private List<MaterielSelectable> materielsBemSelectables = new();
@@ -669,23 +599,20 @@ else
     private string newMaterielCode = string.Empty;
     private string newMaterielDesignation = string.Empty;
     private decimal newMaterielQte = 1;
-    
+
     // === FROM / TO (niveau bon, pas par matériel) ===
     private int? siteFromId;
     private int? siteToId;
-    private bool destinationFromBem = false; // true = TO vient du BEM, grisé
+    private bool destinationFromBem = false;
 
-    /// <summary>
-    /// Liste des sites excluant le site FROM sélectionné (pour éviter FROM = TO)
-    /// </summary>
     private IEnumerable<KCCMaterialFlow.Domain.Entities.Site> SitesExcludingFrom =>
         siteFromId.HasValue
             ? sites.Where(s => s.Id != siteFromId.Value)
             : sites;
-    
+
     // === MODÈLE ===
     private BsmModel model = new();
-    
+
     // === CLASSES ===
     private class BsmModel
     {
@@ -693,143 +620,7 @@ else
         public string FonctionDemandeur { get; set; } = string.Empty;
         public string DepartementDemandeur { get; set; } = string.Empty;
     }
-    
-    private class MotifSelection
-    {
-        // EXTERNE — Groupe FIN_CHANTIER
-        public bool FinChantier { get; set; }
-        public bool FinContrat { get; set; }
-        public bool MaterielUsage { get; set; }
-        public bool MaterielDeclasse { get; set; }
-        
-        // EXTERNE — Groupe RESIDU
-        public bool Residu { get; set; }
-        public bool Dechet { get; set; }
-        public bool Emballage { get; set; }
-        public bool MaterielDesaffecte { get; set; }
-        
-        // EXTERNE — Groupe RADIO_PROT
-        public bool RadioProtection { get; set; }
-        public bool Troxilaire { get; set; }
-        
-        // EXTERNE — Groupe MODIF
-        public bool Modification { get; set; }
-        public bool Reparation { get; set; }
-        public bool Renovation { get; set; }
-        
-        // Commentaire optionnel (affiché entre parenthèses à l'impression)
-        public string CommentaireMotif { get; set; } = "";
 
-        // INTERNE — sélection unique
-        public string? SelectedInterneCode { get; set; }
-        public string AutreMotifTexte { get; set; } = "";
-
-        // Propriétés calculées pour compatibilité
-        public bool Informatique => SelectedInterneCode == "INFO";
-        public bool Circulaire => SelectedInterneCode == "CIRC";
-        public bool PriseEnPret => SelectedInterneCode == "PRET";
-        
-        /// <summary>
-        /// Groupe actuellement actif (null = aucun). 
-        /// Calculé dynamiquement à chaque changement.
-        /// </summary>
-        public string? ActiveGroup { get; private set; }
-        
-        /// <summary>
-        /// Recalcule le groupe actif et nettoie les cases des autres groupes.
-        /// Appelé après chaque clic sur une checkbox.
-        /// </summary>
-        public void RecalculateActiveGroup()
-        {
-            // Détecter quel groupe a des cases cochées
-            bool hasFin = FinChantier || FinContrat || MaterielUsage || MaterielDeclasse;
-            bool hasResidu = Residu || Dechet || Emballage || MaterielDesaffecte;
-            bool hasRadio = RadioProtection || Troxilaire;
-            bool hasModif = Modification || Reparation || Renovation;
-            bool hasCirc = Circulaire;
-            bool hasInfo = Informatique;
-            bool hasPret = PriseEnPret;
-            bool hasAutre = SelectedInterneCode == "AUTRE";
-
-            string? newGroup = null;
-            if (hasFin) newGroup = "FIN_CHANTIER";
-            else if (hasResidu) newGroup = "RESIDU";
-            else if (hasRadio) newGroup = "RADIO_PROT";
-            else if (hasModif) newGroup = "MODIF";
-            else if (hasCirc) newGroup = "CIRC";
-            else if (hasInfo) newGroup = "INFO";
-            else if (hasPret) newGroup = "PRET";
-            else if (hasAutre) newGroup = "AUTRE";
-            
-            // Si le groupe a changé, nettoyer les autres groupes
-            if (newGroup != null && newGroup != ActiveGroup && ActiveGroup != null)
-            {
-                ClearAllExcept(newGroup);
-            }
-            
-            ActiveGroup = newGroup;
-        }
-        
-        private void ClearAllExcept(string group)
-        {
-            if (group != "FIN_CHANTIER") { FinChantier = false; FinContrat = false; MaterielUsage = false; MaterielDeclasse = false; }
-            if (group != "RESIDU") { Residu = false; Dechet = false; Emballage = false; MaterielDesaffecte = false; }
-            if (group != "RADIO_PROT") { RadioProtection = false; Troxilaire = false; }
-            if (group != "MODIF") { Modification = false; Reparation = false; Renovation = false; }
-            if (group != "CIRC" && group != "INFO" && group != "PRET" && group != "AUTRE") { SelectedInterneCode = null; AutreMotifTexte = ""; }
-        }
-        
-        public string GetMotifText()
-        {
-            var parts = new List<string>();
-            if (FinChantier) parts.Add("Fin chantier");
-            if (FinContrat) parts.Add("Fin Contrat");
-            if (MaterielUsage) parts.Add("Matériel usagé");
-            if (MaterielDeclasse) parts.Add("Matériel déclassé");
-            if (Residu) parts.Add("Résidu");
-            if (Dechet) parts.Add("Déchet");
-            if (Emballage) parts.Add("Emballage");
-            if (MaterielDesaffecte) parts.Add("Matériel désaffecté");
-            if (RadioProtection) parts.Add("Radio protection");
-            if (Troxilaire) parts.Add("Troxilaire");
-            if (Modification) parts.Add("Modification");
-            if (Reparation) parts.Add("Réparation");
-            if (Renovation) parts.Add("Rénovation");
-            if (Informatique) parts.Add("Informatique");
-            if (Circulaire) parts.Add("Circulaire");
-            if (PriseEnPret) parts.Add("Prise en prêt");
-            if (SelectedInterneCode == "AUTRE" && !string.IsNullOrWhiteSpace(AutreMotifTexte)) parts.Add(AutreMotifTexte.Trim());
-            var result = string.Join(", ", parts);
-            if (!string.IsNullOrWhiteSpace(CommentaireMotif))
-                result += $" ({CommentaireMotif.Trim()})";
-            return result;
-        }
-        
-        /// <summary>
-        /// Retourne le code RaisonSortie correspondant au motif principal sélectionné.
-        /// C'est la source unique de vérité pour le mapping Motif → RaisonSortie → TypeMateriel.
-        /// </summary>
-        public string? GetRaisonSortieCode()
-        {
-            // EXTERNE — ordre de priorité = premier coché dans la colonne
-            if (FinChantier || FinContrat || MaterielUsage || MaterielDeclasse) return "FIN_CHANTIER";
-            if (Residu || Dechet || Emballage || MaterielDesaffecte) return "RESIDU";
-            if (RadioProtection || Troxilaire) return "RADIO_PROT";
-            if (Modification || Reparation || Renovation) return "MODIF";
-            
-            // INTERNE
-            if (Informatique) return "INFO";
-            if (Circulaire) return "CIRC";
-            if (PriseEnPret) return "PRET";
-            if (SelectedInterneCode == "AUTRE") return "AUTRE";
-            
-            return null;
-        }
-        
-        public bool IsExterne() => ActiveGroup is "FIN_CHANTIER" or "RESIDU" or "RADIO_PROT" or "MODIF";
-        public bool IsInterne() => ActiveGroup is "INFO" or "CIRC" or "PRET" or "AUTRE";
-    }
-    
     private class MaterielSelectable
     {
         public int MaterielEntreeId { get; set; }
@@ -841,18 +632,17 @@ else
         public decimal QuantiteASortir { get; set; } = 1;
         public bool EstSelectionne { get; set; }
     }
-    
+
     private class CheckpointSelection
     {
         public KCCMaterialFlow.Domain.Entities.Checkpoint Checkpoint { get; set; } = null!;
         public bool EstSelectionne { get; set; }
         public int OrdrePrevu { get; set; }
     }
-    
+
     // === LIFECYCLE ===
     protected override async Task OnInitializedAsync()
     {
-        // Vérifier l'activité BSM_CREER
         if (!CurrentUserService.HasActivite("BSM_CREER"))
         {
             Navigation.NavigateTo("/", replace: true);
@@ -862,28 +652,22 @@ else
         await LoadReferenceDataAsync();
         InitializeUserData();
 
-        // Si on vient du bouton "Créer BSE" d'un BEM, pré-charger automatiquement
         if (PreselectedBemId.HasValue && PreselectedBemId.Value > 0)
         {
             await HandlePreselectedBemAsync(PreselectedBemId.Value);
         }
         else
         {
-            // Mode INTERNE par défaut : ajouter une ligne vide pour commencer
             AddEmptyMateriel();
         }
 
         isLoading = false;
     }
 
-    /// <summary>
-    /// Gère le pré-chargement d'un BEM depuis le paramètre URL (bouton "Créer BSE")
-    /// </summary>
     private async Task HandlePreselectedBemAsync(int bemId)
     {
         fromBemLink = true;
 
-        // Charger les détails du BEM
         selectedBemDetails = await BonEntreeLockService.GetDetailsForSortieAsync(bemId);
 
         if (selectedBemDetails == null)
@@ -894,7 +678,6 @@ else
             return;
         }
 
-        // Pré-remplir les matériels disponibles et les sélectionner tous
         materielsBemSelectables = selectedBemDetails.Materiels
             .Where(m => m.QuantiteDisponible > 0)
             .Select(m => new MaterielSelectable
@@ -905,75 +688,94 @@ else
                 Designation = m.Designation,
                 QuantiteInitiale = m.QuantiteInitiale,
                 QuantiteDisponible = m.QuantiteDisponible,
-                QuantiteASortir = m.QuantiteDisponible, // Pré-sélectionner toute la quantité disponible
-                EstSelectionne = true // Tous sélectionnés par défaut
+                QuantiteASortir = m.QuantiteDisponible,
+                EstSelectionne = true
             }).ToList();
 
-        // Copier vers les matériels sélectionnés
         selectedMateriels = materielsBemSelectables.ToList();
 
-        // Auto-remplir FROM depuis la destination du BEM
         var matchedSite = sites.FirstOrDefault(s => s.Nom.Equals(selectedBemDetails.Destination, StringComparison.OrdinalIgnoreCase));
         if (matchedSite != null)
         {
             siteFromId = matchedSite.Id;
             destinationFromBem = true;
-            // Si TO était égal au nouveau FROM, le réinitialiser
             if (siteToId.HasValue && siteToId.Value == siteFromId.Value)
             {
                 siteToId = null;
             }
         }
 
-        // Déterminer et pré-sélectionner le motif en fonction du HostDepartment
-        AutoSelectMotifFromBem();
+        await AutoSelectMotifFromBemAsync();
 
         NotificationService.Notify(NotificationSeverity.Info, "BEM lié",
             $"Bon d'entrée {selectedBemDetails.NumeroReference} pré-chargé avec {selectedMateriels.Count} matériel(s).");
     }
 
-    /// <summary>
-    /// Sélectionne automatiquement le motif approprié basé sur le HostDepartment du BEM
-    /// </summary>
-    private void AutoSelectMotifFromBem()
+    private async Task AutoSelectMotifFromBemAsync()
     {
         if (selectedBemDetails == null) return;
 
-        var hostDept = selectedBemDetails.HostDepartment?.Trim().ToUpperInvariant() ?? "";
-
-        // Définir les motifs autorisés et sélectionner le premier applicable
-        if (hostDept.Contains("IT") || hostDept.Contains("INFORMATIQUE"))
+        if (selectedBemDetails.RaisonEntreeId.HasValue)
         {
-            allowedMotifGroupsByBem = new HashSet<string> { "INFO" };
-            SelectMotifGroup("INFO");
-        }
-        else if (hostDept.Contains("ENV") || hostDept.Contains("ENVIRONNEMENT"))
-        {
-            allowedMotifGroupsByBem = new HashSet<string> { "RESIDU", "RADIO_PROT", "MODIF" };
-            // Sélectionner RESIDU par défaut pour ENV
-            SelectMotifGroup("RESIDU");
-        }
-        else
-        {
-            // Département standard : autoriser FIN_CHANTIER par défaut
-            allowedMotifGroupsByBem = new HashSet<string> { "FIN_CHANTIER", "CIRC", "PRET" };
-            SelectMotifGroup("FIN_CHANTIER");
+            availableRaisons = (await RaisonEntreeService.GetRaisonsSortieByRaisonEntreeIdAsync(selectedBemDetails.RaisonEntreeId.Value)).ToList();
         }
 
-        motif.RecalculateActiveGroup();
+        if (availableRaisons.Count == 0 && selectedBemDetails.DepartementId.HasValue)
+        {
+            availableRaisons = (await CategorieSortieService.GetRaisonsAutoriseesByDepartementIdAsync(selectedBemDetails.DepartementId)).ToList();
+        }
+
+        if (availableRaisons.Count == 0 && !string.IsNullOrWhiteSpace(selectedBemDetails.HostDepartment))
+        {
+            availableRaisons = (await CategorieSortieService.GetRaisonsAutoriseesByDepartementAsync(selectedBemDetails.HostDepartment)).ToList();
+        }
+
+        if (availableRaisons.Count == 0)
+        {
+            availableRaisons = (await CategorieSortieService.GetRaisonsByCategorieCodeAsync("EXTERNE"))
+                .Where(r => r.EstActif)
+                .OrderBy(r => r.OrdreAffichage)
+                .ToList();
+        }
+
+        if (availableRaisons.Count == 1)
+        {
+            var raison = availableRaisons[0];
+            selectedRaisonCode = raison.Code;
+            selectedRaisonNom = raison.Nom;
+            motifLocked = true;
+        }
+        else if (availableRaisons.Count > 1)
+        {
+            selectedRaisonCode = null;
+            selectedRaisonNom = null;
+            motifLocked = false;
+        }
     }
-    
+
     private async Task LoadReferenceDataAsync()
     {
         sites = (await ReferenceDataService.GetSitesAsync()).OrderBy(s => s.OrdreAffichage).ToList();
-        
+
         var chkList = (await ReferenceDataService.GetCheckpointsAsync()).OrderBy(c => c.OrdreDefaut).ToList();
         checkpoints = chkList.Select(c => new CheckpointSelection { Checkpoint = c }).ToList();
-        
+
         bemsDisponiblesAll = (await BonEntreeLockService.GetAllAvailableForSortieAsync()).ToList();
-        ApplyBemFilterByMotif();
+        bemsDisponibles = bemsDisponiblesAll.ToList();
+
+        availableRaisons = (await CategorieSortieService.GetRaisonsAutoriseesByDepartementIdAsync(null)).ToList();
+
+        if (availableRaisons.Count == 0)
+        {
+            var allCategories = await CategorieSortieService.GetAllCategoriesWithRaisonsAsync();
+            availableRaisons = allCategories
+                .SelectMany(c => c.Raisons)
+                .Where(r => r.EstActif && !r.RequiertBonEntree)
+                .OrderBy(r => r.OrdreAffichage)
+                .ToList();
+        }
     }
-    
+
     private void InitializeUserData()
     {
         var currentUser = CurrentUserService.GetCurrentUser();
@@ -984,86 +786,48 @@ else
             model.DepartementDemandeur = currentUser.Department ?? string.Empty;
         }
     }
-    
-    // === MOTIF ===
-    private void SelectInterneMotif(string code)
+
+    // === MOTIF (DB-DRIVEN) ===
+    private void SelectRaison(RaisonSortie raison)
     {
-        // Toggle : si déjà sélectionné, désélectionner
-        if (motif.SelectedInterneCode == code)
+        if (motifLocked) return;
+
+        if (selectedRaisonCode == raison.Code)
         {
-            motif.SelectedInterneCode = null;
-            motif.AutreMotifTexte = "";
+            selectedRaisonCode = null;
+            selectedRaisonNom = null;
+            autreMotifTexte = "";
         }
         else
         {
-            motif.SelectedInterneCode = code;
-            if (code != "AUTRE") motif.AutreMotifTexte = "";
+            selectedRaisonCode = raison.Code;
+            selectedRaisonNom = raison.Nom;
+            if (raison.Code != "AUTRE") autreMotifTexte = "";
         }
-        OnMotifChanged();
     }
 
-    private void OnMotifChanged()
+    private string GetMotifText()
     {
-        motif.RecalculateActiveGroup();
+        if (string.IsNullOrWhiteSpace(selectedRaisonCode)) return "";
 
-        if (motif.ActiveGroup != null && !IsGroupAllowed(motif.ActiveGroup))
-        {
-            ClearMotifSelection();
-            NotificationService.Notify(NotificationSeverity.Warning, "Motif", "Ce motif n'est pas autorisé pour le département du BEM sélectionné.");
-        }
+        if (selectedRaisonCode == "AUTRE" && !string.IsNullOrWhiteSpace(autreMotifTexte))
+            return $"Autre: {autreMotifTexte}";
 
-        ApplyBemFilterByMotif();
+        var text = selectedRaisonNom ?? selectedRaisonCode ?? "";
+        if (!string.IsNullOrWhiteSpace(commentaireMotif))
+            text += $" ({commentaireMotif})";
+
+        return text;
     }
-    
+
+    private void OnRaisonDropdownChanged()
+    {
+        var raison = availableRaisons.FirstOrDefault(r => r.Code == selectedRaisonCode);
+        selectedRaisonNom = raison?.Nom;
+        if (selectedRaisonCode != "AUTRE") autreMotifTexte = "";
+    }
+
     private bool IsExterne() => fromBemLink;
-
-    private void SelectSingleMotifInGroup(string group, string fieldName)
-    {
-        // Clear all fields in the group first, then set only the clicked one
-        switch (group)
-        {
-            case "FIN_CHANTIER":
-                motif.FinChantier = fieldName == "FinChantier" && !motif.FinChantier;
-                motif.FinContrat = fieldName == "FinContrat" && !motif.FinContrat;
-                motif.MaterielUsage = fieldName == "MaterielUsage" && !motif.MaterielUsage;
-                motif.MaterielDeclasse = fieldName == "MaterielDeclasse" && !motif.MaterielDeclasse;
-                break;
-            case "RESIDU":
-                motif.Residu = fieldName == "Residu" && !motif.Residu;
-                motif.Dechet = fieldName == "Dechet" && !motif.Dechet;
-                motif.Emballage = fieldName == "Emballage" && !motif.Emballage;
-                motif.MaterielDesaffecte = fieldName == "MaterielDesaffecte" && !motif.MaterielDesaffecte;
-                break;
-            case "RADIO_PROT":
-                motif.RadioProtection = fieldName == "RadioProtection" && !motif.RadioProtection;
-                motif.Troxilaire = fieldName == "Troxilaire" && !motif.Troxilaire;
-                break;
-            case "MODIF":
-                motif.Modification = fieldName == "Modification" && !motif.Modification;
-                motif.Reparation = fieldName == "Reparation" && !motif.Reparation;
-                motif.Renovation = fieldName == "Renovation" && !motif.Renovation;
-                break;
-        }
-        OnMotifChanged();
-    }
-
-    private bool GetMotifBoolValue(string fieldName) => fieldName switch
-    {
-        "FinChantier" => motif.FinChantier,
-        "FinContrat" => motif.FinContrat,
-        "MaterielUsage" => motif.MaterielUsage,
-        "MaterielDeclasse" => motif.MaterielDeclasse,
-        "Residu" => motif.Residu,
-        "Dechet" => motif.Dechet,
-        "Emballage" => motif.Emballage,
-        "MaterielDesaffecte" => motif.MaterielDesaffecte,
-        "RadioProtection" => motif.RadioProtection,
-        "Troxilaire" => motif.Troxilaire,
-        "Modification" => motif.Modification,
-        "Reparation" => motif.Reparation,
-        "Renovation" => motif.Renovation,
-        _ => false
-    };
 
     // === BEM ===
     private async Task OnBemSelectedRadzen(object args)
@@ -1071,7 +835,7 @@ else
         if (args is int bemId && bemId > 0)
         {
             selectedBemDetails = await BonEntreeLockService.GetDetailsForSortieAsync(bemId);
-            
+
             if (selectedBemDetails != null)
             {
                 materielsBemSelectables = selectedBemDetails.Materiels
@@ -1086,23 +850,21 @@ else
                         QuantiteDisponible = m.QuantiteDisponible,
                         QuantiteASortir = Math.Min(1, m.QuantiteDisponible)
                     }).ToList();
-                
-                // Auto-remplir FROM depuis la destination du BEM (provenance = là où le matériel se trouve)
+
                 var matchedSite = sites.FirstOrDefault(s => s.Nom.Equals(selectedBemDetails.Destination, StringComparison.OrdinalIgnoreCase));
                 if (matchedSite != null)
                 {
                     siteFromId = matchedSite.Id;
                     destinationFromBem = true;
-                    // Si TO était égal au nouveau FROM, le réinitialiser
                     if (siteToId.HasValue && siteToId.Value == siteFromId.Value)
                     {
                         siteToId = null;
                     }
                 }
-                
+
                 selectedMateriels.Clear();
 
-                ApplyMotifConstraintsFromSelectedBem();
+                await AutoSelectMotifFromBemAsync();
             }
         }
         else
@@ -1112,151 +874,15 @@ else
             selectedMateriels.Clear();
             siteFromId = null;
             destinationFromBem = false;
-            allowedMotifGroupsByBem = null;
+            availableRaisons = (await CategorieSortieService.GetRaisonsAutoriseesByDepartementIdAsync(null)).ToList();
+            selectedRaisonCode = null;
+            selectedRaisonNom = null;
+            motifLocked = false;
         }
     }
 
-    private void ApplyMotifConstraintsFromSelectedBem()
-    {
-        allowedMotifGroupsByBem = ResolveAllowedMotifGroupsFromSelectedBem();
-
-        if (allowedMotifGroupsByBem == null || allowedMotifGroupsByBem.Count == 0)
-        {
-            return;
-        }
-
-        if (allowedMotifGroupsByBem.SetEquals(new[] { "INFO" }))
-        {
-            SelectMotifGroup("INFO");
-            NotificationService.Notify(NotificationSeverity.Info, "Motif", "BEM IT détecté : motif Informatique coché automatiquement.");
-            ApplyBemFilterByMotif();
-            return;
-        }
-
-        if (motif.ActiveGroup != null && !allowedMotifGroupsByBem.Contains(motif.ActiveGroup))
-        {
-            ClearMotifSelection();
-        }
-    }
-
-    private HashSet<string>? ResolveAllowedMotifGroupsFromSelectedBem()
-    {
-        var hostDept = selectedBemDetails?.HostDepartment?.Trim().ToUpperInvariant();
-        if (string.IsNullOrWhiteSpace(hostDept))
-        {
-            return null;
-        }
-
-        if (hostDept.Contains("IT"))
-        {
-            return ["INFO"];
-        }
-
-        if (hostDept.Contains("ENV"))
-        {
-            return ["RESIDU", "RADIO_PROT", "MODIF"];
-        }
-
-        return null;
-    }
-
-    private bool IsGroupAllowed(string group)
-    {
-        return allowedMotifGroupsByBem == null || allowedMotifGroupsByBem.Contains(group);
-    }
-
-    private void ClearMotifSelection()
-    {
-        motif.FinChantier = false;
-        motif.FinContrat = false;
-        motif.MaterielUsage = false;
-        motif.MaterielDeclasse = false;
-        motif.Residu = false;
-        motif.Dechet = false;
-        motif.Emballage = false;
-        motif.MaterielDesaffecte = false;
-        motif.RadioProtection = false;
-        motif.Troxilaire = false;
-        motif.Modification = false;
-        motif.Reparation = false;
-        motif.Renovation = false;
-        motif.SelectedInterneCode = null;
-        motif.AutreMotifTexte = "";
-        motif.RecalculateActiveGroup();
-    }
-
-    private void SelectMotifGroup(string group)
-    {
-        ClearMotifSelection();
-
-        switch (group)
-        {
-            case "INFO":
-                motif.SelectedInterneCode = "INFO";
-                break;
-            case "CIRC":
-                motif.SelectedInterneCode = "CIRC";
-                break;
-            case "PRET":
-                motif.SelectedInterneCode = "PRET";
-                break;
-            case "RESIDU":
-                motif.Residu = true;
-                break;
-            case "RADIO_PROT":
-                motif.RadioProtection = true;
-                break;
-            case "MODIF":
-                motif.Modification = true;
-                break;
-            case "FIN_CHANTIER":
-                motif.FinChantier = true;
-                break;
-        }
-
-        motif.RecalculateActiveGroup();
-    }
-
-    private void ApplyBemFilterByMotif()
-    {
-        expectedHostDepartmentFilter = ResolveExpectedHostDepartmentFromMotif();
-
-        if (string.IsNullOrWhiteSpace(expectedHostDepartmentFilter))
-        {
-            bemsDisponibles = bemsDisponiblesAll.ToList();
-        }
-        else
-        {
-            bemsDisponibles = bemsDisponiblesAll
-                .Where(b => !string.IsNullOrWhiteSpace(b.HostDepartment)
-                         && b.HostDepartment.Contains(expectedHostDepartmentFilter, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
-
-        if (selectedBemDetails != null && !bemsDisponibles.Any(b => b.IdBon == selectedBemDetails.IdBon))
-        {
-            selectedBemDetails = null;
-            materielsBemSelectables.Clear();
-            selectedMateriels.Clear();
-            siteFromId = null;
-            destinationFromBem = false;
-        }
-    }
-
-    private string? ResolveExpectedHostDepartmentFromMotif()
-    {
-        var raisonCode = motif.GetRaisonSortieCode()?.Trim().ToUpperInvariant();
-        if (raisonCode == "INFO") return "IT";
-        if (raisonCode is "RESIDU" or "RADIO_PROT" or "MODIF") return "ENV";
-        return null;
-    }
-
-    /// <summary>
-    /// Handler appelé lorsque le site FROM change - réinitialise TO si égal à FROM.
-    /// </summary>
     private void OnSiteFromChanged(object args)
     {
-        // Si TO est maintenant égal à FROM, le réinitialiser
         if (siteToId.HasValue && siteFromId.HasValue && siteToId.Value == siteFromId.Value)
         {
             siteToId = null;
@@ -1275,20 +901,19 @@ else
         showMaterielModal = false;
         await JSRuntime.InvokeVoidAsync("eval", "document.body.style.overflow=''");
     }
-    
+
     private void OnMaterielToggle(MaterielSelectable mat, bool isChecked)
     {
         mat.EstSelectionne = isChecked;
         if (isChecked && mat.QuantiteASortir < 1) mat.QuantiteASortir = 1;
     }
-    
+
     private async Task ConfirmMaterielSelection()
     {
         if (selectedBemDetails != null)
         {
             selectedMateriels = materielsBemSelectables.Where(m => m.EstSelectionne).ToList();
         }
-        // Si c'est un bon interne, les matériels sont déjà dans selectedMateriels via AddMaterielManuel
         showMaterielModal = false;
         await JSRuntime.InvokeVoidAsync("eval", "document.body.style.overflow=''");
     }
@@ -1297,6 +922,14 @@ else
     {
         if (string.IsNullOrWhiteSpace(newMaterielDesignation))
             return;
+
+        // Vérifier l'unicité du Code/N° Série
+        if (!string.IsNullOrWhiteSpace(newMaterielCode) &&
+            selectedMateriels.Any(m => m.CodeProduitSerial?.Equals(newMaterielCode.Trim(), StringComparison.OrdinalIgnoreCase) == true))
+        {
+            errorMessage = $"Le code/N° série \"{newMaterielCode.Trim()}\" existe déjà dans la liste.";
+            return;
+        }
 
         var newMat = new MaterielSelectable
         {
@@ -1308,16 +941,13 @@ else
         };
 
         selectedMateriels.Add(newMat);
+        errorMessage = null;
 
-        // Réinitialiser les champs
         newMaterielCode = string.Empty;
         newMaterielDesignation = string.Empty;
         newMaterielQte = 1;
     }
 
-    /// <summary>
-    /// Ajoute une ligne vide dans la grille pour saisie inline (mode interne)
-    /// </summary>
     private void AddEmptyMateriel()
     {
         var newMat = new MaterielSelectable
@@ -1325,18 +955,16 @@ else
             CodeProduitSerial = string.Empty,
             Designation = string.Empty,
             QuantiteASortir = 1,
-            QuantiteDisponible = 9999, // Pas de limite pour les bons internes
+            QuantiteDisponible = 9999,
             EstSelectionne = true
         };
         selectedMateriels.Add(newMat);
-        // Forcer le rafraîchissement de la grille en créant une nouvelle référence de liste
         selectedMateriels = new List<MaterielSelectable>(selectedMateriels);
     }
 
     private void RemoveMateriel(MaterielSelectable mat)
     {
         selectedMateriels.Remove(mat);
-        // Forcer le rafraîchissement de la grille
         selectedMateriels = new List<MaterielSelectable>(selectedMateriels);
     }
 
@@ -1352,14 +980,11 @@ else
         }
     }
 
-    /// <summary>
-    /// Compte les matériels avec une désignation remplie (pour affichage dans Review)
-    /// </summary>
     private int GetValidMaterielsCount()
     {
         return selectedMateriels.Count(m => !string.IsNullOrWhiteSpace(m.Designation));
     }
-    
+
     // === CHECKPOINTS ===
     private void ToggleCheckpoint(CheckpointSelection chk, bool isChecked)
     {
@@ -1374,7 +999,7 @@ else
             ReorderCheckpoints();
         }
     }
-    
+
     private void ReorderCheckpoints()
     {
         var ordre = 1;
@@ -1383,37 +1008,71 @@ else
             chk.OrdrePrevu = ordre++;
         }
     }
-    
+
     // === VALIDATION ===
     private bool CanSubmit()
     {
-        // Vérifications de base
         if (string.IsNullOrWhiteSpace(model.NomDemandeur)) return false;
         if (!siteFromId.HasValue || !siteToId.HasValue) return false;
-        if (motif.GetRaisonSortieCode() == null) return false;
+        if (string.IsNullOrWhiteSpace(selectedRaisonCode)) return false;
 
-        // Pour les bons internes, vérifier qu'il y a au moins un matériel avec désignation
+        if (selectedRaisonCode == "AUTRE" && string.IsNullOrWhiteSpace(autreMotifTexte)) return false;
+
+        if (selectedRaisonCode == "PRET" && (!pretDateRetourPrevue.HasValue || pretDateRetourPrevue.Value <= DateTime.Today)) return false;
+
         if (!fromBemLink)
         {
-            return selectedMateriels.Any(m => !string.IsNullOrWhiteSpace(m.Designation));
+            return selectedMateriels.Count > 0
+                && selectedMateriels.All(m => !string.IsNullOrWhiteSpace(m.Designation) && !string.IsNullOrWhiteSpace(m.CodeProduitSerial));
         }
 
-        // Pour les bons externes (depuis BEM), vérifier qu'il y a des matériels sélectionnés
         return selectedMateriels.Any();
     }
-    
+
     // === SOUMISSION ===
     private async Task HandleSubmitAsync(bool submit)
     {
         if (isSubmitting) return;
+
+        // Validation avec messages d'erreur
+        var validationErrors = new List<string>();
+        if (string.IsNullOrWhiteSpace(model.NomDemandeur)) validationErrors.Add("Nom du demandeur");
+        if (!siteFromId.HasValue) validationErrors.Add("Provenance");
+        if (!siteToId.HasValue) validationErrors.Add("Destination");
+        if (string.IsNullOrWhiteSpace(selectedRaisonCode)) validationErrors.Add("Motif");
+        if (selectedRaisonCode == "AUTRE" && string.IsNullOrWhiteSpace(autreMotifTexte)) validationErrors.Add("Précision du motif (Autre)");
+        if (selectedRaisonCode == "PRET" && (!pretDateRetourPrevue.HasValue || pretDateRetourPrevue.Value <= DateTime.Today)) validationErrors.Add("Date de retour prévue");
+        if (!selectedMateriels.Any()) validationErrors.Add("Au moins un matériel");
+        if (!fromBemLink && selectedMateriels.Any(m => string.IsNullOrWhiteSpace(m.Designation) || string.IsNullOrWhiteSpace(m.CodeProduitSerial)))
+            validationErrors.Add("Désignation et code série de chaque matériel");
+
+        // Vérifier les doublons de Code/N° Série
+        if (!fromBemLink)
+        {
+            var duplicates = selectedMateriels
+                .Where(m => !string.IsNullOrWhiteSpace(m.CodeProduitSerial))
+                .GroupBy(m => m.CodeProduitSerial!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            if (duplicates.Any())
+                validationErrors.Add($"Code/N° série en doublon : {string.Join(", ", duplicates)}");
+        }
+
+        if (validationErrors.Any())
+        {
+            errorMessage = $"Champs obligatoires manquants : {string.Join(", ", validationErrors)}";
+            return;
+        }
+
         isSubmitting = true;
         errorMessage = null;
-        
+
         try
         {
             var siteFrom = sites.FirstOrDefault(s => s.Id == siteFromId);
             var siteTo = sites.FirstOrDefault(s => s.Id == siteToId);
-            
+
             var materiels = selectedMateriels.Select(m => new MaterielDto
             {
                 CodeProduitSerial = m.CodeProduitSerial,
@@ -1425,7 +1084,7 @@ else
                 QuantiteInitialeBem = m.QuantiteInitiale,
                 QuantiteDisponible = m.QuantiteDisponible
             }).ToList();
-            
+
             var checkpointsList = checkpoints
                 .Where(c => c.EstSelectionne)
                 .OrderBy(c => c.OrdrePrevu)
@@ -1434,12 +1093,13 @@ else
                     CheckpointId = c.Checkpoint.Id,
                     OrdrePrevu = c.OrdrePrevu
                 }).ToList();
-            
+
             BonSortieResult result;
-            
-            if (!fromBemLink && !motif.PriseEnPret)
+
+            var isPret = selectedRaisonCode == "PRET";
+
+            if (!fromBemLink && !isPret)
             {
-                // INTERNE (création directe sans BEM)
                 var request = new CreateBonSortieInterneRequest
                 {
                     NomDemandeur = model.NomDemandeur,
@@ -1447,8 +1107,8 @@ else
                     DepartementDemandeur = model.DepartementDemandeur,
                     Provenance = siteFrom?.Nom ?? string.Empty,
                     Destination = siteTo?.Nom ?? string.Empty,
-                    MotifSortie = motif.GetMotifText(),
-                    RaisonSortieCode = motif.GetRaisonSortieCode(),
+                    MotifSortie = GetMotifText(),
+                    RaisonSortieCode = selectedRaisonCode,
                     BonEntreeAssocieId = selectedBemDetails?.IdBon,
                     Materiels = materiels,
                     CheckpointsItineraire = checkpointsList,
@@ -1457,9 +1117,8 @@ else
 
                 result = await BonSortieService.CreateInterneAsync(request);
             }
-            else if (!fromBemLink && motif.PriseEnPret)
+            else if (!fromBemLink && isPret)
             {
-                // PRÊT (interne, catégorie spéciale)
                 var pretRequest = new CreatePretRequest
                 {
                     NomDemandeur = model.NomDemandeur,
@@ -1467,20 +1126,19 @@ else
                     DepartementDemandeur = model.DepartementDemandeur,
                     Provenance = siteFrom?.Nom ?? string.Empty,
                     Destination = siteTo?.Nom ?? string.Empty,
-                    MotifSortie = motif.GetMotifText(),
-                    RaisonSortieCode = motif.GetRaisonSortieCode(),
+                    MotifSortie = GetMotifText(),
+                    RaisonSortieCode = selectedRaisonCode,
                     BonEntreeAssocieId = selectedBemDetails?.IdBon,
                     NomDestinataire = siteTo?.Nom ?? string.Empty,
                     Materiels = materiels,
                     CheckpointsItineraire = checkpointsList,
-                    DateRetourPrevue = DateTime.Now.AddMonths(1),
+                    DateRetourPrevue = pretDateRetourPrevue ?? DateTime.Now.AddMonths(1),
                     DateExpiration = DateTime.Now.AddMonths(6)
                 };
                 result = await BonSortieService.CreatePretAsync(pretRequest);
             }
             else
             {
-                // EXTERNE (depuis un BEM, toujours externe même pour Informatique)
                 var request = new CreateBonSortieExterneRequest
                 {
                     NomDemandeur = model.NomDemandeur,
@@ -1488,8 +1146,8 @@ else
                     DepartementDemandeur = model.DepartementDemandeur,
                     Provenance = siteFrom?.Nom ?? string.Empty,
                     Destination = siteTo?.Nom ?? string.Empty,
-                    MotifSortie = motif.GetMotifText(),
-                    RaisonSortieCode = motif.GetRaisonSortieCode(),
+                    MotifSortie = GetMotifText(),
+                    RaisonSortieCode = selectedRaisonCode,
                     BonEntreeAssocieId = selectedBemDetails?.IdBon,
                     NomDestinataire = selectedBemDetails?.NomCompagnie ?? siteTo?.Nom ?? string.Empty,
                     Materiels = materiels,
@@ -1498,24 +1156,24 @@ else
                 };
                 result = await BonSortieService.CreateExterneAsync(request);
             }
-            
+
             if (result.Success && result.Bon != null)
             {
                 if (submit)
                 {
                     await BonSortieService.SubmitForApprovalAsync(result.Bon.Id);
                 }
-                
+
                 NotificationService.Notify(new NotificationMessage
                 {
                     Severity = NotificationSeverity.Success,
                     Summary = "Succès",
-                    Detail = submit 
+                    Detail = submit
                         ? $"Bon {result.Bon.NumeroReference} créé et soumis pour approbation"
                         : $"Bon {result.Bon.NumeroReference} enregistré comme brouillon",
                     Duration = 4000
                 });
-                
+
                 Navigation.NavigateTo($"/bon-sortie/{result.Bon.Id}");
             }
             else
@@ -1533,4 +1191,3 @@ else
         }
     }
 }
-

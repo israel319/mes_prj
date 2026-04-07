@@ -9,39 +9,35 @@
 
 <PageTitle>Administration - Paramètres Système</PageTitle>
 
-<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
     <AdminNav />
-    <RadzenStack Gap="1.5rem">
-        @* En-tête *@
-        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-            <RadzenColumn>
-                <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" class="rz-mt-2">
-                    <RadzenIcon Icon="tune" Style="margin-right: 0.5rem; vertical-align: middle;" />
-                    Paramètres Système
-                </RadzenText>
-            </RadzenColumn>
-            <RadzenColumn>
-                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
-                    <RadzenButton Text="Actualiser" Icon="refresh" ButtonStyle="ButtonStyle.Light" 
-                                  Click="@LoadDataAsync" />
-                    <RadzenButton Text="Nouveau paramètre" Icon="add" ButtonStyle="ButtonStyle.Primary"
-                                  Click="@ShowCreateDialog" />
-                </RadzenStack>
-            </RadzenColumn>
-        </RadzenRow>
 
-        @* Paramètres par catégorie *@
-        @foreach (var category in GetCategoriesWithParametres())
+    @* ─── En-tête ─── *@
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
+                Paramètres Système
+            </RadzenText>
+        </RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
+            <RadzenButton Icon="refresh" Text="Actualiser" Variant="Variant.Outlined"
+                          ButtonStyle="ButtonStyle.Secondary" Click="@LoadDataAsync" />
+            <RadzenButton Text="Nouveau paramètre" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                          Click="@ShowCreateDialog" />
+        </RadzenStack>
+    </RadzenStack>
+
+    @* ─── Paramètres par catégorie ─── *@
+    @foreach (var category in GetCategoriesWithParametres())
         {
-            <RadzenCard Variant="Variant.Flat">
+            <RadzenCard>
                 <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.SemiBold" class="rz-mb-4">
                     <RadzenIcon Icon="@GetCategoryIcon(category.Key)" Style="margin-right: 0.5rem; vertical-align: middle;" />
                     @category.Key
                 </RadzenText>
                 
                 <RadzenDataGrid Data="@category.Value" TItem="ParametreSysteme" 
-                                AllowFiltering="false" AllowSorting="false" AllowPaging="false"
-                                Style="border: none;">
+                                AllowFiltering="false" AllowSorting="false" AllowPaging="false">
                     <Columns>
                         <RadzenDataGridColumn TItem="ParametreSysteme" Property="Cle" Title="Clé" Width="250px">
                             <Template Context="param">
@@ -125,8 +121,7 @@
                 </RadzenDataGrid>
             </RadzenCard>
         }
-    </RadzenStack>
-</div>
+</RadzenStack>
 
 @code {
     private List<ParametreSysteme> parametres = [];
