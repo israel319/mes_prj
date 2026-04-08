@@ -7,6 +7,11 @@ namespace AppPlusPlus.Application.Services.Parametres;
 public interface IAppSettingsService
 {
     const string KEY_APP_NAME = "AppName";
+    const string KEY_LAYOUT_PREFERENCE = "LayoutPreference";
+    const string KEY_THEME = "Theme";
+    const string KEY_LANGUE = "Langue";
+    const string LAYOUT_SIDEBAR = "Sidebar";
+    const string LAYOUT_TOPBAR = "Topbar";
 
     string AppName { get; }
     string? Get(string key);

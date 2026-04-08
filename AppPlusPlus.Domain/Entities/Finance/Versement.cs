@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using AppPlusPlus.Domain.Entities.Administration;
+using AppPlusPlus.Domain.Entities.Approvisionnement;
 
 namespace AppPlusPlus.Domain.Entities.Finance;
 
@@ -47,4 +48,7 @@ public class Versement
     // Navigation
     [ForeignKey(nameof(LocalisationId))]
     public Localisation? Localisation { get; set; }
+
+    /// <summary>Versement de caisse généré automatiquement lors de cette clôture.</summary>
+    public ApproExpense? ApproExpense { get; set; }
 }

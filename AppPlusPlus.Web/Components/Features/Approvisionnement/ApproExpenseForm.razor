@@ -10,34 +10,50 @@
         <DialogContent>
             <div class="d-flex flex-column gap-3">
 
+                @if (_item.VersementId.HasValue)
+                {
+                    <div class="alert alert-info mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-link-45deg"></i>
+                        <span>Versement lié à la <strong>clôture N°@_item.VersementId</strong> — certaines infos sont en lecture seule.</span>
+                    </div>
+                }
+
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Source</label>
-                        <MudSelect T="int" @bind-Value="_item.SourceId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        <label class="form-label fw-semibold">Source</label>
+                        <MudSelect T="int" @bind-Value="_item.SourceId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
+                                   Placeholder="— Sélectionner la source —" Disabled="@_item.VersementId.HasValue">
                             @foreach (var s in _sources)
                             {
                                 <MudSelectItem T="int" Value="@s.Id">@s.Sources</MudSelectItem>
                             }
                         </MudSelect>
+                        <small class="text-muted">D'où provient l'argent ?</small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Caisse</label>
-                        <MudSelect T="int?" @bind-Value="_item.CaisseId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        <label class="form-label fw-semibold">Caisse de destination</label>
+                        <MudSelect T="int?" @bind-Value="_item.CaisseId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
+                                   Placeholder="— Sélectionner la caisse —">
                             @foreach (var c in _caisses)
                             {
                                 <MudSelectItem T="int?" Value="@c.CaisseId">@c.Description</MudSelectItem>
                             }
                         </MudSelect>
+                        <small class="text-muted">Dans quelle caisse déposer ?</small>
                     </div>
                 </div>
 
-                <label class="form-label">Description</label>
-                <input type="text" class="form-control" @bind="_item.Description" maxlength="200" />
+                <div>
+                    <label class="form-label fw-semibold">Motif / Description</label>
+                    <input type="text" class="form-control" @bind="_item.Description" maxlength="200"
+                           placeholder="Ex : Versement recette du jour, remise fournisseur…" />
+                </div>
 
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">Devise</label>
-                        <MudSelect T="int?" @bind-Value="_item.CurrencyId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true">
+                        <label class="form-label fw-semibold">Devise</label>
+                        <MudSelect T="int?" @bind-Value="_item.CurrencyId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
+                                   Placeholder="— Devise —">
                             @foreach (var m in _monnaies)
                             {
                                 <MudSelectItem T="int?" Value="@m.IdMonais">@m.DescriptionMonais</MudSelectItem>
@@ -45,23 +61,27 @@
                         </MudSelect>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Montant USD</label>
-                        <MudNumericField @bind-Value="_item.AmountUSD" T="decimal?" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <label class="form-label fw-semibold">Montant USD</label>
+                        <MudNumericField @bind-Value="_item.AmountUSD" T="decimal?" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Placeholder="0.00" Disabled="@_item.VersementId.HasValue" />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Montant CDF</label>
-                        <MudNumericField @bind-Value="_item.AmountCDF" T="decimal?" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <label class="form-label fw-semibold">Montant CDF</label>
+                        <MudNumericField @bind-Value="_item.AmountCDF" T="decimal?" Format="N2" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Placeholder="0.00" Disabled="@_item.VersementId.HasValue" />
                     </div>
                 </div>
 
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Déposeur</label>
-                        <input type="text" class="form-control" @bind="_item.Depositeur" maxlength="100" />
+                        <label class="form-label fw-semibold">Déposeur</label>
+                        <input type="text" class="form-control" @bind="_item.Depositeur" maxlength="100"
+                               placeholder="Nom de la personne qui dépose" />
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Commentaire</label>
-                        <input type="text" class="form-control" @bind="_item.Comment" maxlength="200" />
+                        <label class="form-label fw-semibold">Commentaire</label>
+                        <input type="text" class="form-control" @bind="_item.Comment" maxlength="200"
+                               placeholder="Remarques (optionnel)" />
                     </div>
                 </div>
             </div>

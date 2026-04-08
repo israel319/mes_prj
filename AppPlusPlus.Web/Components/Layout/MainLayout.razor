@@ -2,13 +2,14 @@
 @inject NavigationManager Nav
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IPermissionResolver PermissionResolver
+@inject IJSRuntime JS
 @implements IDisposable
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using System.Globalization
 
-<MudThemeProvider Theme="_appTheme" />
+<MudThemeProvider Theme="_appTheme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -19,9 +20,11 @@
 }
 else
 {
-    <div class="app-layout">
+    <div class="app-layout @(_useTopbarLayout ? "app-layout--topbar" : "")">
 
         <!-- ══════════════ SIDEBAR ══════════════ -->
+        @if (!_useTopbarLayout)
+        {
         <aside class="sidebar @(_sidebarCollapsed ? "sidebar--collapsed" : "")">
 
             <!-- Brand -->
@@ -138,77 +141,213 @@ else
                 </a>
             </div>
         </aside>
+        }
 
         <!-- ══════════════ MAIN AREA ══════════════ -->
         <div class="main-area">
 
-            <!-- TOPBAR -->
-            <header class="topbar">
-                <!-- Page title + date -->
-                <div class="topbar-title">
-                    <h1 class="topbar-page-name">@_pageTitle</h1>
-                    <div class="topbar-date">
-                        <i class="ti ti-calendar-event" style="font-size:13px;"></i>
-                        <span>@_todayLabel</span>
+            @if (_useTopbarLayout)
+            {
+                <!-- TOPNAV UNIFIED BAR (topbar mode) -->
+                <nav class="topnav topnav--unified">
+                  <div class="topnav-inner">
+                    <a href="/" class="topnav-brand" title="Accueil">
+                        <span class="topnav-brand-icon"><i class="ti ti-rocket"></i></span>
+                        <span class="topnav-brand-name">@AppSettings.AppName</span>
+                    </a>
+
+                    <!-- Nav links -->
+                    <div class="topnav-links">
+                        @if (CanRead(AppFunctions.Dashboard))
+                        {
+                            <a href="/" class="topnav-item @(IsNavActive("/") ? "topnav-item--active" : "")">
+                                <i class="ti ti-layout-dashboard"></i>
+                                <span>Tableau de bord</span>
+                            </a>
+                        }
+
+                        @if (CanRead(AppFunctions.Vente) || CanRead(AppFunctions.Facturation))
+                        {
+                            <a href="/vente" class="topnav-item @(IsNavActive("/vente") ? "topnav-item--active" : "")">
+                                <i class="ti ti-receipt"></i>
+                                <span>Ventes</span>
+                            </a>
+                        }
+
+                        @if (CanRead(AppFunctions.Stock) || CanRead(AppFunctions.Approvisionnement))
+                        {
+                            <a href="/stock" class="topnav-item @(IsNavActive("/stock", "/gestion/article", "/gestion/approvisionnement", "/gestion/transformation", "/gestion/parametre-article") ? "topnav-item--active" : "")">
+                                <i class="ti ti-box-seam"></i>
+                                <span>Articles</span>
+                            </a>
+                        }
+
+                        @if (CanRead(AppFunctions.CommandesClients) || CanRead(AppFunctions.CommandesInternes))
+                        {
+                            <a href="/commandes" class="topnav-item @(IsNavActive("/commandes", "/gestion/commande", "/gestion/client", "/gestion/vente") ? "topnav-item--active" : "")">
+                                <i class="ti ti-shopping-cart"></i>
+                                <span>Commandes</span>
+                            </a>
+                        }
+
+                        @if (CanRead(AppFunctions.Rapports))
+                        {
+                            <a href="/rapports" class="topnav-item @(IsNavActive("/rapports", "/rapport") ? "topnav-item--active" : "")">
+                                <i class="ti ti-chart-bar"></i>
+                                <span>Rapports</span>
+                            </a>
+                        }
+
+                        @if (CanRead(AppFunctions.Administration))
+                        {
+                            <a href="/administration" class="topnav-item @(IsNavActive("/administration", "/admin/") ? "topnav-item--active" : "")">
+                                <i class="ti ti-settings-2"></i>
+                                <span>Administration</span>
+                            </a>
+                        }
+
+                        @if (CanRead(AppFunctions.Parametres))
+                        {
+                            <a href="/settings" class="topnav-item @(IsNavActive("/settings") ? "topnav-item--active" : "")">
+                                <i class="ti ti-adjustments"></i>
+                                <span>Paramètres</span>
+                            </a>
+                        }
                     </div>
-                </div>
 
-                <!-- Spacer -->
-                <div style="flex:1;"></div>
+                    <!-- Right section: actions + user -->
+                    <div class="topnav-right">
+                        <button class="topnav-action-btn" title="Aide">
+                            <i class="ti ti-help"></i>
+                        </button>
+                        <button class="topnav-action-btn position-relative" title="Notifications">
+                            <i class="ti ti-bell"></i>
+                        </button>
 
-                <!-- Action buttons -->
-                <div class="topbar-actions">
-                    <button class="topbar-btn" title="Aide">
-                        <i class="ti ti-help"></i>
-                    </button>
-                    <button class="topbar-btn position-relative" title="Notifications">
-                        <i class="ti ti-bell"></i>
-                    </button>
-                </div>
-
-                <!-- User dropdown (Blazor-managed) -->
-                <div class="dropdown" tabindex="-1" @onfocusout="@(() => _profileOpen = false)">
-                    <div class="topbar-user" role="button" tabindex="0" @onclick="@(() => _profileOpen = !_profileOpen)"
-                         @onclick:stopPropagation>
-                        <div class="topbar-avatar">
-                            <i class="ti ti-user"></i>
-                        </div>
-                        <div class="topbar-user-info">
-                            <span class="topbar-user-name">@_currentUserName</span>
-                            <span class="topbar-user-role">@_currentUserRole</span>
-                        </div>
-                        <i class="ti ti-chevron-down" style="font-size:14px;color:#a3a3a3;"></i>
-                    </div>
-                    <div class="dropdown-menu dropdown-menu-end p-0 @(_profileOpen ? "show" : "")" style="min-width:200px;">
-                        <div class="d-flex gap-3 align-items-center border-bottom px-3 py-3">
-                            <div class="avatar avatar-md" style="background:rgba(0,177,147,0.12);">
-                                <span class="avatar-initials" style="color:#00B193;font-size:14px;">
+                        <!-- User dropdown -->
+                        @if (_profileOpen)
+                        {
+                            <div class="dropdown-backdrop" @onclick="@(() => _profileOpen = false)"></div>
+                        }
+                        <div class="dropdown">
+                            <div class="topnav-user" role="button" @onclick="@(() => _profileOpen = !_profileOpen)"
+                                 @onclick:stopPropagation>
+                                <div class="topnav-user-avatar">
                                     <i class="ti ti-user"></i>
-                                </span>
+                                </div>
+                                <div class="topnav-user-info">
+                                    <span class="topnav-user-name">@_currentUserName</span>
+                                    <span class="topnav-user-role">@_currentUserRole</span>
+                                </div>
+                                <i class="ti ti-chevron-down" style="font-size:12px;color:rgba(255,255,255,0.5);"></i>
                             </div>
-                            <div>
-                                <p class="mb-0 small fw-semibold">@_currentUserName</p>
-                                <p class="mb-0 small text-muted">@_currentUserRole</p>
+                            <div class="dropdown-menu dropdown-menu-end p-0 @(_profileOpen ? "show" : "")" style="min-width:200px;">
+                                <div class="d-flex gap-3 align-items-center border-bottom px-3 py-3">
+                                    <div class="avatar avatar-md" style="background:rgba(0,177,147,0.12);">
+                                        <span class="avatar-initials" style="color:#00B193;font-size:14px;">
+                                            <i class="ti ti-user"></i>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p class="mb-0 small fw-semibold">@_currentUserName</p>
+                                        <p class="mb-0 small text-muted">@_currentUserRole</p>
+                                    </div>
+                                </div>
+                                <div class="p-2 d-flex flex-column gap-1 small">
+                                    <a href="/profile" class="dropdown-item">
+                                        <i class="ti ti-user me-2"></i> Mon profil
+                                    </a>
+                                    @if (CanRead(AppFunctions.Parametres))
+                                    {
+                                        <a href="/settings" class="dropdown-item">
+                                            <i class="ti ti-adjustments me-2"></i> Paramètres
+                                        </a>
+                                    }
+                                    <hr class="my-1" />
+                                    <a href="/auth/logout" class="dropdown-item text-danger">
+                                        <i class="ti ti-logout me-2"></i> Déconnexion
+                                    </a>
+                                </div>
                             </div>
-                        </div>
-                        <div class="p-2 d-flex flex-column gap-1 small">
-                            <a href="/profile" class="dropdown-item">
-                                <i class="ti ti-user me-2"></i> Mon profil
-                            </a>
-                            @if (CanRead(AppFunctions.Parametres))
-                            {
-                                <a href="/settings" class="dropdown-item">
-                                    <i class="ti ti-adjustments me-2"></i> Paramètres
-                                </a>
-                            }
-                            <hr class="my-1" />
-                            <a href="/auth/logout" class="dropdown-item text-danger">
-                                <i class="ti ti-logout me-2"></i> Déconnexion
-                            </a>
                         </div>
                     </div>
-                </div>
-            </header>
+                  </div>
+                </nav>
+            }
+            else
+            {
+                <!-- TOPBAR (sidebar mode — white bar) -->
+                <header class="topbar">
+                    <!-- Page title + date -->
+                    <div class="topbar-title">
+                        <h1 class="topbar-page-name">@_pageTitle</h1>
+                        <div class="topbar-date">
+                            <i class="ti ti-calendar-event" style="font-size:13px;"></i>
+                            <span>@_todayLabel</span>
+                        </div>
+                    </div>
+
+                    <!-- Spacer -->
+                    <div style="flex:1;"></div>
+
+                    <!-- Action buttons -->
+                    <div class="topbar-actions">
+                        <button class="topbar-btn" title="Aide">
+                            <i class="ti ti-help"></i>
+                        </button>
+                        <button class="topbar-btn position-relative" title="Notifications">
+                            <i class="ti ti-bell"></i>
+                        </button>
+                    </div>
+
+                    <!-- User dropdown (Blazor-managed) -->
+                    @if (_profileOpen)
+                    {
+                        <div class="dropdown-backdrop" @onclick="@(() => _profileOpen = false)"></div>
+                    }
+                    <div class="dropdown">
+                        <div class="topbar-user" role="button" @onclick="@(() => _profileOpen = !_profileOpen)"
+                             @onclick:stopPropagation>
+                            <div class="topbar-avatar">
+                                <i class="ti ti-user"></i>
+                            </div>
+                            <div class="topbar-user-info">
+                                <span class="topbar-user-name">@_currentUserName</span>
+                                <span class="topbar-user-role">@_currentUserRole</span>
+                            </div>
+                            <i class="ti ti-chevron-down" style="font-size:14px;color:#a3a3a3;"></i>
+                        </div>
+                        <div class="dropdown-menu dropdown-menu-end p-0 @(_profileOpen ? "show" : "")" style="min-width:200px;">
+                            <div class="d-flex gap-3 align-items-center border-bottom px-3 py-3">
+                                <div class="avatar avatar-md" style="background:rgba(0,177,147,0.12);">
+                                    <span class="avatar-initials" style="color:#00B193;font-size:14px;">
+                                        <i class="ti ti-user"></i>
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="mb-0 small fw-semibold">@_currentUserName</p>
+                                    <p class="mb-0 small text-muted">@_currentUserRole</p>
+                                </div>
+                            </div>
+                            <div class="p-2 d-flex flex-column gap-1 small">
+                                <a href="/profile" class="dropdown-item">
+                                    <i class="ti ti-user me-2"></i> Mon profil
+                                </a>
+                                @if (CanRead(AppFunctions.Parametres))
+                                {
+                                    <a href="/settings" class="dropdown-item">
+                                        <i class="ti ti-adjustments me-2"></i> Paramètres
+                                    </a>
+                                }
+                                <hr class="my-1" />
+                                <a href="/auth/logout" class="dropdown-item text-danger">
+                                    <i class="ti ti-logout me-2"></i> Déconnexion
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            }
 
             <!-- CONTENT -->
             <main class="page-content">
@@ -234,6 +373,18 @@ else
                     }
                 </div>
             </main>
+
+            <!-- ══════════════ APP FOOTER ══════════════ -->
+            <footer class="app-footer">
+                <div class="app-footer-inner">
+                    <span class="app-footer-copy">
+                        &copy; @DateTime.Now.Year <strong>@AppSettings.AppName</strong>. Tous droits réservés.
+                    </span>
+                    <span class="app-footer-version">
+                        v@_appVersion
+                    </span>
+                </div>
+            </footer>
         </div>
     </div>
 }
@@ -265,12 +416,41 @@ else
             DrawerText = "rgba(255,255,255,0.75)",
             DrawerIcon = "rgba(255,255,255,0.6)"
         },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#00B193",
+            Secondary = "#253C45",
+            Tertiary = "#60a5fa",
+            Error = "#ef4444",
+            Warning = "#f59e0b",
+            Success = "#00B193",
+            Info = "#60a5fa",
+            Background = "#1a1a2e",
+            Surface = "#16213e",
+            AppbarBackground = "#16213e",
+            AppbarText = "#e2e8f0",
+            DrawerBackground = "#0f3460",
+            DrawerText = "rgba(255,255,255,0.75)",
+            DrawerIcon = "rgba(255,255,255,0.6)",
+            TextPrimary = "#e2e8f0",
+            TextSecondary = "#94a3b8",
+            ActionDefault = "#94a3b8",
+            Divider = "rgba(255,255,255,0.12)",
+            LinesDefault = "rgba(255,255,255,0.12)"
+        },
         LayoutProperties = new LayoutProperties()
         {
             DefaultBorderRadius = "0"
         }
     };
 
+    private bool _isDarkMode;
+
+    private const string LayoutSidebar = IAppSettingsService.LAYOUT_SIDEBAR;
+    private const string LayoutTopbar = IAppSettingsService.LAYOUT_TOPBAR;
+
+    private string _layoutPreference = LayoutSidebar;
+    private bool _useTopbarLayout => string.Equals(_layoutPreference, LayoutTopbar, StringComparison.OrdinalIgnoreCase);
     private bool _sidebarCollapsed = true;
     private bool _profileOpen;
     private string _pageTitle = "Tableau de bord";
@@ -278,6 +458,7 @@ else
     private string _currentUserName = "Utilisateur";
     private string _currentUserRole = "Aucun rôle";
     private string _currentPath = "/";
+    private string _appVersion = typeof(MainLayout).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
     private bool _isAuthenticated;
     private bool _isAdministrator;
     private bool _hasCurrentRouteAccess = true;
@@ -329,13 +510,15 @@ else
     {
         Nav.LocationChanged += OnLocationChanged;
         AuthStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        AppSettings.OnChange += OnAppSettingsChanged;
+
         _currentPath = new Uri(Nav.Uri).AbsolutePath;
+        LoadLayoutPreference();
+        LoadThemePreference();
         UpdatePageTitle(Nav.Uri);
-        _todayLabel = DateTime.Now.ToString("dddd d MMMM yyyy", new CultureInfo("fr-FR"));
+        UpdateTodayLabel();
         await RefreshSecurityStateAsync();
     }
-
-    protected override Task OnAfterRenderAsync(bool firstRender) => Task.CompletedTask;
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
@@ -431,6 +614,91 @@ else
         _hasCurrentRouteAccess = true;
     }
 
+    private async void OnAppSettingsChanged()
+    {
+        LoadLayoutPreference();
+        LoadThemePreference();
+        UpdateTodayLabel();
+        _profileOpen = false;
+        await InvokeAsync(async () =>
+        {
+            await ApplyHtmlAttributesAsync();
+            StateHasChanged();
+        });
+    }
+
+    private void LoadLayoutPreference()
+    {
+        var pref = AppSettings.Get(IAppSettingsService.KEY_LAYOUT_PREFERENCE);
+        _layoutPreference = NormalizeLayoutPreference(pref);
+    }
+
+    private void LoadThemePreference()
+    {
+        var theme = AppSettings.Get(IAppSettingsService.KEY_THEME);
+        _isDarkMode = string.Equals(theme, "Sombre", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void UpdateTodayLabel()
+    {
+        var langue = AppSettings.Get(IAppSettingsService.KEY_LANGUE);
+        var culture = langue switch
+        {
+            "English" => new CultureInfo("en-US"),
+            "Español" => new CultureInfo("es-ES"),
+            "Deutsch" => new CultureInfo("de-DE"),
+            _ => new CultureInfo("fr-FR")
+        };
+        _todayLabel = DateTime.Now.ToString("dddd d MMMM yyyy", culture);
+    }
+
+    private CultureInfo GetCurrentCulture()
+    {
+        var langue = AppSettings.Get(IAppSettingsService.KEY_LANGUE);
+        return langue switch
+        {
+            "English" => new CultureInfo("en-US"),
+            "Español" => new CultureInfo("es-ES"),
+            "Deutsch" => new CultureInfo("de-DE"),
+            _ => new CultureInfo("fr-FR")
+        };
+    }
+
+    private async Task ApplyHtmlAttributesAsync()
+    {
+        try
+        {
+            var bsTheme = _isDarkMode ? "dark" : "light";
+            var langue = AppSettings.Get(IAppSettingsService.KEY_LANGUE);
+            var langCode = langue switch
+            {
+                "English" => "en",
+                "Español" => "es",
+                "Deutsch" => "de",
+                _ => "fr"
+            };
+            await JS.InvokeVoidAsync("eval",
+                $"document.documentElement.setAttribute('data-bs-theme','{bsTheme}');" +
+                $"document.documentElement.setAttribute('lang','{langCode}');");
+        }
+        catch { /* SSR prerender — no JS available yet */ }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            LoadThemePreference();
+            await ApplyHtmlAttributesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private static string NormalizeLayoutPreference(string? layoutPreference)
+        => string.Equals(layoutPreference, LayoutTopbar, StringComparison.OrdinalIgnoreCase)
+            ? LayoutTopbar
+            : LayoutSidebar;
+
     private bool CanRead(string functionName) => _isAdministrator || _permissions.CanRead(functionName);
 
     private string GetFirstAccessibleRoute()
@@ -504,5 +772,6 @@ else
     {
         Nav.LocationChanged -= OnLocationChanged;
         AuthStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        AppSettings.OnChange -= OnAppSettingsChanged;
     }
 }

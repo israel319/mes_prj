@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using AppPlusPlus.Application.DTOs.Finance;
 using AppPlusPlus.Application.Services.Finance;
+using AppPlusPlus.Domain.Entities.Approvisionnement;
 using AppPlusPlus.Domain.Entities.Finance;
 using AppPlusPlus.Infrastructure.Persistence;
 
@@ -52,11 +53,12 @@ public class ClotureQueryService : IClotureService
             v.DateCloture == date && v.LocalisationId == localisationId);
 
         // Paid factures (Status == 2) for the date, filtered via FactDetail.Localisationid
+        // Include NULL Localisationid for retrocompatibility (old data before pre-selection fix)
         var factures = await ctx.Facts
             .Include(f => f.Details)
             .Where(f => f.Status == 2
                 && f.Date == date
-                && f.Details.Any(d => d.Localisationid.HasValue && d.Localisationid.Value == localisationId))
+                && f.Details.Any(d => d.Localisationid == localisationId || !d.Localisationid.HasValue))
             .ToListAsync();
 
         dto.NbFactures = factures.Count;
@@ -67,7 +69,7 @@ public class ClotureQueryService : IClotureService
             .Include(p => p.Fact).ThenInclude(f => f!.Details)
             .Where(p => p.Date == date
                 && p.Fact != null
-                && p.Fact.Details.Any(d => d.Localisationid.HasValue && d.Localisationid.Value == localisationId))
+                && p.Fact.Details.Any(d => d.Localisationid == localisationId || !d.Localisationid.HasValue))
             .ToListAsync();
 
         dto.NbPaiements = paiements.Count;
@@ -79,7 +81,39 @@ public class ClotureQueryService : IClotureService
     public async Task CreateClotureAsync(Versement versement)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
+
+        // 1. Créer la clôture (Versement)
         ctx.Versements.Add(versement);
+        await ctx.SaveChangesAsync();
+
+        // 2. Résoudre ou créer la source "Clôture journalière" dans T_Expense_Source
+        var source = await ctx.Set<ExpenseSource>()
+            .FirstOrDefaultAsync(s => s.Sources == "Clôture journalière");
+        if (source == null)
+        {
+            source = new ExpenseSource { Sources = "Clôture journalière" };
+            ctx.Set<ExpenseSource>().Add(source);
+            await ctx.SaveChangesAsync();
+        }
+
+        // 3. Créer automatiquement l'entrée en caisse liée
+        var locName = await ctx.Localisations
+            .Where(l => l.IdLocalisation == versement.LocalisationId)
+            .Select(l => l.DescriptionLocalisation)
+            .FirstOrDefaultAsync() ?? "";
+
+        var expense = new ApproExpense
+        {
+            SourceId = source.Id,
+            VersementId = versement.Id,
+            AmountCDF = versement.Montant,
+            Description = $"Clôture {locName} — {versement.DateCloture:dd/MM/yyyy}",
+            Depositeur = versement.UserLogin,
+            Comment = versement.Observation,
+            UserLogin = versement.UserLogin,
+            CreationDate = DateTime.Now,
+        };
+        ctx.ApproExpenses.Add(expense);
         await ctx.SaveChangesAsync();
     }
 }

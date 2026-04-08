@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AppPlusPlus.Application.Interfaces.Repositories;
 
 namespace AppPlusPlus.Application.Services.Parametres;
@@ -10,9 +11,14 @@ namespace AppPlusPlus.Application.Services.Parametres;
 public class AppSettingsAppService : IAppSettingsService
 {
     private readonly IParametresRepository _parametresRepo;
-    private Dictionary<string, string> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private ConcurrentDictionary<string, string> _cache = new(StringComparer.OrdinalIgnoreCase);
 
     public const string KEY_APP_NAME = "AppName";
+    public const string KEY_LAYOUT_PREFERENCE = "LayoutPreference";
+    public const string KEY_THEME = "Theme";
+    public const string KEY_LANGUE = "Langue";
+    public const string LAYOUT_SIDEBAR = "Sidebar";
+    public const string LAYOUT_TOPBAR = "Topbar";
     private const string DEFAULT_APP_NAME = "App++";
 
     public event Action? OnChange;
@@ -31,14 +37,15 @@ public class AppSettingsAppService : IAppSettingsService
         try
         {
             var settings = await _parametresRepo.GetAllSettingsAsync();
-            _cache = settings.ToDictionary(
-                s => s.Key,
-                s => s.Value ?? "",
-                StringComparer.OrdinalIgnoreCase);
+            _cache = new ConcurrentDictionary<string, string>(
+                settings.ToDictionary(
+                    s => s.Key,
+                    s => s.Value ?? "",
+                    StringComparer.OrdinalIgnoreCase));
         }
         catch
         {
-            _cache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            _cache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
     }
 

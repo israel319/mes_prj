@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using AppPlusPlus.Domain.Entities.Finance;
 
 namespace AppPlusPlus.Domain.Entities.Approvisionnement;
 
@@ -20,6 +21,12 @@ public class ApproExpense
 
     public int? CurrencyId { get; set; }
 
+    /// <summary>FK vers T_Versements — si ce versement provient d'une clôture de journée.</summary>
+    public int? VersementId { get; set; }
+
+    [ForeignKey(nameof(VersementId))]
+    public Versement? Versement { get; set; }
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal? AmountUSD { get; set; }
 
@@ -34,6 +41,10 @@ public class ApproExpense
 
     [MaxLength(50)]
     public string? Comment { get; set; }
+
+    /// <summary>Statut du versement : En attente, Accepté, Rejeté.</summary>
+    [MaxLength(20)]
+    public string Statut { get; set; } = "En attente";
 
     [MaxLength(50)]
     public string? UserLogin { get; set; }

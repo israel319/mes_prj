@@ -22,7 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IUserAdminService, UserAdminService>();
         services.AddScoped<ILocalisationService, LocalisationService>();
-        services.AddScoped<IAppSettingsService, AppSettingsAppService>();
+        services.AddSingleton<IAppSettingsService, AppSettingsAppService>();
         services.AddScoped<IShopProfileService, ShopProfileAppService>();
         services.AddScoped<ICatalogueService, CatalogueService>();
         services.AddScoped<IStockService, StockService>();

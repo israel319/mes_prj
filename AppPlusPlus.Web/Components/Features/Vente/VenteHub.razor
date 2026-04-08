@@ -170,35 +170,6 @@ else
                                     </CellTemplate>
                                 </TemplateColumn>
                                 <PropertyColumn Property="x => x.Login" Title="Login" />
-                                <TemplateColumn Title="" Sortable="false" Filterable="false">
-                                    <CellTemplate>
-                                        <div @onclick:stopPropagation="true">
-                                        @if (context.Item.DisplayStatus == 0 && _canFacturationWrite)
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                           OnClick="@(() => Navigation.NavigateTo($"/vente/facturation/{context.Item.Id}"))"
-                                                           title="Modifier le brouillon" />
-                                        }
-                                        @if ((context.Item.DisplayStatus == 1 || context.Item.DisplayStatus == 4) && _canFacturationWrite)
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Small"
-                                                           OnClick="@(() => OnPayerFacture(context.Item))"
-                                                           title="Enregistrer un paiement" />
-                                        }
-                                        else if (context.Item.DisplayStatus == 2)
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small"
-                                                           OnClick="@(() => OnPayerFacture(context.Item))"
-                                                           title="Historique paiements" />
-                                        }
-                                        @if (_canFacturationDelete)
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                           OnClick="@(() => OnDeleteFacture(context.Item))" />
-                                        }
-                                        </div>
-                                    </CellTemplate>
-                                </TemplateColumn>
                             </Columns>
                             <PagerContent>
                                 <MudDataGridPager T="FactRowDto" />
@@ -665,11 +636,28 @@ else
 
     async Task OnFactRowClick(DataGridRowClickEventArgs<FactRowDto> args)
     {
-        var parameters = new DialogParameters<FactureDetail> { { x => x.FactId, args.Item.Id } };
+        var parameters = new DialogParameters<FactureDetail>
+        {
+            { x => x.FactId, args.Item.Id },
+            { x => x.DisplayStatus, args.Item.DisplayStatus },
+            { x => x.CanWrite, _canFacturationWrite },
+            { x => x.CanDelete, _canFacturationDelete }
+        };
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<FactureDetail>(
             $"Facture N°{args.Item.Id}", parameters, options);
         var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            var action = result.Data?.ToString();
+            if (action == "edit")
+                Navigation.NavigateTo($"/vente/facturation/{args.Item.Id}");
+            else if (action == "delete")
+                await OnDeleteFacture(args.Item);
+            else if (action == "pay")
+                await OnPayerFacture(args.Item);
+        }
     }
 
     async Task OnDeleteFacture(FactRowDto row)

@@ -1,0 +1,182 @@
+@using MudBlazor
+@using AppPlusPlus.Domain.Entities.Approvisionnement
+@inject IDbContextFactory<AppPlusPlus.Infrastructure.Persistence.AppDbContext> DbFactory
+@inject ISnackbar Snackbar
+@inject MudBlazor.IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        @if (_item == null)
+        {
+            <div class="d-flex justify-content-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-column gap-3">
+                @* ── Statut ── *@
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Statut actuel</span>
+                    @switch (_item.Statut)
+                    {
+                        case "Accepté":
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">Accepté</MudChip>
+                            break;
+                        case "Rejeté":
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Cancel">Rejeté</MudChip>
+                            break;
+                        default:
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.HourglassTop">En attente</MudChip>
+                            break;
+                    }
+                </div>
+
+                @* ── Origine ── *@
+                @if (_item.VersementId.HasValue)
+                {
+                    <div class="alert alert-info mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-link-45deg"></i>
+                        <span>Provient de la <strong>Clôture N°@_item.VersementId</strong></span>
+                    </div>
+                }
+
+                @* ── Détails ── *@
+                <div class="row g-2">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Description</small>
+                        <span class="fw-semibold">@(_item.Description ?? "—")</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Déposeur</small>
+                        <span class="fw-semibold">@(_item.Depositeur ?? "—")</span>
+                    </div>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-4">
+                        <small class="text-muted d-block">Montant USD</small>
+                        <span class="fw-bold" style="color:#00B193;">@(_item.AmountUSD?.ToString("N2") ?? "—")</span>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted d-block">Montant CDF</small>
+                        <span class="fw-bold" style="color:#00B193;">@(_item.AmountCDF?.ToString("N2") ?? "—")</span>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted d-block">Date</small>
+                        <span>@(_item.CreationDate?.ToString("dd/MM/yyyy HH:mm") ?? "—")</span>
+                    </div>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Commentaire</small>
+                        <span>@(_item.Comment ?? "—")</span>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Créé par</small>
+                        <span>@(_item.UserLogin ?? "—")</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <div class="d-flex justify-content-between w-100 px-2 pb-1">
+            <div class="d-flex gap-2">
+                @if (_item?.Statut != "Accepté")
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
+                               OnClick="@OnAccepter" Size="Size.Small">Accepter</MudButton>
+                }
+                @if (_item?.Statut != "Rejeté")
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
+                               OnClick="@OnRejeter" Size="Size.Small">Rejeter</MudButton>
+                }
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="@OnModifier" Size="Size.Small">Modifier</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="@OnSupprimer" Size="Size.Small">Supprimer</MudButton>
+            </div>
+            <MudButton Variant="Variant.Text" OnClick="@Cancel">Fermer</MudButton>
+        </div>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int ExpenseId { get; set; }
+
+    ApproExpense? _item;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _item = await ctx.ApproExpenses.FindAsync(ExpenseId);
+    }
+
+    async Task OnAccepter()
+    {
+        if (_item == null) return;
+        await UpdateStatut("Accepté");
+        Snackbar.Add("Versement accepté", Severity.Success);
+    }
+
+    async Task OnRejeter()
+    {
+        if (_item == null) return;
+        await UpdateStatut("Rejeté");
+        Snackbar.Add("Versement rejeté", Severity.Warning);
+    }
+
+    async Task UpdateStatut(string statut)
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var entity = await ctx.ApproExpenses.FindAsync(ExpenseId);
+        if (entity != null)
+        {
+            entity.Statut = statut;
+            await ctx.SaveChangesAsync();
+            _item!.Statut = statut;
+            StateHasChanged();
+        }
+    }
+
+    async Task OnModifier()
+    {
+        var parameters = new DialogParameters<ApproExpenseForm> { { x => x.ExpenseId, ExpenseId } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ApproExpenseForm>("Modifier le versement", parameters, options);
+        var result = await dialog.Result;
+        if (result?.Canceled == false)
+        {
+            // Reload after edit
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _item = await ctx.ApproExpenses.FindAsync(ExpenseId);
+            StateHasChanged();
+        }
+    }
+
+    async Task OnSupprimer()
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer le versement N° {ExpenseId} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var entity = await ctx.ApproExpenses.FindAsync(ExpenseId);
+            if (entity != null)
+            {
+                ctx.ApproExpenses.Remove(entity);
+                await ctx.SaveChangesAsync();
+            }
+            MudDialog.Close(DialogResult.Ok("deleted"));
+        }
+    }
+
+    void Cancel() => MudDialog.Close(DialogResult.Ok("closed"));
+}

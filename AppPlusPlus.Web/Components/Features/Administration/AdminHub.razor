@@ -251,22 +251,43 @@ else
                         <MudDataGrid Items="@_versementData" T="ApproExpense" Loading="@_versementLoading"
                                      Dense="true" Hover="true" Bordered="true" Elevation="0"
                                      Filterable="true" RowsPerPage="10"
+                                     RowClick="@OnVersementRowClick" RowStyle="cursor:pointer;"
                                      Style="width:100%;">
                             <Columns>
                                 <PropertyColumn Property="x => x.Id" Title="N°" />
+                                <TemplateColumn Title="Origine" Sortable="true" Filterable="true">
+                                    <CellTemplate>
+                                        @if (context.Item.VersementId.HasValue)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Info">Clôture N°@context.Item.VersementId</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Manuel</MudChip>
+                                        }
+                                    </CellTemplate>
+                                </TemplateColumn>
                                 <PropertyColumn Property="x => x.Description" Title="Description" />
                                 <PropertyColumn Property="x => x.AmountUSD" Title="Montant USD" Format="N2" />
                                 <PropertyColumn Property="x => x.AmountCDF" Title="Montant CDF" Format="N2" />
                                 <PropertyColumn Property="x => x.Depositeur" Title="Déposeur" />
-                                <PropertyColumn Property="x => x.Comment" Title="Commentaire" />
-                                <PropertyColumn Property="x => x.CreationDate" Title="Date" Format="dd/MM/yyyy" />
-                                <PropertyColumn Property="x => x.UserLogin" Title="Utilisateur" />
-                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
+                                <TemplateColumn Title="Statut" Sortable="true" Filterable="true">
                                     <CellTemplate>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditVersement(context.Item))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteVersement(context.Item))" />
+                                        @switch (context.Item.Statut)
+                                        {
+                                            case "Accepté":
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Success">Accepté</MudChip>
+                                                break;
+                                            case "Rejeté":
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Error">Rejeté</MudChip>
+                                                break;
+                                            default:
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Warning">En attente</MudChip>
+                                                break;
+                                        }
                                     </CellTemplate>
                                 </TemplateColumn>
+                                <PropertyColumn Property="x => x.CreationDate" Title="Date" Format="dd/MM/yyyy" />
                             </Columns>
                             <PagerContent>
                                 <MudDataGridPager T="ApproExpense" />
@@ -1289,9 +1310,20 @@ else
         if (_versDateFrom.HasValue)
             query = query.Where(e => e.CreationDate >= _versDateFrom.Value);
         if (_versDateTo.HasValue)
-            query = query.Where(e => e.CreationDate <= _versDateTo.Value);
+            query = query.Where(e => e.CreationDate < _versDateTo.Value.Date.AddDays(1));
         _versementData = await query.OrderByDescending(e => e.CreationDate).ToListAsync();
         _versementLoading = false;
+    }
+
+    async Task OnVersementRowClick(DataGridRowClickEventArgs<ApproExpense> args)
+    {
+        var item = args.Item;
+        if (item == null) return;
+        var parameters = new DialogParameters<VersementDetailDialog> { { x => x.ExpenseId, item.Id } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<VersementDetailDialog>($"Versement N° {item.Id}", parameters, options);
+        var result = await dialog.Result;
+        await LoadVersements();
     }
 
     async Task OnAddVersement()

@@ -39,7 +39,7 @@ public static class DependencyInjection
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<IFinanceRepository, FinanceRepository>();
-        services.AddScoped<IParametresRepository, ParametresRepository>();
+        services.AddSingleton<IParametresRepository, ParametresRepository>();
         services.AddScoped<ILookupRepository, LookupRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

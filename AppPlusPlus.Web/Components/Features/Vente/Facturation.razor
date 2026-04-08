@@ -532,8 +532,8 @@
                 .ToListAsync();
         }
 
-        // Pré-sélectionner si une seule localisation
-        if (_localisations.Count == 1)
+        // Pré-sélectionner la première localisation par défaut
+        if (_localisations.Any())
         {
             _selectedLocalisation = _localisations[0].IdLocalisation;
         }
@@ -881,6 +881,15 @@
 
             if (_isEdit)
             {
+                // Nettoyer les propriétés de navigation peuplées par EF fixup
+                // dans le DbContext initial pour éviter les conflits de tracking
+                _facture.Customer = null;
+                _facture.Commande = null;
+                _facture.Livraison = null;
+                _facture.Money = null;
+                _facture.Payments = new List<Payment>();
+                _facture.Details = new List<FactDetail>();
+
                 // Mode édition : mettre à jour la facture existante
                 ctx.Facts.Attach(_facture);
                 ctx.Entry(_facture).State = EntityState.Modified;
@@ -897,7 +906,7 @@
                         IdArticle = d.IdArticle,
                         Qte = d.Qte,
                         Pu = d.Pu,
-                        Status = 1,
+                        Status = status >= 1 ? 1 : 0,
                         Localisationid = d.Localisationid ?? _selectedLocalisation,
                     });
                 }
@@ -910,7 +919,7 @@
                     IdArticle = d.IdArticle,
                     Qte = d.Qte,
                     Pu = d.Pu,
-                    Status = 1,
+                    Status = status >= 1 ? 1 : 0,
                     Localisationid = d.Localisationid ?? _selectedLocalisation,
                 }).ToList();
 
