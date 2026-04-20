@@ -12,7 +12,8 @@
             <label class="form-label">Client</label>
             <MudAutocomplete T="int?" @bind-Value="_item.CustomerId" SearchFunc="@SearchCustomer"
                              ToStringFunc="@(v => _customers.Find(c => c.CustomerId == v)?.CustomerName ?? "")"
-                             Placeholder="Sélectionner un client..." Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
+                             Placeholder="Sélectionner un client..." Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                             CoerceText="true" CoerceValue="true" />
 
             <label class="form-label">Description</label>
             <input type="text" class="form-control" @bind="_item.CommandeDescription" />
@@ -29,7 +30,8 @@
                             <MudAutocomplete T="string" Value="context.Item.ArticleId" ValueChanged="@(v => { context.Item.ArticleId = v; RecalcTotal(); })"
                                              SearchFunc="@SearchArticle"
                                              ToStringFunc="@(v => _articles.Find(a => a.IdArticle == v)?.Description ?? "")"
-                                             Placeholder="Article..." Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
+                                             Placeholder="Article..." Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                             CoerceText="true" CoerceValue="true" />
                         </CellTemplate>
                     </TemplateColumn>
                     <TemplateColumn Title="Qté">

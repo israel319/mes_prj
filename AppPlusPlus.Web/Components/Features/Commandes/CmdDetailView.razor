@@ -1,5 +1,8 @@
 @using MudBlazor
 @inject ICmdService CmdService
+@inject MudBlazor.IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <MudDialog>
     <DialogContent>
@@ -96,15 +99,50 @@
         }
     </DialogContent>
     <DialogActions>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+        @if (_cmd is not null)
+        {
+            <div class="d-flex justify-content-between w-100 px-2 pb-2">
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-danger btn-sm" @onclick="OnDelete">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </div>
+                <div class="d-flex gap-2">
+                    @if (_hasRemaining)
+                    {
+                        <button type="button" class="btn btn-success btn-sm" @onclick="OnReceptionner">
+                            <i class="bi bi-box-arrow-in-down me-1"></i>Réceptionner
+                        </button>
+                    }
+                    @if (_hasStock)
+                    {
+                        <button type="button" class="btn btn-info btn-sm" @onclick="OnApprovisionner">
+                            <i class="bi bi-box-arrow-right me-1"></i>Appro stock
+                        </button>
+                    }
+                    <button type="button" class="btn btn-warning btn-sm" @onclick="OnEdit">
+                        <i class="bi bi-pencil me-1"></i>Modifier
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+        }
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public int CmdId { get; set; }
+    [Parameter] public bool HasRemaining { get; set; }
+    [Parameter] public bool HasStock { get; set; }
 
     bool _loading = true;
+    bool _hasRemaining;
+    bool _hasStock;
     Cmd? _cmd;
     List<CmdArticleRow> _rows = new();
     decimal _totalOrder;
@@ -127,7 +165,52 @@
                 QteReceived = (decimal)(d.QteReceive ?? 0)
             }).ToList();
         }
+        _hasRemaining = HasRemaining;
+        _hasStock = HasStock;
         _loading = false;
+    }
+
+    void OnEdit()
+    {
+        MudDialog.Close();
+        Navigation.NavigateTo($"/commandes/interne/modifier/{CmdId}");
+    }
+
+    async Task OnReceptionner()
+    {
+        var parameters = new DialogParameters<ApproFromCmdForm> { { x => x.CmdId, CmdId } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, NoHeader = true };
+        var dialog = await DialogService.ShowAsync<ApproFromCmdForm>(
+            $"Réception — Commande N° {CmdId}", parameters, options);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    async Task OnApprovisionner()
+    {
+        var parameters = new DialogParameters<ApproFromStockForm> { { x => x.SourceCmdId, CmdId } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, NoHeader = true };
+        var dialog = await DialogService.ShowAsync<ApproFromStockForm>(
+            $"Approvisionner depuis Commande N° {CmdId}", parameters, options);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    async Task OnDelete()
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer la commande N° {CmdId} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await CmdService.DeleteCmdAsync(CmdId);
+            Snackbar.Add("Commande supprimée", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
     }
 
     void Cancel() => MudDialog.Close();

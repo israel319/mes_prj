@@ -10,7 +10,9 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IFinanceService FinanceService
 @using System.Security.Claims
+@using AppPlusPlus.Domain.Entities.Finance
 
 <PageTitle>@AppSettings.AppName — Ventes</PageTitle>
 
@@ -39,7 +41,7 @@ else
     <!-- En-tête -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2 hub-header">
         <div class="d-flex align-items-center gap-3 min-w-0">
-            <div class="hub-icon" style="background:#d4f5ef;color:#00B193;">
+            <div class="hub-icon hub-icon-badge">
                 <i class="bi bi-receipt"></i>
             </div>
             <div class="d-flex flex-column min-w-0">
@@ -47,6 +49,32 @@ else
                 <small class="text-muted hub-subtitle">Gestion des factures, livraisons et paiements</small>
             </div>
         </div>
+        @if (_activePeriode != null)
+        {
+            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded" style="background:#e8f5e9;border:1px solid #a5d6a7;">
+                <i class="bi bi-calendar-check" style="color:#2e7d32;"></i>
+                <span style="font-size:0.85rem;color:#2e7d32;font-weight:600;">Période : @_activePeriode.FromDate?.ToString("dd/MM/yyyy") — @_activePeriode.ToDate?.ToString("dd/MM/yyyy")</span>
+                @if (!string.IsNullOrWhiteSpace(_activePeriode.Comment))
+                {
+                    <span style="font-size:0.8rem;color:#558b2f;">(@_activePeriode.Comment)</span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded" style="background:#fff3e0;border:1px solid #ffcc80;">
+                <i class="bi bi-exclamation-triangle" style="color:#e65100;"></i>
+                <span style="font-size:0.85rem;color:#e65100;font-weight:600;">Aucune période active</span>
+            </div>
+        }
+
+        @if (_userHasClosedToday)
+        {
+            <div class="d-flex align-items-center gap-2 px-3 py-1 rounded" style="background:#fce4ec;border:1px solid #ef9a9a;">
+                <i class="bi bi-lock-fill" style="color:#c62828;"></i>
+                <span style="font-size:0.85rem;color:#c62828;font-weight:600;">Journée clôturée — Transactions bloquées</span>
+            </div>
+        }
 
         <div class="d-flex align-items-center gap-2">
             @switch (_tab)
@@ -54,7 +82,7 @@ else
                 case 0:
                     @if (_canFacturationWrite)
                     {
-                        <button class="btn btn-primary btn-sm" @onclick="@(() => Navigation.NavigateTo("/vente/facturation"))">
+                        <button class="btn btn-primary btn-sm" disabled="@_userHasClosedToday" @onclick="@(() => Navigation.NavigateTo("/vente/facturation"))">
                             <i class="bi bi-plus-lg me-1"></i> Nouvelle facture
                         </button>
                     }
@@ -62,7 +90,7 @@ else
                 case 1:
                     @if (_canLivraisonWrite)
                     {
-                        <button class="btn btn-primary btn-sm" @onclick="@OnAddLivraison">
+                        <button class="btn btn-primary btn-sm" disabled="@_userHasClosedToday" @onclick="@OnAddLivraison">
                             <i class="bi bi-truck me-1"></i> Nouvelle livraison
                         </button>
                     }
@@ -70,7 +98,7 @@ else
                 case 3:
                     @if (_canFacturationWrite)
                     {
-                        <button class="btn btn-primary btn-sm" @onclick="@OnCloturer">
+                        <button class="btn btn-primary btn-sm" disabled="@_userHasClosedToday" @onclick="@OnCloturer">
                             <i class="bi bi-calendar-check me-1"></i> Clôturer la journée
                         </button>
                     }
@@ -185,6 +213,7 @@ else
                         <MudDataGrid Items="@_livData" T="Livraison" Loading="@_livLoading"
                                      Dense="true" Hover="true" Bordered="true" Elevation="0"
                                      Filterable="true" RowsPerPage="10"
+                                     RowClick="@OnLivraisonRowClick" RowStyle="cursor:pointer;"
                                      Style="width:100%;">
                             <Columns>
                                 <PropertyColumn Property="x => x.LivraisonId" Title="N°" />
@@ -201,7 +230,7 @@ else
                                         }
                                         else
                                         {
-                                            <span style="color:#aaa;">—</span>
+                                            <span class="text-muted">—</span>
                                         }
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -249,35 +278,8 @@ else
                                         }
                                         else
                                         {
-                                            <span style="color:#aaa;">—</span>
+                                            <span class="text-muted">—</span>
                                         }
-                                    </CellTemplate>
-                                </TemplateColumn>
-                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                    <CellTemplate>
-                                        <div class="d-flex gap-0 justify-content-center">
-                                            @if ((context.Item.Status ?? 0) == 0 && _canLivraisonWrite)
-                                            {
-                                                <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Info" Size="Size.Small"
-                                                               OnClick="@(() => OnMarquerLivree(context.Item))" title="Marquer comme livrée" />
-                                            }
-                                            @if ((context.Item.Status ?? 0) <= 1 && context.Item.Fact == null && _canLivraisonWrite)
-                                            {
-                                                <MudIconButton Icon="@Icons.Material.Filled.Payments" Color="Color.Success" Size="Size.Small"
-                                                               OnClick="@(() => OnPayerLivraison(context.Item))" title="Payer → génère la facture" />
-                                            }
-                                            @if (_canLivraisonWrite)
-                                            {
-                                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                               OnClick="@(() => OnEditLivraison(context.Item))" title="Modifier" />
-                                            }
-                                            @if (_canLivraisonDelete)
-                                            {
-                                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                               OnClick="@(() => OnDeleteLivraison(context.Item))" title="Supprimer"
-                                                               Disabled="@(context.Item.Fact != null)" />
-                                            }
-                                        </div>
                                     </CellTemplate>
                                 </TemplateColumn>
                             </Columns>
@@ -351,7 +353,7 @@ else
                                         }
                                         else
                                         {
-                                            <span style="color:#aaa;">Directe</span>
+                                            <span class="text-muted">Directe</span>
                                         }
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -460,6 +462,44 @@ else
                                         @context.Item.HeureCloture.ToString("HH:mm")
                                     </CellTemplate>
                                 </TemplateColumn>
+                                <TemplateColumn Title="Statut">
+                                    <CellTemplate>
+                                        @switch (context.Item.StatutCloture)
+                                        {
+                                            case 0:
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">En attente</MudChip>
+                                                break;
+                                            case 1:
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Approuvée</MudChip>
+                                                break;
+                                            case 2:
+                                                <MudTooltip Text="@context.Item.MotifRejet">
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Rejetée</MudChip>
+                                                </MudTooltip>
+                                                break;
+                                        }
+                                    </CellTemplate>
+                                </TemplateColumn>
+                                @if (_isAdmin)
+                                {
+                                    <TemplateColumn Title="Actions" StickyRight="true">
+                                        <CellTemplate>
+                                            @if (context.Item.StatutCloture == 0)
+                                            {
+                                                <div class="d-flex gap-1">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"
+                                                                   Title="Approuver" OnClick="@(() => OnApprouverCloture(context.Item))" />
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small"
+                                                                   Title="Rejeter" OnClick="@(() => OnRejeterCloture(context.Item))" />
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted" style="font-size:0.8rem;">@context.Item.TraitePar</span>
+                                            }
+                                        </CellTemplate>
+                                    </TemplateColumn>
+                                }
                             </Columns>
                             <PagerContent>
                                 <MudDataGridPager T="Versement" />
@@ -475,6 +515,7 @@ else
     /* ── Hub ── */
     int _tab;
     bool _loaded;
+    Periode? _activePeriode;
     bool _hasSalesReadAccess;
     bool _canVenteRead;
     bool _canFacturationRead;
@@ -536,6 +577,8 @@ else
     int? _clotureLocFilter;
     List<Localisation> _userLocalisations = new();
     string _login = "";
+    bool _userHasClosedToday;
+    bool _isAdmin;
 
     /* ════════════════════════════════════════════════════════════
        INIT
@@ -544,6 +587,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         await LoadSecurityAsync();
+
+        try { _activePeriode = await FinanceService.GetActivePeriodeAsync(); } catch { }
+
+        // Vérifier si l'utilisateur a clôturé la journée
+        try { _userHasClosedToday = await ClotureService.HasUserClosedTodayAsync(_login, _currentUserLocalisations); } catch { }
 
         var tasks = new List<Task>();
         if (_canVenteRead || _canFacturationRead) tasks.Add(LoadFactures());
@@ -604,6 +652,7 @@ else
 
         var permissions = await PermissionResolver.GetPermissionsAsync(login);
         var isAdmin = AppFunctions.Normalize(user.FindFirst(ClaimTypes.Role)?.Value) == "administrateur";
+        _isAdmin = isAdmin;
 
         _canVenteRead = isAdmin || permissions.CanRead(AppFunctions.Vente);
         _canFacturationRead = isAdmin || permissions.CanRead(AppFunctions.Facturation);
@@ -662,6 +711,11 @@ else
 
     async Task OnDeleteFacture(FactRowDto row)
     {
+        if (_userHasClosedToday)
+        {
+            Snackbar.Add("Journée clôturée. Aucune transaction n'est possible.", Severity.Error);
+            return;
+        }
         if (!_canFacturationDelete)
         {
             Snackbar.Add("Suppression facture non autorisée.", Severity.Warning);
@@ -676,7 +730,12 @@ else
 
         if (confirm == true)
         {
-            await FacturationService.DeleteFactureAsync(row.Id);
+            var result = await FacturationService.DeleteFactureAsync(row.Id);
+            if (!result.Success)
+            {
+                Snackbar.Add(result.Message, Severity.Error);
+                return;
+            }
             await LoadFactures();
         }
     }
@@ -688,9 +747,14 @@ else
             Snackbar.Add("Paiement facture non autorisé.", Severity.Warning);
             return;
         }
+        if (_userHasClosedToday)
+        {
+            Snackbar.Add("Journée clôturée. Aucune transaction n'est possible.", Severity.Error);
+            return;
+        }
 
         var parameters = new DialogParameters<PaymentDialog> { { x => x.FactId, row.Id } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<PaymentDialog>(
             $"Paiement — Facture N°{row.Id}", parameters, options);
         var result = await dialog.Result;
@@ -758,8 +822,48 @@ else
         _livLoading = false;
     }
 
+    async Task OnLivraisonRowClick(DataGridRowClickEventArgs<Livraison> args)
+    {
+        var item = args.Item;
+        var parameters = new DialogParameters<LivraisonDetailDialog>
+        {
+            { x => x.LivraisonId, item.LivraisonId },
+            { x => x.CanWrite, _canLivraisonWrite },
+            { x => x.CanDelete, _canLivraisonDelete }
+        };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, NoHeader = true };
+        var dialog = await DialogService.ShowAsync<LivraisonDetailDialog>(
+            $"Livraison N° {item.LivraisonId}", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not null && !result.Canceled)
+        {
+            var action = result.Data?.ToString();
+            switch (action)
+            {
+                case "edit":
+                    await OnEditLivraison(item);
+                    break;
+                case "deliver":
+                    await OnMarquerLivree(item);
+                    break;
+                case "pay":
+                    await OnPayerLivraison(item);
+                    break;
+                case "delete":
+                    await OnDeleteLivraison(item);
+                    break;
+            }
+        }
+    }
+
     async Task OnAddLivraison()
     {
+        if (_userHasClosedToday)
+        {
+            Snackbar.Add("Journée clôturée. Aucune transaction n'est possible.", Severity.Error);
+            return;
+        }
         if (!_canLivraisonWrite)
         {
             Snackbar.Add("Création livraison non autorisée.", Severity.Warning);
@@ -767,7 +871,7 @@ else
         }
 
         var parameters = new DialogParameters<LivraisonForm>();
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<LivraisonForm>("Nouvelle livraison", parameters, options);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadLivraisons();
@@ -782,7 +886,7 @@ else
         }
 
         var parameters = new DialogParameters<LivraisonForm> { { x => x.LivraisonId, item.LivraisonId } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<LivraisonForm>("Modifier la livraison", parameters, options);
         var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadLivraisons();
@@ -802,6 +906,11 @@ else
 
     async Task OnPayerLivraison(Livraison liv)
     {
+        if (_userHasClosedToday)
+        {
+            Snackbar.Add("Journée clôturée. Aucune transaction n'est possible.", Severity.Error);
+            return;
+        }
         if (!_canLivraisonWrite)
         {
             Snackbar.Add("Paiement livraison non autorisé.", Severity.Warning);
@@ -884,7 +993,7 @@ else
             { x => x.FactId, fv.Facture.Id },
             { x => x.MontantRest, fv.Reste }
         };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<PaiementForm>(
             $"Paiement — Facture F-{fv.Facture.Id}", parameters, options);
         var result = await dialog.Result;
@@ -955,15 +1064,49 @@ else
             { x => x.LocalisationName, selectedLocName },
             { x => x.UserLogin, _login }
         };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<ClotureForm>(
             $"Clôture — {selectedLocName}", parameters, options);
         var result = await dialog.Result;
 
         if (result is not null && !result.Canceled)
         {
+            _userHasClosedToday = true;
             await LoadClotures();
             await LoadFactures();
         }
+    }
+
+    async Task OnApprouverCloture(Versement v)
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Approuver la clôture",
+            $"Approuver la clôture du {v.DateCloture:dd/MM/yyyy} par {v.UserLogin} ?",
+            yesText: "Approuver",
+            cancelText: "Annuler");
+
+        if (confirm != true) return;
+
+        await ClotureService.UpdateClotureStatutAsync(v.Id, 1, _login);
+        Snackbar.Add("Clôture approuvée.", Severity.Success);
+        await LoadClotures();
+    }
+
+    async Task OnRejeterCloture(Versement v)
+    {
+        var motif = await DialogService.ShowMessageBox(
+            "Rejeter la clôture",
+            (MarkupString)$"Rejeter la clôture du <b>{v.DateCloture:dd/MM/yyyy}</b> par <b>{v.UserLogin}</b> ?<br/><small class='text-muted'>L'utilisateur pourra de nouveau effectuer des transactions.</small>",
+            yesText: "Rejeter",
+            cancelText: "Annuler");
+
+        if (motif != true) return;
+
+        await ClotureService.UpdateClotureStatutAsync(v.Id, 2, _login, "Rejetée par l'administrateur");
+        Snackbar.Add("Clôture rejetée. L'utilisateur peut reprendre ses transactions.", Severity.Warning);
+        await LoadClotures();
+
+        // Rafraîchir le statut de clôture (au cas où c'est l'admin lui-même)
+        _userHasClosedToday = await ClotureService.HasUserClosedTodayAsync(_login, _currentUserLocalisations);
     }
 }

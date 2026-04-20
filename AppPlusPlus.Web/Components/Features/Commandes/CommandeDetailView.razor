@@ -1,4 +1,7 @@
 @inject ICommandeService CommandeService
+@inject MudBlazor.IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <MudDialog>
     <DialogContent>
@@ -118,7 +121,7 @@
                                     }
                                     else
                                     {
-                                        <span style="color:#999;">—</span>
+                                        <span class="text-muted">—</span>
                                     }
                                 </CellTemplate>
                             </TemplateColumn>
@@ -134,15 +137,42 @@
         }
     </DialogContent>
     <DialogActions>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+        @if (_cmd is not null)
+        {
+            <div class="d-flex justify-content-between w-100 px-2 pb-2">
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-danger btn-sm" @onclick="OnDelete">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                </div>
+                <div class="d-flex gap-2">
+                    @if (_hasRemainingToDeliver)
+                    {
+                        <button type="button" class="btn btn-success btn-sm" @onclick="OnLivrer">
+                            <i class="bi bi-truck me-1"></i>Livrer
+                        </button>
+                    }
+                    <button type="button" class="btn btn-warning btn-sm" @onclick="OnEdit">
+                        <i class="bi bi-pencil me-1"></i>Modifier
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+        }
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public int CommandeId { get; set; }
+    [Parameter] public bool HasRemainingToDeliver { get; set; }
 
     bool _loading = true;
+    bool _hasRemainingToDeliver;
     Commande? _cmd;
     List<VenteArticleRow> _rows = new();
     List<LivraisonRow> _livraisons = new();
@@ -178,7 +208,40 @@
                 StatusStyle = r.StatusStyle
             }).ToList();
         }
+        _hasRemainingToDeliver = HasRemainingToDeliver;
         _loading = false;
+    }
+
+    void OnEdit()
+    {
+        MudDialog.Close(DialogResult.Ok(true));
+        Navigation.NavigateTo($"/commandes/edit/{CommandeId}");
+    }
+
+    async Task OnLivrer()
+    {
+        var parameters = new DialogParameters<LivraisonChecklistForm> { { x => x.CommandeId, CommandeId } };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<LivraisonChecklistForm>(
+            $"Livraison — Commande N° {CommandeId}", parameters, options);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled)
+            MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    async Task OnDelete()
+    {
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirmation",
+            $"Supprimer la commande N° {CommandeId} ?",
+            yesText: "Supprimer",
+            cancelText: "Annuler");
+        if (confirm == true)
+        {
+            await CommandeService.DeleteCommandeAsync(CommandeId);
+            Snackbar.Add("Commande supprimée", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
     }
 
     class VenteArticleRow

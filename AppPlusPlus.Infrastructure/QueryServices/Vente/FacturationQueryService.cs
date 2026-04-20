@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using AppPlusPlus.Application.Common;
 using AppPlusPlus.Application.DTOs.Vente;
 using AppPlusPlus.Application.Services.Vente;
 using AppPlusPlus.Domain.Entities.Vente;
@@ -79,9 +80,19 @@ public class FacturationQueryService : IFacturationService
         }).ToList();
     }
 
-    public async Task DeleteFactureAsync(int factId)
+    public async Task<ServiceResult> DeleteFactureAsync(int factId)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
+
+        // ── Vérification période active ──
+        var periode = await ctx.Periodes.FirstOrDefaultAsync(p => p.Activated == true);
+        if (periode == null || periode.FromDate == null || periode.ToDate == null)
+            return ServiceResult.Fail("Aucune période active n'est définie. Veuillez créer une période avant d'effectuer cette opération.");
+
+        var today = DateTime.Today;
+        if (today < periode.FromDate.Value.Date || today > periode.ToDate.Value.Date)
+            return ServiceResult.Fail("La date du jour n'est pas comprise dans la période active.");
+
         var fact = await ctx.Facts.Include(f => f.Details).FirstOrDefaultAsync(f => f.Id == factId);
         if (fact != null)
         {
@@ -89,6 +100,8 @@ public class FacturationQueryService : IFacturationService
             ctx.Facts.Remove(fact);
             await ctx.SaveChangesAsync();
         }
+
+        return ServiceResult.Ok("Facture supprimée avec succès.");
     }
 
     public async Task<List<FactureViewDto>> GetPaiementsAsync(List<int> localisationIds, string login)

@@ -4,6 +4,27 @@
 
 <MudDialog>
     <DialogContent>
+        <div class="lov-form-header">
+            <h5>Paiement facture</h5>
+            <div class="d-flex" style="gap:0.5rem;">
+                @if (_fact is not null && _solde > 0)
+                {
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="OnSave" disabled="@_saving">
+                        <i class="bi bi-credit-card me-1"></i>Enregistrer le paiement
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Cancel">
+                        <i class="bi bi-arrow-left me-1"></i>Annuler
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="@(() => MudDialog.Close(DialogResult.Ok(true)))">
+                        <i class="bi bi-arrow-left me-1"></i>Fermer
+                    </button>
+                }
+            </div>
+        </div>
+        <div class="lov-form-body">
         @if (_loading)
         {
             <div class="d-flex flex-column align-items-center justify-content-center" style="min-height:180px;">
@@ -114,20 +135,8 @@
                 }
             </div>
         }
+        </div>
     </DialogContent>
-    <DialogActions>
-        @if (_fact is not null && _solde > 0)
-        {
-            <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
-            <button type="button" class="btn btn-primary" @onclick="OnSave" disabled="@_saving">
-                <i class="bi bi-credit-card me-1"></i>Enregistrer le paiement
-            </button>
-        }
-        else
-        {
-            <button type="button" class="btn btn-secondary" @onclick="@(() => MudDialog.Close(DialogResult.Ok(true)))">Fermer</button>
-        }
-    </DialogActions>
 </MudDialog>
 
 @code {

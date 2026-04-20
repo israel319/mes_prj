@@ -87,20 +87,23 @@ public class DashboardService : IDashboardService
             new() { Label = "Annulees", Count = nbCancel },
         };
 
-        // --- Alertes stock ---
+        // --- Alertes stock (par localisation, depuis T_Stock) ---
         var articles = await ctx.Articles.ToListAsync();
-        var lowStockArticles = articles
-            .Where(a => (a.Qte ?? 0) <= a.Soeuil && a.Soeuil > 0)
-            .OrderBy(a => a.Qte ?? 0)
+        var lowStockArticles = await ctx.Stocks
+            .Include(s => s.Article)
+            .Include(s => s.Localisation)
+            .Where(s => s.Seuil > 0 && s.Qte <= s.Seuil)
+            .OrderBy(s => s.Qte)
             .Take(20)
-            .Select(a => new StockAlertDto
+            .Select(s => new StockAlertDto
             {
-                Description = a.Description,
-                Qte = a.Qte ?? 0,
-                Seuil = a.Soeuil,
-                Pct = a.Soeuil > 0 ? (double)((a.Qte ?? 0) / a.Soeuil) * 100 : 0
+                Description = (s.Article != null ? s.Article.Description : s.IdArticle)
+                              + " — " + (s.Localisation != null ? s.Localisation.DescriptionLocalisation : "?"),
+                Qte = s.Qte,
+                Seuil = s.Seuil,
+                Pct = s.Seuil > 0 ? (double)(s.Qte / s.Seuil) * 100 : 0
             })
-            .ToList();
+            .ToListAsync();
 
         // --- Top articles vendus ce mois ---
         var factIds = factsMonth.Select(f => f.Id).ToHashSet();

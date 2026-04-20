@@ -45,6 +45,17 @@ public class Versement
     [Required]
     public DateTime DateSys { get; set; } = DateTime.Now;
 
+    /// <summary>0 = En attente, 1 = Approuvée, 2 = Rejetée</summary>
+    public int StatutCloture { get; set; } = 0;
+
+    [MaxLength(500)]
+    public string? MotifRejet { get; set; }
+
+    [MaxLength(50)]
+    public string? TraitePar { get; set; }
+
+    public DateTime? DateTraitement { get; set; }
+
     // Navigation
     [ForeignKey(nameof(LocalisationId))]
     public Localisation? Localisation { get; set; }

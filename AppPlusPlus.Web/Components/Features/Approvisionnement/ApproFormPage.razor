@@ -1,151 +1,166 @@
+@page "/stock/appro/nouveau"
+@page "/stock/appro/modifier/{ApproId:int}"
+@rendermode InteractiveServer
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<MudDialog>
-    <DialogContent>
-        <div class="d-flex flex-column gap-2">
-            @* ── En-tête Appro ── *@
-            <div class="row g-2">
-                <div class="col-md-4">
-                    <label class="form-label">Référence</label>
-                    <input type="text" class="form-control" @bind="_appro.Reference" placeholder="REF-001" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Fournisseur</label>
-                    <MudAutocomplete T="int?" @bind-Value="_appro.SupplierId"
-                                     SearchFunc="@SearchSuppliers"
-                                     ToStringFunc="@(id => _suppliers.FirstOrDefault(s => s.SupplierId == id)?.SupplierName ?? "")"
-                                     Placeholder="Sélectionner..."
-                                     Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Date</label>
-                    <MudDatePicker @bind-Date="_dateValue" DateFormat="dd/MM/yyyy"
-                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </div>
-            </div>
+<PageTitle>@AppSettings.AppName — @(_isEdit ? "Modifier l'approvisionnement" : "Nouvel approvisionnement")</PageTitle>
 
-            <div class="row g-2">
-                <div class="col-md-6">
-                    <label class="form-label">Localisation</label>
-                    <MudSelect T="int?" @bind-Value="_selectedLocalisationId"
-                               Placeholder="Sélectionner..."
-                               Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
-                        @foreach (var loc in _localisations)
-                        {
-                            <MudSelectItem T="int?" Value="@loc.IdLocalisation">@loc.DescriptionLocalisation</MudSelectItem>
-                        }
-                    </MudSelect>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Commentaire</label>
-                    <input type="text" class="form-control" @bind="_appro.Commentaire" />
-                </div>
-            </div>
-
-            <hr class="my-2" />
-
-            @* ── Lignes d'articles ── *@
-            <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-0"><i class="bi bi-list-ul me-1"></i>Articles</h6>
-                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLine">
-                    <i class="bi bi-plus-lg me-1"></i>Ajouter ligne
-                </button>
-            </div>
-
-            @if (_lines.Any())
-            {
-                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                    <table class="table table-sm table-bordered mb-0">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th style="width: 35%">Article</th>
-                                <th style="width: 15%">Qté</th>
-                                <th style="width: 15%">PA</th>
-                                <th style="width: 15%">PV</th>
-                                <th style="width: 15%">Bén.</th>
-                                <th style="width: 5%"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var line in _lines)
-                            {
-                                <tr>
-                                    <td>
-                                        <MudAutocomplete T="string" Value="@line.IdArticle"
-                                                         ValueChanged="@(v => OnArticleChanged(line, v))"
-                                                         SearchFunc="@SearchArticles"
-                                                         ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
-                                                         Placeholder="Sélectionner..."
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" />
-                                    </td>
-                                    <td>
-                                        <MudNumericField @bind-Value="line.Qte" T="decimal" Min="1"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                    </td>
-                                    <td>
-                                        <MudNumericField @bind-Value="line.PA" T="decimal?" Min="0"
-                                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
-                                    </td>
-                                    <td>
-                                        <MudNumericField Value="@line.PV" T="decimal?" ReadOnly="true"
-                                                         Variant="Variant.Filled" Margin="Margin.Dense" />
-                                    </td>
-                                    <td class="text-end align-middle">
-                                        @if (line.PA.HasValue && line.PV.HasValue)
-                                        {
-                                            var ben = (line.PV.Value - line.PA.Value) * line.Qte;
-                                            <span class="badge @(ben >= 0 ? "bg-success" : "bg-danger")">@ben.ToString("N0")</span>
-                                        }
-                                    </td>
-                                    <td class="text-center align-middle">
-                                        <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveLine(line)">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="d-flex justify-content-end gap-3 mt-2">
-                    <span class="fw-bold">Total articles: @_lines.Count</span>
-                    <span class="fw-bold">Qté totale: @_lines.Sum(l => l.Qte).ToString("N0")</span>
-                    @if (_lines.All(l => l.PA.HasValue && l.PV.HasValue))
-                    {
-                        var totalBen = _lines.Sum(l => (l.PV!.Value - l.PA!.Value) * l.Qte);
-                        <span class="fw-bold @(totalBen >= 0 ? "text-success" : "text-danger")">Bénéfice total: @totalBen.ToString("N0")</span>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="alert alert-info mb-0">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Cliquez sur "Ajouter ligne" pour ajouter des articles à cet approvisionnement.
-                </div>
-            }
+<div class="lov-card" style="max-width:820px; margin:40px auto;">
+    <div class="lov-form-header">
+        <h5 style="font-weight:700; font-size:1.25rem;">@(_isEdit ? "Modifier l'approvisionnement" : "Nouvel approvisionnement")</h5>
+        <div class="d-flex" style="gap:0.5rem;">
+            <button type="button" class="btn btn-sm btn-save-teal d-flex align-items-center gap-1"
+                    @onclick="OnSave" disabled="@(!_lines.Any())">
+                <i class="bi bi-check-lg"></i> Enregistrer
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                    style="padding:6px 16px; border-radius:6px; font-size:13px; font-weight:500;"
+                    @onclick="OnCancel">
+                <i class="bi bi-arrow-left"></i> Annuler
+            </button>
         </div>
-    </DialogContent>
-    <DialogActions>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
-        <button type="button" class="btn btn-primary" @onclick="OnSave" disabled="@(!_lines.Any())">
-            <i class="bi bi-check-lg me-1"></i>Enregistrer
-        </button>
-    </DialogActions>
-</MudDialog>
+    </div>
+    <div class="lov-form-body" style="padding:28px 32px 32px;">
+        @* ── En-tête Appro ── *@
+        <div class="row g-4">
+            <div class="col-4">
+                <label class="form-label">Référence</label>
+                <input type="text" class="form-control" @bind="_appro.Reference" placeholder="REF-001" />
+            </div>
+            <div class="col-4">
+                <label class="form-label">Fournisseur</label>
+                <MudAutocomplete T="int?" @bind-Value="_appro.SupplierId"
+                                 SearchFunc="@SearchSuppliers"
+                                 ToStringFunc="@(id => _suppliers.FirstOrDefault(s => s.SupplierId == id)?.SupplierName ?? "")"
+                                 Placeholder="Choisir"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
+                                 CoerceText="true" CoerceValue="true" />
+            </div>
+            <div class="col-4">
+                <label class="form-label">Date</label>
+                <MudDatePicker @bind-Date="_dateValue" DateFormat="dd/MM/yyyy"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+            <div class="col-6">
+                <label class="form-label">Localisation</label>
+                <MudSelect T="int?" @bind-Value="_selectedLocalisationId"
+                           Placeholder="Choisir"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                    @foreach (var loc in _localisations)
+                    {
+                        <MudSelectItem T="int?" Value="@loc.IdLocalisation">@loc.DescriptionLocalisation</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div class="col-6">
+                <label class="form-label">Commentaire</label>
+                <input type="text" class="form-control" @bind="_appro.Commentaire" placeholder="Optionnel" />
+            </div>
+        </div>
+
+        <hr class="my-3" />
+
+        @* ── Lignes d'articles ── *@
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-list-ul me-1"></i>Articles</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLine">
+                <i class="bi bi-plus-lg me-1"></i>Ajouter ligne
+            </button>
+        </div>
+
+        @if (_lines.Any())
+        {
+            <div class="table-responsive mt-2" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 35%">Article</th>
+                            <th style="width: 15%">Qté</th>
+                            <th style="width: 15%">PA</th>
+                            <th style="width: 15%">PV</th>
+                            <th style="width: 15%">Bén.</th>
+                            <th style="width: 5%"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in _lines)
+                        {
+                            <tr>
+                                <td>
+                                    <MudAutocomplete T="string" Value="@line.IdArticle"
+                                                     ValueChanged="@(v => OnArticleChanged(line, v))"
+                                                     SearchFunc="@SearchArticles"
+                                                     ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
+                                                     Placeholder="Sélectionner..."
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                                     CoerceText="true" CoerceValue="true" />
+                                </td>
+                                <td>
+                                    <MudNumericField @bind-Value="line.Qte" T="decimal" Min="1"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </td>
+                                <td>
+                                    <MudNumericField @bind-Value="line.PA" T="decimal?" Min="0"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                </td>
+                                <td>
+                                    <MudNumericField Value="@line.PV" T="decimal?" ReadOnly="true"
+                                                     Variant="Variant.Filled" Margin="Margin.Dense" />
+                                </td>
+                                <td class="text-end align-middle">
+                                    @if (line.PA.HasValue && line.PV.HasValue)
+                                    {
+                                        var ben = (line.PV.Value - line.PA.Value) * line.Qte;
+                                        <span class="badge @(ben >= 0 ? "bg-success" : "bg-danger")">@ben.ToString("N0")</span>
+                                    }
+                                </td>
+                                <td class="text-center align-middle">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveLine(line)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end gap-3 mt-2">
+                <span class="fw-bold">Total articles: @_lines.Count</span>
+                <span class="fw-bold">Qté totale: @_lines.Sum(l => l.Qte).ToString("N0")</span>
+                @if (_lines.All(l => l.PA.HasValue && l.PV.HasValue))
+                {
+                    var totalBen = _lines.Sum(l => (l.PV!.Value - l.PA!.Value) * l.Qte);
+                    <span class="fw-bold @(totalBen >= 0 ? "text-success" : "text-danger")">Bénéfice total: @totalBen.ToString("N0")</span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info mb-0 mt-2">
+                <i class="bi bi-info-circle me-1"></i>
+                Cliquez sur "Ajouter ligne" pour ajouter des articles à cet approvisionnement.
+            </div>
+        }
+    </div>
+</div>
 
 @code {
-    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public int? ApproId { get; set; }
-    [Parameter] public string? PreselectedArticleId { get; set; }
-    [Parameter] public int? PreselectedLocalisationId { get; set; }
+    [SupplyParameterFromQuery] public string? PreselectedArticleId { get; set; }
+    [SupplyParameterFromQuery] public int? PreselectedLocalisationId { get; set; }
 
+    bool _isEdit;
     Appro _appro = new();
     DateTime? _dateValue = DateTime.Today;
     int? _selectedLocalisationId;
@@ -155,6 +170,11 @@
     List<Localisation> _localisations = new();
     List<ApproDetailLine> _lines = new();
     string _currentLogin = "";
+
+    async Task OnCancel()
+    {
+        await JS.InvokeVoidAsync("appNavigation.backOrFallback", "/stock");
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -174,7 +194,7 @@
 
         if (ApproId.HasValue)
         {
-            // Mode édition: charger l'appro existant et ses détails
+            _isEdit = true;
             var existing = await ctx.Appros
                 .Include(a => a.Details)
                 .FirstOrDefaultAsync(a => a.Id == ApproId.Value);
@@ -199,7 +219,6 @@
         }
         else
         {
-            // Mode création
             if (PreselectedLocalisationId.HasValue)
                 _selectedLocalisationId = PreselectedLocalisationId;
 
@@ -254,11 +273,8 @@
         }
     }
 
-    void Cancel() => MudDialog.Close();
-
     async Task OnSave()
     {
-        // Validations
         if (!_selectedLocalisationId.HasValue)
         {
             Snackbar.Add("Sélectionnez une localisation", Severity.Warning);
@@ -297,7 +313,6 @@
             var now = DateTime.Now;
             var today = DateOnly.FromDateTime(_dateValue ?? DateTime.Today);
 
-            // ── Créer ou mettre à jour l'en-tête Appro ──
             _appro.Date = today;
             _appro.DateSys = now;
             _appro.User = userName;
@@ -305,7 +320,6 @@
             _appro.LocalisationId = _selectedLocalisationId;
             _appro.Commentaire = string.IsNullOrEmpty(_appro.Commentaire) ? "Approvisionnement" : _appro.Commentaire;
 
-            // Calculer totaux pour l'en-tête (premier article par défaut)
             var firstLine = _lines.First();
             _appro.IdArticle = firstLine.IdArticle;
             _appro.Qte = _lines.Sum(l => l.Qte);
@@ -313,7 +327,7 @@
             _appro.PV = _lines.Average(l => l.PV ?? 0);
             _appro.Ben = (_appro.PV ?? 0) - (_appro.PA ?? 0);
             _appro.BenTotal = _lines.Sum(l => ((l.PV ?? 0) - (l.PA ?? 0)) * l.Qte);
-            _appro.StatusId = 1; // Validé
+            _appro.StatusId = 1;
 
             if (!ApproId.HasValue)
                 ctx.Appros.Add(_appro);
@@ -322,7 +336,6 @@
 
             await ctx.SaveChangesAsync();
 
-            // ── Supprimer les anciens détails si mode édition ──
             if (ApproId.HasValue)
             {
                 var oldDetails = await ctx.ApproDetails.Where(d => d.IdAppro == _appro.Id).ToListAsync();
@@ -330,10 +343,8 @@
                 await ctx.SaveChangesAsync();
             }
 
-            // ── Créer les lignes ApproDetail + mettre à jour Stock + MouvementStock ──
             foreach (var line in _lines)
             {
-                // Créer ApproDetail
                 var detail = new ApproDetail
                 {
                     IdAppro = _appro.Id,
@@ -351,7 +362,6 @@
                 ctx.ApproDetails.Add(detail);
                 await ctx.SaveChangesAsync();
 
-                // ── Mettre à jour T_Stock ──
                 var stock = await ctx.Stocks.FirstOrDefaultAsync(s =>
                     s.IdArticle == line.IdArticle && s.IdLocalisation == _selectedLocalisationId!.Value);
 
@@ -379,7 +389,6 @@
                 }
                 await ctx.SaveChangesAsync();
 
-                // ── Créer MouvementStock pour traçabilité ──
                 var mouvement = new MouvementStock
                 {
                     IdArticle = line.IdArticle,
@@ -400,7 +409,6 @@
                 };
                 ctx.MouvementsStock.Add(mouvement);
 
-                // ── Mettre à jour aussi Article.Qte (stock global) ──
                 var article = await ctx.Articles.FindAsync(line.IdArticle);
                 if (article != null)
                 {
@@ -412,7 +420,7 @@
 
             await ctx.SaveChangesAsync();
             Snackbar.Add($"Approvisionnement enregistré ({_lines.Count} article(s))", Severity.Success);
-            MudDialog.Close(DialogResult.Ok(true));
+            Navigation.NavigateTo("/stock");
         }
         catch (Exception ex)
         {

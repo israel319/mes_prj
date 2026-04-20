@@ -76,7 +76,17 @@
                                             @stock.Qte
                                         </span>
                                     </td>
-                                    <td class="text-center">@stock.Seuil</td>
+                                    <td class="text-center">
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <MudNumericField @bind-Value="stock.Seuil" T="int" Min="0"
+                                                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                             Style="width:80px;" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Save"
+                                                           Color="Color.Success" Size="Size.Small"
+                                                           title="Enregistrer le seuil"
+                                                           OnClick="@(() => OnSaveSeuil(stock))" />
+                                        </div>
+                                    </td>
                                     <td class="text-center">
                                         @if (stock.Qte <= 0)
                                         {
@@ -171,22 +181,22 @@
         }
     }
 
-    async Task OnApproLocation(StockLocationInfo stock)
+    void OnApproLocation(StockLocationInfo stock)
     {
-        var parameters = new DialogParameters
-        {
-            { "ApproId", 0 },
-            { "PreselectedArticleId", Article?.IdArticle },
-            { "PreselectedLocalisationId", stock.IdLocalisation }
-        };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ApproForm>("Approvisionnement", parameters, options);
-        var result = await dialog.Result;
+        MudDialog.Close();
+        Navigation.NavigateTo($"/stock/appro/nouveau?PreselectedArticleId={Article?.IdArticle}&PreselectedLocalisationId={stock.IdLocalisation}");
+    }
 
-        if (result != null && !result.Canceled)
+    async Task OnSaveSeuil(StockLocationInfo stock)
+    {
+        try
         {
-            // Refresh stock data
-            await RefreshStockData();
+            await StockService.UpdateSeuilAsync(stock.StockId, stock.Seuil);
+            Snackbar.Add($"Seuil mis à jour pour {stock.LocalisationName}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
         }
     }
 

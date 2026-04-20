@@ -116,4 +116,30 @@ public class ClotureQueryService : IClotureService
         ctx.ApproExpenses.Add(expense);
         await ctx.SaveChangesAsync();
     }
+
+    public async Task<bool> HasUserClosedTodayAsync(string userLogin, List<int> localisationIds)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        return await ctx.Versements.AnyAsync(v =>
+            v.UserLogin == userLogin
+            && v.DateCloture == today
+            && localisationIds.Contains(v.LocalisationId)
+            && v.StatutCloture != 2); // Pas rejetée
+    }
+
+    public async Task UpdateClotureStatutAsync(int versementId, int statut, string traitePar, string? motifRejet = null)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        var versement = await ctx.Versements.FindAsync(versementId);
+        if (versement == null) return;
+
+        versement.StatutCloture = statut;
+        versement.TraitePar = traitePar;
+        versement.DateTraitement = DateTime.Now;
+        versement.MotifRejet = statut == 2 ? motifRejet : null;
+
+        await ctx.SaveChangesAsync();
+    }
 }

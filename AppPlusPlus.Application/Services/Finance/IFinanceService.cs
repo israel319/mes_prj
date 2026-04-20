@@ -11,6 +11,7 @@ public interface IFinanceService
     Task<Taux?> GetTauxByIdAsync(int id);
     Task AddTauxAsync(Taux taux);
     Task UpdateTauxAsync(Taux taux);
+    Task<Periode?> GetActivePeriodeAsync();
     Task<Periode?> GetPeriodeByIdAsync(int id);
     Task AddPeriodeAsync(Periode periode);
     Task UpdatePeriodeAsync(Periode periode);

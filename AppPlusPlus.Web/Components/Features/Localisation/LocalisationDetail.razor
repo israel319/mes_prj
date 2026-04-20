@@ -1,12 +1,14 @@
 @page "/localisation/{Id:int}"
 @rendermode InteractiveServer
 @using AppPlusPlus.Application.DTOs.Stock
+@inject IDbContextFactory<AppDbContext> DbFactory
 @inject ILocalisationService LocalisationService
 @inject IUserAdminService UserAdminService
 @inject IStockService StockService
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <PageTitle>@AppSettings.AppName — @(_localisation?.DescriptionLocalisation ?? "Localisation")</PageTitle>
 
@@ -37,7 +39,7 @@ else
             <button class="btn btn-outline-secondary btn-sm" @onclick="@(() => Navigation.NavigateTo("/admin"))">
                 <i class="bi bi-arrow-left"></i>
             </button>
-            <div class="hub-icon" style="background:#d4f5ef;color:#00B193;">
+            <div class="hub-icon hub-icon-badge">
                 <i class="bi bi-geo-alt"></i>
             </div>
             <div>
@@ -52,7 +54,7 @@ else
         <div class="col-6 col-md-3">
             <div class="card h-100">
                 <div class="card-body text-center">
-                    <i class="bi bi-people" style="font-size:24px;color:#253C45;"></i>
+                    <i class="bi bi-people" style="font-size:24px;color:var(--mud-palette-primary);"></i>
                     <h3 class="fw-bold mb-0 mt-2">@_users.Count</h3>
                     <small class="text-muted">Utilisateurs</small>
                 </div>
@@ -91,12 +93,12 @@ else
     <div class="card">
         <ul class="nav nav-tabs">
             <li class="nav-item">
-                <button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(() => _tab = 0)">
+                <button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(async () => await OnTabChange(0))">
                     <i class="bi bi-box-seam me-1"></i>Articles (@_stockArticles.Count)
                 </button>
             </li>
             <li class="nav-item">
-                <button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(() => _tab = 1)">
+                <button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(async () => await OnTabChange(1))">
                     <i class="bi bi-people me-1"></i>Utilisateurs (@_users.Count)
                 </button>
             </li>
@@ -114,7 +116,8 @@ else
                     </button>
                 </div>
 
-                <MudDataGrid T="StockArticleDto" Items="@FilteredArticles" Dense="true" Hover="true" Striped="true">
+                <MudDataGrid T="StockArticleDto" Items="@FilteredArticles" Dense="true" Hover="true" Striped="true"
+                             RowClick="@OnArticleRowClick" RowStyle="cursor:pointer;">
                     <Columns>
                         <PropertyColumn Property="x => x.IdArticle" Title="Code" />
                         <PropertyColumn Property="x => x.Description" Title="Description" />
@@ -158,14 +161,6 @@ else
                                 {
                                     <MudChip T="string" Size="Size.Small" Color="Color.Success">OK</MudChip>
                                 }
-                            </CellTemplate>
-                        </TemplateColumn>
-                        <TemplateColumn Title="Actions" Sortable="false">
-                            <CellTemplate>
-                                <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart" Color="Color.Primary"
-                                               Size="Size.Small" OnClick="@(() => OnAppro(context.Item))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning"
-                                               Size="Size.Small" OnClick="@(() => OnEditArticle(context.Item))" />
                             </CellTemplate>
                         </TemplateColumn>
                     </Columns>
@@ -255,22 +250,71 @@ else
         _loading = false;
     }
 
-    private async Task OnAppro(StockArticleDto article)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var parameters = new DialogParameters<ApproForm>
+        if (firstRender)
         {
-            { x => x.ApproId, 0 },
-            { x => x.PreselectedArticleId, article.IdArticle },
-            { x => x.PreselectedLocalisationId, Id }
+            try
+            {
+                var savedTab = await JS.InvokeAsync<int>("tabNavigation.getTab", $"localisation-{Id}", 0);
+                if (savedTab != _tab)
+                {
+                    _tab = savedTab;
+                    StateHasChanged();
+                }
+            }
+            catch { }
+        }
+    }
+
+    async Task OnTabChange(int tabIndex)
+    {
+        _tab = tabIndex;
+        try
+        {
+            await JS.InvokeVoidAsync("tabNavigation.saveTab", $"localisation-{Id}", tabIndex);
+        }
+        catch { }
+    }
+
+    private async Task OnArticleRowClick(DataGridRowClickEventArgs<StockArticleDto> args)
+    {
+        var dto = args.Item;
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var article = await ctx.Articles.FirstOrDefaultAsync(a => a.IdArticle == dto.IdArticle);
+        if (article == null) return;
+
+        var localisations = await ctx.Localisations.OrderBy(l => l.DescriptionLocalisation).ToListAsync();
+        var locDict = localisations.ToDictionary(l => l.IdLocalisation, l => l.DescriptionLocalisation ?? "?");
+        var stocks = (await ctx.Stocks
+            .Where(s => s.IdArticle == dto.IdArticle)
+            .ToListAsync())
+            .Select(s => new StockLocationInfo
+            {
+                StockId = s.Id,
+                IdLocalisation = s.IdLocalisation,
+                LocalisationName = locDict.GetValueOrDefault(s.IdLocalisation, "?"),
+                Qte = (int)s.Qte,
+                Seuil = s.Seuil
+            })
+            .OrderBy(s => s.LocalisationName)
+            .ToList();
+
+        var parameters = new DialogParameters
+        {
+            { "Article", article },
+            { "Stocks", stocks },
+            { "Localisations", localisations }
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ApproForm>("Approvisionnement", parameters, options);
+        var dialog = await DialogService.ShowAsync<ArticleDetailDialog>(article.Description ?? article.IdArticle, parameters, options);
         var result = await dialog.Result;
+        if (result != null && !result.Canceled) await LoadData();
+    }
 
-        if (result != null && !result.Canceled)
-        {
-            await LoadData();
-        }
+    private void OnAppro(StockArticleDto article)
+    {
+        Navigation.NavigateTo($"/stock/appro/nouveau?PreselectedArticleId={article.IdArticle}&PreselectedLocalisationId={Id}");
     }
 
     private void OnAddArticle()

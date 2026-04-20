@@ -10,6 +10,7 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
 @inject INumberToWordsConverter NumberToWords
+@inject IClotureService ClotureService
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 
@@ -74,7 +75,8 @@
                                          SearchFunc="@SearchCustomers"
                                          ToStringFunc="@(c => c?.Contact ?? "")"
                                          Placeholder="Rechercher un client…"
-                                         Style="flex:1;border:none;background:transparent;">
+                                         Style="flex:1;border:none;background:transparent;"
+                                         CoerceText="true" CoerceValue="true">
                             <ItemTemplate>
                                 <div style="display:flex;align-items:center;gap:6px;">
                                     <MudIcon Icon="@Icons.Material.Filled.Phone" Style="font-size:14px;opacity:.5;" />
@@ -466,21 +468,9 @@
         _facture.Adresse = null;
     }
 
-    async Task OnAddCustomer()
+    void OnAddCustomer()
     {
-        var dialog = await Dialog.ShowAsync<CustomerForm>("Nouveau client");
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled)
-        {
-            // Recharger la liste des clients
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            _allCustomers = await ctx.Customers.ToListAsync();
-            // Sélectionner automatiquement le dernier client ajouté
-            var newest = _allCustomers.OrderByDescending(c => c.CustomerId).FirstOrDefault();
-            if (newest != null)
-                OnClientSelected(newest);
-            StateHasChanged();
-        }
+        Navigation.NavigateTo("/commandes/client/nouveau?returnUrl=/vente/facturation");
     }
 
     protected override async Task OnInitializedAsync()
@@ -688,9 +678,14 @@
             return;
         }
 
-        if (stockBd <= (artDb?.Soeuil ?? 0) && stockBd > 0)
+        if (stockBd > 0 && _selectedLocalisation.HasValue)
         {
-            Snackbar.Add($"L'article « {article.Description} » a un stock bas ({stockBd:N0} restant, seuil: {artDb?.Soeuil}).", Severity.Warning);
+            var stockRec = await ctx.Stocks.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.IdArticle == article.IdArticle && s.IdLocalisation == _selectedLocalisation.Value);
+            if (stockRec != null && stockRec.Seuil > 0 && stockBd <= stockRec.Seuil)
+            {
+                Snackbar.Add($"L'article « {article.Description} » a un stock bas ({stockBd:N0} restant, seuil: {stockRec.Seuil}).", Severity.Warning);
+            }
         }
 
         // ── Ajouter ou incrémenter ──
@@ -846,6 +841,28 @@
                 _details.Select(d => $"{d.Description} x{d.Qte}"));
 
             await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // ── Vérification période active ──
+            var periode = await ctx.Periodes.FirstOrDefaultAsync(p => p.Activated == true);
+            if (periode == null || periode.FromDate == null || periode.ToDate == null)
+            {
+                Snackbar.Add("Aucune période active n'est définie. Veuillez créer une période avant d'effectuer cette opération.", Severity.Error);
+                return 0;
+            }
+            var today = DateTime.Today;
+            if (today < periode.FromDate.Value.Date || today > periode.ToDate.Value.Date)
+            {
+                Snackbar.Add("La date du jour n'est pas comprise dans la période active.", Severity.Error);
+                return 0;
+            }
+
+            // ── Vérification clôture journalière ──
+            var hasClosed = await ClotureService.HasUserClosedTodayAsync(_currentLogin, _currentUserLocalisations);
+            if (hasClosed)
+            {
+                Snackbar.Add("Vous avez déjà clôturé la journée. Aucune transaction n'est possible.", Severity.Error);
+                return 0;
+            }
 
             // ══════ VÉRIFICATION CONCURRENTE DU STOCK DIRECTEMENT EN BD ══════
             // Utilise une transaction SERIALIZABLE + verrouillage (UPDLOCK, ROWLOCK)

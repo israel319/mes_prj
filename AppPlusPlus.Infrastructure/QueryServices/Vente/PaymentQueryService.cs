@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using AppPlusPlus.Application.Common;
 using AppPlusPlus.Application.Services.Vente;
 using AppPlusPlus.Domain.Entities.Vente;
 using AppPlusPlus.Infrastructure.Persistence;
@@ -20,10 +21,34 @@ public class PaymentQueryService : IPaymentService
         return await ctx.Payments.Where(p => p.IdFact == factId).ToListAsync();
     }
 
-    public async Task RecordPaymentAsync(
+    public async Task<ServiceResult> RecordPaymentAsync(
         int factId, int? commandeId, decimal amount, string mode, string? note, string userLogin)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
+
+        // ── Vérification période active ──
+        var periode = await ctx.Periodes.FirstOrDefaultAsync(p => p.Activated == true);
+        if (periode == null || periode.FromDate == null || periode.ToDate == null)
+            return ServiceResult.Fail("Aucune période active n'est définie. Veuillez créer une période avant d'effectuer cette opération.");
+
+        var today = DateTime.Today;
+        if (today < periode.FromDate.Value.Date || today > periode.ToDate.Value.Date)
+            return ServiceResult.Fail("La date du jour n'est pas comprise dans la période active.");
+
+        // ── Vérification clôture journalière ──
+        var todayOnly = DateOnly.FromDateTime(today);
+        var userLocIds = await ctx.UserLocalisations
+            .Where(ul => ul.UserId == userLogin && ul.LocalisationId.HasValue)
+            .Select(ul => ul.LocalisationId!.Value)
+            .ToListAsync();
+        var hasClosed = await ctx.Versements.AnyAsync(v =>
+            v.UserLogin == userLogin
+            && v.DateCloture == todayOnly
+            && userLocIds.Contains(v.LocalisationId)
+            && v.StatutCloture != 2);
+        if (hasClosed)
+            return ServiceResult.Fail("Vous avez déjà clôturé la journée. Aucune transaction n'est possible.");
+
         await using var tx = await ctx.Database.BeginTransactionAsync();
 
         try
@@ -69,11 +94,13 @@ public class PaymentQueryService : IPaymentService
 
             await ctx.SaveChangesAsync();
             await tx.CommitAsync();
+
+            return ServiceResult.Ok("Paiement enregistré avec succès.");
         }
-        catch
+        catch (Exception ex)
         {
             await tx.RollbackAsync();
-            throw;
+            return ServiceResult.Fail(ex.InnerException?.Message ?? ex.Message);
         }
     }
 }

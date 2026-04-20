@@ -26,7 +26,7 @@ else
         <!-- En-tête hub -->
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-2 hub-header">
             <div class="d-flex align-items-center gap-3">
-                <div class="hub-icon" style="background:#d4f5ef;color:#00B193;">
+                <div class="hub-icon hub-icon-badge">
                     <i class="bi bi-box-seam"></i>
                 </div>
                 <div>
@@ -61,7 +61,8 @@ else
                     <small class="text-muted d-block mb-2">Cliquez sur un article pour voir les détails et stocks par localisation</small>
 
                     <MudDataGrid T="ArticleView" Items="@_articlesFiltered" Loading="@_artLoading"
-                                 Dense="true" Hover="true" RowClick="@OnArticleRowClick" RowStyle="cursor:pointer;">
+                                 Dense="true" Hover="true" RowClick="@OnArticleRowClick" RowStyle="cursor:pointer;"
+                                 RowsPerPage="10">
                         <Columns>
                             <PropertyColumn Property="@(x => x.IdArticle)" Title="Code" />
                             <PropertyColumn Property="@(x => x.Description)" Title="Description" />
@@ -109,6 +110,9 @@ else
                                 </CellTemplate>
                             </TemplateColumn>
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="ArticleView" />
+                        </PagerContent>
                     </MudDataGrid>
                 </div>
             }
@@ -123,7 +127,9 @@ else
                         </button>
                     </div>
                     <MudDataGrid T="ApproRow" Items="@_approData" Loading="@_approLoading"
-                                 Dense="true" Hover="true">
+                                 Dense="true" Hover="true"
+                                 RowClick="@OnApproRowClick" RowStyle="cursor:pointer;"
+                                 RowsPerPage="10">
                         <Columns>
                             <PropertyColumn Property="@(x => x.Id)" Title="N°" />
                             <PropertyColumn Property="@(x => x.ArticleName)" Title="Article" />
@@ -133,14 +139,10 @@ else
                             <PropertyColumn Property="@(x => x.Ben)" Title="Bén." Format="N2" align="Align.End" />
                             <PropertyColumn Property="@(x => x.Date)" Title="Date" Format="dd/MM/yyyy" />
                             <PropertyColumn Property="@(x => x.User)" Title="Utilisateur" />
-                            <TemplateColumn Title="Actions" align="Align.Center" Sortable="false" Filterable="false">
-                                <CellTemplate>
-                                    @{ var a = context.Item; }
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditAppro(a.Id))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteAppro(a))" />
-                                </CellTemplate>
-                            </TemplateColumn>
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="ApproRow" />
+                        </PagerContent>
                     </MudDataGrid>
                 </div>
             }
@@ -155,7 +157,9 @@ else
                         </button>
                     </div>
                     <MudDataGrid T="Transformation" Items="@_transData" Loading="@_transLoading"
-                                 Dense="true" Hover="true">
+                                 Dense="true" Hover="true"
+                                 RowClick="@OnTransRowClick" RowStyle="cursor:pointer;"
+                                 RowsPerPage="10">
                         <Columns>
                             <PropertyColumn Property="@(x => x.TransformationId)" Title="N°" />
                             <PropertyColumn Property="@(x => x.FromArticleId)" Title="Article source" />
@@ -164,14 +168,10 @@ else
                             <PropertyColumn Property="@(x => x.ToQte)" Title="Qté dest." Format="N2" align="Align.Center" />
                             <PropertyColumn Property="@(x => x.Date)" Title="Date" Format="dd/MM/yyyy" />
                             <PropertyColumn Property="@(x => x.UserLogin)" Title="Utilisateur" />
-                            <TemplateColumn Title="Actions" align="Align.Center" Sortable="false" Filterable="false">
-                                <CellTemplate>
-                                    @{ var t = context.Item; }
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditTrans(t))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteTrans(t))" />
-                                </CellTemplate>
-                            </TemplateColumn>
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="Transformation" />
+                        </PagerContent>
                     </MudDataGrid>
                 </div>
             }
@@ -180,127 +180,156 @@ else
             @if (_tab == 3)
             {
                 <div class="card-body">
-                <h5 class="fw-bold mb-2">Paramètre article</h5>
+                <h5 class="fw-bold mb-3">Paramètre article</h5>
+
+                <div class="row row-cols-1 row-cols-lg-2 g-3">
 
                 <!-- Catégorie -->
-                <div class="card mb-2">
-                    <div class="card-body">
+                <div class="col">
+                <div class="card mb-0 h-100">
+                    <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <h6 class="fw-semibold mb-0">Catégorie article</h6>
                         <button class="btn btn-primary btn-sm" @onclick="@InsertCategory"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
                     </div>
                     <MudDataGrid T="ArticleCategory" Items="@_categories" Dense="true"
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
-                                 CommittedItemChanges="@OnUpdateCategory" ReadOnly="false">
+                                 CommittedItemChanges="@OnUpdateCategory" ReadOnly="false" RowsPerPage="5">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdCategory)" Title="N°" isEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdCategory)" Title="N°" isEditable="false" CellStyle="width:60px;" />
                             <PropertyColumn Property="@(x => x.DescriptionCategory)" Title="Description" />
-                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                            <TemplateColumn Title="Actions" CellStyle="width:90px;text-align:center;">
                                 <CellTemplate>
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteCategory(context.Item))" />
                                 </CellTemplate>
                             </TemplateColumn>
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="ArticleCategory" PageSizeOptions="new[]{5,10}" />
+                        </PagerContent>
                     </MudDataGrid>
                     </div>
                 </div>
+                </div>
 
                 <!-- Type -->
-                <div class="card mb-2">
-                    <div class="card-body">
+                <div class="col">
+                <div class="card mb-0 h-100">
+                    <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <h6 class="fw-semibold mb-0">Type article</h6>
                         <button class="btn btn-primary btn-sm" @onclick="@InsertType"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
                     </div>
                     <MudDataGrid T="ArticleType" Items="@_types" Dense="true"
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
-                                 CommittedItemChanges="@OnUpdateType" ReadOnly="false">
+                                 CommittedItemChanges="@OnUpdateType" ReadOnly="false" RowsPerPage="5">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdType)" Title="N°" isEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdType)" Title="N°" isEditable="false" CellStyle="width:60px;" />
                             <PropertyColumn Property="@(x => x.DescriptionType)" Title="Description" />
-                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                            <TemplateColumn Title="Actions" CellStyle="width:90px;text-align:center;">
                                 <CellTemplate>
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteType(context.Item))" />
                                 </CellTemplate>
                             </TemplateColumn>
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="ArticleType" PageSizeOptions="new[]{5,10}" />
+                        </PagerContent>
                     </MudDataGrid>
                     </div>
                 </div>
+                </div>
 
                 <!-- Marque -->
-                <div class="card mb-2">
-                    <div class="card-body">
+                <div class="col">
+                <div class="card mb-0 h-100">
+                    <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <h6 class="fw-semibold mb-0">Marque article</h6>
                         <button class="btn btn-primary btn-sm" @onclick="@InsertMarque"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
                     </div>
                     <MudDataGrid T="ArticleMarque" Items="@_marques" Dense="true"
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
-                                 CommittedItemChanges="@OnUpdateMarque" ReadOnly="false">
+                                 CommittedItemChanges="@OnUpdateMarque" ReadOnly="false" RowsPerPage="5">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdMarque)" Title="N°" isEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdMarque)" Title="N°" isEditable="false" CellStyle="width:60px;" />
                             <PropertyColumn Property="@(x => x.DescriptionMarque)" Title="Description" />
-                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                            <TemplateColumn Title="Actions" CellStyle="width:90px;text-align:center;">
                                 <CellTemplate>
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteMarque(context.Item))" />
                                 </CellTemplate>
                             </TemplateColumn>
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="ArticleMarque" PageSizeOptions="new[]{5,10}" />
+                        </PagerContent>
                     </MudDataGrid>
                     </div>
                 </div>
+                </div>
 
                 <!-- Mesure -->
-                <div class="card mb-2">
-                    <div class="card-body">
+                <div class="col">
+                <div class="card mb-0 h-100">
+                    <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <h6 class="fw-semibold mb-0">Mesure</h6>
                         <button class="btn btn-primary btn-sm" @onclick="@InsertMesure"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
                     </div>
                     <MudDataGrid T="Mesure" Items="@_mesures" Dense="true"
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
-                                 CommittedItemChanges="@OnUpdateMesure" ReadOnly="false">
+                                 CommittedItemChanges="@OnUpdateMesure" ReadOnly="false" RowsPerPage="5">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdMesure)" Title="N°" isEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdMesure)" Title="N°" isEditable="false" CellStyle="width:60px;" />
                             <PropertyColumn Property="@(x => x.DescriptionMesure)" Title="Description" />
-                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                            <TemplateColumn Title="Actions" CellStyle="width:90px;text-align:center;">
                                 <CellTemplate>
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteMesure(context.Item))" />
                                 </CellTemplate>
                             </TemplateColumn>
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="Mesure" PageSizeOptions="new[]{5,10}" />
+                        </PagerContent>
                     </MudDataGrid>
                     </div>
                 </div>
+                </div>
 
                 <!-- Localisation -->
-                <div class="card mb-2">
-                    <div class="card-body">
+                <div class="col">
+                <div class="card mb-0 h-100">
+                    <div class="card-body py-2 px-3">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <h6 class="fw-semibold mb-0">Localisation</h6>
                         <button class="btn btn-primary btn-sm" @onclick="@InsertLocalisation"><i class="bi bi-plus-lg me-1"></i> Ajouter</button>
                     </div>
                     <MudDataGrid T="Localisation" Items="@_localisations" Dense="true"
                                  EditMode="DataGridEditMode.Form" EditTrigger="DataGridEditTrigger.Manual"
-                                 CommittedItemChanges="@OnUpdateLocalisation" ReadOnly="false">
+                                 CommittedItemChanges="@OnUpdateLocalisation" ReadOnly="false" RowsPerPage="5">
                         <Columns>
-                            <PropertyColumn Property="@(x => x.IdLocalisation)" Title="N°" isEditable="false" />
+                            <PropertyColumn Property="@(x => x.IdLocalisation)" Title="N°" isEditable="false" CellStyle="width:60px;" />
                             <PropertyColumn Property="@(x => x.DescriptionLocalisation)" Title="Description" />
-                            <TemplateColumn Title="Actions" CellStyle="width:120px;text-align:center;">
+                            <TemplateColumn Title="Actions" CellStyle="width:90px;text-align:center;">
                                 <CellTemplate>
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Warning" OnClick="@context.Actions.StartEditingItemAsync" />
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteLocalisation(context.Item))" />
                                 </CellTemplate>
                             </TemplateColumn>
                         </Columns>
+                        <PagerContent>
+                            <MudDataGridPager T="Localisation" PageSizeOptions="new[]{5,10}" />
+                        </PagerContent>
                     </MudDataGrid>
                     </div>
                 </div>
+                </div>
+
+                </div><!-- /row -->
                 </div>
             }
         </div>
@@ -418,9 +447,19 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // L'onglet reste à 0 par défaut - pas de restauration automatique
-        // L'utilisateur navigue manuellement entre les onglets
-        await Task.CompletedTask;
+        if (firstRender)
+        {
+            try
+            {
+                var savedTab = await JS.InvokeAsync<int>("tabNavigation.getTab", "stock", 0);
+                if (savedTab != _tab)
+                {
+                    _tab = savedTab;
+                    StateHasChanged();
+                }
+            }
+            catch { }
+        }
     }
 
     async Task OnTabChange(int tabIndex)
@@ -595,22 +634,19 @@ else
         _approLoading = false;
     }
 
-    async Task OnAddAppro()
+    void OnApproRowClick(DataGridRowClickEventArgs<ApproRow> args)
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var parameters = new DialogParameters { ["ApproId"] = 0 };
-        var dialog = await DialogService.ShowAsync<ApproForm>("Nouvel approvisionnement", parameters, options);
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled) await LoadAppros();
+        OnEditAppro(args.Item.Id);
     }
 
-    async Task OnEditAppro(int approId)
+    void OnAddAppro()
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var parameters = new DialogParameters { ["ApproId"] = approId };
-        var dialog = await DialogService.ShowAsync<ApproForm>("Modifier l'appro", parameters, options);
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled) await LoadAppros();
+        Navigation.NavigateTo("/stock/appro/nouveau");
+    }
+
+    void OnEditAppro(int approId)
+    {
+        Navigation.NavigateTo($"/stock/appro/modifier/{approId}");
     }
 
     async Task OnDeleteAppro(ApproRow item)
@@ -667,22 +703,19 @@ else
         _transLoading = false;
     }
 
-    async Task OnAddTrans()
+    void OnTransRowClick(DataGridRowClickEventArgs<Transformation> args)
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var parameters = new DialogParameters();
-        var dialog = await DialogService.ShowAsync<TransformationForm>("Nouvelle transformation", parameters, options);
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled) await LoadTransformations();
+        OnEditTrans(args.Item);
     }
 
-    async Task OnEditTrans(Transformation item)
+    void OnAddTrans()
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var parameters = new DialogParameters { ["TransformationId"] = item.TransformationId };
-        var dialog = await DialogService.ShowAsync<TransformationForm>("Modifier la transformation", parameters, options);
-        var result = await dialog.Result;
-        if (result != null && !result.Canceled) await LoadTransformations();
+        Navigation.NavigateTo("/stock/transformation/nouveau");
+    }
+
+    void OnEditTrans(Transformation item)
+    {
+        Navigation.NavigateTo($"/stock/transformation/modifier/{item.TransformationId}");
     }
 
     async Task OnDeleteTrans(Transformation item)

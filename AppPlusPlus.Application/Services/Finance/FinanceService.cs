@@ -34,6 +34,9 @@ public class FinanceService : IFinanceService
     public async Task UpdateTauxAsync(Taux taux)
         => await _financeRepo.UpdateTauxAsync(taux);
 
+    public async Task<Periode?> GetActivePeriodeAsync()
+        => await _financeRepo.GetActivePeriodeAsync();
+
     public async Task<Periode?> GetPeriodeByIdAsync(int id)
         => await _financeRepo.GetPeriodeByIdAsync(id);
 

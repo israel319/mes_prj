@@ -26,4 +26,14 @@ public interface IClotureService
     /// Persists a new cloture (Versement) record.
     /// </summary>
     Task CreateClotureAsync(Versement versement);
+
+    /// <summary>
+    /// Returns true if the user has closed today and the closure is not rejected (statut 0 or 1).
+    /// </summary>
+    Task<bool> HasUserClosedTodayAsync(string userLogin, List<int> localisationIds);
+
+    /// <summary>
+    /// Approves or rejects a closure. statut: 1 = approved, 2 = rejected.
+    /// </summary>
+    Task UpdateClotureStatutAsync(int versementId, int statut, string traitePar, string? motifRejet = null);
 }

@@ -8,6 +8,7 @@
 @inject NavigationManager Navigation
 @inject IRoleService RoleService
 @inject ILocalisationService LocalisationService
+@inject IJSRuntime JS
 
 <PageTitle>@AppSettings.AppName — Administration</PageTitle>
 
@@ -20,7 +21,7 @@ else
     <div>
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-2 hub-header">
             <div class="d-flex align-items-center gap-3">
-                <div class="hub-icon" style="background:rgba(37,60,69,.12);color:#253C45;">
+                <div class="hub-icon hub-icon-badge-admin">
                     <i class="bi bi-gear fs-4"></i>
                 </div>
                 <div>
@@ -32,14 +33,14 @@ else
 
         <div class="card hub-tabs-shell">
             <ul class="nav nav-tabs">
-                <li class="nav-item"><button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(() => _tab = 0)"><i class="bi bi-people me-1"></i>Utilisateurs</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(() => _tab = 1)"><i class="bi bi-truck me-1"></i>Fournisseurs</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 2 ? "active" : "")" @onclick="@(() => _tab = 2)"><i class="bi bi-percent me-1"></i>Taux de change</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 3 ? "active" : "")" @onclick="@(() => _tab = 3)"><i class="bi bi-calendar-event me-1"></i>Périodes</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 4 ? "active" : "")" @onclick="@(() => _tab = 4)"><i class="bi bi-bank me-1"></i>Versements</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 5 ? "active" : "")" @onclick="@(() => _tab = 5)"><i class="bi bi-receipt me-1"></i>Gestion factures</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 6 ? "active" : "")" @onclick="@(() => _tab = 6)"><i class="bi bi-truck me-1"></i>Gestion livraisons</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 7 ? "active" : "")" @onclick="@(() => _tab = 7)"><i class="bi bi-building me-1"></i>Localisations</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(async () => await OnTabChange(0))"><i class="bi bi-people me-1"></i>Utilisateurs</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(async () => await OnTabChange(1))"><i class="bi bi-truck me-1"></i>Fournisseurs</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 2 ? "active" : "")" @onclick="@(async () => await OnTabChange(2))"><i class="bi bi-percent me-1"></i>Taux de change</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 3 ? "active" : "")" @onclick="@(async () => await OnTabChange(3))"><i class="bi bi-calendar-event me-1"></i>Périodes</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 4 ? "active" : "")" @onclick="@(async () => await OnTabChange(4))"><i class="bi bi-bank me-1"></i>Versements</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 5 ? "active" : "")" @onclick="@(async () => await OnTabChange(5))"><i class="bi bi-receipt me-1"></i>Gestion factures</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 6 ? "active" : "")" @onclick="@(async () => await OnTabChange(6))"><i class="bi bi-truck me-1"></i>Gestion livraisons</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 7 ? "active" : "")" @onclick="@(async () => await OnTabChange(7))"><i class="bi bi-building me-1"></i>Localisations</button></li>
             </ul>
 
             @* ══════════════════ UTILISATEURS ══════════════════ *@
@@ -54,6 +55,7 @@ else
                         <MudDataGrid Items="@_userData" T="User" Loading="@_userLoading"
                                      Dense="true" Hover="true" Bordered="true" Elevation="0"
                                      Filterable="true" RowsPerPage="10"
+                                     RowClick="@OnUserRowClick" RowStyle="cursor:pointer;"
                                      Style="width:100%;">
                             <Columns>
                                 <PropertyColumn Property="x => x.Login" Title="Login" />
@@ -93,13 +95,6 @@ else
                                         }
                                     </CellTemplate>
                                 </TemplateColumn>
-                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                    <CellTemplate>
-                                        <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnManageUserAccess(context.Item))" title="Gérer accès" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditUser(context.Item))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteUser(context.Item))" />
-                                    </CellTemplate>
-                                </TemplateColumn>
                             </Columns>
                             <PagerContent>
                                 <MudDataGridPager T="User" />
@@ -134,16 +129,6 @@ else
                                 <PropertyColumn Property="x => x.CcAmountToPay" Title="Montant à payer" Format="N2" />
                                 <PropertyColumn Property="x => x.CcAmountPay" Title="Montant payé" Format="N2" />
                                 <PropertyColumn Property="x => x.CreationDate" Title="Date création" Format="dd/MM/yyyy" />
-                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                    <CellTemplate>
-                                        <div class="d-flex gap-0 justify-content-center">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                           OnClick="@(() => OnEditSupplier(context.Item))" title="Modifier" />
-                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                           OnClick="@(() => OnDeleteSupplier(context.Item))" title="Supprimer" />
-                                        </div>
-                                    </CellTemplate>
-                                </TemplateColumn>
                             </Columns>
                             <PagerContent>
                                 <MudDataGridPager T="Supplier" />
@@ -164,7 +149,8 @@ else
                     <div class="card"><div class="card-body p-0">
                         <MudDataGrid Items="@_tauxData" T="Taux" Loading="@_tauxLoading"
                                      Dense="true" Hover="true" Bordered="true" Elevation="0"
-                                     RowsPerPage="10" Style="width:100%;">
+                                     RowsPerPage="10" Style="width:100%;"
+                                     RowClick="@OnTauxRowClick" RowStyle="cursor:pointer;">
                             <Columns>
                                 <PropertyColumn Property="x => x.Id" Title="N°" />
                                 <PropertyColumn Property="x => x.TauxValue" Title="Taux" Format="N2" />
@@ -173,12 +159,6 @@ else
                                 <PropertyColumn Property="x => x.Date" Title="Date" Format="dd/MM/yyyy" />
                                 <PropertyColumn Property="x => x.Comment" Title="Commentaire" />
                                 <PropertyColumn Property="x => x.UserLogin" Title="Utilisateur" />
-                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                    <CellTemplate>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditTaux(context.Item))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteTaux(context.Item))" />
-                                    </CellTemplate>
-                                </TemplateColumn>
                             </Columns>
                             <PagerContent>
                                 <MudDataGridPager T="Taux" />
@@ -199,7 +179,8 @@ else
                     <div class="card"><div class="card-body p-0">
                         <MudDataGrid Items="@_periodeData" T="Periode" Loading="@_periodeLoading"
                                      Dense="true" Hover="true" Bordered="true" Elevation="0"
-                                     RowsPerPage="10" Style="width:100%;">
+                                     RowsPerPage="10" Style="width:100%;"
+                                     RowClick="@OnPeriodeRowClick" RowStyle="cursor:pointer;">
                             <Columns>
                                 <PropertyColumn Property="x => x.Id" Title="N°" />
                                 <PropertyColumn Property="x => x.Comment" Title="Description" />
@@ -214,15 +195,6 @@ else
                                     </CellTemplate>
                                 </TemplateColumn>
                                 <PropertyColumn Property="x => x.UserLogin" Title="Créée par" />
-                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                    <CellTemplate>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditPeriode(context.Item))" />
-                                        <MudIconButton Icon="@(context.Item.Activated == true ? Icons.Material.Filled.Lock : Icons.Material.Filled.LockOpen)"
-                                                       Color="@(context.Item.Activated == true ? Color.Error : Color.Success)"
-                                                       Size="Size.Small" OnClick="@(() => ToggleActivated(context.Item))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeletePeriode(context.Item))" />
-                                    </CellTemplate>
-                                </TemplateColumn>
                             </Columns>
                             <PagerContent>
                                 <MudDataGridPager T="Periode" />
@@ -326,7 +298,7 @@ else
                                 <PropertyColumn Property="x => x.Date" Title="Date" Format="dd/MM/yyyy" />
                                 <TemplateColumn Title="Statut">
                                     <CellTemplate>
-                                        @{ var (label, chipColor) = context.Item.Status switch { 0 => ("Brouillon", Color.Warning), 1 => ("Validée", Color.Success), 2 => ("Payée", Color.Info), 3 => ("Annulée", Color.Error), _ => ("Inconnu", Color.Default) }; }
+                                        @{ var (label, chipColor) = context.Item.Status switch { 0 => ("Brouillon", Color.Warning), 1 => ("Validée", Color.Info), 2 => ("Payée", Color.Success), 3 => ("Annulée", Color.Error), _ => ("Inconnu", Color.Default) }; }
                                         <MudChip T="string" Size="Size.Small" Color="@chipColor">@label</MudChip>
                                     </CellTemplate>
                                 </TemplateColumn>
@@ -433,17 +405,11 @@ else
                         <MudDataGrid Items="@_localisations" T="Localisation" Loading="@_localisationsLoading"
                                      Dense="true" Hover="true" Bordered="true" Elevation="0"
                                      Filterable="true" RowsPerPage="10"
+                                     RowClick="@OnLocalisationRowClick" RowStyle="cursor:pointer;"
                                      Style="width:100%;">
                             <Columns>
                                 <PropertyColumn Property="x => x.IdLocalisation" Title="ID" />
                                 <PropertyColumn Property="x => x.DescriptionLocalisation" Title="Description" />
-                                <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                    <CellTemplate>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnViewLocalisation(context.Item))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnEditLocalisation(context.Item))" />
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteLocalisation(context.Item))" />
-                                    </CellTemplate>
-                                </TemplateColumn>
                             </Columns>
                             <PagerContent>
                                 <MudDataGridPager T="Localisation" />
@@ -551,6 +517,33 @@ else
         _loaded = true;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var savedTab = await JS.InvokeAsync<int>("tabNavigation.getTab", "admin", 0);
+                if (savedTab != _tab)
+                {
+                    _tab = savedTab;
+                    StateHasChanged();
+                }
+            }
+            catch { }
+        }
+    }
+
+    async Task OnTabChange(int tabIndex)
+    {
+        _tab = tabIndex;
+        try
+        {
+            await JS.InvokeVoidAsync("tabNavigation.saveTab", "admin", tabIndex);
+        }
+        catch { }
+    }
+
     /* ════════════════════════════════════════════════════════════
        UTILISATEURS
        ════════════════════════════════════════════════════════════ */
@@ -582,30 +575,19 @@ else
         _userLoading = false;
     }
 
-    async Task OnAddUser()
+    void OnUserRowClick(DataGridRowClickEventArgs<User> args)
     {
-        var parameters = new DialogParameters<UserForm>();
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<UserForm>("Nouvel utilisateur", parameters, options);
-        var result = await dialog.Result;
-        if (result?.Canceled == false)
-        {
-            await LoadUsers();
-            await InitializeUserAccessPanel();
-        }
+        OnEditUser(args.Item);
     }
 
-    async Task OnEditUser(User item)
+    void OnAddUser()
     {
-        var parameters = new DialogParameters<UserForm> { { x => x.UserLogin, item.Login } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<UserForm>("Modifier l'utilisateur", parameters, options);
-        var result = await dialog.Result;
-        if (result?.Canceled == false)
-        {
-            await LoadUsers();
-            await InitializeUserAccessPanel();
-        }
+        Navigation.NavigateTo("/admin/utilisateur/nouveau");
+    }
+
+    void OnEditUser(User item)
+    {
+        Navigation.NavigateTo($"/admin/utilisateur/modifier/{item.Login}");
     }
 
     async Task OnManageUserAccess(User item)
@@ -1149,22 +1131,14 @@ else
         _supplierLoading = false;
     }
 
-    async Task OnAddSupplier()
+    void OnAddSupplier()
     {
-        var parameters = new DialogParameters<SupplierForm>();
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<SupplierForm>("Nouveau fournisseur", parameters, options);
-        var result = await dialog.Result;
-        if (result?.Canceled == false) await LoadSuppliers();
+        Navigation.NavigateTo("/admin/fournisseur/nouveau");
     }
 
-    async Task OnEditSupplier(Supplier s)
+    void OnEditSupplier(Supplier s)
     {
-        var parameters = new DialogParameters<SupplierForm> { { x => x.SupplierId, s.SupplierId } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<SupplierForm>($"Modifier — {s.SupplierName}", parameters, options);
-        var result = await dialog.Result;
-        if (result?.Canceled == false) await LoadSuppliers();
+        Navigation.NavigateTo($"/admin/fournisseur/modifier/{s.SupplierId}");
     }
 
     async Task OnDeleteSupplier(Supplier s)
@@ -1208,10 +1182,15 @@ else
         _tauxLoading = false;
     }
 
+    async Task OnTauxRowClick(DataGridRowClickEventArgs<Taux> args)
+    {
+        await OnEditTaux(args.Item);
+    }
+
     async Task OnAddTaux()
     {
         var parameters = new DialogParameters<TauxForm>();
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<TauxForm>("Nouveau taux", parameters, options);
         var result = await dialog.Result;
         if (result?.Canceled == false) await LoadTaux();
@@ -1220,7 +1199,7 @@ else
     async Task OnEditTaux(Taux item)
     {
         var parameters = new DialogParameters<TauxForm> { { x => x.TauxId, item.Id } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<TauxForm>("Modifier le taux", parameters, options);
         var result = await dialog.Result;
         if (result?.Canceled == false) await LoadTaux();
@@ -1254,10 +1233,15 @@ else
         _periodeLoading = false;
     }
 
+    async Task OnPeriodeRowClick(DataGridRowClickEventArgs<Periode> args)
+    {
+        await OnEditPeriode(args.Item);
+    }
+
     async Task OnAddPeriode()
     {
         var parameters = new DialogParameters<PeriodeForm>();
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<PeriodeForm>("Nouvelle période", parameters, options);
         var result = await dialog.Result;
         if (result?.Canceled == false) await LoadPeriodes();
@@ -1266,7 +1250,7 @@ else
     async Task OnEditPeriode(Periode item)
     {
         var parameters = new DialogParameters<PeriodeForm> { { x => x.PeriodeId, item.Id } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<PeriodeForm>("Modifier la période", parameters, options);
         var result = await dialog.Result;
         if (result?.Canceled == false) await LoadPeriodes();
@@ -1320,28 +1304,20 @@ else
         var item = args.Item;
         if (item == null) return;
         var parameters = new DialogParameters<VersementDetailDialog> { { x => x.ExpenseId, item.Id } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<VersementDetailDialog>($"Versement N° {item.Id}", parameters, options);
         var result = await dialog.Result;
         await LoadVersements();
     }
 
-    async Task OnAddVersement()
+    void OnAddVersement()
     {
-        var parameters = new DialogParameters<ApproExpenseForm>();
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ApproExpenseForm>("Nouveau versement", parameters, options);
-        var result = await dialog.Result;
-        if (result?.Canceled == false) await LoadVersements();
+        Navigation.NavigateTo("/admin/versement/nouveau");
     }
 
-    async Task OnEditVersement(ApproExpense item)
+    void OnEditVersement(ApproExpense item)
     {
-        var parameters = new DialogParameters<ApproExpenseForm> { { x => x.ExpenseId, item.Id } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ApproExpenseForm>("Modifier le versement", parameters, options);
-        var result = await dialog.Result;
-        if (result?.Canceled == false) await LoadVersements();
+        Navigation.NavigateTo($"/admin/versement/modifier/{item.Id}");
     }
 
     async Task OnDeleteVersement(ApproExpense item)
@@ -1467,11 +1443,16 @@ else
         _localisationsLoading = false;
     }
 
+    void OnLocalisationRowClick(DataGridRowClickEventArgs<Localisation> args)
+    {
+        OnViewLocalisation(args.Item);
+    }
+
     async Task OnAddLocalisation()
     {
         var dialog = await DialogService.ShowAsync<LocalisationDialog>("Ajouter une localisation",
             new DialogParameters<LocalisationDialog>(),
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall, NoHeader = true });
 
         var result = await dialog.Result;
         if (result?.Canceled == false)
@@ -1484,7 +1465,7 @@ else
     {
         var dialog = await DialogService.ShowAsync<LocalisationDialog>("Modifier localisation",
             new DialogParameters<LocalisationDialog> { { x => x.Model, item } },
-            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall });
+            new DialogOptions { FullWidth = true, MaxWidth = MaxWidth.ExtraSmall, NoHeader = true });
 
         var result = await dialog.Result;
         if (result?.Canceled == false)

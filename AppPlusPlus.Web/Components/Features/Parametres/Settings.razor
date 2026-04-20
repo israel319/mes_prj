@@ -108,12 +108,12 @@
                         else if (!string.IsNullOrWhiteSpace(_settings.PhotoShop))
                         {
                             <img src="@_settings.PhotoShop" alt="Logo" style="max-height:60px;max-width:180px;object-fit:contain;" />
-                            <span style="font-size:0.72rem;color:#7a8f99;">Cliquer pour changer</span>
+                            <span style="font-size:0.72rem;" class="text-muted">Cliquer pour changer</span>
                         }
                         else
                         {
-                            <i class="ti ti-photo-plus" style="font-size:1.8rem;color:#7a8f99;"></i>
-                            <span style="font-size:0.78rem;color:#7a8f99;">Cliquer pour uploader<br/><em>PNG, JPG, WEBP — max 2 Mo</em></span>
+                            <i class="ti ti-photo-plus text-muted" style="font-size:1.8rem;"></i>
+                            <span style="font-size:0.78rem;" class="text-muted">Cliquer pour uploader<br/><em>PNG, JPG, WEBP — max 2 Mo</em></span>
                         }
                     </label>
                     @if (!string.IsNullOrWhiteSpace(_logoError))

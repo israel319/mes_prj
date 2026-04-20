@@ -34,14 +34,14 @@ else
 <!-- Onglets -->
 <div class="card report-tabs-shell">
     <ul class="nav nav-tabs">
-        <li class="nav-item"><button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(() => _tab = 0)"><i class="bi bi-graph-up me-1"></i>Bilan</button></li>
-        <li class="nav-item"><button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(() => _tab = 1)"><i class="bi bi-graph-up-arrow me-1"></i>Ventes</button></li>
-        <li class="nav-item"><button class="nav-link @(_tab == 2 ? "active" : "")" @onclick="@(() => _tab = 2)"><i class="bi bi-box-seam me-1"></i>Stock</button></li>
-        <li class="nav-item"><button class="nav-link @(_tab == 3 ? "active" : "")" @onclick="@(() => _tab = 3)"><i class="bi bi-list-check me-1"></i>Commandes</button></li>
-        <li class="nav-item"><button class="nav-link @(_tab == 4 ? "active" : "")" @onclick="@(() => _tab = 4)"><i class="bi bi-graph-down me-1"></i>Appro & Bénéfice</button></li>
-        <li class="nav-item"><button class="nav-link @(_tab == 5 ? "active" : "")" @onclick="@(() => _tab = 5)"><i class="bi bi-calendar3 me-1"></i>Ventes mensuelles</button></li>
-        <li class="nav-item"><button class="nav-link @(_tab == 6 ? "active" : "")" @onclick="@(() => _tab = 6)"><i class="bi bi-arrow-left-right me-1"></i>Ventes & Appro</button></li>
-        <li class="nav-item"><button class="nav-link @(_tab == 7 ? "active" : "")" @onclick="@(() => _tab = 7)"><i class="bi bi-clock-history me-1"></i>Historique</button></li>
+        <li class="nav-item"><button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(async () => await OnTabChange(0))"><i class="bi bi-graph-up me-1"></i>Bilan</button></li>
+        <li class="nav-item"><button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(async () => await OnTabChange(1))"><i class="bi bi-graph-up-arrow me-1"></i>Ventes</button></li>
+        <li class="nav-item"><button class="nav-link @(_tab == 2 ? "active" : "")" @onclick="@(async () => await OnTabChange(2))"><i class="bi bi-box-seam me-1"></i>Stock</button></li>
+        <li class="nav-item"><button class="nav-link @(_tab == 3 ? "active" : "")" @onclick="@(async () => await OnTabChange(3))"><i class="bi bi-list-check me-1"></i>Commandes</button></li>
+        <li class="nav-item"><button class="nav-link @(_tab == 4 ? "active" : "")" @onclick="@(async () => await OnTabChange(4))"><i class="bi bi-graph-down me-1"></i>Appro & Bénéfice</button></li>
+        <li class="nav-item"><button class="nav-link @(_tab == 5 ? "active" : "")" @onclick="@(async () => await OnTabChange(5))"><i class="bi bi-calendar3 me-1"></i>Ventes mensuelles</button></li>
+        <li class="nav-item"><button class="nav-link @(_tab == 6 ? "active" : "")" @onclick="@(async () => await OnTabChange(6))"><i class="bi bi-arrow-left-right me-1"></i>Ventes & Appro</button></li>
+        <li class="nav-item"><button class="nav-link @(_tab == 7 ? "active" : "")" @onclick="@(async () => await OnTabChange(7))"><i class="bi bi-clock-history me-1"></i>Historique</button></li>
     </ul>
 
             @* ══════════════════ BILAN ══════════════════ *@
@@ -62,7 +62,7 @@ else
                     </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary btn-sm" @onclick="@ExportBilanExcel" disabled="@(!_bilanRows.Any())"><i class="bi bi-file-earmark-excel me-1"></i>Excel</button>
-                        <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("print"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
+                        <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("printReport"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
                         <button class="btn btn-warning btn-sm" @onclick="@SendBilanEmail" disabled="@(!_bilanRows.Any())"><i class="bi bi-envelope me-1"></i>Envoyer par email</button>
                     </div>
                 </div>
@@ -101,7 +101,10 @@ else
                 <h6 class="fw-semibold mb-2">@_bilanTitre</h6>
 
                 <div class="card"><div class="card-body p-0">
-                    <MudDataGrid @ref="_bilanGrid" Items="@_bilanRows" T="BilanRow" Loading="@_bilanLoading" Dense="true">
+                    <MudDataGrid @ref="_bilanGrid" Items="@_bilanRows" T="BilanRow" Loading="@_bilanLoading" Dense="true" RowsPerPage="10">
+                        <PagerContent>
+                            <MudDataGridPager T="BilanRow" />
+                        </PagerContent>
                         <Columns>
                             <PropertyColumn Property="@(x => x.Date)" Title="Date" Style="width:110px;" Format="dd/MM/yyyy" />
                             <TemplateColumn T="BilanRow" Title="Type" Style="width:110px;">
@@ -143,11 +146,14 @@ else
                     </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary btn-sm" @onclick="@ExportVenteExcel" disabled="@(!_venteData.Any())"><i class="bi bi-file-earmark-excel me-1"></i>Excel</button>
-                        <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("print"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
+                        <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("printReport"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
                     </div>
                 </div>
                 <div class="card"><div class="card-body p-0">
-                    <MudDataGrid Items="@_venteData" T="RptVenteVm" Loading="@_venteLoading">
+                    <MudDataGrid Items="@_venteData" T="RptVenteVm" Loading="@_venteLoading" RowsPerPage="10">
+                        <PagerContent>
+                            <MudDataGridPager T="RptVenteVm" />
+                        </PagerContent>
                         <Columns>
                             <PropertyColumn Property="@(x => x.NumFacture)" Title="N° Facture" Style="width:100px;" />
                             <PropertyColumn Property="@(x => x.Client)" Title="Client" />
@@ -179,32 +185,35 @@ else
             <div class="card-body">
                 <div class="d-flex justify-content-end gap-2 mb-2">
                     <button class="btn btn-primary btn-sm" @onclick="@ExportStockExcel" disabled="@(!_stockData.Any())"><i class="bi bi-file-earmark-excel me-1"></i>Excel</button>
-                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("print"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("printReport"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
                 </div>
                 <div class="card"><div class="card-body p-0">
-                    <MudDataGrid Items="@_stockData" T="Article" Loading="@_stockLoading">
+                    <MudDataGrid Items="@_stockData" T="RptStockVm" Loading="@_stockLoading" RowsPerPage="10">
+                        <PagerContent>
+                            <MudDataGridPager T="RptStockVm" />
+                        </PagerContent>
                         <Columns>
                             <PropertyColumn Property="@(x => x.IdArticle)" Title="Code" Style="width:120px;" />
                             <PropertyColumn Property="@(x => x.Description)" Title="Article" />
+                            <PropertyColumn Property="@(x => x.Localisation)" Title="Localisation" Style="width:140px;" />
                             <PropertyColumn Property="@(x => x.Price)" Title="Prix" Style="width:100px; text-align:right;" Format="N2" />
-                            <TemplateColumn T="Article" Title="Stock" Style="width:90px; text-align:center;">
+                            <TemplateColumn T="RptStockVm" Title="Stock" Style="width:90px; text-align:center;">
                                 <CellTemplate>
                                     @{ var s = context.Item; }
                                     <MudChip T="string" Size="Size.Small"
-                                             Color="@((s.Qte ?? 0) <= s.Soeuil ? Color.Error : Color.Success)">@((s.Qte ?? 0).ToString())</MudChip>
+                                             Color="@(s.Qte <= s.Seuil ? Color.Error : Color.Success)">@s.Qte.ToString()</MudChip>
                                 </CellTemplate>
                             </TemplateColumn>
-                            <PropertyColumn Property="@(x => x.Soeuil)" Title="Seuil" Style="width:80px; text-align:center;" />
-                            <PropertyColumn Property="@(x => x.TotalPrice)" Title="Valeur stock" Style="width:130px; text-align:right;" Format="N2" />
-                            <PropertyColumn Property="@(x => x.User)" Title="Utilisateur" Style="width:110px;" />
+                            <PropertyColumn Property="@(x => x.Seuil)" Title="Seuil" Style="width:80px; text-align:center;" />
+                            <PropertyColumn Property="@(x => x.ValeurStock)" Title="Valeur stock" Style="width:130px; text-align:right;" Format="N2" />
                         </Columns>
                     </MudDataGrid>
                 </div></div>
                 @if (_stockData.Any())
                 {
                     <div class="d-flex justify-content-end mt-2 gap-3">
-                        <small class="text-muted">@_stockData.Count articles</small>
-                        <small class="fw-bold" style="color:#00B193;">Valeur totale : @_stockData.Sum(a => a.TotalPrice ?? 0).ToString("N2")</small>
+                        <small class="text-muted">@_stockData.Count lignes</small>
+                        <small class="fw-bold" style="color:#00B193;">Valeur totale : @_stockData.Sum(a => a.ValeurStock).ToString("N2")</small>
                     </div>
                 }
             </div>
@@ -222,10 +231,13 @@ else
                     <button class="btn btn-info btn-sm" @onclick="@LoadCommandes"><i class="bi bi-funnel me-1"></i>Filtrer</button>
                     <div style="flex:1;"></div>
                     <button class="btn btn-primary btn-sm" @onclick="@ExportCmdExcel" disabled="@(!_cmdData.Any())"><i class="bi bi-file-earmark-excel me-1"></i>Excel</button>
-                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("print"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("printReport"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
                 </div>
                 <div class="card"><div class="card-body p-0">
-                    <MudDataGrid Items="@_cmdData" T="CmdRptRow" Loading="@_cmdLoading" Dense="true" RowStyleFunc="@CmdRowStyle">
+                    <MudDataGrid Items="@_cmdData" T="CmdRptRow" Loading="@_cmdLoading" Dense="true" RowStyleFunc="@CmdRowStyle" RowsPerPage="10">
+                        <PagerContent>
+                            <MudDataGridPager T="CmdRptRow" />
+                        </PagerContent>
                         <Columns>
                             <PropertyColumn Property="@(x => x.Id)" Title="N°" Style="width:60px;" />
                             <PropertyColumn Property="@(x => x.Fournisseur)" Title="Fournisseur" Style="width:160px;" />
@@ -303,10 +315,13 @@ else
                     <button class="btn btn-info btn-sm" @onclick="@LoadApproBen"><i class="bi bi-funnel me-1"></i>Filtrer</button>
                     <div style="flex:1;"></div>
                     <button class="btn btn-primary btn-sm" @onclick="@ExportBenExcel" disabled="@(!_benData.Any())"><i class="bi bi-file-earmark-excel me-1"></i>Excel</button>
-                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("print"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("printReport"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
                 </div>
                 <div class="card"><div class="card-body p-0">
-                    <MudDataGrid Items="@_benData" T="ApproBenRow" Loading="@_benLoading">
+                    <MudDataGrid Items="@_benData" T="ApproBenRow" Loading="@_benLoading" RowsPerPage="10">
+                        <PagerContent>
+                            <MudDataGridPager T="ApproBenRow" />
+                        </PagerContent>
                         <Columns>
                             <PropertyColumn Property="@(x => x.Id)" Title="N°" Style="width:70px;" />
                             <PropertyColumn Property="@(x => x.ArticleName)" Title="Article" />
@@ -347,7 +362,7 @@ else
                     <button class="btn btn-info btn-sm" @onclick="@LoadVenteMois"><i class="bi bi-funnel me-1"></i>Afficher</button>
                     <div style="flex:1;"></div>
                     <button class="btn btn-primary btn-sm" @onclick="@ExportVmExcel" disabled="@(!_vmData.Any())"><i class="bi bi-file-earmark-excel me-1"></i>Excel</button>
-                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("print"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("printReport"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
                 </div>
                 <div class="row g-3 mb-2">
                     <div class="col-3">
@@ -380,7 +395,10 @@ else
                     </div>
                 </div>
                 <div class="card"><div class="card-body p-0">
-                    <MudDataGrid Items="@_vmData" T="Fact" Loading="@_vmLoading">
+                    <MudDataGrid Items="@_vmData" T="Fact" Loading="@_vmLoading" RowsPerPage="10">
+                        <PagerContent>
+                            <MudDataGridPager T="Fact" />
+                        </PagerContent>
                         <Columns>
                             <PropertyColumn Property="@(x => x.Id)" Title="N° Facture" Style="width:100px;" />
                             <PropertyColumn Property="@(x => x.DescriptionName)" Title="Client" />
@@ -414,10 +432,13 @@ else
                     <button class="btn btn-info btn-sm" @onclick="@LoadVenteAppro"><i class="bi bi-funnel me-1"></i>Filtrer</button>
                     <div style="flex:1;"></div>
                     <button class="btn btn-primary btn-sm" @onclick="@ExportVaExcel" disabled="@(!_vaData.Any())"><i class="bi bi-file-earmark-excel me-1"></i>Excel</button>
-                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("print"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="@(() => JS.InvokeVoidAsync("printReport"))"><i class="bi bi-printer me-1"></i>Imprimer</button>
                 </div>
                 <div class="card"><div class="card-body p-0">
-                    <MudDataGrid Items="@_vaData" T="MouvementRow" Loading="@_vaLoading">
+                    <MudDataGrid Items="@_vaData" T="MouvementRow" Loading="@_vaLoading" RowsPerPage="10">
+                        <PagerContent>
+                            <MudDataGridPager T="MouvementRow" />
+                        </PagerContent>
                         <Columns>
                             <PropertyColumn Property="@(x => x.IdArticle)" Title="Code" Style="width:120px;" />
                             <PropertyColumn Property="@(x => x.Description)" Title="Article" />
@@ -489,7 +510,10 @@ else
                 <div class="card"><div class="card-body p-0">
                     <MudDataGrid Items="@_histoFiltered" T="HistoRow" Loading="@_histoLoading" Dense="true"
                                     Style="cursor:pointer;"
-                                    RowClick="@OnHistoRowClick">
+                                    RowClick="@OnHistoRowClick" RowsPerPage="10">
+                        <PagerContent>
+                            <MudDataGridPager T="HistoRow" />
+                        </PagerContent>
                         <Columns>
                             <PropertyColumn Property="@(x => x.DateOp)" Title="Date" Style="width:140px;" Format="dd/MM/yyyy HH:mm" />
                             <TemplateColumn T="HistoRow" Title="Type" Style="width:110px;">
@@ -569,8 +593,12 @@ else
                       DateOnly Date, string Utilisateur);
 
     /* ════════════════════ STOCK ════════════════════ */
-    List<Article> _stockData = new();
+    List<RptStockVm> _stockData = new();
     bool _stockLoading;
+
+    record RptStockVm(string IdArticle, string Description, double Price,
+                      decimal Qte, int Seuil, double ValeurStock,
+                      string Localisation);
 
     /* ════════════════════ COMMANDES ════════════════════ */
     List<CmdRptRow> _cmdData = new();
@@ -711,6 +739,33 @@ else
         _loaded = true;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var savedTab = await JS.InvokeAsync<int>("tabNavigation.getTab", "rapport", 0);
+                if (savedTab != _tab)
+                {
+                    _tab = savedTab;
+                    StateHasChanged();
+                }
+            }
+            catch { }
+        }
+    }
+
+    async Task OnTabChange(int tabIndex)
+    {
+        _tab = tabIndex;
+        try
+        {
+            await JS.InvokeVoidAsync("tabNavigation.saveTab", "rapport", tabIndex);
+        }
+        catch { }
+    }
+
     /* ════════════════════ BILAN — LOGIQUE ════════════════════ */
 
     void OnBilanPeriodeChanged()
@@ -848,7 +903,7 @@ else
             ["ExcelBytes"] = GenerateBilanExcelBytes(),
             ["ExcelFileName"] = $"Bilan_{_bilanPeriode}_{DateTime.Now:yyyyMMdd}.xlsx"
         };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, NoHeader = true };
         await DialogService.ShowAsync<EmailDialog>("Envoyer le rapport par email", parameters, options);
     }
 
@@ -890,7 +945,27 @@ else
     {
         _stockLoading = true;
         await using var ctx = await DbFactory.CreateDbContextAsync();
-        _stockData = await ctx.Articles.OrderBy(a => a.Description).ToListAsync();
+        var query = ctx.Stocks
+            .Include(s => s.Article)
+            .Include(s => s.Localisation)
+            .AsQueryable();
+
+        if (_currentUserLocalisations.Any())
+            query = query.Where(s => _currentUserLocalisations.Contains(s.IdLocalisation));
+
+        _stockData = await query
+            .OrderBy(s => s.Article!.Description)
+            .ThenBy(s => s.Localisation!.DescriptionLocalisation)
+            .Select(s => new RptStockVm(
+                s.IdArticle,
+                s.Article != null ? s.Article.Description : s.IdArticle,
+                s.Article != null ? s.Article.Price : 0,
+                s.Qte,
+                s.Seuil,
+                (double)s.Qte * (s.Article != null ? s.Article.Price : 0),
+                s.Localisation != null ? s.Localisation.DescriptionLocalisation ?? "?" : "?"
+            ))
+            .ToListAsync();
         _stockLoading = false;
     }
 
@@ -898,10 +973,10 @@ else
     {
         using var workbook = new ClosedXML.Excel.XLWorkbook();
         var ws = workbook.Worksheets.Add("Stock");
-        string[] headers = { "Code", "Article", "Prix", "Stock", "Seuil", "Valeur stock", "Utilisateur" };
+        string[] headers = { "Code", "Article", "Localisation", "Prix", "Stock", "Seuil", "Valeur stock" };
         for (int i = 0; i < headers.Length; i++) { var cell = ws.Cell(1, i + 1); cell.Value = headers[i]; cell.Style.Font.Bold = true; cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#4472C4"); cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White; }
         int row = 2;
-        foreach (var a in _stockData) { ws.Cell(row, 1).Value = a.IdArticle; ws.Cell(row, 2).Value = a.Description; ws.Cell(row, 3).Value = a.Price; ws.Cell(row, 3).Style.NumberFormat.Format = "#,##0.00"; ws.Cell(row, 4).Value = (double)(a.Qte ?? 0m); ws.Cell(row, 5).Value = a.Soeuil; ws.Cell(row, 6).Value = a.TotalPrice ?? 0; ws.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00"; ws.Cell(row, 7).Value = a.User; row++; }
+        foreach (var a in _stockData) { ws.Cell(row, 1).Value = a.IdArticle; ws.Cell(row, 2).Value = a.Description; ws.Cell(row, 3).Value = a.Localisation; ws.Cell(row, 4).Value = a.Price; ws.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00"; ws.Cell(row, 5).Value = (double)a.Qte; ws.Cell(row, 6).Value = a.Seuil; ws.Cell(row, 7).Value = a.ValeurStock; ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00"; row++; }
         ws.Columns().AdjustToContents();
         using var ms = new System.IO.MemoryStream(); workbook.SaveAs(ms);
         var base64 = Convert.ToBase64String(ms.ToArray());

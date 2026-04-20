@@ -3,6 +3,7 @@
 @inject IStockService StockService
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject NavigationManager Navigation
 
 <MudDialog>
     <DialogContent>
@@ -154,24 +155,10 @@
         _loading = false;
     }
 
-    private async Task OnAppro(StockArticleDto article)
+    private void OnAppro(StockArticleDto article)
     {
-        var parameters = new DialogParameters<ApproForm>
-        {
-            { x => x.ApproId, 0 },
-            { x => x.PreselectedArticleId, article.IdArticle },
-            { x => x.PreselectedLocalisationId, Localisation?.IdLocalisation }
-        };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ApproForm>("Approvisionnement", parameters, options);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            // Refresh articles via StockService
-            _articles = await StockService.GetStockArticleViewAsync(Localisation!.IdLocalisation);
-            StateHasChanged();
-        }
+        MudDialog.Close();
+        Navigation.NavigateTo($"/stock/appro/nouveau?PreselectedArticleId={article.IdArticle}&PreselectedLocalisationId={Localisation?.IdLocalisation}");
     }
 
     private void Close() => MudDialog.Close();

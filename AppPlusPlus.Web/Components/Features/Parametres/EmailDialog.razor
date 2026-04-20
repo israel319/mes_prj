@@ -4,6 +4,21 @@
 
 <MudDialog>
     <DialogContent>
+        <div class="lov-form-header">
+            <h5>Envoyer par email</h5>
+            <div class="d-flex" style="gap:0.5rem;">
+                @if (EmailSvc.IsConfigured)
+                {
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="OnSubmit" disabled="@_sending">
+                        <i class="bi bi-send me-1"></i>@(_sending ? "Envoi…" : "Envoyer")
+                    </button>
+                }
+                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Cancel">
+                    <i class="bi bi-arrow-left me-1"></i>@(EmailSvc.IsConfigured ? "Annuler" : "Fermer")
+                </button>
+            </div>
+        </div>
+        <div class="lov-form-body">
         @if (!EmailSvc.IsConfigured)
         {
             <div class="alert alert-warning">Configurez la section 'Smtp' dans appsettings.json (Host, Port, User, Password, From) pour activer l'envoi d'emails.</div>
@@ -11,15 +26,21 @@
         else
         {
             <div class="d-flex flex-column gap-3">
-                <label class="form-label">Adresse email du destinataire</label>
-                <input type="email" class="form-control" @bind="_model.ToAddress"
-                       placeholder="exemple@domaine.com" />
+                <div class="lov-field">
+                    <label class="form-label">Adresse email du destinataire</label>
+                    <input type="email" class="form-control" @bind="_model.ToAddress"
+                           placeholder="exemple@domaine.com" />
+                </div>
 
-                <label class="form-label">Objet</label>
-                <input type="text" class="form-control" @bind="_model.Subject" />
+                <div class="lov-field">
+                    <label class="form-label">Objet</label>
+                    <input type="text" class="form-control" @bind="_model.Subject" />
+                </div>
 
-                <label class="form-label">Message (optionnel)</label>
-                <textarea class="form-control" @bind="_model.Message" style="min-height:80px;"></textarea>
+                <div class="lov-field">
+                    <label class="form-label">Message (optionnel)</label>
+                    <textarea class="form-control" @bind="_model.Message" style="min-height:80px;" placeholder="Votre message…"></textarea>
+                </div>
 
                 @if (ExcelBytes is not null)
                 {
@@ -30,20 +51,8 @@
                 }
             </div>
         }
+        </div>
     </DialogContent>
-    <DialogActions>
-        @if (!EmailSvc.IsConfigured)
-        {
-            <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
-        }
-        else
-        {
-            <button type="button" class="btn btn-secondary" @onclick="Cancel" disabled="@_sending">Annuler</button>
-            <button type="button" class="btn btn-primary" @onclick="OnSubmit" disabled="@_sending">
-                <i class="bi bi-send me-1"></i>@(_sending ? "Envoi en cours..." : "Envoyer")
-            </button>
-        }
-    </DialogActions>
 </MudDialog>
 
 @code {

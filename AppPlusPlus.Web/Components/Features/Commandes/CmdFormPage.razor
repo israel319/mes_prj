@@ -1,147 +1,169 @@
+@page "/commandes/interne/nouveau"
+@page "/commandes/interne/modifier/{CmdId:int}"
+@rendermode InteractiveServer
 @using MudBlazor
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @inject IDbContextFactory<AppDbContext> DbFactory
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
 
-<MudDialog>
-    <DialogContent>
-        <div class="d-flex flex-column gap-3" style="min-width:680px;">
+<PageTitle>@AppSettings.AppName — @(_isEdit ? "Modifier la commande" : "Nouvelle commande")</PageTitle>
 
-            @* ── Fournisseur ── *@
-            <div class="row g-2 align-items-end">
-                <div class="col">
-                    <label class="form-label">Fournisseur</label>
-                    <MudAutocomplete T="int?" @bind-Value="_item.SupplierId"
-                                     SearchFunc="@SearchSuppliers"
-                                     ToStringFunc="@(id => _suppliers.FirstOrDefault(s => s.SupplierId == id)?.SupplierName ?? "")"
-                                     Placeholder="Sélectionner un fournisseur..."
-                                     Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" />
-                </div>
-                <div class="col-sm-1">
+<div class="lov-card" style="max-width:820px; margin:40px auto;">
+    <div class="lov-form-header">
+        <h5 style="font-weight:700; font-size:1.25rem;">@(_isEdit ? "Modifier la commande" : "Nouvelle commande")</h5>
+        <div class="d-flex" style="gap:0.5rem;">
+            <button type="button" class="btn btn-sm btn-save-teal d-flex align-items-center gap-1"
+                    @onclick="OnSave">
+                <i class="bi bi-check-lg"></i> Enregistrer
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                    style="padding:6px 16px; border-radius:6px; font-size:13px; font-weight:500;"
+                    @onclick="OnCancel">
+                <i class="bi bi-arrow-left"></i> Annuler
+            </button>
+        </div>
+    </div>
+    <div class="lov-form-body" style="padding:28px 32px 32px;">
+
+        @* ── Fournisseur ── *@
+        <div class="row g-4">
+            <div class="col">
+                <label class="form-label">Fournisseur</label>
+                <div class="d-flex gap-2">
+                    <div style="flex:1;">
+                        <MudAutocomplete T="int?" @bind-Value="_item.SupplierId"
+                                         SearchFunc="@SearchSuppliers"
+                                         ToStringFunc="@(id => _suppliers.FirstOrDefault(s => s.SupplierId == id)?.SupplierName ?? "")"
+                                         Placeholder="Sélectionner un fournisseur..."
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
+                                         CoerceText="true" CoerceValue="true" />
+                    </div>
                     <button class="btn btn-outline-secondary" @onclick="@OnCreateSupplier"
                             title="Créer un fournisseur" style="height:40px;">
                         <i class="bi bi-person-plus"></i>
                     </button>
                 </div>
             </div>
+        </div>
 
-            @* ── Nouveau fournisseur (section visible si on clique +) ── *@
-            @if (_showNewSupplier)
-            {
-                <div class="card bg-body-secondary">
-                    <div class="card-body p-3">
-                        <div class="fw-semibold mb-2">Nouveau fournisseur</div>
-                        <div class="row g-2">
-                            <div class="col-md-5">
-                                <label class="form-label">Nom *</label>
-                                <input type="text" class="form-control" @bind="_newSupplierName" placeholder="Nom du fournisseur" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Contact</label>
-                                <input type="text" class="form-control" @bind="_newSupplierContact" placeholder="Téléphone" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Email</label>
-                                <input type="text" class="form-control" @bind="_newSupplierEmail" placeholder="email" />
-                            </div>
-                            <div class="col-md-1 d-flex align-items-end gap-1">
-                                <button class="btn btn-primary btn-sm" @onclick="@OnSaveNewSupplier" title="Enregistrer">
-                                    <i class="bi bi-check-lg"></i>
-                                </button>
-                                <button class="btn btn-light btn-sm" @onclick="@(() => _showNewSupplier = false)" title="Annuler">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                            </div>
+        @* ── Nouveau fournisseur inline ── *@
+        @if (_showNewSupplier)
+        {
+            <div class="card bg-body-secondary mt-3">
+                <div class="card-body p-3">
+                    <div class="fw-semibold mb-2">Nouveau fournisseur</div>
+                    <div class="row g-2">
+                        <div class="col-md-5">
+                            <label class="form-label">Nom *</label>
+                            <input type="text" class="form-control" @bind="_newSupplierName" placeholder="Nom du fournisseur" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Contact</label>
+                            <input type="text" class="form-control" @bind="_newSupplierContact" placeholder="Téléphone" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Email</label>
+                            <input type="text" class="form-control" @bind="_newSupplierEmail" placeholder="email" />
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end gap-1">
+                            <button class="btn btn-primary btn-sm" @onclick="@OnSaveNewSupplier" title="Enregistrer">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                            <button class="btn btn-light btn-sm" @onclick="@(() => _showNewSupplier = false)" title="Annuler">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-            }
+            </div>
+        }
 
-            @* ── Date ── *@
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Date commande</label>
-                    <MudDatePicker @bind-Date="_dateCommande" DateFormat="dd/MM/yyyy"
-                                   Variant="Variant.Outlined" Margin="Margin.Dense" />
-                </div>
-                <div class="col-md-6">
-                    @if (CmdId.HasValue)
-                    {
-                        <label class="form-label">Statut</label>
+        @* ── Date + Statut ── *@
+        <div class="row g-4 mt-1">
+            <div class="col-6">
+                <label class="form-label">Date commande</label>
+                <MudDatePicker @bind-Date="_dateCommande" DateFormat="dd/MM/yyyy"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </div>
+            <div class="col-6">
+                @if (_isEdit)
+                {
+                    <label class="form-label">Statut</label>
+                    <div>
                         <span class="badge @StatusCss(_item.Status)" style="font-size:0.85rem; padding:4px 12px;">
                             @StatusLabel(_item.Status)
                         </span>
-                    }
-                </div>
+                    </div>
+                }
             </div>
+        </div>
 
-            @* ── Articles commandés ── *@
-            <h6 class="fw-semibold mt-1">Articles commandés (@_lines.Count)</h6>
+        <hr class="my-3" />
 
-            <MudDataGrid Items="@_lines" T="CmdLine" Dense="true" Hover="true" Bordered="true" Elevation="0">
-                <Columns>
-                    <TemplateColumn Title="Article">
+        @* ── Articles commandés ── *@
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="fw-semibold mb-0">Articles commandés (@_lines.Count)</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="@AddLine">
+                <i class="bi bi-plus-lg me-1"></i>Ajouter un article
+            </button>
+        </div>
+
+        <MudDataGrid Items="@_lines" T="CmdLine" Dense="true" Hover="true" Bordered="true" Elevation="0" Class="mt-2">
+            <Columns>
+                <TemplateColumn Title="Article">
+                    <CellTemplate>
+                        <MudAutocomplete T="string" Value="context.Item.IdArticle"
+                                         SearchFunc="@SearchArticles"
+                                         ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
+                                         Placeholder="Sélectionner un article..."
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                         CoerceText="true" CoerceValue="true"
+                                         ValueChanged="@(val => OnArticleSelected(context.Item, val))" />
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Stock actuel">
+                    <CellTemplate>
+                        <span class="badge @(context.Item.StockActuel > 0 ? "bg-success" : "bg-light text-dark")">
+                            @((context.Item.StockActuel ?? 0).ToString("N0"))
+                        </span>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Qté commandée">
+                    <CellTemplate>
+                        <MudNumericField @bind-Value="context.Item.QteOrder" T="double?" Min="0"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </CellTemplate>
+                </TemplateColumn>
+                @if (_isEdit)
+                {
+                    <TemplateColumn Title="Reçu">
                         <CellTemplate>
-                            <MudAutocomplete T="string" Value="context.Item.IdArticle"
-                                             SearchFunc="@SearchArticles"
-                                             ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
-                                             Placeholder="Sélectionner un article..."
-                                             Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
-                                             ValueChanged="@(val => OnArticleSelected(context.Item, val))" />
-                        </CellTemplate>
-                    </TemplateColumn>
-                    <TemplateColumn Title="Stock actuel">
-                        <CellTemplate>
-                            <span class="badge @(context.Item.StockActuel > 0 ? "bg-success" : "bg-light text-dark")">
-                                @((context.Item.StockActuel ?? 0).ToString("N0"))
+                            <span class="text-success">
+                                @((context.Item.QteReceived ?? 0).ToString("N0"))
                             </span>
                         </CellTemplate>
                     </TemplateColumn>
-                    <TemplateColumn Title="Qté commandée">
-                        <CellTemplate>
-                            <MudNumericField @bind-Value="context.Item.QteOrder" T="double?" Min="0"
-                                             Variant="Variant.Outlined" Margin="Margin.Dense" />
-                        </CellTemplate>
-                    </TemplateColumn>
-                    @if (CmdId.HasValue)
-                    {
-                        <TemplateColumn Title="Reçu">
-                            <CellTemplate>
-                                <span class="text-success">
-                                    @((context.Item.QteReceived ?? 0).ToString("N0"))
-                                </span>
-                            </CellTemplate>
-                        </TemplateColumn>
-                    }
-                    <TemplateColumn>
-                        <CellTemplate>
-                            <button class="btn btn-link text-danger p-0 border-0 btn-sm" @onclick="@(() => RemoveLine(context.Item))" title="Retirer">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </CellTemplate>
-                    </TemplateColumn>
-                </Columns>
-            </MudDataGrid>
-
-            <button class="btn btn-light btn-sm" @onclick="@AddLine" style="align-self:flex-start;">
-                <i class="bi bi-plus-lg me-1"></i> Ajouter un article
-            </button>
-        </div>
-    </DialogContent>
-    <DialogActions>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
-        <button type="button" class="btn btn-primary" @onclick="OnSave">
-            <i class="bi bi-check-lg me-1"></i>Enregistrer
-        </button>
-    </DialogActions>
-</MudDialog>
+                }
+                <TemplateColumn>
+                    <CellTemplate>
+                        <button class="btn btn-link text-danger p-0 border-0 btn-sm" @onclick="@(() => RemoveLine(context.Item))" title="Retirer">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </div>
+</div>
 
 @code {
-    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public int? CmdId { get; set; }
 
+    bool _isEdit;
     Cmd _item = new();
     DateTime? _dateCommande = DateTime.Today;
 
@@ -154,6 +176,11 @@
     string? _newSupplierContact;
     string? _newSupplierEmail;
     string _currentLogin = "";
+
+    async Task OnCancel()
+    {
+        await JS.InvokeVoidAsync("appNavigation.backOrFallback", "/commandes");
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -173,6 +200,7 @@
 
         if (CmdId.HasValue)
         {
+            _isEdit = true;
             var existing = await ctx.Cmds
                 .Include(c => c.Details)
                 .FirstOrDefaultAsync(c => c.Id == CmdId.Value);
@@ -285,8 +313,6 @@
         }
     }
 
-    void Cancel() => MudDialog.Close();
-
     async Task OnSave()
     {
         var validLines = _lines.Where(l => !string.IsNullOrEmpty(l.IdArticle) && (l.QteOrder ?? 0) > 0).ToList();
@@ -350,7 +376,7 @@
             }
 
             await ctx.SaveChangesAsync();
-            MudDialog.Close(DialogResult.Ok(true));
+            Navigation.NavigateTo("/commandes");
         }
         catch (Exception ex)
         {

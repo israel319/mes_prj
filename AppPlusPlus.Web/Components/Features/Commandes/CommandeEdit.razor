@@ -38,7 +38,8 @@
                                      ValueChanged="@OnCustomerSelected"
                                      SearchFunc="@SearchCustomers"
                                      ToStringFunc="@(c => c?.CustomerName ?? "")"
-                                     Placeholder="Sélectionner un client..." Style="width:100%;" />
+                                     Placeholder="Sélectionner un client..." Style="width:100%;"
+                                     CoerceText="true" CoerceValue="true" />
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label">Description</label>
@@ -71,7 +72,8 @@
                                                  ValueChanged="@(val => { line.ArticleId = val; RecalcTotal(); })"
                                                  SearchFunc="@SearchArticleIds"
                                                  ToStringFunc="@(id => _articles.FirstOrDefault(a => a.IdArticle == id)?.Description ?? id ?? "")"
-                                                 Placeholder="Sélectionner..." Style="width:100%;" />
+                                                 Placeholder="Sélectionner..." Style="width:100%;"
+                                                 CoerceText="true" CoerceValue="true" />
                             </CellTemplate>
                         </TemplateColumn>
                         <TemplateColumn T="CmdeLine" Title="Quantité" CellStyle="text-align:center;">
@@ -108,7 +110,7 @@
 
             @* -- Total -- *@
             <div class="d-flex justify-content-end mt-2">
-                <div class="card" style="background:#f8f9fa;padding:0.75rem 1.5rem;">
+                <div class="card" style="background:var(--bs-tertiary-bg);padding:0.75rem 1.5rem;">
                     <h5 style="font-weight:700;margin:0;">
                         Total : @_total.ToString("N2")
                     </h5>

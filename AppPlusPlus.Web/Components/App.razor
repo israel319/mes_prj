@@ -19,7 +19,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&amp;display=block" rel="stylesheet" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="icon" type="image/png" href="appliweb-logo-v2.png" />
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
@@ -64,6 +64,40 @@
                     localStorage.removeItem('hub_tab_' + hubName);
                 } catch { }
             }
+        };
+
+        // Fix: Fermer le dropdown MudAutocomplete après sélection d'un élément
+        (function () {
+            document.addEventListener('click', function (e) {
+                var listItem = e.target.closest('.mud-list-item-clickable');
+                if (!listItem) return;
+                // Laisser Blazor traiter la sélection, puis blur pour fermer le popover
+                setTimeout(function () {
+                    var focused = document.activeElement;
+                    if (focused && focused.tagName === 'INPUT') {
+                        var autocomplete = focused.closest('.mud-autocomplete');
+                        if (autocomplete) {
+                            focused.blur();
+                        }
+                    }
+                }, 150);
+            }, true);
+        })();
+
+        // Impression rapport : montre toutes les lignes, imprime, puis restaure la pagination
+        window.printReport = function () {
+            // Expand all MudDataGrid rows by setting a huge page size
+            var pagerSelects = document.querySelectorAll('.mud-table-pagination .mud-select-input');
+            var originalValues = [];
+            pagerSelects.forEach(function(sel, i) {
+                originalValues[i] = sel.textContent;
+            });
+            // Click "All" or set rows per page very high — simpler: hide pagination and show all via CSS
+            document.body.classList.add('print-all-rows');
+            setTimeout(function() {
+                window.print();
+                document.body.classList.remove('print-all-rows');
+            }, 100);
         };
 
         // Impression directe d'une facture via iframe cachée

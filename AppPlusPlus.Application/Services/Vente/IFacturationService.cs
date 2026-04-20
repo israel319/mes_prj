@@ -1,3 +1,4 @@
+using AppPlusPlus.Application.Common;
 using AppPlusPlus.Application.DTOs.Vente;
 using AppPlusPlus.Domain.Entities.Vente;
 
@@ -13,7 +14,7 @@ public interface IFacturationService
     /// <summary>
     /// Deletes a facture and all its detail lines.
     /// </summary>
-    Task DeleteFactureAsync(int factId);
+    Task<ServiceResult> DeleteFactureAsync(int factId);
 
     /// <summary>
     /// Loads enriched facture views for the Paiements tab (status 1-2 only).

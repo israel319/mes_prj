@@ -55,4 +55,12 @@ public class StockService : IStockService
             .OrderBy(dto => dto.Description)
             .ToList();
     }
+
+    public async Task UpdateSeuilAsync(int stockId, int seuil)
+    {
+        var stock = await _stockRepo.GetByIdAsync(stockId);
+        if (stock == null) return;
+        stock.Seuil = seuil;
+        await _stockRepo.UpdateAsync(stock);
+    }
 }

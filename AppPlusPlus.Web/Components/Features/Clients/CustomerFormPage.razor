@@ -1,0 +1,154 @@
+@page "/commandes/client/nouveau"
+@page "/commandes/client/modifier/{CustomerId:int}"
+@rendermode InteractiveServer
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@inject ICustomerService CustomerService
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>@AppSettings.AppName — @(_isEdit ? "Modifier le client" : "Nouveau client")</PageTitle>
+
+<div class="lov-card" style="max-width:620px; margin:40px auto;">
+    <div class="lov-form-header">
+        <h5 style="font-weight:700; font-size:1.25rem;">@(_isEdit ? "Modifier le client" : "Nouveau client")</h5>
+        <div class="d-flex" style="gap:0.5rem;">
+            <button type="button" class="btn btn-sm btn-save-teal d-flex align-items-center gap-1"
+                    @onclick="@OnSave" disabled="@_saving">
+                <i class="bi bi-check-lg"></i> Enregistrer
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+                    style="padding:6px 16px; border-radius:6px; font-size:13px; font-weight:500;"
+                    @onclick="@OnCancel">
+                <i class="bi bi-arrow-left"></i> Annuler
+            </button>
+        </div>
+    </div>
+    <div class="lov-form-body" style="padding:28px 32px 32px;">
+
+        <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--bs-border-color);">
+            <div class="d-flex flex-column gap-1">
+                <div class="fw-medium">Client permanent</div>
+                <small class="text-muted">
+                    @(_isPermanent ? "Client avec compte (permanent)" : "Client passager (sans compte)")
+                </small>
+            </div>
+            <MudSwitch @bind-Value="_isPermanent" T="bool" />
+        </div>
+
+        <div class="row g-4 mt-1">
+            <div class="col-12">
+                <label class="form-label">Nom / Description</label>
+                <input type="text" class="form-control" @bind="_customer.CustomerName" maxlength="50"
+                       placeholder="Nom du client" style="@(_showError ? "border-color:var(--bs-danger);" : "")" />
+                @if (_showError)
+                {
+                    <small class="text-danger">Obligatoire</small>
+                }
+            </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+            <div class="col-12">
+                <label class="form-label">Contact</label>
+                <input type="text" class="form-control" @bind="_customer.Contact" maxlength="50"
+                       placeholder="Téléphone ou contact" />
+            </div>
+        </div>
+
+        @if (_isPermanent)
+        {
+            <div class="row g-4 mt-1">
+                <div class="col-6">
+                    <label class="form-label">Email</label>
+                    <input type="text" class="form-control" @bind="_customer.Email" maxlength="50"
+                           placeholder="email@exemple.com" />
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Adresse</label>
+                    <input type="text" class="form-control" @bind="_customer.Adress" maxlength="50"
+                           placeholder="Adresse du client" />
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int? CustomerId { get; set; }
+
+    bool _isEdit;
+    Customer _customer = new() { CreationDate = DateOnly.FromDateTime(DateTime.Today) };
+    bool _isPermanent = true;
+    bool _saving;
+    bool _showError;
+    string _currentLogin = "";
+    string? _returnUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var authUser = authState.User;
+        if (authUser.Identity?.IsAuthenticated == true)
+        {
+            _currentLogin = authUser.FindFirst("login")?.Value
+                ?? authUser.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "";
+        }
+
+        // Check for returnUrl query param
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        _returnUrl = query["returnUrl"];
+
+        if (CustomerId.HasValue)
+        {
+            _isEdit = true;
+            var existing = await CustomerService.GetByIdAsync(CustomerId.Value);
+            if (existing != null)
+            {
+                _customer = existing;
+                _isPermanent = _customer.IsPermanent ?? true;
+            }
+        }
+    }
+
+    async Task OnCancel()
+    {
+        await JS.InvokeVoidAsync("appNavigation.backOrFallback", _returnUrl ?? "/commandes");
+    }
+
+    async Task OnSave()
+    {
+        _showError = string.IsNullOrWhiteSpace(_customer.CustomerName);
+        if (_showError) return;
+
+        try
+        {
+            _saving = true;
+            _customer.IsPermanent = _isPermanent;
+            if (_isEdit)
+            {
+                await CustomerService.UpdateAsync(_customer);
+            }
+            else
+            {
+                _customer.UserLogin = _currentLogin;
+                await CustomerService.AddAsync(_customer);
+            }
+            Snackbar.Add("Client enregistré", Severity.Success);
+            Navigation.NavigateTo(_returnUrl ?? "/commandes");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.InnerException?.Message ?? ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

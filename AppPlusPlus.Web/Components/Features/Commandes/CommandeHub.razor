@@ -6,6 +6,7 @@
 @inject MudBlazor.IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>@AppSettings.AppName — Commandes & Clients</PageTitle>
 
@@ -20,7 +21,7 @@ else
     <div>
         <div class="d-flex flex-wrap align-items-center justify-content-between mb-2 hub-header">
             <div class="d-flex align-items-center gap-3">
-                <div class="hub-icon" style="background:#d4f5ef;color:#00B193;">
+                <div class="hub-icon hub-icon-badge">
                     <i class="bi bi-clipboard-check"></i>
                 </div>
                 <div>
@@ -32,9 +33,9 @@ else
 
         <div class="card hub-tabs-shell">
             <ul class="nav nav-tabs">
-                <li class="nav-item"><button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(() => _tab = 0)"><i class="bi bi-clipboard-check me-1"></i>Commandes internes</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(() => _tab = 1)"><i class="bi bi-shop me-1"></i>Commandes clients</button></li>
-                <li class="nav-item"><button class="nav-link @(_tab == 2 ? "active" : "")" @onclick="@(() => _tab = 2)"><i class="bi bi-people me-1"></i>Clients</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 0 ? "active" : "")" @onclick="@(async () => await OnTabChange(0))"><i class="bi bi-clipboard-check me-1"></i>Commandes internes</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 1 ? "active" : "")" @onclick="@(async () => await OnTabChange(1))"><i class="bi bi-shop me-1"></i>Commandes clients</button></li>
+                <li class="nav-item"><button class="nav-link @(_tab == 2 ? "active" : "")" @onclick="@(async () => await OnTabChange(2))"><i class="bi bi-people me-1"></i>Clients</button></li>
             </ul>
 
             @* ══════════════════ COMMANDES INTERNES ══════════════════ *@
@@ -94,28 +95,6 @@ else
                                 </CellTemplate>
                             </TemplateColumn>
                             <PropertyColumn Property="x => x.Cmd.DateCommande" Title="Date" Format="dd/MM/yyyy" />
-                            <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                <CellTemplate>
-                                    <div @onclick:stopPropagation="true">
-                                    <div class="d-flex gap-0 justify-content-center">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                       OnClick="@(() => OnEditCmd(context.Item.Cmd))" title="Modifier" />
-                                        @if (context.Item.HasRemaining)
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Small"
-                                                           OnClick="@(() => OnReceptionner(context.Item.Cmd))" title="Réceptionner en stock" />
-                                        }
-                                        @if (context.Item.HasStock)
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.Output" Color="Color.Info" Size="Size.Small"
-                                                           OnClick="@(() => OnApprovisionnerDepuisStock(context.Item.Cmd))" title="Approvisionner depuis ce stock" />
-                                        }
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                       OnClick="@(() => OnDeleteCmd(context.Item.Cmd))" title="Supprimer" />
-                                    </div>
-                                    </div>
-                                </CellTemplate>
-                            </TemplateColumn>
                         </Columns>
                         <PagerContent>
                             <MudDataGridPager T="CmdRowDto" />
@@ -182,23 +161,6 @@ else
                                 </CellTemplate>
                             </TemplateColumn>
                             <PropertyColumn Property="x => x.CreationDate" Title="Date" Format="dd/MM/yyyy" />
-                            <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                <CellTemplate>
-                                    <div @onclick:stopPropagation="true">
-                                    <div class="d-flex gap-0 justify-content-center">
-                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                       OnClick="@(() => OnEditVente(context.Item))" title="Modifier" />
-                                        @if (HasRemainingToDeliver(context.Item))
-                                        {
-                                            <MudIconButton Icon="@Icons.Material.Filled.LocalShipping" Color="Color.Success" Size="Size.Small"
-                                                           OnClick="@(() => OnLivrer(context.Item))" title="Créer une livraison" />
-                                        }
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                       OnClick="@(() => OnDeleteVente(context.Item))" title="Supprimer" />
-                                    </div>
-                                    </div>
-                                </CellTemplate>
-                            </TemplateColumn>
                         </Columns>
                         <PagerContent>
                             <MudDataGridPager T="Commande" />
@@ -218,7 +180,8 @@ else
                     <MudDataGrid Items="@_clientData" T="Customer" Loading="@_clientLoading"
                                  Dense="true" Hover="true" Bordered="true" Elevation="0"
                                  Filterable="true" RowsPerPage="10"
-                                 Style="width:100%;">
+                                 Style="width:100%;cursor:pointer;"
+                                 RowClick="@OnClientRowClick">
                         <Columns>
                             <PropertyColumn Property="x => x.CustomerId" Title="N°" />
                             <PropertyColumn Property="x => x.CustomerName" Title="Nom" />
@@ -239,14 +202,6 @@ else
                             <PropertyColumn Property="x => x.Adress" Title="Adresse" />
                             <PropertyColumn Property="x => x.CreationDate" Title="Créé le" Format="dd/MM/yyyy" />
                             <PropertyColumn Property="x => x.UserLogin" Title="Utilisateur" />
-                            <TemplateColumn Title="Actions" Sortable="false" Filterable="false">
-                                <CellTemplate>
-                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Warning" Size="Size.Small"
-                                                   OnClick="@(() => EditClient(context.Item))" />
-                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                                   OnClick="@(() => DeleteClient(context.Item))" />
-                                </CellTemplate>
-                            </TemplateColumn>
                         </Columns>
                         <PagerContent>
                             <MudDataGridPager T="Customer" />
@@ -286,6 +241,33 @@ else
         _loaded = true;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var savedTab = await JS.InvokeAsync<int>("tabNavigation.getTab", "commandes", 0);
+                if (savedTab != _tab)
+                {
+                    _tab = savedTab;
+                    StateHasChanged();
+                }
+            }
+            catch { }
+        }
+    }
+
+    async Task OnTabChange(int tabIndex)
+    {
+        _tab = tabIndex;
+        try
+        {
+            await JS.InvokeVoidAsync("tabNavigation.saveTab", "commandes", tabIndex);
+        }
+        catch { }
+    }
+
     /* ════════════════════════════════════════════════════════════
        COMMANDES INTERNES
        ════════════════════════════════════════════════════════════ */
@@ -299,35 +281,33 @@ else
 
     async Task OnCmdRowClick(DataGridRowClickEventArgs<CmdRowDto> args)
     {
-        var parameters = new DialogParameters<CmdDetailView> { { x => x.CmdId, args.Item.Cmd.Id } };
+        var parameters = new DialogParameters<CmdDetailView>
+        {
+            { x => x.CmdId, args.Item.Cmd.Id },
+            { x => x.HasRemaining, args.Item.HasRemaining },
+            { x => x.HasStock, args.Item.HasStock }
+        };
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<CmdDetailView>(
             $"Commande interne N° {args.Item.Cmd.Id}", parameters, options);
         var result = await dialog.Result;
-    }
-
-    async Task OnAddCmd()
-    {
-        var parameters = new DialogParameters<CmdForm>();
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<CmdForm>("Nouvelle commande interne", parameters, options);
-        var result = await dialog.Result;
         if (result is not null && !result.Canceled) await LoadCmd();
     }
 
-    async Task OnEditCmd(Cmd item)
+    void OnAddCmd()
     {
-        var parameters = new DialogParameters<CmdForm> { { x => x.CmdId, item.Id } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<CmdForm>("Modifier la commande", parameters, options);
-        var result = await dialog.Result;
-        if (result is not null && !result.Canceled) await LoadCmd();
+        Navigation.NavigateTo("/commandes/interne/nouveau");
+    }
+
+    void OnEditCmd(Cmd item)
+    {
+        Navigation.NavigateTo($"/commandes/interne/modifier/{item.Id}");
     }
 
     async Task OnReceptionner(Cmd item)
     {
         var parameters = new DialogParameters<ApproFromCmdForm> { { x => x.CmdId, item.Id } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<ApproFromCmdForm>(
             $"Réception — Commande N° {item.Id}", parameters, options);
         var result = await dialog.Result;
@@ -337,7 +317,7 @@ else
     async Task OnApprovisionnerDepuisStock(Cmd item)
     {
         var parameters = new DialogParameters<ApproFromStockForm> { { x => x.SourceCmdId, item.Id } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true };
+        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, NoHeader = true };
         var dialog = await DialogService.ShowAsync<ApproFromStockForm>(
             $"Approvisionner depuis Commande N° {item.Id}", parameters, options);
         var result = await dialog.Result;
@@ -377,40 +357,19 @@ else
 
     async Task OnVenteRowClick(DataGridRowClickEventArgs<Commande> args)
     {
-        var parameters = new DialogParameters<CommandeDetailView> { { x => x.CommandeId, args.Item.CommandeId } };
+        var parameters = new DialogParameters<CommandeDetailView>
+        {
+            { x => x.CommandeId, args.Item.CommandeId },
+            { x => x.HasRemainingToDeliver, HasRemainingToDeliver(args.Item) }
+        };
         var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var dialog = await DialogService.ShowAsync<CommandeDetailView>(
             $"Commande client N° {args.Item.CommandeId}", parameters, options);
         var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadVentes();
     }
 
     void OnAddVente() => Navigation.NavigateTo("/commandes/nouveau");
-    void OnEditVente(Commande item) => Navigation.NavigateTo($"/commandes/edit/{item.CommandeId}");
-
-    async Task OnDeleteVente(Commande item)
-    {
-        var confirm = await DialogService.ShowMessageBox(
-            "Confirmation",
-            $"Supprimer la commande N° {item.CommandeId} ?",
-            yesText: "Supprimer",
-            cancelText: "Annuler");
-        if (confirm == true)
-        {
-            await CommandeService.DeleteCommandeAsync(item.CommandeId);
-            _venteData.Remove(item);
-            Snackbar.Add("Commande supprimée", Severity.Success);
-        }
-    }
-
-    async Task OnLivrer(Commande cmd)
-    {
-        var parameters = new DialogParameters<LivraisonChecklistForm> { { x => x.CommandeId, cmd.CommandeId } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<LivraisonChecklistForm>(
-            $"Livraison — Commande N° {cmd.CommandeId}", parameters, options);
-        var result = await dialog.Result;
-        if (result is not null && !result.Canceled) await LoadVentes();
-    }
 
     /* ════════════════════════════════════════════════════════════
        CLIENTS
@@ -423,22 +382,19 @@ else
         _clientLoading = false;
     }
 
-    async Task AddClient()
+    void OnClientRowClick(DataGridRowClickEventArgs<Customer> args)
     {
-        var parameters = new DialogParameters<CustomerForm>();
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<CustomerForm>("Nouveau client", parameters, options);
-        var result = await dialog.Result;
-        if (result is not null && !result.Canceled) await LoadClients();
+        EditClient(args.Item);
     }
 
-    async Task EditClient(Customer c)
+    void AddClient()
     {
-        var parameters = new DialogParameters<CustomerForm> { { x => x.CustomerId, c.CustomerId } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<CustomerForm>("Modifier le client", parameters, options);
-        var result = await dialog.Result;
-        if (result is not null && !result.Canceled) await LoadClients();
+        Navigation.NavigateTo("/commandes/client/nouveau");
+    }
+
+    void EditClient(Customer c)
+    {
+        Navigation.NavigateTo($"/commandes/client/modifier/{c.CustomerId}");
     }
 
     async Task DeleteClient(Customer c)

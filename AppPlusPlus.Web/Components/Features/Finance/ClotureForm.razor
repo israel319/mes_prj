@@ -12,7 +12,19 @@
         }
         else
         {
-            <div class="d-flex flex-column gap-3">
+            <div class="lov-form-header">
+                <h5>Clôture de journée</h5>
+                <div class="d-flex" style="gap:0.5rem;">
+                    <button type="button" class="btn btn-primary btn-sm" @onclick="@OnCloture"
+                            disabled="@(_loading || _dejaCloture || _montantTotal == 0 || string.IsNullOrEmpty(_modeVersement))">
+                        <i class="bi bi-check-circle me-1"></i>Clôturer
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Cancel">
+                        <i class="bi bi-arrow-left me-1"></i>Annuler
+                    </button>
+                </div>
+            </div>
+            <div class="lov-form-body">
                 <div class="alert alert-info mb-0">
                     <strong>@LocalisationName</strong> — Journée du @_dateCloture.ToString("dd/MM/yyyy")
                 </div>
@@ -62,9 +74,10 @@
                     </div>
                 }
 
-                <div>
+                <div class="lov-field">
                     <label class="form-label">Destination des fonds *</label>
-                    <MudSelect T="string" @bind-Value="_modeVersement" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true">
+                    <MudSelect T="string" @bind-Value="_modeVersement" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                               Placeholder="Choisir">
                         @foreach (var m in _modes)
                         {
                             <MudSelectItem T="string" Value="@m">@m</MudSelectItem>
@@ -72,20 +85,13 @@
                     </MudSelect>
                 </div>
 
-                <div>
+                <div class="lov-field">
                     <label class="form-label">Observation (optionnel)</label>
-                    <textarea class="form-control" @bind="_observation" rows="2"></textarea>
+                    <textarea class="form-control" @bind="_observation" rows="2" placeholder="Optionnel"></textarea>
                 </div>
             </div>
         }
     </DialogContent>
-    <DialogActions>
-        <button type="button" class="btn btn-secondary" @onclick="Cancel">Annuler</button>
-        <button type="button" class="btn btn-primary" @onclick="@OnCloture"
-                disabled="@(_loading || _dejaCloture || _montantTotal == 0 || string.IsNullOrEmpty(_modeVersement))">
-            <i class="bi bi-check-circle me-1"></i>Clôturer la journée
-        </button>
-    </DialogActions>
 </MudDialog>
 
 @code {

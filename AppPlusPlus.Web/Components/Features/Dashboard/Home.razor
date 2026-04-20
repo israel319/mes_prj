@@ -17,7 +17,7 @@
 }
 else
 {
-<div class="w-100" style="max-width:1400px;margin:0 auto;">
+<div class="w-100">
     <!-- ═══════════════ EN-TÊTE ═══════════════ -->
     <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
         <div>
@@ -41,9 +41,9 @@ else
         @foreach (var kpi in _kpis)
         {
             <div class="col-lg-3 col-12">
-                <div class="card p-4" style="@($"background:{kpi.BgColor};border:1px solid {kpi.Color}25 !important;")">
+                <div class="card kpi-card @KpiVariantClass(kpi.Color) p-4">
                     <div class="d-flex gap-3">
-                        <div class="icon-shape icon-md" style="@($"background:{kpi.Color};color:#fff;")">
+                        <div class="icon-shape icon-md rounded-3" style="@($"background:{kpi.Color};color:#fff;")">
                             <i class="ti @kpi.TablerIcon fs-4"></i>
                         </div>
                         <div>
@@ -174,7 +174,7 @@ else
                         {
                             <li class="list-group-item d-flex align-items-center gap-3">
                                 <div class="icon-shape icon-sm @(a.Rank == 1 ? "bg-warning" : a.Rank == 2 ? "bg-secondary" : a.Rank == 3 ? "bg-danger-subtle" : "bg-light") text-white"
-                                     style="@(a.Rank <= 3 ? "" : "color:#64748b !important;")">
+                                     style="@(a.Rank <= 3 ? "" : "color:var(--bs-secondary-color) !important;")">
                                     <span class="fw-bold" style="font-size:12px;">@a.Rank</span>
                                 </div>
                                 <div class="flex-grow-1">
@@ -216,7 +216,7 @@ else
                         {
                             <li class="list-group-item d-flex align-items-center gap-3">
                                 <div class="icon-shape icon-sm bg-light">
-                                    <i class="ti ti-box-seam" style="color:#64748b;"></i>
+                                    <i class="ti ti-box-seam" style="color:var(--bs-secondary-color);"></i>
                                 </div>
                                 <div class="flex-grow-1">
                                     <p class="mb-1">@a.Description</p>
@@ -247,7 +247,7 @@ else
                     {
                         <li class="list-group-item d-flex align-items-center gap-3">
                             <div class="icon-shape icon-sm bg-light">
-                                <i class="ti ti-receipt" style="color:#64748b;"></i>
+                                <i class="ti ti-receipt" style="color:var(--bs-secondary-color);"></i>
                             </div>
                             <div class="flex-grow-1">
                                 <p class="mb-1">@f.Client</p>
@@ -278,7 +278,7 @@ else
                     {
                         <li class="list-group-item d-flex align-items-center justify-content-between px-4 py-3">
                             <div class="d-flex align-items-center gap-3">
-                                <div class="icon-shape icon-sm" style="@($"background:{stat.BgColor};color:{stat.Color};")">
+                                <div class="icon-shape icon-sm rounded-2 quick-stat-icon" style="@($"background:{stat.BgColor};color:{stat.Color};")">
                                     <i class="ti @stat.TablerIcon"></i>
                                 </div>
                                 <span>@stat.Label</span>
@@ -353,6 +353,15 @@ else
         "Payée"    => "bg-success-subtle text-success",
         "Annulée"  => "bg-danger-subtle text-danger",
         _          => "bg-light text-muted"
+    };
+
+    string KpiVariantClass(string color) => color switch
+    {
+        "#00B193" => "kpi-card--green",
+        "#3b82f6" => "kpi-card--blue",
+        "#253C45" => "kpi-card--teal",
+        "#f59e0b" => "kpi-card--amber",
+        _         => ""
     };
 
     /* ───── Chargement ───── */

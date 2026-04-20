@@ -17,4 +17,6 @@ public interface IStockService
     /// combining Stock.Qte/Seuil with Article.Description.
     /// </summary>
     Task<List<StockArticleDto>> GetStockArticleViewAsync(int localisationId);
+
+    Task UpdateSeuilAsync(int stockId, int seuil);
 }

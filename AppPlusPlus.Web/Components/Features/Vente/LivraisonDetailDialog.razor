@@ -1,0 +1,143 @@
+@using MudBlazor
+@inject IDbContextFactory<AppDbContext> DbFactory
+
+<MudDialog>
+    <DialogContent>
+        @if (_livraison == null)
+        {
+            <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+        }
+        else
+        {
+            <div class="lov-form-header mb-0">
+                <h5>Livraison N° @_livraison.LivraisonId</h5>
+            </div>
+            <div class="lov-form-body">
+                <div class="row g-2 mb-2">
+                    <div class="col-6"><strong>Client :</strong> @(_livraison.Customer?.CustomerName ?? "—")</div>
+                    <div class="col-6"><strong>Porteur :</strong> @(_livraison.Porteur ?? "—")</div>
+                    <div class="col-6"><strong>Date :</strong> @_livraison.Date?.ToString("dd/MM/yyyy")</div>
+                    <div class="col-6">
+                        <strong>Statut :</strong>
+                        <MudChip T="string" Size="Size.Small" Color="@_statusColor">@_statusLabel</MudChip>
+                    </div>
+                    @if (_livraison.CommandeId.HasValue)
+                    {
+                        <div class="col-6"><strong>Commande :</strong> <MudChip T="string" Size="Size.Small" Color="Color.Default">C-@_livraison.CommandeId</MudChip></div>
+                    }
+                    @if (_livraison.Fact != null)
+                    {
+                        <div class="col-6"><strong>Facture :</strong> <MudChip T="string" Size="Size.Small" Color="Color.Info">F-@_livraison.Fact.Id</MudChip></div>
+                    }
+                </div>
+
+                @if (_livraison.Details.Any())
+                {
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead><tr><th>Article</th><th class="text-end">Qté</th><th class="text-end">Montant</th></tr></thead>
+                        <tbody>
+                            @foreach (var d in _livraison.Details)
+                            {
+                                <tr>
+                                    <td>@(d.Article?.Description ?? d.ArticleId ?? "—")</td>
+                                    <td class="text-end">@((d.Qte ?? 0).ToString("N0"))</td>
+                                    <td class="text-end">@((d.MontantPaye ?? 0).ToString("N2"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td>Total</td>
+                                <td class="text-end">@_livraison.Details.Sum(d => d.Qte ?? 0).ToString("N0")</td>
+                                <td class="text-end">@_livraison.Details.Sum(d => d.MontantPaye ?? 0).ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_livraison != null)
+        {
+            <div class="d-flex justify-content-between w-100 px-2 pb-2">
+                <div class="d-flex gap-2">
+                    @if (CanDelete && _livraison.Fact == null)
+                    {
+                        <button type="button" class="btn btn-danger btn-sm" @onclick="@(() => MudDialog.Close(DialogResult.Ok("delete")))">
+                            <i class="bi bi-trash me-1"></i>Supprimer
+                        </button>
+                    }
+                </div>
+                <div class="d-flex gap-2">
+                    @if ((_livraison.Status ?? 0) == 0 && CanWrite)
+                    {
+                        <button type="button" class="btn btn-info btn-sm" @onclick="@(() => MudDialog.Close(DialogResult.Ok("deliver")))">
+                            <i class="bi bi-check-circle me-1"></i>Marquer livrée
+                        </button>
+                    }
+                    @if ((_livraison.Status ?? 0) <= 1 && _livraison.Fact == null && CanWrite)
+                    {
+                        <button type="button" class="btn btn-success btn-sm" @onclick="@(() => MudDialog.Close(DialogResult.Ok("pay")))">
+                            <i class="bi bi-cash me-1"></i>Payer
+                        </button>
+                    }
+                    @if (CanWrite)
+                    {
+                        <button type="button" class="btn btn-warning btn-sm" @onclick="@(() => MudDialog.Close(DialogResult.Ok("edit")))">
+                            <i class="bi bi-pencil me-1"></i>Modifier
+                        </button>
+                    }
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+                </div>
+            </div>
+        }
+        else
+        {
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">Fermer</button>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int LivraisonId { get; set; }
+    [Parameter] public bool CanWrite { get; set; }
+    [Parameter] public bool CanDelete { get; set; }
+
+    Livraison? _livraison;
+    string _statusLabel = "";
+    Color _statusColor = Color.Default;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _livraison = await ctx.Livraisons
+            .Include(l => l.Customer)
+            .Include(l => l.Details).ThenInclude(d => d.Article)
+            .Include(l => l.Fact).ThenInclude(f => f!.Payments)
+            .FirstOrDefaultAsync(l => l.LivraisonId == LivraisonId);
+
+        if (_livraison != null)
+        {
+            if (_livraison.Fact != null)
+            {
+                var fTotal = (double)(_livraison.Fact.TotalApresReduction ?? _livraison.Fact.Total ?? 0);
+                var fPaye = _livraison.Fact.Payments?.Sum(p => (double)p.Amount) ?? 0;
+                if (fPaye >= fTotal && fTotal > 0) { _statusLabel = "Payée"; _statusColor = Color.Success; }
+                else if (fPaye > 0) { _statusLabel = "Partiel"; _statusColor = Color.Warning; }
+                else { _statusLabel = "Facturée"; _statusColor = Color.Default; }
+            }
+            else
+            {
+                (_statusLabel, _statusColor) = (_livraison.Status ?? 0) switch
+                {
+                    1 => ("Livrée", Color.Info),
+                    _ => ("En attente", Color.Warning)
+                };
+            }
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+}

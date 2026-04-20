@@ -3,6 +3,7 @@
 @inject IDbContextFactory<AppPlusPlus.Infrastructure.Persistence.AppDbContext> DbFactory
 @inject ISnackbar Snackbar
 @inject MudBlazor.IDialogService DialogService
+@inject NavigationManager Navigation
 
 <MudDialog>
     <DialogContent>
@@ -14,7 +15,33 @@
         }
         else
         {
-            <div class="d-flex flex-column gap-3">
+            <div class="lov-form-header">
+                <h5>Détail versement</h5>
+                <div class="d-flex" style="gap:0.5rem;">
+                    @if (_item?.Statut != "Accepté")
+                    {
+                        <button type="button" class="btn btn-success btn-sm" @onclick="@OnAccepter">
+                            <i class="bi bi-check-circle me-1"></i>Accepter
+                        </button>
+                    }
+                    @if (_item?.Statut != "Rejeté")
+                    {
+                        <button type="button" class="btn btn-danger btn-sm" @onclick="@OnRejeter">
+                            <i class="bi bi-x-circle me-1"></i>Rejeter
+                        </button>
+                    }
+                    <button type="button" class="btn btn-warning btn-sm" @onclick="@OnModifier">
+                        <i class="bi bi-pencil me-1"></i>Modifier
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="@OnSupprimer">
+                        <i class="bi bi-trash me-1"></i>Supprimer
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="@Cancel">
+                        <i class="bi bi-arrow-left me-1"></i>Fermer
+                    </button>
+                </div>
+            </div>
+            <div class="lov-form-body">
                 @* ── Statut ── *@
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="text-muted">Statut actuel</span>
@@ -81,27 +108,6 @@
             </div>
         }
     </DialogContent>
-    <DialogActions>
-        <div class="d-flex justify-content-between w-100 px-2 pb-1">
-            <div class="d-flex gap-2">
-                @if (_item?.Statut != "Accepté")
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
-                               OnClick="@OnAccepter" Size="Size.Small">Accepter</MudButton>
-                }
-                @if (_item?.Statut != "Rejeté")
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
-                               OnClick="@OnRejeter" Size="Size.Small">Rejeter</MudButton>
-                }
-                <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Edit"
-                           OnClick="@OnModifier" Size="Size.Small">Modifier</MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
-                           OnClick="@OnSupprimer" Size="Size.Small">Supprimer</MudButton>
-            </div>
-            <MudButton Variant="Variant.Text" OnClick="@Cancel">Fermer</MudButton>
-        </div>
-    </DialogActions>
 </MudDialog>
 
 @code {
@@ -143,19 +149,10 @@
         }
     }
 
-    async Task OnModifier()
+    void OnModifier()
     {
-        var parameters = new DialogParameters<ApproExpenseForm> { { x => x.ExpenseId, ExpenseId } };
-        var options = new MudBlazor.DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<ApproExpenseForm>("Modifier le versement", parameters, options);
-        var result = await dialog.Result;
-        if (result?.Canceled == false)
-        {
-            // Reload after edit
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            _item = await ctx.ApproExpenses.FindAsync(ExpenseId);
-            StateHasChanged();
-        }
+        MudDialog.Close();
+        Navigation.NavigateTo($"/admin/versement/modifier/{ExpenseId}");
     }
 
     async Task OnSupprimer()
