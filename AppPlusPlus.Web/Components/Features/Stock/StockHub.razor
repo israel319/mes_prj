@@ -431,8 +431,8 @@ else
                     IdMesure = a.IdMesure,
                     LocationCount = articleStocks.Count,
                     TotalStock = (int)articleStocks.Sum(s => s.Qte),
-                    HasRupture = articleStocks.Any(s => s.Qte <= 0),
-                    HasLowStock = articleStocks.Any(s => s.Qte > 0 && s.Qte <= s.Seuil)
+                    HasRupture = articleStocks.Sum(s => s.Qte) <= 0,
+                    HasLowStock = articleStocks.Sum(s => s.Qte) > 0 && articleStocks.Sum(s => s.Qte) <= articleStocks.Sum(s => s.Seuil)
                 };
             })
             .OrderBy(a => a.Description)
@@ -529,11 +529,8 @@ else
         var dialog = await DialogService.ShowAsync<ArticleDetailDialog>(article.Description ?? article.IdArticle, parameters, options);
         var result = await dialog.Result;
 
-        if (result != null && !result.Canceled)
-        {
-            // Refresh data after dialog action
-            await RefreshArticleData();
-        }
+        // Toujours rafraîchir — l'utilisateur peut avoir modifié le seuil avant de fermer
+        await RefreshArticleData();
     }
 
     async Task RefreshArticleData()
@@ -567,8 +564,8 @@ else
                     IdMesure = a.IdMesure,
                     LocationCount = articleStocks.Count,
                     TotalStock = (int)articleStocks.Sum(s => s.Qte),
-                    HasRupture = articleStocks.Any(s => s.Qte <= 0),
-                    HasLowStock = articleStocks.Any(s => s.Qte > 0 && s.Qte <= s.Seuil)
+                    HasRupture = articleStocks.Sum(s => s.Qte) <= 0,
+                    HasLowStock = articleStocks.Sum(s => s.Qte) > 0 && articleStocks.Sum(s => s.Qte) <= articleStocks.Sum(s => s.Seuil)
                 };
             })
             .OrderBy(a => a.Description)

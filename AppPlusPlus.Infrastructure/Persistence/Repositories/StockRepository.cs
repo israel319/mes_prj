@@ -65,6 +65,15 @@ public class StockRepository : RepositoryBase<Stock>, IStockRepository
         await ctx.SaveChangesAsync();
     }
 
+    public async Task UpdateSeuilDirectAsync(int stockId, int seuil)
+    {
+        await using var ctx = await _dbFactory.CreateDbContextAsync();
+        var stock = await ctx.Stocks.FindAsync(stockId);
+        if (stock == null) return;
+        stock.Seuil = seuil;
+        await ctx.SaveChangesAsync();
+    }
+
     public async Task<List<MouvementStock>> GetMouvementsByArticleAsync(string articleId, int localisationId)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();

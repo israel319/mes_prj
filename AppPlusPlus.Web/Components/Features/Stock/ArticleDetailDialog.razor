@@ -6,35 +6,37 @@
 
 <MudDialog>
     <TitleContent>
-        <div class="d-flex align-items-center gap-2">
-            <MudIcon Icon="@Icons.Material.Filled.Inventory2" />
-            <span>@Article?.Description</span>
+        <div class="d-flex align-center gap-2">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">@Article?.Description</MudText>
         </div>
     </TitleContent>
     <DialogContent>
         @if (Article != null)
         {
             <!-- Info article -->
-            <div class="d-flex flex-wrap gap-3 mb-3">
-                <div>
-                    <small class="text-muted d-block">Code</small>
-                    <strong>@Article.IdArticle</strong>
-                </div>
-                <div>
-                    <small class="text-muted d-block">Prix</small>
-                    <strong>@Article.Price.ToString("N0") Fc</strong>
-                </div>
+            <MudGrid Class="mb-4" Spacing="2">
+                <MudItem xs="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Code</MudText>
+                    <MudText Typo="Typo.body1"><b>@Article.IdArticle</b></MudText>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Prix</MudText>
+                    <MudText Typo="Typo.body1"><b>@Article.Price.ToString("N0") Fc</b></MudText>
+                </MudItem>
                 @if (!string.IsNullOrWhiteSpace(Article.DescriptionI))
                 {
-                    <div>
-                        <small class="text-muted d-block">Description longue</small>
-                        <span>@Article.DescriptionI</span>
-                    </div>
+                    <MudItem xs="4">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Description longue</MudText>
+                        <MudText Typo="Typo.body2">@Article.DescriptionI</MudText>
+                    </MudItem>
                 }
-            </div>
+            </MudGrid>
+
+            <MudDivider Class="mb-3" />
 
             <!-- Stocks par localisation -->
-            <h6 class="fw-bold mb-2">Stock par localisation</h6>
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>Stock par localisation</b></MudText>
 
             @if (Stocks == null || !Stocks.Any())
             {
@@ -44,91 +46,84 @@
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead>
+                <MudSimpleTable Dense="true" Hover="true" Bordered="true" Striped="true" Style="border-radius:8px;overflow:hidden;">
+                    <thead>
+                        <tr style="background:#f5f5f5;">
+                            <th>Localisation</th>
+                            <th style="text-align:center;">Stock</th>
+                            <th style="text-align:center;">Seuil</th>
+                            <th style="text-align:center;">État</th>
+                            <th style="text-align:center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var stock in Stocks)
+                        {
+                            var couleur = stock.Qte <= 0 ? Color.Error : stock.Qte <= stock.Seuil ? Color.Warning : Color.Success;
                             <tr>
-                                <th>Localisation</th>
-                                <th class="text-center">Stock</th>
-                                <th class="text-center">Seuil</th>
-                                <th class="text-center">État</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var stock in Stocks)
-                            {
-                                var couleur = stock.Qte <= 0 ? "#dc2626" : stock.Qte <= stock.Seuil ? "#f59e0b" : "#16a34a";
-                                <tr>
-                                    <td>
-                                        <span class="badge bg-secondary">@stock.LocalisationName</span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span style="color:@couleur;font-weight:600;">
-                                            @if (stock.Qte <= 0)
-                                            {
-                                                <i class="bi bi-exclamation-circle me-1"></i>
-                                            }
-                                            else if (stock.Qte <= stock.Seuil)
-                                            {
-                                                <i class="bi bi-exclamation-triangle me-1"></i>
-                                            }
-                                            @stock.Qte
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="d-flex align-items-center justify-content-center gap-1">
-                                            <MudNumericField @bind-Value="stock.Seuil" T="int" Min="0"
-                                                             Variant="Variant.Outlined" Margin="Margin.Dense"
-                                                             Style="width:80px;" />
-                                            <MudIconButton Icon="@Icons.Material.Filled.Save"
-                                                           Color="Color.Success" Size="Size.Small"
-                                                           title="Enregistrer le seuil"
-                                                           OnClick="@(() => OnSaveSeuil(stock))" />
-                                        </div>
-                                    </td>
-                                    <td class="text-center">
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">
+                                        @stock.LocalisationName
+                                    </MudChip>
+                                </td>
+                                <td style="text-align:center;">
+                                    <MudText Color="@couleur" Typo="Typo.body2" Style="font-weight:700;">
                                         @if (stock.Qte <= 0)
                                         {
-                                            <span class="badge bg-danger">Rupture</span>
+                                            <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Small" Class="me-1" />
                                         }
-                                        else if (stock.Qte <= stock.Seuil)
-                                        {
-                                            <span class="badge bg-warning text-dark">Bas</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-success">OK</span>
-                                        }
-                                    </td>
-                                    <td class="text-center">
-                                        <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart"
-                                                       Color="Color.Primary" Size="Size.Small"
-                                                       title="Approvisionner cette localisation"
-                                                       OnClick="@(() => OnApproLocation(stock))" />
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                        <tfoot>
-                            <tr class="table-light">
-                                <td><strong>Total</strong></td>
-                                <td class="text-center"><strong>@Stocks.Sum(s => s.Qte)</strong></td>
-                                <td colspan="3"></td>
+                                        @stock.Qte
+                                    </MudText>
+                                </td>
+                                <td style="text-align:center;">
+                                    <div class="d-flex align-center justify-center gap-1">
+                                        <MudNumericField @bind-Value="stock.Seuil" T="int" Min="0"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                         Immediate="true"
+                                                         Style="width:80px;" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Save"
+                                                       Color="Color.Success" Size="Size.Small"
+                                                       OnClick="@(() => OnSaveSeuil(stock))" />
+                                    </div>
+                                </td>
+                                <td style="text-align:center;">
+                                    @if (stock.Qte <= 0)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Rupture</MudChip>
+                                    }
+                                    else if (stock.Qte <= stock.Seuil)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Bas</MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">OK</MudChip>
+                                    }
+                                </td>
+                                <td style="text-align:center;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart"
+                                                   Color="Color.Primary" Size="Size.Small"
+                                                   OnClick="@(() => OnApproLocation(stock))" />
+                                </td>
                             </tr>
-                        </tfoot>
-                    </table>
-                </div>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:#f5f5f5;">
+                            <td><strong>Total</strong></td>
+                            <td style="text-align:center;"><strong>@Stocks.Sum(s => s.Qte)</strong></td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </MudSimpleTable>
             }
         }
     </DialogContent>
     <DialogActions>
-        <div class="d-flex justify-content-between w-100 px-2 pb-2">
-            <div class="d-flex gap-2">
-                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
-                           StartIcon="@Icons.Material.Filled.Delete"
-                           OnClick="@OnDeleteArticle">Supprimer</MudButton>
-            </div>
+        <div class="d-flex justify-space-between w-100 px-2 pb-2" style="width:100%;">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Delete"
+                       OnClick="@OnDeleteArticle">Supprimer</MudButton>
             <div class="d-flex gap-2">
                 <MudButton Variant="Variant.Outlined" OnClick="@Cancel">Fermer</MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Warning"
@@ -191,8 +186,14 @@
     {
         try
         {
+            if (stock.StockId <= 0)
+            {
+                Snackbar.Add($"Erreur : identifiant stock invalide ({stock.StockId})", Severity.Error);
+                return;
+            }
             await StockService.UpdateSeuilAsync(stock.StockId, stock.Seuil);
-            Snackbar.Add($"Seuil mis à jour pour {stock.LocalisationName}", Severity.Success);
+            Snackbar.Add($"Seuil mis à jour pour {stock.LocalisationName} : {stock.Seuil}", Severity.Success);
+            StateHasChanged();
         }
         catch (Exception ex)
         {

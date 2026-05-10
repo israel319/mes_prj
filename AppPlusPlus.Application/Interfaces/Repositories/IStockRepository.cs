@@ -11,6 +11,7 @@ public interface IStockRepository : IRepository<Stock>
     Task<List<Stock>> GetLowStockAsync(List<int> localisationIds);
     Task<List<Stock>> GetOutOfStockAsync(List<int> localisationIds);
     Task AddMouvementAsync(MouvementStock mouvement);
+    Task UpdateSeuilDirectAsync(int stockId, int seuil);
     Task<List<MouvementStock>> GetMouvementsByArticleAsync(string articleId, int localisationId);
     Task<List<MouvementStock>> GetMouvementsByDateRangeAsync(DateTime from, DateTime to, List<int> localisationIds);
 }

@@ -5,6 +5,7 @@
 @inject IJSRuntime JS
 @inject IShopProfileService ShopProfileService
 @inject INumberToWordsConverter NumberToWords
+@inject NavigationManager Navigation
 
 <PageTitle>Facture N°@IdFacture</PageTitle>
 
@@ -22,242 +23,437 @@ else if (_facture == null)
 }
 else
 {
-    <div class="print-container">
-        <!-- Bouton imprimer (masqué à l'impression) -->
-        <div class="no-print" style="text-align:right;margin-bottom:16px;">
-            <button onclick="window.print()" style="padding:8px 24px;font-size:14px;cursor:pointer;border:1px solid #333;background:#fff;">
-                Imprimer
-            </button>
-            <button onclick="window.close()" style="padding:8px 24px;font-size:14px;cursor:pointer;border:1px solid #999;background:#fff;margin-left:8px;">
-                Fermer
-            </button>
-        </div>
+    <!-- Boutons (masqués à l'impression) -->
+    <div class="no-print btn-bar">
+        <button class="btn-print" onclick="window.print()">
+            <span class="btn-icon">&#128424;</span> Imprimer
+        </button>
+        <button class="btn-fermer" @onclick="Fermer">
+            ✕ Fermer
+        </button>
+    </div>
 
-        <!-- En-tête -->
-        <div class="print-header" style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
-            <div class="print-header-left">
-                <h1 class="print-title" style="margin:0;font-size:24px;font-weight:800;">FACTURE</h1>
-                <p style="margin:4px 0;color:#555;">N° <strong>@_facture.Id.ToString("D6")</strong></p>
-                <p style="margin:2px 0;color:#555;">Date : <strong>@_facture.Date.ToString("dd/MM/yyyy")</strong></p>
-                <p style="margin:2px 0;color:#555;">Type : <strong>@(_facture.Type == 1 ? "Proforma" : "Facture")</strong></p>
-                <p style="margin:2px 0;color:#555;">Devise : <strong>@(_facture.Money?.DescriptionMonais ?? "CDF")</strong></p>
-            </div>
-            <div class="print-header-right" style="text-align:right;">
-                @if (!string.IsNullOrWhiteSpace(_shopPhotoSrc))
-                {
-                    <img src="@_shopPhotoSrc" alt="Photo shop" style="max-width:96px;max-height:72px;object-fit:contain;margin-bottom:6px;" />
-                }
-                <h2 class="print-shop-name" style="margin:0;font-size:18px;font-weight:700;">@_shopName</h2>
-                @if (!string.IsNullOrWhiteSpace(_shopAdresse1))
-                {
-                    <p class="print-shop-address" style="margin:8px 0 2px 0;color:#555;font-size:13px;max-width:280px;line-height:1.4;">@_shopAdresse1</p>
-                }
-                @if (!string.IsNullOrWhiteSpace(_shopAdresse2))
-                {
-                    <p class="print-shop-address" style="margin:2px 0;color:#555;font-size:13px;max-width:280px;line-height:1.4;">@_shopAdresse2</p>
-                }
-            </div>
-        </div>
+    <div class="ticket-wrapper">
+        <div class="ticket">
 
-        <!-- Client (masqué si anonyme) -->
-        @if (!string.IsNullOrEmpty(_facture.DescriptionName) && _facture.DescriptionName != "Client Anonyme")
-        {
-            <div style="background:#f8f8f8;padding:12px 16px;margin-bottom:20px;border:1px solid #eee;">
-                <p style="margin:0 0 4px;font-weight:600;font-size:14px;">Client</p>
-                <p style="margin:2px 0;">@_facture.DescriptionName</p>
-                @if (!string.IsNullOrEmpty(_facture.Adresse))
-                {
-                    <p style="margin:2px 0;color:#555;font-size:13px;">@_facture.Adresse</p>
-                }
-                @if (!string.IsNullOrEmpty(_facture.Telephone))
-                {
-                    <p style="margin:2px 0;color:#555;font-size:13px;">Tél : @_facture.Telephone</p>
-                }
-                @if (!string.IsNullOrEmpty(_facture.Email))
-                {
-                    <p style="margin:2px 0;color:#555;font-size:13px;">Email : @_facture.Email</p>
-                }
+            <!-- ═══════ EN-TÊTE ═══════ -->
+            <div class="ticket-header">
+                <span>@_facture.DateSys.ToString("dd/MM/yyyy HH:mm")</span>
+                <span class="ticket-label">Impression</span>
             </div>
-        }
 
-        <!-- Tableau des articles -->
-        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:14px;">
-            <thead>
-                <tr style="background:#333;color:#fff;">
-                    <th style="padding:8px 12px;text-align:left;">#</th>
-                    <th style="padding:8px 12px;text-align:left;">Désignation</th>
-                    <th style="padding:8px 12px;text-align:right;">P.U.</th>
-                    <th style="padding:8px 12px;text-align:center;">Qté</th>
-                    <th style="padding:8px 12px;text-align:right;">Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{ int idx = 0; }
-                @foreach (var d in _details)
-                {
-                    idx++;
-                    var lineTotal = (d.Pu ?? 0) * (d.Qte ?? 0);
-                    <tr style="border-bottom:1px solid #ddd;">
-                        <td style="padding:6px 12px;">@idx</td>
-                        <td style="padding:6px 12px;">@(d.Article?.Description ?? d.IdArticle)</td>
-                        <td style="padding:6px 12px;text-align:right;">@(MontantPrint((decimal)(d.Pu ?? 0)).ToString("N2")) @_deviseLabel</td>
-                        <td style="padding:6px 12px;text-align:center;">@((d.Qte ?? 0).ToString("N0"))</td>
-                        <td style="padding:6px 12px;text-align:right;font-weight:600;">@(MontantPrint((decimal)lineTotal).ToString("N2")) @_deviseLabel</td>
+            @if (!string.IsNullOrWhiteSpace(_shopPhotoSrc))
+            {
+                <div class="ticket-logo">
+                    <img src="@_shopPhotoSrc" alt="Logo" />
+                </div>
+            }
+
+            <div class="ticket-shop">@_shopName</div>
+
+            @if (!string.IsNullOrWhiteSpace(_shopAdresse1))
+            {
+                <div class="ticket-address">@_shopAdresse1</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(_shopAdresse2))
+            {
+                <div class="ticket-address">@_shopAdresse2</div>
+            }
+
+            <div class="ticket-num">N° : @_facture.Id.ToString("D6")</div>
+
+            <!-- ═══════ INFOS FACTURE ═══════ -->
+            <div class="ticket-sep"></div>
+            <div class="ticket-info">@_facture.DateSys.ToString("dd/MM/yyyy HH:mm:ss")</div>
+            @if (!string.IsNullOrEmpty(_facture.DescriptionName))
+            {
+                <div class="ticket-info">Client : @_facture.DescriptionName</div>
+            }
+            <div class="ticket-info">Caissier : @_facture.User</div>
+            <div class="ticket-sep"></div>
+
+            <!-- ═══════ EN-TÊTE COLONNES ═══════ -->
+            <table class="ticket-table">
+                <thead>
+                    <tr>
+                        <th class="col-qty">Qté</th>
+                        <th class="col-desc">Désignation</th>
+                        <th class="col-pu">P.U.</th>
+                        <th class="col-tot">Total</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var d in _details)
+                    {
+                        var lineTotal = (d.Pu ?? 0) * (d.Qte ?? 0);
+                        <tr>
+                            <td class="col-qty">@((d.Qte ?? 0).ToString("N0"))</td>
+                            <td class="col-desc">@(d.Article?.Description ?? d.IdArticle)</td>
+                            <td class="col-pu">@(MontantPrint((decimal)(d.Pu ?? 0)).ToString("N2"))</td>
+                            <td class="col-tot">@(MontantPrint((decimal)lineTotal).ToString("N2"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
 
-        <!-- Totaux -->
-        <div style="display:flex;justify-content:flex-end;">
-            <div style="width:300px;">
-                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                    <span>Sous-total</span>
-                    <strong>@(MontantPrint(_facture.Total ?? 0).ToString("N2")) @_deviseLabel</strong>
+            <!-- ═══════ TOTAL ═══════ -->
+            <div class="ticket-sep-bold"></div>
+
+            @if ((_facture.Reduction ?? 0) > 0)
+            {
+                var redMontant = (_facture.Total ?? 0) * (_facture.Reduction ?? 0) / 100m;
+                <div class="ticket-total-line">
+                    <span>Réduction (@((_facture.Reduction ?? 0))%)</span>
+                    <span>- @(MontantPrint(redMontant).ToString("N2"))</span>
                 </div>
-                @if ((_facture.Reduction ?? 0) > 0)
-                {
-                    var redMontant = (_facture.Total ?? 0) * (_facture.Reduction ?? 0) / 100m;
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;">
-                        <span>Réduction (@((_facture.Reduction ?? 0))%)</span>
-                        <strong style="color:#c00;">-@(MontantPrint(redMontant).ToString("N2")) @_deviseLabel</strong>
-                    </div>
-                }
-                <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:18px;font-weight:800;border-top:2px solid #333;margin-top:4px;">
-                    <span>Net à payer</span>
-                    <span>@(MontantPrint(_facture.TotalApresReduction ?? _facture.Total ?? 0).ToString("N2")) @_deviseLabel</span>
-                </div>
-                <div style="padding:4px 0;font-size:11px;color:#555;font-style:italic;text-align:right;">
-                    @(string.IsNullOrEmpty(_facture.MontantEnLettres)
-                        ? NumberToWords.Convert(
-                            MontantPrint(_facture.TotalApresReduction ?? _facture.Total ?? 0),
-                            _isUsd ? "dollars" : "francs",
-                            _isUsd ? "cents" : "centimes")
-                        : _facture.MontantEnLettres)
-                </div>
-                @if (!_isUsd && _facture.Taux > 0)
-                {
-                    var enUsd = Math.Round((_facture.TotalApresReduction ?? _facture.Total ?? 0) / _facture.Taux, 2);
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;color:#555;font-size:13px;">
-                        <span>Équiv. USD (taux @_facture.Taux.ToString("N0"))</span>
-                        <span>@enUsd.ToString("N2") $</span>
-                    </div>
-                }
-                @if (_isUsd && _facture.Taux > 0)
-                {
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;color:#555;font-size:13px;">
-                        <span>Équiv. FC (taux @_facture.Taux.ToString("N0"))</span>
-                        <span>@((_facture.TotalApresReduction ?? _facture.Total ?? 0).ToString("N2")) FC</span>
-                    </div>
-                }
+            }
+
+            <div class="ticket-grand-total">
+                <span>Total @_deviseLabel :</span>
+                <span>@(MontantPrint(_facture.TotalApresReduction ?? _facture.Total ?? 0).ToString("N2"))</span>
             </div>
-        </div>
 
-        <!-- Pied de page -->
-        <div style="margin-top:40px;text-align:center;font-size:12px;color:#888;border-top:1px solid #ddd;padding-top:12px;">
-            <p style="margin:2px 0;">Merci pour votre confiance !</p>
+            <div class="ticket-words">
+                @(string.IsNullOrEmpty(_facture.MontantEnLettres)
+                    ? NumberToWords.Convert(
+                        MontantPrint(_facture.TotalApresReduction ?? _facture.Total ?? 0),
+                        _isUsd ? "dollars" : "francs",
+                        _isUsd ? "cents" : "centimes")
+                    : _facture.MontantEnLettres)
+            </div>
+
+            @if (!_isUsd && _facture.Taux > 0)
+            {
+                var enUsd = Math.Round((_facture.TotalApresReduction ?? _facture.Total ?? 0) / _facture.Taux, 2);
+                <div class="ticket-equiv">Équiv. USD : @enUsd.ToString("N2") $</div>
+            }
+            @if (_isUsd && _facture.Taux > 0)
+            {
+                <div class="ticket-equiv">Équiv. FC : @((_facture.TotalApresReduction ?? _facture.Total ?? 0).ToString("N2")) FC</div>
+            }
+
+            <!-- ═══════ PIED DE PAGE ═══════ -->
+            <div class="ticket-sep"></div>
+            <div class="ticket-footer">Merci d'avoir passé chez nous, à une prochaine !</div>
+
+            <!-- Motif bas de ticket -->
+            <div class="ticket-cut">✂ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─</div>
         </div>
     </div>
 }
 
 <style>
-    .print-container {
-        max-width: 800px;
-        margin: 20px auto;
-        padding: 32px;
-        font-family: 'Segoe UI', Arial, sans-serif;
+    /* ── Page / fond ── */
+    .btn-bar {
+        text-align: center;
+        padding: 18px 0 8px;
+    }
+
+    .btn-print,
+    .btn-fermer {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 28px;
+        font-size: 14px;
+        font-weight: 600;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all .15s ease;
+        border: none;
+    }
+
+    .btn-print {
+        background: #1976d2;
+        color: #fff;
+        box-shadow: 0 2px 6px rgba(25,118,210,.35);
+    }
+
+    .btn-print:hover {
+        background: #1565c0;
+        box-shadow: 0 4px 12px rgba(25,118,210,.45);
+    }
+
+    .btn-icon { font-size: 16px; }
+
+    .btn-fermer {
+        background: #e0e0e0;
+        color: #333;
+        margin-left: 10px;
+    }
+
+    .btn-fermer:hover {
+        background: #bdbdbd;
+    }
+
+    /* ── Wrapper ticket : effet papier ── */
+    .ticket-wrapper {
+        display: flex;
+        justify-content: center;
+        padding: 12px 0 40px;
+    }
+
+    .ticket {
+        width: 80mm;
+        padding: 6mm 5mm 4mm;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        color: #000;
+        background: #fff;
+        line-height: 1.45;
+        border: 1px solid #ddd;
+        border-radius: 2px;
+        box-shadow: 0 4px 24px rgba(0,0,0,.12), 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    /* ── En-tête ── */
+    .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: #555;
+        margin-bottom: 8px;
+    }
+
+    .ticket-label { font-style: italic; }
+
+    .ticket-logo {
+        text-align: center;
+        margin-bottom: 4px;
+    }
+
+    .ticket-logo img {
+        max-height: 40px;
+        max-width: 50mm;
+        object-fit: contain;
+    }
+
+    .ticket-shop {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        margin: 4px 0 2px;
+    }
+
+    .ticket-address {
+        text-align: center;
+        font-size: 10.5px;
+        color: #333;
+        line-height: 1.3;
+    }
+
+    .ticket-num {
+        text-align: center;
+        font-size: 13px;
+        font-weight: 700;
+        margin: 8px 0 4px;
+        letter-spacing: 0.5px;
+    }
+
+    /* ── Séparateurs ── */
+    .ticket-sep {
+        border: none;
+        border-top: 1px dashed #999;
+        margin: 7px 0;
+    }
+
+    .ticket-sep-bold {
+        border: none;
+        border-top: 2.5px solid #000;
+        margin: 8px 0 6px;
+    }
+
+    /* ── Infos facture ── */
+    .ticket-info {
+        font-size: 11px;
+        margin: 2px 0;
         color: #222;
     }
 
-    .print-header {
-        gap: 24px;
+    /* ── Tableau articles ── */
+    .ticket-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 6px 0;
+        font-size: 11px;
     }
 
-    .print-header-left {
-        flex: 1 1 52%;
-        min-width: 0;
+    .ticket-table thead th {
+        font-size: 9.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 3px 0 4px;
+        border-bottom: 1px solid #999;
+        color: #444;
     }
 
-    .print-header-right {
-        flex: 0 0 34%;
-        min-width: 0;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+    .ticket-table tbody td {
+        padding: 3px 0;
+        vertical-align: top;
     }
 
+    .ticket-table tbody tr:last-child td {
+        padding-bottom: 4px;
+    }
+
+    .col-qty  { width: 28px; text-align: center; }
+    .col-desc { text-align: left; padding-left: 4px !important; word-break: break-word; }
+    .col-pu   { text-align: right; white-space: nowrap; padding-right: 6px !important; }
+    .col-tot  { text-align: right; white-space: nowrap; font-weight: 600; }
+
+    /* ── Totaux ── */
+    .ticket-total-line {
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        margin: 2px 0;
+        color: #333;
+    }
+
+    .ticket-grand-total {
+        display: flex;
+        justify-content: space-between;
+        font-size: 15px;
+        font-weight: 900;
+        margin: 6px 0 4px;
+        letter-spacing: 0.3px;
+    }
+
+    .ticket-words {
+        font-size: 10px;
+        font-style: italic;
+        text-align: center;
+        margin: 4px 0;
+        color: #333;
+    }
+
+    .ticket-equiv {
+        font-size: 10px;
+        text-align: center;
+        margin: 2px 0;
+        color: #444;
+    }
+
+    /* ── Pied de page ── */
+    .ticket-footer {
+        text-align: center;
+        font-size: 10.5px;
+        margin: 6px 0 2px;
+        font-style: italic;
+        color: #333;
+    }
+
+    .ticket-cut {
+        text-align: center;
+        font-size: 10px;
+        color: #aaa;
+        margin-top: 10px;
+        letter-spacing: 1px;
+    }
+
+    /* ── Impression 80mm ── */
     @@media print {
         @@page {
-            size: A5 portrait;
-            margin: 8mm;
+            size: 80mm auto;
+            margin: 0;
         }
 
-        .no-print { display: none !important; }
+        /* Masquer TOUT sauf le ticket */
+        .no-print,
+        .btn-bar,
+        .ticket-cut { display: none !important; }
+
+        /* Masquer tous les éléments MudBlazor / layout */
+        .mud-layout { all: initial !important; display: block !important; }
+
+        .mud-drawer,
+        .mud-drawer-overlay,
+        .mud-appbar,
+        .mud-main-content > *:not(:last-child),
         .rz-header,
         .tb,
         .breadcrumb-bar,
-        nav,
+        nav:not(.ticket nav),
         header,
-        footer {
+        footer,
+        .mud-overlay {
             display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
         }
 
-        body {
-            margin: 0 !important;
-            background: #fff !important;
-        }
-
-        body * {
-            visibility: hidden;
-        }
-
-        .print-container,
-        .print-container * {
-            visibility: visible;
-        }
-
-        .print-container {
-            position: static !important;
-            transform: none !important;
-            width: auto !important;
-            max-width: none !important;
+        /* Reset complet du body */
+        html, body {
             margin: 0 !important;
             padding: 0 !important;
-            box-sizing: border-box;
-            background: #fff;
+            background: #fff !important;
+            width: 80mm !important;
+            min-width: 0 !important;
+            overflow: visible !important;
         }
 
-        .print-header {
-            display: grid !important;
-            grid-template-columns: minmax(0, 1fr) minmax(42mm, 1fr);
-            gap: 6mm;
-            align-items: start;
+        /* Reset des conteneurs MudBlazor */
+        .mud-layout,
+        .mud-main-content,
+        #app,
+        #blazor-error-ui {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 80mm !important;
+            min-width: 0 !important;
+            max-width: 80mm !important;
         }
 
-        .print-title {
-            font-size: 18px !important;
-            line-height: 1.1;
+        .mud-main-content {
+            margin-left: 0 !important;
+            padding-top: 0 !important;
         }
 
-        .print-shop-name {
-            font-size: 16px !important;
-            line-height: 1.2;
-            margin-bottom: 4px !important;
+        /* Ticket : on prend toute la place */
+        .ticket-wrapper {
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 80mm !important;
         }
 
-        .print-shop-address {
-            max-width: none !important;
+        .ticket {
+            width: 80mm !important;
+            max-width: 80mm !important;
+            margin: 0 !important;
+            padding: 2mm 3mm !important;
+            box-sizing: border-box !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
             font-size: 11px !important;
-            line-height: 1.25 !important;
         }
 
-        .print-container table {
-            font-size: 12px !important;
+        /* S'assurer que les couleurs s'impriment */
+        .ticket * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
 
-        .print-container th,
-        .print-container td {
-            padding-left: 6px !important;
-            padding-right: 6px !important;
+        /* En-tête colonnes bien visible à l'impression */
+        .ticket-table thead th {
+            font-size: 9px !important;
+            color: #000 !important;
+            border-bottom: 1px solid #000 !important;
+        }
+
+        /* Séparateurs bien visibles */
+        .ticket-sep { border-top-color: #000 !important; }
+        .ticket-sep-bold { border-top: 2px solid #000 !important; }
+
+        /* Total bien gras */
+        .ticket-grand-total {
+            font-size: 13px !important;
+            font-weight: 900 !important;
         }
     }
 </style>
@@ -278,7 +474,6 @@ else
     bool _isUsd => _facture?.Money?.DescriptionMonais == "USD";
     string _deviseLabel => _isUsd ? "$" : "FC";
 
-    /// <summary>Convertit un montant FC en devise de la facture.</summary>
     decimal MontantPrint(decimal montantFC) =>
         _isUsd && _facture!.Taux > 0
             ? Math.Round(montantFC / _facture.Taux, 2)
@@ -302,12 +497,14 @@ else
         _loading = false;
     }
 
+    void Fermer() => Navigation.NavigateTo("/vente/facturation");
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!_loading && AutoPrint && !_printed && _facture != null)
         {
             _printed = true;
-            await Task.Delay(300); // Petit délai pour le rendu complet
+            await Task.Delay(300);
             await JS.InvokeVoidAsync("eval", "window.print();");
         }
     }

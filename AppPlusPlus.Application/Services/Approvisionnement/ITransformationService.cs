@@ -1,3 +1,4 @@
+using AppPlusPlus.Application.Common;
 using AppPlusPlus.Domain.Entities.Approvisionnement;
 
 namespace AppPlusPlus.Application.Services.Approvisionnement;
@@ -8,6 +9,6 @@ public interface ITransformationService
     Task DeleteTransformationAsync(int transformationId);
 
     Task<Transformation?> GetByIdAsync(int id);
-    Task AddAsync(Transformation transformation);
-    Task UpdateAsync(Transformation transformation);
+    Task<ServiceResult> AddAsync(Transformation transformation);
+    Task<ServiceResult> UpdateAsync(Transformation transformation);
 }

@@ -258,13 +258,13 @@
                 @if (!IsUsd && _facture.Taux > 0)
                 {
                     <div class="fact-amount-equiv">
-                        Équiv. USD (taux @_facture.Taux.ToString("N0")) : <strong>@(Math.Round((_facture.TotalApresReduction ?? 0) / _facture.Taux, 2).ToString("N2")) $</strong>
+                        Équiv. USD : <strong>@(Math.Round((_facture.TotalApresReduction ?? 0) / _facture.Taux, 2).ToString("N2")) $</strong>
                     </div>
                 }
                 @if (IsUsd && _facture.Taux > 0)
                 {
                     <div class="fact-amount-equiv">
-                        Équiv. FC (taux @_facture.Taux.ToString("N0")) : <strong>@((_facture.TotalApresReduction ?? 0).ToString("N2")) FC</strong>
+                        Équiv. FC : <strong>@((_facture.TotalApresReduction ?? 0).ToString("N2")) FC</strong>
                     </div>
                 }
             </div>

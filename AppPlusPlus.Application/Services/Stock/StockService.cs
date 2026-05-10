@@ -58,9 +58,6 @@ public class StockService : IStockService
 
     public async Task UpdateSeuilAsync(int stockId, int seuil)
     {
-        var stock = await _stockRepo.GetByIdAsync(stockId);
-        if (stock == null) return;
-        stock.Seuil = seuil;
-        await _stockRepo.UpdateAsync(stock);
+        await _stockRepo.UpdateSeuilDirectAsync(stockId, seuil);
     }
 }

@@ -13,7 +13,7 @@
 
 <PageTitle>@AppSettings.AppName — @(_isEdit ? "Modifier la transformation" : "Nouvelle transformation")</PageTitle>
 
-<div class="lov-card" style="max-width:620px; margin:40px auto;">
+<div class="lov-card" style="max-width:900px; margin:40px auto;">
     <div class="lov-form-header">
         <h5 style="font-weight:700; font-size:1.25rem;">@(_isEdit ? "Modifier la transformation" : "Nouvelle transformation")</h5>
         <div class="d-flex" style="gap:0.5rem;">
@@ -30,63 +30,81 @@
     </div>
     <div class="lov-form-body" style="padding:28px 32px 32px;">
         <div class="row g-4">
-            <div class="col-6">
-                <label class="form-label">Article source</label>
-                <MudAutocomplete T="string" @bind-Value="_item.FromArticleId" SearchFunc="@SearchArticle"
-                                 ToStringFunc="@(v => _articles.Find(a => a.IdArticle == v)?.Description ?? "")"
-                                 Placeholder="Choisir" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
-                                 CoerceText="true" CoerceValue="true" />
+            @* --- CÔTÉ SOURCE --- *@
+            <div class="col-6" style="border-right:1px solid rgba(255,255,255,0.08); padding-right:24px;">
+                <h6 style="font-weight:600; margin-bottom:16px; color:var(--mud-palette-primary, #2ec5a0);">
+                    <i class="bi bi-box-arrow-right"></i> Source
+                </h6>
+                <div class="mb-3">
+                    <label class="form-label">Article</label>
+                    <MudAutocomplete T="string" @bind-Value="_item.FromArticleId" SearchFunc="@SearchArticle"
+                                     ToStringFunc="@(v => _articles.Find(a => a.IdArticle == v)?.Description ?? "")"
+                                     Placeholder="Choisir" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                     CoerceText="true" CoerceValue="true" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Localisation</label>
+                    <MudSelect T="int?" @bind-Value="_item.FromLocalisationId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
+                               Placeholder="Choisir">
+                        @foreach (var loc in _localisations)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)loc.IdLocalisation)">@loc.DescriptionLocalisation</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div>
+                    <label class="form-label">Quantité</label>
+                    <MudNumericField @bind-Value="_item.Qte" T="decimal" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="0" />
+                </div>
             </div>
-            <div class="col-6">
-                <label class="form-label">Localisation source</label>
-                <MudSelect T="int?" @bind-Value="_item.FromLocalisationId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
-                           Placeholder="Choisir">
-                    @foreach (var loc in _localisations)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)loc.IdLocalisation)">@loc.DescriptionLocalisation</MudSelectItem>
-                    }
-                </MudSelect>
+
+            @* --- CÔTÉ DESTINATION --- *@
+            <div class="col-6" style="padding-left:24px;">
+                <h6 style="font-weight:600; margin-bottom:16px; color:var(--mud-palette-warning, #f5a623);">
+                    <i class="bi bi-box-arrow-in-left"></i> Destination
+                </h6>
+                <div class="mb-3">
+                    <label class="form-label">Article</label>
+                    <MudAutocomplete T="string" @bind-Value="_item.ToArticleId" SearchFunc="@SearchArticle"
+                                     ToStringFunc="@(v => _articles.Find(a => a.IdArticle == v)?.Description ?? "")"
+                                     Placeholder="Choisir" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
+                                     CoerceText="true" CoerceValue="true" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Localisation</label>
+                    <MudSelect T="int?" @bind-Value="_item.ToLocalisationId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
+                               Placeholder="Choisir">
+                        @foreach (var loc in _localisations)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)loc.IdLocalisation)">@loc.DescriptionLocalisation</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+                <div>
+                    <label class="form-label">Quantité</label>
+                    <MudNumericField @bind-Value="_item.ToQte" T="decimal?" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="0" />
+                </div>
             </div>
         </div>
-        <div class="row g-4 mt-1">
-            <div class="col-6">
-                <label class="form-label">Article destination</label>
-                <MudAutocomplete T="string" @bind-Value="_item.ToArticleId" SearchFunc="@SearchArticle"
-                                 ToStringFunc="@(v => _articles.Find(a => a.IdArticle == v)?.Description ?? "")"
-                                 Placeholder="Choisir" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true"
-                                 CoerceText="true" CoerceValue="true" />
-            </div>
-            <div class="col-6">
-                <label class="form-label">Localisation destination</label>
-                <MudSelect T="int?" @bind-Value="_item.ToLocalisationId" Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true"
-                           Placeholder="Choisir">
-                    @foreach (var loc in _localisations)
-                    {
-                        <MudSelectItem T="int?" Value="@((int?)loc.IdLocalisation)">@loc.DescriptionLocalisation</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-        </div>
-        <div class="row g-4 mt-1">
-            <div class="col-4">
-                <label class="form-label">Qté source</label>
-                <MudNumericField @bind-Value="_item.Qte" T="decimal" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="0" />
-            </div>
-            <div class="col-4">
-                <label class="form-label">Qté destination</label>
-                <MudNumericField @bind-Value="_item.ToQte" T="decimal?" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="0" />
-            </div>
+
+        @* --- DATE & COMMENTAIRE en bas --- *@
+        <div class="row g-4 mt-3">
             <div class="col-4">
                 <label class="form-label">Date</label>
                 <MudDatePicker @bind-Date="_dateValue" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
             </div>
-        </div>
-        <div class="row g-4 mt-1">
-            <div class="col-12">
+            <div class="col-8">
                 <label class="form-label">Commentaire</label>
                 <textarea class="form-control" @bind="_item.Comment" rows="2" placeholder="Optionnel"></textarea>
             </div>
         </div>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" ShowCloseIcon="true" CloseIconClicked="@(() => _errorMessage = null)">
+                @_errorMessage
+            </MudAlert>
+        }
     </div>
 </div>
 
@@ -99,6 +117,7 @@
     List<Article> _articles = new();
     List<Localisation> _localisations = new();
     string _currentLogin = "";
+    string? _errorMessage;
 
     private Task<IEnumerable<string>> SearchArticle(string value, CancellationToken ct)
     {
@@ -142,14 +161,24 @@
 
     async Task OnSubmit()
     {
+        _errorMessage = null;
         _item.Date = _dateValue ?? DateTime.Now;
         _item.UserLogin = _currentLogin;
         _item.DateSys = DateTime.Now;
         _item.Computer = Environment.MachineName;
+
+        Application.Common.ServiceResult result;
         if (_isEdit)
-            await TransformationService.UpdateAsync(_item);
+            result = await TransformationService.UpdateAsync(_item);
         else
-            await TransformationService.AddAsync(_item);
+            result = await TransformationService.AddAsync(_item);
+
+        if (!result.Success)
+        {
+            _errorMessage = result.Message;
+            return;
+        }
+
         Navigation.NavigateTo("/stock");
     }
 }
