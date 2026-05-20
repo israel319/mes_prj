@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Domain.Enums;
 using KCCMaterialFlow.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -6,164 +6,140 @@ using Microsoft.Extensions.Caching.Memory;
 namespace KCCMaterialFlow.Host.Services;
 
 /// <summary>
-/// Service centralisé : source unique pour le rôle BD d'un utilisateur.
-/// Utilisé par ClaimsTransformation, UserAccessMiddleware et DatabaseRoleEnricherService.
-/// Cache IMemoryCache avec invalidation explicite depuis l'admin.
+/// Cache de rôles utilisateur basé sur AppUser.NiveauAdmin (T_Users).
+/// Remplace l'ancienne version basée sur Employee.NiveauAdmin (colonnes supprimées).
+/// Enregistré Singleton — utilise IDbContextFactory + IMemoryCache (thread-safe).
 /// </summary>
-public class UserRoleCacheService
+public sealed class UserRoleCacheService
 {
     private readonly IDbContextFactory<KCCMaterialFlowDbContext> _dbContextFactory;
     private readonly IMemoryCache _cache;
-    private readonly ILogger<UserRoleCacheService> _logger;
 
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
-    private const string CachePrefix = "UserRole_";
-
-    // Sentinel pour distinguer "jamais lu" de "lu mais pas de rôle"
-    private static readonly string NoRoleSentinel = "__NO_ROLE__";
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
 
     public UserRoleCacheService(
         IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory,
-        IMemoryCache cache,
-        ILogger<UserRoleCacheService> logger)
+        IMemoryCache cache)
     {
         _dbContextFactory = dbContextFactory;
         _cache = cache;
-        _logger = logger;
+    }
+
+    // ── API publique ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Extrait le SAM / matricule depuis un login Windows : DOMAIN\K26561 → K26561.
+    /// Méthode statique pour rétrocompatibilité avec les appels directs dans les razors.
+    /// </summary>
+    public static string? ExtractMatricule(string? login)
+    {
+        if (string.IsNullOrWhiteSpace(login)) return null;
+        var afterSlash = login.Contains('\\') ? login[(login.LastIndexOf('\\') + 1)..] : login;
+        var afterAt = afterSlash.Contains('@') ? afterSlash[..afterSlash.IndexOf('@')] : afterSlash;
+        return string.IsNullOrWhiteSpace(afterAt) ? null : afterAt.Trim().ToUpperInvariant();
     }
 
     /// <summary>
-    /// Retourne le CodeRole de l'utilisateur ou null si inexistant/inactif.
-    /// Version async pour middleware et ClaimsTransformation.
+    /// Retourne le rôle texte de l'utilisateur ("SuperAdmin", "Admin") ou null si aucun rôle applicatif.
     /// </summary>
-    public async Task<string?> GetUserRoleAsync(string login)
+    public string? GetUserRole(string? login)
     {
-        var cacheKey = GetCacheKey(login);
+        return GetNiveauAdmin(login) switch
+        {
+            NiveauAdmin.SuperAdmin => "SuperAdmin",
+            NiveauAdmin.Admin      => "Admin",
+            _                      => null
+        };
+    }
 
-        if (_cache.TryGetValue(cacheKey, out string? cached))
-            return cached == NoRoleSentinel ? null : cached;
+    /// <summary>
+    /// Indique si l'utilisateur est approbateur (NiveauAdmin >= Admin,
+    /// ou désigné comme approbateur dans WorkflowApprobateursSpeciaux,
+    /// ou a des employés qui lui rapportent).
+    /// </summary>
+    public bool IsApprover(string? login)
+    {
+        if (string.IsNullOrWhiteSpace(login)) return false;
+
+        var niveau = GetNiveauAdmin(login);
+        if (niveau >= NiveauAdmin.Admin) return true;
+
+        // Vérifie via EmployeeId de l'AppUser
+        var empId = GetEmployeeId(login);
+        if (empId == null) return false;
+
+        var cacheKey = $"RoleCache_IsApprover_{empId.Value}";
+        if (_cache.TryGetValue(cacheKey, out bool cached)) return cached;
 
         try
         {
-            await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
-            var role = await QueryRoleAsync(dbContext, login);
-
-            _cache.Set(cacheKey, role ?? NoRoleSentinel, CacheDuration);
-            return role;
+            using var ctx = _dbContextFactory.CreateDbContext();
+            var result =
+                ctx.Employees.AsNoTracking().Any(e => e.ReportToEmployeeId == empId.Value) ||
+                ctx.Set<KCCMaterialFlow.Domain.Entities.WorkflowApprobateurSpecial>()
+                    .AsNoTracking().Any(w => w.EmployeeId == empId.Value && w.EstActif);
+            _cache.Set(cacheKey, result, CacheDuration);
+            return result;
         }
-        catch (Exception ex)
+        catch { return false; }
+    }
+
+    /// <summary>Invalide les entrées de cache pour cet utilisateur (login, matricule ou code employé).</summary>
+    public void InvalidateUser(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return;
+        var k = key.ToUpperInvariant();
+        _cache.Remove($"RoleCache_AppUser_{k}");
+        _cache.Remove($"RoleCache_EmpId_{k}");
+        // Invalider aussi par SAM si le login contient un domaine
+        var sam = ExtractMatricule(key);
+        if (sam != null && sam != k)
         {
-            _logger.LogError(ex, "Erreur lecture rôle BD pour {Login}", login);
-            return null;
+            _cache.Remove($"RoleCache_AppUser_{sam}");
+            _cache.Remove($"RoleCache_EmpId_{sam}");
         }
     }
 
-    /// <summary>
-    /// Retourne le CodeRole de l'utilisateur ou null si inexistant/inactif.
-    /// Version synchrone pour usage dans le circuit Blazor (scoped).
-    /// </summary>
-    public string? GetUserRole(string login)
-    {
-        var cacheKey = GetCacheKey(login);
+    // ── Helpers privés ──────────────────────────────────────────────────
 
-        if (_cache.TryGetValue(cacheKey, out string? cached))
-            return cached == NoRoleSentinel ? null : cached;
+    private NiveauAdmin GetNiveauAdmin(string? login)
+    {
+        return GetCachedAppUser(login)?.NiveauAdmin ?? NiveauAdmin.Aucun;
+    }
+
+    private int? GetEmployeeId(string? login)
+    {
+        return GetCachedAppUser(login)?.EmployeeId;
+    }
+
+    private KCCMaterialFlow.Domain.Entities.AppUser? GetCachedAppUser(string? login)
+    {
+        if (string.IsNullOrWhiteSpace(login)) return null;
+
+        var cacheKey = $"RoleCache_AppUser_{login.ToUpperInvariant()}";
+        if (_cache.TryGetValue(cacheKey, out KCCMaterialFlow.Domain.Entities.AppUser? cached))
+            return cached;
 
         try
         {
-            using var dbContext = _dbContextFactory.CreateDbContext();
-            var role = QueryRole(dbContext, login);
+            using var ctx = _dbContextFactory.CreateDbContext();
+            var loginUpper = login.ToUpperInvariant();
+            var appUser = ctx.AppUsers.AsNoTracking()
+                .FirstOrDefault(u => u.EstActif && u.Login.ToUpper() == loginUpper);
 
-            _cache.Set(cacheKey, role ?? NoRoleSentinel, CacheDuration);
-            return role;
+            // Fallback SAM : DOMAIN\K26561
+            if (appUser == null && login.Contains('\\'))
+            {
+                var sam = login[(login.LastIndexOf('\\') + 1)..].ToUpperInvariant();
+                appUser = ctx.AppUsers.AsNoTracking()
+                    .FirstOrDefault(u => u.EstActif && u.Login.ToUpper().EndsWith("\\" + sam));
+            }
+
+            if (appUser != null)
+                _cache.Set(cacheKey, appUser, CacheDuration);
+
+            return appUser;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erreur lecture rôle BD (sync) pour {Login}", login);
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Invalide le cache pour un login donné.
-    /// Appelé par l'admin lors d'un changement de rôle ou de statut.
-    /// </summary>
-    public void InvalidateUser(string login)
-    {
-        if (string.IsNullOrWhiteSpace(login)) return;
-
-        // Invalider toutes les variantes possibles du login
-        var keys = GetCacheKeys(login);
-        foreach (var key in keys)
-        {
-            _cache.Remove(key);
-        }
-
-        _logger.LogInformation("Cache rôle invalidé pour {Login}", login);
-    }
-
-    /// <summary>
-    /// Invalide tous les caches rôle (ex: changement global de configuration).
-    /// Note: IMemoryCache ne supporte pas l'énumération des clés,
-    /// donc on utilise un token d'annulation partagé.
-    /// </summary>
-    public void InvalidateAll()
-    {
-        // On ne peut pas énumérer IMemoryCache, mais les entrées expireront naturellement en 5 min.
-        // Pour un effet immédiat, on incrémente un compteur de version dans le cache.
-        var version = _cache.GetOrCreate("UserRole__Version", e => 0);
-        _cache.Set("UserRole__Version", version + 1);
-        _logger.LogInformation("Cache rôle global invalidé (version {Version})", version + 1);
-    }
-
-    private static string GetCacheKey(string login)
-    {
-        return $"{CachePrefix}{login.ToUpperInvariant()}";
-    }
-
-    private static List<string> GetCacheKeys(string login)
-    {
-        var keys = new List<string> { GetCacheKey(login) };
-        if (login.Contains('\\'))
-        {
-            keys.Add(GetCacheKey(login.Split('\\').Last()));
-        }
-        return keys;
-    }
-
-    private static List<string> GetLoginVariants(string login)
-    {
-        var variants = new List<string> { login };
-        if (login.Contains('\\'))
-            variants.Add(login.Split('\\').Last());
-        return variants;
-    }
-
-    private static async Task<string?> QueryRoleAsync(KCCMaterialFlowDbContext dbContext, string login)
-    {
-        var loginVariants = GetLoginVariants(login);
-
-        return await dbContext.Set<Utilisateur>()
-            .AsNoTracking()
-            .Where(u => loginVariants.Contains(u.Login) && u.EstActif)
-            .Join(dbContext.Set<Role>().Where(r => r.EstActif),
-                u => u.IdRole,
-                r => r.Id,
-                (u, r) => r.CodeRole)
-            .FirstOrDefaultAsync();
-    }
-
-    private static string? QueryRole(KCCMaterialFlowDbContext dbContext, string login)
-    {
-        var loginVariants = GetLoginVariants(login);
-
-        return dbContext.Set<Utilisateur>()
-            .AsNoTracking()
-            .Where(u => loginVariants.Contains(u.Login) && u.EstActif)
-            .Join(dbContext.Set<Role>().Where(r => r.EstActif),
-                u => u.IdRole,
-                r => r.Id,
-                (u, r) => r.CodeRole)
-            .FirstOrDefault();
+        catch { return null; }
     }
 }

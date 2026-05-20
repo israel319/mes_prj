@@ -8,203 +8,199 @@
 @inject NavigationManager Navigation
 @inject NotificationService NotificationService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Modifier Bon d'Entrée - KCC Material Flow</PageTitle>
+<PageTitle>@L["BemF_PageTitleEdit"] - KCC Material Flow</PageTitle>
 
-<div style="background: var(--rz-base-100); min-height: 100vh; padding: 2rem 1rem;">
-    <div style="max-width: 860px; margin: 0 auto;">
-        @if (isLoading)
-        {
-            <RadzenCard Style="text-align: center; padding: 3rem;">
-                <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Large" />
-                <RadzenText TextStyle="TextStyle.Body1" Style="margin-top: 1rem;">Chargement...</RadzenText>
-            </RadzenCard>
-        }
-        else if (bon == null)
-        {
-            <RadzenCard Style="text-align: center; padding: 3rem;">
-                <RadzenIcon Icon="error_outline" Style="font-size: 64px; color: var(--rz-danger);" />
-                <RadzenText TextStyle="TextStyle.H6" Style="margin-top: 1rem;">Bon d'entrée non trouvé</RadzenText>
-                <RadzenButton Text="Retour" Click="GoBack" Style="margin-top: 1rem;" />
-            </RadzenCard>
-        }
-        else if (bon.StatutActuel != "Draft")
-        {
-            <RadzenCard Style="text-align: center; padding: 3rem;">
-                <RadzenIcon Icon="lock" Style="font-size: 64px; color: var(--rz-warning);" />
-                <RadzenText TextStyle="TextStyle.H6" Style="margin-top: 1rem;">Ce bon ne peut plus être modifié</RadzenText>
-                <RadzenText TextStyle="TextStyle.Body2">Seuls les bons en brouillon peuvent être modifiés.</RadzenText>
-                <RadzenButton Text="Retour" Click="GoBack" Style="margin-top: 1rem;" />
-            </RadzenCard>
-        }
-        else
-        {
-            @* === HEADER === *@
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween"
-                         Style="margin-bottom: 1.25rem;">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                    <RadzenButton Icon="arrow_back" Variant="Variant.Text" Click="GoBack" />
-                    <RadzenText TextStyle="TextStyle.H5" Style="font-weight: 700;">Modifier @bon.NumeroReference</RadzenText>
-                </RadzenStack>
-                <RadzenBadge Text="Brouillon" BadgeStyle="BadgeStyle.Light" />
-            </RadzenStack>
+<div class="kcp-page">
 
-            @* === INFO BANNER === *@
-            <RadzenCard Variant="Variant.Flat" Style="margin-bottom: 1.25rem; padding: 0.75rem 1.5rem; background: var(--rz-base-200);">
-                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--rz-text-secondary-color);">
-                    <strong>Type :</strong> Bon d'Entrée Matériel &nbsp;|&nbsp;
-                    <strong>Créé le :</strong> @bon.DateCreation.ToString("dd/MM/yyyy à HH:mm")
-                </RadzenText>
-            </RadzenCard>
+    @if (isLoading)
+    {
+        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1rem;">
+            <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Large" />
+            <RadzenText TextStyle="TextStyle.Body1">@L["BemV_Loading"]</RadzenText>
+        </div>
+    }
+    else if (bon == null)
+    {
+        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1rem;">
+            <RadzenIcon Icon="error_outline" Style="font-size: 64px; color: var(--rz-danger);" />
+            <RadzenText TextStyle="TextStyle.H6">@L["BemF_NotFound"]</RadzenText>
+            <RadzenButton Text="@L["Btn_Back"].Value" Click="GoBack" />
+        </div>
+    }
+    else if (bon.StatutActuel != "Draft")
+    {
+        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1rem;">
+            <RadzenIcon Icon="lock" Style="font-size: 64px; color: var(--rz-warning);" />
+            <RadzenText TextStyle="TextStyle.H6">@L["BemF_CannotEdit"]</RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2">@L["BemF_CannotEditMsg"]</RadzenText>
+            <RadzenButton Text="@L["Btn_Back"].Value" Click="GoBack" />
+        </div>
+    }
+    else
+    {
+        @* ── Hero ── *@
+        <div class="kcp-hero">
+            <div class="kcp-hero-inner">
+                <div>
+                    <RadzenBadge Text="@L["BemF_Draft"].Value" BadgeStyle="BadgeStyle.Warning" Shade="Shade.Lighter" Style="margin-bottom: 0.5rem; font-size: 0.7rem;" />
+                    <h1 class="kcp-title">@L["BemF_PageTitleEdit"] @bon.NumeroReference</h1>
+                    <p class="kcp-subtitle">@L["BemF_FormTitle"] &bull; @L["BemF_CreatedOn"] @bon.DateCreation.ToString("dd/MM/yyyy")</p>
+                </div>
+                <div class="kcp-hero-actions">
+                    <button type="button" @onclick="GoBack" class="kcp-btn">@L["Btn_Cancel"]</button>
+                </div>
+            </div>
+        </div>
 
+        @* ── Main ── *@
+        <main class="kcp-main">
+        <div style="max-width: 800px; margin: 0 auto;">
+        <div class="bon-form-layout">
+        <div class="bon-form">
             <EditForm Model="@request" OnValidSubmit="@HandleSubmit">
                 <DataAnnotationsValidator />
 
-                @* === SECTION: Compagnie === *@
-                <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
-                    <RadzenStack Style="padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--rz-base-200);">
-                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0;">Informations Compagnie</RadzenText>
-                    </RadzenStack>
-                    <RadzenStack Gap="0" Style="padding: 0.25rem 1.5rem 1rem;">
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Nom Compagnie *</RadzenText>
+                @* ── Informations Compagnie ── *@
+                <section class="bon-form__section">
+                    <h2 class="bon-form__section-title">@L["BemF_CompanyInfo"]</h2>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_CompanyName"] <span class="required-star">*</span></label>
                             <RadzenDropDown @bind-Value="@selectedCompagnieId" Data="@compagnies"
                                             TextProperty="Nom" ValueProperty="Id"
-                                            Placeholder="Sélectionner une compagnie"
+                                            Placeholder="@L["BemF_SelectCompany"].Value"
                                             AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                                            Change="@OnCompagnieChanged" Style="flex: 1;" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">N° Contrat (PO)</RadzenText>
+                                            Change="@OnCompagnieChanged" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_ContractNumber"]</label>
                             <RadzenDropDown @bind-Value="@selectedContratId" Data="@contratsFiltered"
                                             TextProperty="PoNumber" ValueProperty="Id"
-                                            Placeholder="Sélectionner un contrat"
+                                            Placeholder="@L["BemF_SelectContract"].Value"
                                             AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                                            Change="@OnContratChanged" Style="flex: 1;"
+                                            Change="@OnContratChanged" Style="width: 100%;" Density="Density.Compact"
                                             Disabled="@(selectedCompagnieId == null)" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Email Contractant</RadzenText>
-                            <RadzenTextBox @bind-Value="request.EmailContractant" Style="flex: 1;" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Site Manager *</RadzenText>
-                            <RadzenTextBox @bind-Value="request.SiteManager" Style="flex: 1;" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Département Hôte *</RadzenText>
-                            <RadzenTextBox @bind-Value="request.HostDepartment" Style="flex: 1;" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Style="padding: 0.65rem 0;">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color); padding-top: 0.5rem;">Motif sur site *</RadzenText>
-                            <RadzenTextArea @bind-Value="request.ReasonOnSite" Rows="2" Style="flex: 1;" />
-                        </RadzenStack>
-                    </RadzenStack>
-                </RadzenCard>
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_ContractorEmail"]</label>
+                            <RadzenTextBox @bind-Value="request.EmailContractant" Placeholder="@L["BemF_ContractorEmail"].Value" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_SiteManager"] <span class="required-star">*</span></label>
+                            <RadzenTextBox @bind-Value="request.SiteManager" Placeholder="@L["BemF_SiteManagerPlaceholder"].Value" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_HostDept"] <span class="required-star">*</span></label>
+                            <RadzenTextBox @bind-Value="request.HostDepartment" Placeholder="@L["BemF_HostDeptPlaceholder"].Value" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <div>
+                        <label class="bon-form__label">@L["BemF_EntryReason"] <span class="required-star">*</span></label>
+                        <RadzenTextArea @bind-Value="request.ReasonOnSite" Rows="2" Style="width: 100%;" />
+                    </div>
+                </section>
 
-                @* === SECTION: Escorteur === *@
-                <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
-                    <RadzenStack Style="padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--rz-base-200);">
-                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0;">Détail de l'Escorteur</RadzenText>
-                    </RadzenStack>
-                    <RadzenStack Gap="0" Style="padding: 0.25rem 1.5rem 1rem;">
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Nom Escorteur *</RadzenText>
-                            <RadzenTextBox @bind-Value="request.NomEscorteur" Style="flex: 1;" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Fonction</RadzenText>
-                            <RadzenTextBox @bind-Value="request.FonctionEscorteur" Style="flex: 1;" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0;">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">Date Expiration *</RadzenText>
-                            <RadzenDatePicker @bind-Value="request.DateExpiration" DateFormat="dd/MM/yyyy" Style="flex: 1;" />
-                        </RadzenStack>
-                    </RadzenStack>
-                </RadzenCard>
+                @* ── Détail de l'Escorteur ── *@
+                <section class="bon-form__section">
+                    <h2 class="bon-form__section-title">@L["BemF_EscortDetails"]</h2>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_EscortName"] <span class="required-star">*</span></label>
+                            <RadzenTextBox @bind-Value="request.NomEscorteur" Placeholder="@L["BemF_EscortName"].Value" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_EscortFunction"]</label>
+                            <RadzenTextBox @bind-Value="request.FonctionEscorteur" Placeholder="@L["BemF_EscortFunction"].Value" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <div>
+                        <label class="bon-form__label">Date Expiration <span class="required-star">*</span></label>
+                        <RadzenDatePicker @bind-Value="request.DateExpiration" DateFormat="dd/MM/yyyy" Style="width: 100%;" Density="Density.Compact" />
+                    </div>
+                </section>
 
-                @* === SECTION: Trajet === *@
-                <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
-                    <RadzenStack Style="padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--rz-base-200);">
-                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0;">Trajet</RadzenText>
-                    </RadzenStack>
-                    <RadzenStack Gap="0" Style="padding: 0.25rem 1.5rem 1rem;">
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">FROM (Provenance)</RadzenText>
-                            <RadzenTextBox @bind-Value="request.Provenance" Style="flex: 1;" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Style="padding: 0.65rem 0; border-bottom: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color);">TO (Destination)</RadzenText>
-                            <RadzenTextBox @bind-Value="request.Destination" Style="flex: 1;" />
-                        </RadzenStack>
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Style="padding: 0.65rem 0;">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="width: 220px; min-width: 220px; color: var(--rz-text-secondary-color); padding-top: 0.5rem;">Description additionnelle</RadzenText>
-                            <RadzenTextArea @bind-Value="request.Description" Rows="2" Placeholder="Informations complémentaires..." Style="flex: 1;" />
-                        </RadzenStack>
-                    </RadzenStack>
-                </RadzenCard>
+                @* ── Trajet ── *@
+                <section class="bon-form__section">
+                    <h2 class="bon-form__section-title">@L["BemF_Route"]</h2>
+                    <RadzenRow Gap="1.25rem">
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_From"]</label>
+                            <RadzenTextBox @bind-Value="request.Provenance" Placeholder="@L["BemF_From"].Value" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="6">
+                            <label class="bon-form__label">@L["BemF_To"]</label>
+                            <RadzenTextBox @bind-Value="request.Destination" Placeholder="@L["BemF_To"].Value" Style="width: 100%;" Density="Density.Compact" />
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <div>
+                        <label class="bon-form__label">@L["BemF_AdditionalDesc"]</label>
+                        <RadzenTextArea @bind-Value="request.Description" Rows="2" Placeholder="@L["BemF_AddInfoPlaceholder"].Value" Style="width: 100%;" />
+                    </div>
+                </section>
 
-                @* === SECTION: Matériels === *@
-                <RadzenCard Style="margin-bottom: 1.25rem; padding: 0;">
-                    <RadzenStack Style="padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--rz-base-200);">
-                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 600; margin: 0;">Matériels (@materiels.Count articles)</RadzenText>
-                    </RadzenStack>
-                    <RadzenStack Gap="0" Style="padding: 0.75rem 1.5rem 1rem;">
-                        @if (materiels.Any())
-                        {
-                            <RadzenDataGrid TItem="MaterielEditModel" Data="@materiels" AllowSorting="false"
-                                            Density="Density.Compact" Style="margin-bottom: 0.75rem;">
-                                <Columns>
-                                    <RadzenDataGridColumn TItem="MaterielEditModel" Title="Désignation" Width="35%">
-                                        <Template Context="mat">
-                                            <RadzenTextBox @bind-Value="mat.Designation" Placeholder="Désignation..." Style="width:100%;" />
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="MaterielEditModel" Title="N° Série / Code" Width="30%">
-                                        <Template Context="mat">
-                                            <RadzenTextBox @bind-Value="mat.CodeProduitSerial" Placeholder="N° série / code..." Style="width:100%;" />
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="MaterielEditModel" Title="Quantité" Width="20%" TextAlign="TextAlign.Center">
-                                        <Template Context="mat">
-                                            <RadzenNumeric @bind-Value="mat.Quantite" Min="1" Step="1" Style="width:100%;" />
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="MaterielEditModel" Title="" Width="15%" TextAlign="TextAlign.Center" Sortable="false">
-                                        <Template Context="mat">
-                                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
-                                                          Click="@(() => RemoveMateriel(mat))" />
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                </Columns>
-                            </RadzenDataGrid>
-                        }
-                        else
-                        {
-                            <RadzenStack AlignItems="AlignItems.Center" Style="padding: 2rem; color: var(--rz-text-secondary-color);">
-                                <RadzenIcon Icon="inventory_2" Style="font-size: 32px; opacity: 0.5;" />
-                                <RadzenText TextStyle="TextStyle.Body2">Aucun matériel ajouté</RadzenText>
-                            </RadzenStack>
-                        }
-                        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Style="padding: 0.5rem 0; border-top: 1px solid var(--rz-base-200);">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--rz-text-secondary-color);">
-                                Total : <strong>@materiels.Sum(m => m.Quantite)</strong> articles
-                            </RadzenText>
-                            <RadzenButton Text="Ajouter" Icon="add" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Text" Size="ButtonSize.Small"
-                                          Click="@AddMateriel" />
-                        </RadzenStack>
-                    </RadzenStack>
-                </RadzenCard>
+                @* ── Matériels ── *@
+                <section class="bon-form__section">
+                    <h2 class="bon-form__section-title">@L["BemF_Materials"] (@materiels.Count @(materiels.Count > 1 ? L["BemF_Articles"].Value : L["BemF_Article"].Value))</h2>
+                    @if (materiels.Any())
+                    {
+                        <RadzenDataGrid TItem="MaterielEditModel" Data="@materiels" AllowSorting="false" Density="Density.Compact" Style="font-size: 0.85rem;">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="MaterielEditModel" Title="@L["BemF_Designation"]" Width="35%">
+                                    <Template Context="mat">
+                                        <RadzenTextBox @bind-Value="mat.Designation" Placeholder="@L["BemF_Designation"].Value" Style="width:100%;" />
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="MaterielEditModel" Title="@L["BemF_ProductCode"]" Width="30%">
+                                    <Template Context="mat">
+                                        <RadzenTextBox @bind-Value="mat.CodeProduitSerial" Placeholder="@L["BemF_ProductCode"].Value" Style="width:100%;" />
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="MaterielEditModel" Title="@L["BemF_Qty"]" Width="20%" TextAlign="TextAlign.Center">
+                                    <Template Context="mat">
+                                        <RadzenNumeric @bind-Value="mat.Quantite" Min="1" Step="1" Style="width:100%;" />
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="MaterielEditModel" Title="" Width="15%" TextAlign="TextAlign.Center" Sortable="false">
+                                    <Template Context="mat">
+                                        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
+                                                      Click="@(() => RemoveMateriel(mat))" />
+                                    </Template>
+                                </RadzenDataGridColumn>
+                            </Columns>
+                        </RadzenDataGrid>
+                    }
+                    else
+                    {
+                        <div style="padding: 2rem; text-align: center; color: var(--rz-text-secondary-color);">
+                            <RadzenIcon Icon="inventory_2" Style="font-size: 32px; opacity: 0.5;" />
+                            <RadzenText TextStyle="TextStyle.Body2">@L["BemF_NoMaterialAdded"]</RadzenText>
+                        </div>
+                    }
+                    <div style="margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 0.78rem; color: #6b7f7f;">@L["BemF_Total"] <strong style="color: #1e2a2a;">@materiels.Sum(m => m.Quantite)</strong> @(materiels.Sum(m => m.Quantite) > 1 ? L["BemF_Articles"].Value : L["BemF_Article"].Value)</span>
+                        <button type="button" @onclick="AddMateriel" style="background: none; border: none; cursor: pointer; font-size: 0.78rem; font-weight: 500; color: #005f60; display: flex; align-items: center; gap: 0.25rem;">
+                            <RadzenIcon Icon="add" Style="font-size: 0.95rem;" /> @L["BemF_Add"]
+                        </button>
+                    </div>
+                </section>
 
-                @* === ACTIONS === *@
-                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Style="padding: 0.75rem 0;">
-                    <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Click="@GoBack" />
-                    <RadzenButton Text="@(isSaving ? "Enregistrement..." : "Enregistrer les modifications")" Icon="save"
-                                  ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit" Disabled="@isSaving" />
-                </RadzenStack>
+                @* ── Actions ── *@
+                <div class="bon-form__actions">
+                    <RadzenButton Text="@(isSaving ? L["BemF_Saving"].Value : L["BemF_SaveChanges"].Value)" Icon="save"
+                                  ButtonType="ButtonType.Submit" Disabled="@isSaving" class="bon-form__btn-submit" />
+                </div>
             </EditForm>
-        }
-    </div>
+        </div>
+        </div>
+        </div>
+        </main>
+    }
 </div>
 
 @code {
@@ -289,16 +285,15 @@
             if (compagnie != null)
             {
                 request.NomCompagnie = compagnie.Nom;
-                request.EmailContractant = compagnie.Email ?? string.Empty;
-                request.SiteManager = compagnie.SiteManager ?? string.Empty;
             }
         }
         else
         {
             request.NomCompagnie = string.Empty;
-            request.EmailContractant = string.Empty;
-            request.SiteManager = string.Empty;
         }
+        // Email & SiteManager sont désormais sur le Contrat — réinitialisés ici, remplis dans OnContratChanged
+        request.EmailContractant = string.Empty;
+        request.SiteManager = string.Empty;
     }
 
     private void OnContratChanged(object value)
@@ -310,12 +305,16 @@
             {
                 request.ContratId = contrat.Id;
                 request.NumeroContrat = contrat.PoNumber;
+                request.EmailContractant = contrat.Email ?? string.Empty;
+                request.SiteManager = contrat.SiteManager ?? string.Empty;
             }
         }
         else
         {
             request.ContratId = null;
             request.NumeroContrat = string.Empty;
+            request.EmailContractant = string.Empty;
+            request.SiteManager = string.Empty;
         }
     }
 
@@ -368,12 +367,12 @@
             var result = await BonEntreeService.UpdateAsync(request);
             if (result.Success)
             {
-                NotificationService.Notify(NotificationSeverity.Success, "Succès", result.Message ?? "Modifications enregistrées");
+                NotificationService.Notify(NotificationSeverity.Success, L["Lbl_Success"].Value, result.Message ?? L["Notif_ChangesSaved"].Value);
                 Navigation.NavigateTo($"/bon-entree/{Id}");
             }
             else
             {
-                NotificationService.Notify(NotificationSeverity.Error, "Erreur", string.Join(", ", result.Errors));
+                NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"].Value, string.Join(", ", result.Errors));
             }
         }
         finally

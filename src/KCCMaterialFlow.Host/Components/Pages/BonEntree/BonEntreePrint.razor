@@ -13,6 +13,15 @@
 {
     <div style="text-align:center;padding:50px;">Chargement...</div>
 }
+else if (isUnauthorized)
+{
+    <div style="text-align:center;padding:80px;">
+        <div style="font-size:3rem;">🔒</div>
+        <h2 style="color:#dc3545;">Accès refusé</h2>
+        <p>Seul le dernier approbateur (Identification) peut imprimer ce bon.</p>
+        <button onclick="history.back()" style="margin-top:1rem;padding:0.5rem 1.5rem;cursor:pointer;">← Retour</button>
+    </div>
+}
 else if (bon == null)
 {
     <div style="text-align:center;padding:50px;">Bon non trouve (ID: @Id)</div>
@@ -190,17 +199,52 @@ else
     [Parameter] public int Id { get; set; }
     private BonEntree? bon;
     private bool isLoading = true;
+    private bool isUnauthorized = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             bon = await BonEntreeService.GetAsync(Id);
+            if (bon != null && !IsLastApprover())
+            {
+                isUnauthorized = true;
+                bon = null;
+            }
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private bool IsLastApprover()
+    {
+        if (bon == null) return false;
+        var lastApproved = bon.Approbations
+            .Where(a => a.Decision is "Approuv\u00e9" or "Approuve")
+            .OrderByDescending(a => a.OrdreEtape)
+            .FirstOrDefault();
+        if (lastApproved == null) return false;
+        if (CurrentUserService.IsAdmin) return true;
+        if (lastApproved.ApprobateurId.HasValue && CurrentUserService.EmployeeId.HasValue
+            && lastApproved.ApprobateurId == CurrentUserService.EmployeeId)
+            return true;
+        var login = CurrentUserService.GetUserLogin()?.Trim().ToLowerInvariant() ?? "";
+        var bs = login.LastIndexOf('\\');
+        if (bs >= 0) login = login[(bs + 1)..];
+        var at = login.IndexOf('@');
+        if (at >= 0) login = login[..at];
+        var approvalLogin = lastApproved.ApprobateurLogin?.Trim().ToLowerInvariant() ?? "";
+        var bsA = approvalLogin.LastIndexOf('\\');
+        if (bsA >= 0) approvalLogin = approvalLogin[(bsA + 1)..];
+        var atA = approvalLogin.IndexOf('@');
+        if (atA >= 0) approvalLogin = approvalLogin[..atA];
+        if (!string.IsNullOrEmpty(login) && !string.IsNullOrEmpty(approvalLogin) && login == approvalLogin)
+            return true;
+        var mat = lastApproved.ApprobateurMatricule?.Trim().ToUpperInvariant() ?? "";
+        var curMat = CurrentUserService.Matricule?.Trim().ToUpperInvariant() ?? "";
+        return !string.IsNullOrEmpty(mat) && !string.IsNullOrEmpty(curMat) && mat == curMat;
     }
 
     private async Task GoBack()

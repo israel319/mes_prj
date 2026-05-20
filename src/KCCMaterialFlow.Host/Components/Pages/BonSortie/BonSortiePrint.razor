@@ -7,22 +7,32 @@
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>Impression BSM @Id</PageTitle>
 
 @if (isLoading)
 {
-    <div style="text-align:center;padding:50px;">Chargement...</div>
+    <div style="text-align:center;padding:50px;">@L["BsmV_Loading"]</div>
+}
+else if (isUnauthorized)
+{
+    <div style="text-align:center;padding:80px;">
+        <div style="font-size:3rem;">🔒</div>
+        <h2 style="color:#dc3545;">@L["BemV_AccessDenied"]</h2>
+        <p>@L["BsPrint_AccessMsg"]</p>
+        <button onclick="history.back()" style="margin-top:1rem;padding:0.5rem 1.5rem;cursor:pointer;">@L["Btn_Back"]</button>
+    </div>
 }
 else if (bon == null)
 {
-    <div style="text-align:center;padding:50px;">Bon non trouvé (ID: @Id)</div>
+    <div style="text-align:center;padding:50px;">@L["BsmV_NotFound"] (ID: @Id)</div>
 }
 else
 {
     <div class="print-controls">
-        <button @onclick="GoBack">← RETOUR</button>
-        <button @onclick="PrintFormulaire">🖨 IMPRIMER</button>
+        <button @onclick="GoBack">← @L["Btn_Back"]</button>
+        <button @onclick="PrintFormulaire">🖨 @L["Btn_Print"]</button>
     </div>
 
     <div class="a4-paper" id="printArea">
@@ -196,17 +206,52 @@ else
     [Parameter] public int Id { get; set; }
     private BonSortie? bon;
     private bool isLoading = true;
+    private bool isUnauthorized = false;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             bon = await BonSortieService.GetAsync(Id);
+            if (bon != null && !IsLastApprover())
+            {
+                isUnauthorized = true;
+                bon = null;
+            }
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private bool IsLastApprover()
+    {
+        if (bon == null) return false;
+        var lastApproved = bon.Approbations
+            .Where(a => a.Decision is "Approuv\u00e9" or "Approuve")
+            .OrderByDescending(a => a.OrdreEtape)
+            .FirstOrDefault();
+        if (lastApproved == null) return false;
+        if (CurrentUserService.IsAdmin) return true;
+        if (lastApproved.ApprobateurId.HasValue && CurrentUserService.EmployeeId.HasValue
+            && lastApproved.ApprobateurId == CurrentUserService.EmployeeId)
+            return true;
+        var login = CurrentUserService.GetUserLogin()?.Trim().ToLowerInvariant() ?? "";
+        var bs = login.LastIndexOf('\\');
+        if (bs >= 0) login = login[(bs + 1)..];
+        var at = login.IndexOf('@');
+        if (at >= 0) login = login[..at];
+        var approvalLogin = lastApproved.ApprobateurLogin?.Trim().ToLowerInvariant() ?? "";
+        var bsA = approvalLogin.LastIndexOf('\\');
+        if (bsA >= 0) approvalLogin = approvalLogin[(bsA + 1)..];
+        var atA = approvalLogin.IndexOf('@');
+        if (atA >= 0) approvalLogin = approvalLogin[..atA];
+        if (!string.IsNullOrEmpty(login) && !string.IsNullOrEmpty(approvalLogin) && login == approvalLogin)
+            return true;
+        var mat = lastApproved.ApprobateurMatricule?.Trim().ToUpperInvariant() ?? "";
+        var curMat = CurrentUserService.Matricule?.Trim().ToUpperInvariant() ?? "";
+        return !string.IsNullOrEmpty(mat) && !string.IsNullOrEmpty(curMat) && mat == curMat;
     }
 
     private async Task GoBack()

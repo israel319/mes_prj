@@ -9,13 +9,19 @@ namespace KCCMaterialFlow.Domain.Entities;
 /// </summary>
 public sealed class Contrat : BaseEntity
 {
-    [MaxLength(50)]
+    [MaxLength(100)]
     public string PoNumber { get; set; } = string.Empty;
 
     [MaxLength(500)]
     public string? ContratDescription { get; set; }
 
     public int CompagnieId { get; set; }
+
+    [MaxLength(200)]
+    public string? Email { get; set; }
+
+    [MaxLength(200)]
+    public string? SiteManager { get; set; }
 
     public bool EstActif { get; set; } = true;
     public DateTime DateCreation { get; set; } = DateTime.Now;

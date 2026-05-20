@@ -1,6 +1,8 @@
 using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Domain.Entities;
 using KCCMaterialFlow.Domain.Enums;
+using KCCMaterialFlow.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace KCCMaterialFlow.Infrastructure.Services.BonEntree;
@@ -17,6 +19,8 @@ public class BonEntreeService : IBonEntreeService
     private readonly IBarriereService _barriereService;
     private readonly INotificationRejetService _notificationRejetService;
     private readonly IWorkflowConfigService _workflowConfigService;
+    private readonly IChaineApprobationService _chaineApprobationService;
+    private readonly IDbContextFactory<KCCMaterialFlowDbContext> _dbContextFactory;
     private readonly ILogger<BonEntreeService> _logger;
 
     private const int DefaultValidityDays = 7;
@@ -28,6 +32,8 @@ public class BonEntreeService : IBonEntreeService
         IBarriereService barriereService,
         INotificationRejetService notificationRejetService,
         IWorkflowConfigService workflowConfigService,
+        IChaineApprobationService chaineApprobationService,
+        IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory,
         ILogger<BonEntreeService> logger)
     {
         _repository = repository;
@@ -36,6 +42,8 @@ public class BonEntreeService : IBonEntreeService
         _barriereService = barriereService;
         _notificationRejetService = notificationRejetService;
         _workflowConfigService = workflowConfigService;
+        _chaineApprobationService = chaineApprobationService;
+        _dbContextFactory = dbContextFactory;
         _logger = logger;
     }
 
@@ -78,6 +86,12 @@ public class BonEntreeService : IBonEntreeService
         var bonEntree = createResult.Value;
         bonEntree.DepartementId = request.DepartementId;
         bonEntree.RaisonEntreeId = request.RaisonEntreeId;
+
+        // v2 — Site KCC + RequestedFor (chaîne d'approbation par site/département)
+        bonEntree.SiteId = request.SiteId;
+        bonEntree.RequestedForEmployeeCode = request.RequestedForEmployeeCode;
+        bonEntree.RequestedForDisplay = request.RequestedForDisplay;
+        bonEntree.RequestedForDepartement = request.RequestedForDepartement;
 
         // Ajouter les matériels via la méthode Domain
         foreach (var mat in request.Materiels)
@@ -127,6 +141,12 @@ public class BonEntreeService : IBonEntreeService
         bonEntree.Destination = request.Destination;
         bonEntree.DateExpiration = request.DateExpiration;
         bonEntree.Description = request.Description;
+
+        // v2 — Site KCC + RequestedFor
+        bonEntree.SiteId = request.SiteId;
+        bonEntree.RequestedForEmployeeCode = request.RequestedForEmployeeCode;
+        bonEntree.RequestedForDisplay = request.RequestedForDisplay;
+        bonEntree.RequestedForDepartement = request.RequestedForDepartement;
 
         // Mise à jour des matériels (uniquement en brouillon)
         if (request.Materiels != null && request.Materiels.Any())
@@ -258,10 +278,136 @@ public class BonEntreeService : IBonEntreeService
 
     public async Task<IReadOnlyList<Domain.Entities.BonEntree>> GetPendingApprovalsAsync(CancellationToken cancellationToken = default)
     {
-        var userRoles = _currentUserService.GetUserRoles();
-        _logger.LogDebug("GetPendingApprovalsAsync appelé pour {Login} avec rôles: {Roles}",
-            CurrentLogin, string.Join(", ", userRoles));
-        return await _repository.GetPendingApprovalsAsync(userRoles, cancellationToken);
+        var roles = _currentUserService.GetUserRoles();
+        var isAdmin = roles.Any(r =>
+            string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase));
+
+        var bons = await _repository.GetPendingApprovalsByEmployeeAsync(0, isAdmin, cancellationToken);
+        
+        _logger.LogInformation("GetPendingApprovalsAsync - Found {TotalCount} pending bons for admin={IsAdmin}", bons.Count, isAdmin);
+        
+        if (isAdmin) 
+        {
+            _logger.LogInformation("GetPendingApprovalsAsync - Returning all {Count} bons (user is admin)", bons.Count);
+            return bons;
+        }
+
+        // Filter by current approver (EmployeeId, or fallback by login/matricule)
+        var empId = await ResolveCurrentEmployeeIdAsync(cancellationToken);
+        var currentUser = _currentUserService.GetUserLogin()?.ToLowerInvariant() ?? "";
+        var currentUserMatricule = _currentUserService.Matricule?.ToLowerInvariant() ?? "";
+        
+        _logger.LogInformation(
+            "GetPendingApprovalsAsync - Filtering for user: EmployeeId={EmpId}, Login={Login}, Matricule={Matricule}",
+            empId ?? 0, currentUser, currentUserMatricule);
+
+        // Stratégie 4 : pré-charger les approbateurs spéciaux actifs (OPJ / IDENTIFICATION)
+        // pour détecter les bons dont le snapshot est périmé (approbateur changé après soumission).
+        await using var ctxSpecial = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var activeSpecials = await ctxSpecial.WorkflowApprobateursSpeciaux
+            .Where(x => x.EstActif &&
+                (x.Type == TypeApprobateurSpecial.OPJ || x.Type == TypeApprobateurSpecial.Identification))
+            .OrderBy(x => x.Ordre)
+            .Select(x => new { x.EmployeeId, x.Type, x.SiteId })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        var activeOPJs = activeSpecials.Where(x => x.Type == TypeApprobateurSpecial.OPJ).ToList();
+        var activeIdentifIds = activeSpecials
+            .Where(x => x.Type == TypeApprobateurSpecial.Identification)
+            .Select(x => x.EmployeeId)
+            .ToHashSet();
+
+        var filtered = bons.Where(b =>
+        {
+            var current = b.Approbations
+                .Where(a => a.Decision == "En attente")
+                .OrderBy(a => a.OrdreEtape)
+                .FirstOrDefault();
+            
+            if (current == null)
+            {
+                _logger.LogDebug("Bon {BonId} has no pending approvals", b.Id);
+                return false;
+            }
+
+            // Stratégie 1 : correspondance par EmployeeId
+            if (current.ApprobateurId.HasValue && empId.HasValue && current.ApprobateurId == empId)
+            {
+                _logger.LogDebug("Bon {BonId}: MATCH by EmployeeId ({EmpId})", b.Id, empId);
+                return true;
+            }
+
+            // Stratégie 2 : correspondance par login normalisé (strip préfixe domaine)
+            static string NormLogin(string? s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return "";
+                s = s.Trim().ToLowerInvariant();
+                var bs = s.LastIndexOf('\\');
+                if (bs >= 0) s = s[(bs + 1)..];
+                var at = s.IndexOf('@');
+                if (at >= 0) s = s[..at];
+                return s;
+            }
+
+            var approvalLoginNorm = NormLogin(current.ApprobateurLogin);
+            var currentLoginNorm  = NormLogin(currentUser);
+            if (!string.IsNullOrEmpty(approvalLoginNorm) && !string.IsNullOrEmpty(currentLoginNorm)
+                && approvalLoginNorm == currentLoginNorm)
+            {
+                _logger.LogDebug("Bon {BonId}: MATCH by login ({Login})", b.Id, currentLoginNorm);
+                return true;
+            }
+
+            // Stratégie 3 : correspondance par matricule (majuscules)
+            var approvalMatricule  = current.ApprobateurMatricule?.Trim().ToUpperInvariant() ?? "";
+            var currentMatUpper    = currentUserMatricule.Trim().ToUpperInvariant();
+            if (!string.IsNullOrEmpty(approvalMatricule) && !string.IsNullOrEmpty(currentMatUpper)
+                && approvalMatricule == currentMatUpper)
+            {
+                _logger.LogDebug("Bon {BonId}: MATCH by matricule ({Mat})", b.Id, currentMatUpper);
+                return true;
+            }
+
+            // Stratégie 4 : snapshot périmé — vérifier si l'utilisateur courant est
+            // parmi les approbateurs spéciaux actifs pour l'étape OPJ / IDENTIFICATION.
+            // Plusieurs approbateurs peuvent coexister pour un même site ; le premier qui approuve fait le job.
+            if (empId.HasValue)
+            {
+                var stepCode = current.CodeEtape?.Trim().ToUpperInvariant();
+                if (stepCode == "OPJ")
+                {
+                    var siteSpecificOPJs = activeOPJs.Where(x => x.SiteId == b.SiteId).ToList();
+                    var candidateOPJs = siteSpecificOPJs.Any()
+                        ? siteSpecificOPJs
+                        : activeOPJs.Where(x => x.SiteId == null).ToList();
+                    if (candidateOPJs.Any(x => x.EmployeeId == empId.Value))
+                    {
+                        _logger.LogDebug("Bon {BonId}: MATCH by active OPJ config (stale snapshot)", b.Id);
+                        return true;
+                    }
+                }
+                else if (stepCode == "IDENTIFICATION")
+                {
+                    if (activeIdentifIds.Contains(empId.Value))
+                    {
+                        _logger.LogDebug("Bon {BonId}: MATCH by active IDENTIFICATION config (stale snapshot)", b.Id);
+                        return true;
+                    }
+                }
+            }
+
+            _logger.LogDebug(
+                "Bon {BonId}: No match - AppId={AppId}vs{CurrId}, Login='{ALogin}'vs'{CLogin}', Mat='{AMat}'vs'{CMat}'",
+                b.Id, current.ApprobateurId, empId, approvalLoginNorm, currentLoginNorm,
+                approvalMatricule, currentMatUpper);
+            return false;
+        }).ToList();
+        
+        _logger.LogInformation("GetPendingApprovalsAsync - Filtered {ResultCount} of {TotalCount} bons for user approval", 
+            filtered.Count, bons.Count);
+        
+        return filtered.AsReadOnly();
     }
 
     public async Task<IReadOnlyList<ReturnedBemInfo>> GetMyReturnedBonsAsync(CancellationToken cancellationToken = default)
@@ -295,6 +441,54 @@ public class BonEntreeService : IBonEntreeService
         }
 
         return returnedBons.OrderByDescending(r => r.DateRetour).ToList();
+    }
+
+    public async Task<IReadOnlyList<Domain.Entities.BonEntree>> GetApprovedByMeAsync(CancellationToken cancellationToken = default)
+    {
+        var bons = await _repository.GetApprovedBonsWithApprobationsAsync(cancellationToken);
+
+        var empId = await ResolveCurrentEmployeeIdAsync(cancellationToken);
+        var currentUser = _currentUserService.GetUserLogin()?.ToLowerInvariant() ?? "";
+        var currentUserMatricule = _currentUserService.Matricule?.ToLowerInvariant() ?? "";
+
+        static string NormLogin(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return "";
+            s = s.Trim().ToLowerInvariant();
+            var bs = s.LastIndexOf('\\');
+            if (bs >= 0) s = s[(bs + 1)..];
+            var at = s.IndexOf('@');
+            if (at >= 0) s = s[..at];
+            return s;
+        }
+
+        return bons.Where(b =>
+        {
+            // L'approbateur courant doit avoir la dernière approbation (OrdreEtape max) avec decision Approuvé
+            var lastApproved = b.Approbations
+                .Where(a => a.Decision is "Approuvé" or "Approuve")
+                .OrderByDescending(a => a.OrdreEtape)
+                .FirstOrDefault();
+
+            if (lastApproved == null) return false;
+
+            // Stratégie 1 : EmployeeId
+            if (lastApproved.ApprobateurId.HasValue && empId.HasValue && lastApproved.ApprobateurId == empId)
+                return true;
+
+            // Stratégie 2 : login
+            var approvalLoginNorm = NormLogin(lastApproved.ApprobateurLogin);
+            var currentLoginNorm  = NormLogin(currentUser);
+            if (!string.IsNullOrEmpty(approvalLoginNorm) && !string.IsNullOrEmpty(currentLoginNorm)
+                && approvalLoginNorm == currentLoginNorm)
+                return true;
+
+            // Stratégie 3 : matricule
+            var approvalMat = lastApproved.ApprobateurMatricule?.Trim().ToUpperInvariant() ?? "";
+            var currentMat  = currentUserMatricule.Trim().ToUpperInvariant();
+            return !string.IsNullOrEmpty(approvalMat) && !string.IsNullOrEmpty(currentMat)
+                   && approvalMat == currentMat;
+        }).ToList().AsReadOnly();
     }
 
     #endregion
@@ -344,27 +538,40 @@ public class BonEntreeService : IBonEntreeService
         }
 
         var approbations = await _repository.GetApprobationsAsync(request.BonId, cancellationToken);
-        var currentStep = approbations.FirstOrDefault(a => a.Decision == "En attente");
+        var currentStep = approbations
+            .Where(a => a.Decision == "En attente")
+            .OrderBy(a => a.OrdreEtape)
+            .FirstOrDefault();
 
         if (currentStep == null)
         {
             return BonEntreeResult.Fail("Aucune approbation en attente pour ce bon");
         }
 
-        // Vérifier que le rôle de l'utilisateur correspond à l'étape d'approbation
-        var userRoles = _currentUserService.GetUserRoles().ToList();
-        var requiredRoleForStep = GetRequiredRoleForStep(currentStep.NomEtape);
+        // Résoudre l'identité de l'utilisateur courant avant le refresh (nécessaire pour la sélection multi-approbateurs).
+        var currentEmpId = await ResolveCurrentEmployeeIdAsync(cancellationToken);
 
-        if (!userRoles.Contains(requiredRoleForStep))
+        // Refresh : synchroniser l'approbateur depuis la config actuelle — si plusieurs approbateurs actifs pour l'étape,
+        // le candidat courant est prioritaire (premier qui approuve fait le job).
+        await RefreshCurrentStepApproverAsync(bonEntree, currentStep, cancellationToken, currentEmpId);
+
+        // Auth v2 : vérifier que l'utilisateur courant est bien l'approbateur désigné (ou un co-approbateur OR pour Identification),
+        // ou un Admin niveau >= L2 (override).
+        var isAdminOverride = _currentUserService.GetUserRoles().Any(r =>
+            string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase));
+
+        if (!isAdminOverride && (currentEmpId == null || currentStep.ApprobateurId != currentEmpId))
         {
-            return BonEntreeResult.Fail($"Vous n'êtes pas autorisé à approuver cette étape. Rôle requis: {requiredRoleForStep}");
+            return BonEntreeResult.Fail(
+                $"Vous n'êtes pas autorisé à approuver cette étape. Approbateur attendu : {currentStep.NomApprobateur ?? currentStep.NomEtape}.");
         }
 
         // Enregistrer les infos de l'approbateur via méthode Domain
         var oldStatutApprove = bonEntree.StatutActuel;
         currentStep.Approuver(
             _currentUserService.GetUserDisplayName(),
-            requiredRoleForStep,
+            currentStep.RoleApprobateur ?? currentStep.NomEtape ?? "",
             request.ReservesEventuelles);
 
         await _repository.UpsertApprobationAsync(currentStep, cancellationToken);
@@ -376,7 +583,12 @@ public class BonEntreeService : IBonEntreeService
 
         if (nextStep != null)
         {
-            bonEntree.StatutActuel = GetStatutForEtape(nextStep.OrdreEtape);
+            bonEntree.StatutActuel = GetStatutForCodeEtape(nextStep.CodeEtape);
+            // Synchroniser le pointeur "prochain approbateur".
+            if (nextStep.ApprobateurId.HasValue)
+            {
+                bonEntree.AssignerProchainApprobateur(nextStep.ApprobateurId.Value, nextStep.NomApprobateur ?? string.Empty, nextStep.OrdreEtape);
+            }
         }
         else
         {
@@ -403,7 +615,7 @@ public class BonEntreeService : IBonEntreeService
         await _repository.UpdateAsync(bonEntree, cancellationToken);
 
         await AddHistoryAsync(bonEntree.Id, ActionBonEntree.Approbation, oldStatutApprove, bonEntree.StatutActuel,
-            $"Validé par {_currentUserService.GetUserDisplayName()} ({requiredRoleForStep})",
+            $"Validé par {_currentUserService.GetUserDisplayName()} ({currentStep.NomEtape})",
             request.ReservesEventuelles, cancellationToken);
 
         _logger.LogInformation("Bon {Numero} approuvé par {User}", bonEntree.NumeroReference, CurrentLogin);
@@ -427,19 +639,28 @@ public class BonEntreeService : IBonEntreeService
             return BonEntreeResult.Fail("Aucune approbation en attente pour ce bon");
         }
 
-        // Vérifier que le rôle de l'utilisateur correspond à l'étape d'approbation
-        var userRoles = _currentUserService.GetUserRoles().ToList();
-        var requiredRoleForStep = GetRequiredRoleForStep(currentStep.NomEtape);
+        // Résoudre l'identité de l'utilisateur courant avant le refresh (nécessaire pour la sélection multi-approbateurs).
+        var currentEmpId = await ResolveCurrentEmployeeIdAsync(cancellationToken);
 
-        if (!userRoles.Contains(requiredRoleForStep))
+        // Refresh : synchroniser l'approbateur depuis la config actuelle — si plusieurs approbateurs actifs pour l'étape,
+        // le candidat courant est prioritaire (premier qui rejette fait le job).
+        await RefreshCurrentStepApproverAsync(bonEntree, currentStep, cancellationToken, currentEmpId);
+
+        // Auth v2 : vérifier l'approbateur désigné (ou Admin override).
+        var isAdminOverride = _currentUserService.GetUserRoles().Any(r =>
+            string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase));
+
+        if (!isAdminOverride && (currentEmpId == null || currentStep.ApprobateurId != currentEmpId))
         {
-            return BonEntreeResult.Fail($"Vous n'êtes pas autorisé à rejeter cette étape. Rôle requis: {requiredRoleForStep}");
+            return BonEntreeResult.Fail(
+                $"Vous n'êtes pas autorisé à rejeter cette étape. Approbateur attendu : {currentStep.NomApprobateur ?? currentStep.NomEtape}.");
         }
 
         // Enregistrer le rejet via méthode Domain
         currentStep.Rejeter(
             _currentUserService.GetUserDisplayName(),
-            requiredRoleForStep,
+            currentStep.RoleApprobateur ?? currentStep.NomEtape ?? "",
             request.ReservesEventuelles ?? "Aucun motif");
 
         await _repository.UpsertApprobationAsync(currentStep, cancellationToken);
@@ -449,7 +670,7 @@ public class BonEntreeService : IBonEntreeService
         await _repository.UpdateAsync(bonEntree, cancellationToken);
 
         await AddHistoryAsync(bonEntree.Id, ActionBonEntree.Rejet, oldStatutReject, "Rejected",
-            $"Refusé par {_currentUserService.GetUserDisplayName()} ({requiredRoleForStep})",
+            $"Refusé par {_currentUserService.GetUserDisplayName()} ({currentStep.NomEtape})",
             request.ReservesEventuelles, cancellationToken);
 
         // Enregistrer la notification de rejet en base de données
@@ -657,31 +878,158 @@ public class BonEntreeService : IBonEntreeService
 
     private async Task CreateApprovalStepsAsync(Domain.Entities.BonEntree bon, CancellationToken cancellationToken)
     {
-        // Chaîne d'approbation BEM depuis la BD (via WorkflowConfigService)
-        var etapes = await _workflowConfigService.GetResolvedWorkflowEtapesAsync("BEM", null);
+        // Chaîne v2 — fondée sur le référentiel Glencore (ReportsTo → GM → [IT|Env] → OPJ → Identification).
+        // L'employé créateur est résolu via Login (CreatedBy = login Windows).
+        var creatorLogin = !string.IsNullOrWhiteSpace(bon.CreatedBy)
+            ? bon.CreatedBy
+            : _currentUserService.GetUserLogin();
 
-        if (etapes == null || !etapes.Any())
+        if (string.IsNullOrWhiteSpace(creatorLogin))
         {
-            // Fallback de sécurité si aucune config en BD
-            _logger.LogWarning("Aucune config workflow BEM trouvée en BD, utilisation du fallback");
-            etapes = new List<WorkflowEtapeConfig>
-            {
-                new() { OrdreEtape = 1, RoleCode = "SUPERVISEUR", NomEtape = "Superviseur" },
-                new() { OrdreEtape = 2, RoleCode = "GM", NomEtape = "General Manager" },
-                new() { OrdreEtape = 3, RoleCode = "OPJ", NomEtape = "OPJ" },
-                new() { OrdreEtape = 4, RoleCode = "IDENTIFICATION", NomEtape = "Identification" }
-            };
+            _logger.LogError("Impossible de construire la chaîne d'approbation : CreatedBy et login courant sont vides (bon {BonId}).", bon.Id);
+            throw new InvalidOperationException(
+                "Impossible de déterminer le créateur du bon : CreatedBy et login courant sont vides.");
+        }
+        var creator = await ResolveOrProvisionEmployeeAsync(creatorLogin, cancellationToken);
+        if (creator == null)
+        {
+            _logger.LogError(
+                "Impossible de construire la chaîne d'approbation : aucun Employee local pour CreatedBy='{Login}' (bon {BonId}).",
+                creatorLogin, bon.Id);
+            throw new InvalidOperationException(
+                $"Aucun Employee local trouvé pour '{creatorLogin}' (login ou matricule). " +
+                "Vérifier l'auto-création depuis Glencore.");
         }
 
-        foreach (var etape in etapes.OrderBy(e => e.OrdreEtape))
+        // BonEntree : pas de TypeMateriel typé (un bon peut contenir plusieurs types) → pas de routage IT/Env.
+        var chain = await _chaineApprobationService.ConstruireChaineAsync(
+            creator.Id, descriptionMateriel: null, siteId: bon.SiteId, ct: cancellationToken);
+
+        if (chain.Etapes.Count == 0)
+            throw new InvalidOperationException($"Chaîne d'approbation vide pour le bon {bon.NumeroReference}.");
+
+        foreach (var etape in chain.Etapes.OrderBy(e => e.Ordre))
         {
-            var step = new Approbation(bon.Id, etape.OrdreEtape, etape.NomEtape);
+            var step = new Approbation(
+                bonId: bon.Id,
+                ordreEtape: etape.Ordre,
+                codeEtape: etape.Kind.ToString().ToUpperInvariant(),
+                nomEtape: GetEtapeLabel(etape.Kind),
+                approbateurId: etape.EmployeeId,
+                approbateurMatricule: etape.EmployeeMatricule,
+                approbateurLogin: etape.EmployeeLogin,
+                nomApprobateur: etape.EmployeeNomComplet);
             await _repository.UpsertApprobationAsync(step, cancellationToken);
         }
+
+        // Synchroniser le pointeur "prochain approbateur" sur le bon.
+        var first = chain.Etapes.OrderBy(e => e.Ordre).First();
+        bon.AssignerProchainApprobateur(first.EmployeeId, first.EmployeeNomComplet, first.Ordre);
+        await _repository.UpdateAsync(bon, cancellationToken);
+    }
+
+    /// <summary>Libellé français standard d'une étape (kind → label).</summary>
+    private static string GetEtapeLabel(KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind kind) => kind switch
+    {
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.SuperIntendent => "Superintendent",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.ReportsTo => "Manager",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.GM => "General Manager",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.ITDepartment => "Département IT",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.EnvironmentDepartment => "Département Environnement",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.OPJ => "OPJ",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.Identification => "Identification",
+        _ => kind.ToString()
+    };
+
+    /// <summary>Résoud l'EmployeeId courant via le login Windows ou matricule, avec auto-provisioning Glencore.</summary>
+    private async Task<int?> ResolveCurrentEmployeeIdAsync(CancellationToken ct)
+    {
+        var login = _currentUserService.GetUserLogin();
+        var emp = await ResolveOrProvisionEmployeeAsync(login, ct);
+        return emp?.Id;
     }
 
     /// <summary>
-    /// Retourne le rôle requis pour une étape d'approbation donnée
+    /// Trouve un Employee local par Login Windows OU Matricule (l'impersonation injecte le matricule
+    /// comme login). Si introuvable, tente une auto-création depuis le référentiel Glencore.
+    /// </summary>
+    private async Task<Domain.Entities.Employee?> ResolveOrProvisionEmployeeAsync(string? loginOrMatricule, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(loginOrMatricule)) return null;
+        var key = loginOrMatricule.Trim();
+        var keyLower = key.ToLowerInvariant();
+        var sam = key.Contains('\\') ? key[(key.LastIndexOf('\\') + 1)..] : key;
+        var samLower = sam.ToLowerInvariant();
+
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(ct);
+
+        // 1) Via T_Users : Login → EmployeeId → Employee
+        var empId = await ctx.AppUsers.AsNoTracking()
+            .Where(u => u.EstActif && (u.Login.ToLower() == keyLower || u.Login.ToLower().EndsWith("\\" + samLower)))
+            .Select(u => u.EmployeeId)
+            .FirstOrDefaultAsync(ct);
+        Domain.Entities.Employee? emp = null;
+        if (empId.HasValue)
+            emp = await ctx.Set<Domain.Entities.Employee>().FirstOrDefaultAsync(e => e.Id == empId.Value, ct);
+
+        // 2) Fallback : par Matricule
+        if (emp == null)
+            emp = await ctx.Set<Domain.Entities.Employee>().FirstOrDefaultAsync(e =>
+                e.Matricule != null && (e.Matricule.ToLower() == keyLower || e.Matricule.ToLower() == samLower), ct);
+        if (emp != null) return emp;
+
+        var g = await ctx.Set<Domain.Entities.AllEmployee>().AsNoTracking().FirstOrDefaultAsync(x =>
+            (x.UserName != null && (x.UserName.ToLower() == keyLower
+                                    || x.UserName.ToLower().EndsWith("\\" + samLower)
+                                    || x.UserName.ToLower() == samLower))
+            || x.EmployeeCode.ToLower() == keyLower
+            || x.EmployeeCode.ToLower() == samLower, ct);
+        if (g == null)
+        {
+            _logger.LogWarning("Résolution Employee : '{Key}' introuvable dans T_Employees ET T_AllEmployees.", key);
+            return null;
+        }
+
+        var displayName = $"{g.FirstName} {g.LastName}".Trim();
+        if (string.IsNullOrWhiteSpace(displayName)) displayName = g.EmployeeCode;
+
+        emp = new Domain.Entities.Employee
+        {
+            Matricule = g.EmployeeCode,
+            NomComplet = displayName,
+            DisplayName = displayName,
+            Prenom = g.FirstName,
+            Nom = g.LastName,
+            Email = g.Mail,
+            DepartementNom = g.Departement,
+            EstInterne = true,
+            DateCreation = DateTime.Now
+        };
+        ctx.Set<Domain.Entities.Employee>().Add(emp);
+        await ctx.SaveChangesAsync(ct);
+        _logger.LogInformation("Employee local auto-provisionné depuis Glencore : {Code} (Id={Id})", g.EmployeeCode, emp.Id);
+        return emp;
+    }
+
+    /// <summary>
+    /// Mapping CodeEtape (kind stable) → valeur StatutActuel.
+    /// </summary>
+    private static string GetStatutForCodeEtape(string? codeEtape)
+    {
+        return (codeEtape ?? "").ToUpperInvariant() switch
+        {
+            "SUPERINTENDENT" or "REPORTSTO" => "PendingSup",
+            "GM" => "PendingGM",
+            "ITDEPARTMENT" or "IT" => "PendingIT",
+            "ENVIRONMENTDEPARTMENT" or "ENV" => "PendingEnv",
+            "OPJ" => "PendingOPJ",
+            "IDENTIFICATION" => "PendingIdentification",
+            _ => "PendingSup"
+        };
+    }
+
+    /// <summary>
+    /// Retourne le rôle requis pour une étape d'approbation donnée (hérité — n’est plus utilisé par Approve/Reject).
     /// </summary>
     private string GetRequiredRoleForStep(string? nomEtape)
     {
@@ -705,6 +1053,120 @@ public class BonEntreeService : IBonEntreeService
             4 => "PendingIdentification", // Identification (étape finale)
             _ => "PendingSup"
         };
+    }
+
+    /// <summary>
+    /// Synchronise l'approbateur d'une étape en attente depuis la configuration actuelle.
+    /// — Étapes spéciales (OPJ, Identification) : requête directe dans WorkflowApprobateursSpeciaux,
+    ///   indépendamment du reste de la chaîne (résistant à la suppression/remplacement de l'approbateur).
+    /// — Étapes Glencore (SuperIntendent, GM, ReportsTo) : reconstruction de la chaîne.
+    /// </summary>
+    private async Task RefreshCurrentStepApproverAsync(
+        Domain.Entities.BonEntree bon, Approbation step, CancellationToken ct, int? candidateEmpId = null)
+    {
+        if (string.IsNullOrWhiteSpace(step.CodeEtape))
+            return;
+
+        var codeUpper = step.CodeEtape.ToUpperInvariant();
+
+        try
+        {
+            int? newId = null;
+            string? newNom = null, newMatricule = null, newLogin = null;
+
+            if (codeUpper is "OPJ" or "IDENTIFICATION")
+            {
+                // Étapes spéciales : requête directe, pas besoin de reconstruire toute la chaîne.
+                var typeSpecial = codeUpper == "OPJ"
+                    ? TypeApprobateurSpecial.OPJ
+                    : TypeApprobateurSpecial.Identification;
+
+                await using var ctx = await _dbContextFactory.CreateDbContextAsync(ct);
+                var specials = await ctx.WorkflowApprobateursSpeciaux
+                    .Include(x => x.Employee)
+                    .Where(x => x.Type == typeSpecial && x.EstActif)
+                    .OrderBy(x => x.Ordre)
+                    .AsNoTracking()
+                    .ToListAsync(ct);
+
+                WorkflowApprobateurSpecial? match = null;
+                if (typeSpecial == TypeApprobateurSpecial.OPJ)
+                {
+                    // Construire le pool : site-spécifique, sinon global.
+                    var pool = (bon.SiteId is int siteId
+                        ? specials.Where(x => x.SiteId == siteId).ToList()
+                        : new List<WorkflowApprobateurSpecial>());
+                    if (!pool.Any())
+                        pool = specials.Where(x => x.SiteId == null).ToList();
+                    // Si un candidat (qui tente d'approuver) est dans le pool, le prendre en priorité.
+                    match = (candidateEmpId.HasValue ? pool.FirstOrDefault(x => x.EmployeeId == candidateEmpId) : null)
+                            ?? pool.FirstOrDefault();
+                }
+                else
+                {
+                    // IDENTIFICATION : préférer le candidat s'il est dans la liste active.
+                    match = (candidateEmpId.HasValue ? specials.FirstOrDefault(x => x.EmployeeId == candidateEmpId) : null)
+                            ?? specials.FirstOrDefault();
+                }
+
+                if (match == null)
+                {
+                    _logger.LogWarning(
+                        "Aucun approbateur actif pour l'étape {Code} du bon {Ref} — rafraîchissement impossible.",
+                        codeUpper, bon.NumeroReference);
+                    return;
+                }
+
+                newId = match.EmployeeId;
+                newNom = match.Employee.NomComplet;
+                newMatricule = match.Employee.Matricule;
+                var matchUser = await ctx.AppUsers.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.EmployeeId == match.EmployeeId, ct);
+                newLogin = matchUser?.Login;
+            }
+            else
+            {
+                // Étapes Glencore : reconstruction de la chaîne.
+                var creatorLogin = !string.IsNullOrWhiteSpace(bon.CreatedBy) ? bon.CreatedBy : null;
+                if (string.IsNullOrWhiteSpace(creatorLogin)) return;
+
+                var creator = await ResolveOrProvisionEmployeeAsync(creatorLogin, ct);
+                if (creator == null) return;
+
+                var freshChain = await _chaineApprobationService.ConstruireChaineAsync(
+                    creator.Id, descriptionMateriel: null, siteId: bon.SiteId, ct: ct);
+
+                var freshEtape = freshChain.Etapes.FirstOrDefault(e =>
+                    string.Equals(e.Kind.ToString().ToUpperInvariant(), codeUpper,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (freshEtape == null) return;
+
+                newId = freshEtape.EmployeeId;
+                newNom = freshEtape.EmployeeNomComplet;
+                newMatricule = freshEtape.EmployeeMatricule;
+                newLogin = freshEtape.EmployeeLogin;
+            }
+
+            if (newId != null && newId != step.ApprobateurId)
+            {
+                _logger.LogInformation(
+                    "Approbateur mis à jour pour étape {Code} du bon {Ref} : {OldId} → {NewId} ({Nom})",
+                    codeUpper, bon.NumeroReference, step.ApprobateurId, newId, newNom);
+
+                step.ApprobateurId = newId;
+                step.NomApprobateur = newNom;
+                step.ApprobateurMatricule = newMatricule;
+                step.ApprobateurLogin = newLogin;
+                await _repository.UpsertApprobationAsync(step, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Impossible de rafraîchir l'approbateur pour l'étape {Code} du bon {Ref}",
+                codeUpper, bon.NumeroReference);
+        }
     }
 
     #endregion

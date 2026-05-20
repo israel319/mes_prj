@@ -39,7 +39,7 @@ public class BonSortieMappingProfile : Profile
         CreateMap<BonSortieInterne, BonSortieViewDto>()
             .ForMember(dest => dest.IdBon, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.TypeSortie, opt => opt.MapFrom(_ => "Interne"))
-            .ForMember(dest => dest.TypeMateriel, opt => opt.MapFrom(src => src.TypeMateriel))
+            .ForMember(dest => dest.DescriptionMateriel, opt => opt.MapFrom(src => src.DescriptionMateriel))
             .ForMember(dest => dest.BonEntreeAssocieId, opt => opt.MapFrom(src => src.BonEntreeAssocieId))
             .ForMember(dest => dest.BonEntreeAssocieNumero, opt => opt.Ignore())
             .ForMember(dest => dest.NomDestinataire, opt => opt.Ignore())

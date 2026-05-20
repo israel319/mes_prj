@@ -97,6 +97,23 @@ public class BonEntreeConfiguration : IEntityTypeConfiguration<BonEntree>
         builder.Property(b => b.RaisonEntreeId)
             .HasColumnName("RaisonEntreeId");
 
+        // ===== Site + RequestedFor (v2) =====
+        builder.Property(b => b.SiteId).HasColumnName("SiteId");
+        builder.HasOne(b => b.Site)
+            .WithMany()
+            .HasForeignKey(b => b.SiteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(b => b.RequestedForEmployeeCode)
+            .HasColumnName("RequestedForEmployeeCode")
+            .HasMaxLength(50);
+        builder.Property(b => b.RequestedForDisplay)
+            .HasColumnName("RequestedForDisplay")
+            .HasMaxLength(200);
+        builder.Property(b => b.RequestedForDepartement)
+            .HasColumnName("RequestedForDepartement")
+            .HasMaxLength(200);
+
         builder.Property(b => b.ReasonOnSite)
             .HasColumnName("ReasonOnSite")
             .HasMaxLength(500)
@@ -125,6 +142,18 @@ public class BonEntreeConfiguration : IEntityTypeConfiguration<BonEntree>
         builder.Property(b => b.BonSortieAssocieNumero)
             .HasColumnName("BonSortieAssocieNumero")
             .HasMaxLength(20);
+
+        // ===== Chaîne d'approbation dynamique =====
+        builder.Property(b => b.ProchainApprobateurId)
+            .HasColumnName("ProchainApprobateurId");
+
+        builder.Property(b => b.ProchainApprobateurNom)
+            .HasColumnName("ProchainApprobateurNom")
+            .HasMaxLength(200);
+
+        builder.Property(b => b.EtapeActuelleApprobation)
+            .HasColumnName("EtapeActuelleApprobation")
+            .HasDefaultValue(0);
 
         // ===== Relations =====
         builder.HasMany(b => b.Materiels)

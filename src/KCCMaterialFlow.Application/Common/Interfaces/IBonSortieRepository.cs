@@ -78,6 +78,17 @@ public interface IBonSortieRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// v2 — BSM en attente où l'étape COURANTE est assignée à l'employé donné.
+    /// </summary>
+    Task<IReadOnlyList<BonSortie>> GetPendingApprovalsByEmployeeAsync(int employeeId, bool isAdmin, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retourne les bons approuvés (StatutActuel == "Approved") avec leurs approbations incluses.
+    /// Le filtrage par approbateur courant est fait dans la couche service.
+    /// </summary>
+    Task<IReadOnlyList<BonSortie>> GetApprovedBonsWithApprobationsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Récupère les prêts en cours (non retournés)
     /// </summary>
     Task<IReadOnlyList<Pret>> GetActiveLoansAsync(CancellationToken cancellationToken = default);
@@ -145,12 +156,6 @@ public interface IBonSortieRepository
     /// Récupère le code d'une raison de sortie par son ID.
     /// </summary>
     Task<string?> GetRaisonSortieCodeByIdAsync(int raisonId, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Récupère le TypeMateriel par défaut associé à un code de raison de sortie.
-    /// Source unique de vérité pour le routage du workflow d'approbation.
-    /// </summary>
-    Task<TypeMateriel?> GetTypeMaterielByRaisonCodeAsync(string raisonCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Supprime tous les matériels d'un bon de sortie.

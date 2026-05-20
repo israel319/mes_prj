@@ -2,6 +2,8 @@ using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Application.Features.BonSortie.DTOs;
 using KCCMaterialFlow.Domain.Entities;
 using KCCMaterialFlow.Domain.Enums;
+using KCCMaterialFlow.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace KCCMaterialFlow.Infrastructure.Services.BonSortie;
@@ -21,6 +23,8 @@ public class BonSortieService : IBonSortieService
     private readonly IBonEntreeLockService _bonEntreeLockService;
     private readonly INotificationRejetService _notificationRejetService;
     private readonly ICategorieSortieService _categorieSortieService;
+    private readonly IChaineApprobationService _chaineApprobationService;
+    private readonly IDbContextFactory<KCCMaterialFlowDbContext> _dbContextFactory;
     private readonly ILogger<BonSortieService> _logger;
 
     public BonSortieService(
@@ -33,6 +37,8 @@ public class BonSortieService : IBonSortieService
         IBonEntreeLockService bonEntreeLockService,
         INotificationRejetService notificationRejetService,
         ICategorieSortieService categorieSortieService,
+        IChaineApprobationService chaineApprobationService,
+        IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory,
         ILogger<BonSortieService> logger)
     {
         _repository = repository;
@@ -44,6 +50,8 @@ public class BonSortieService : IBonSortieService
         _bonEntreeLockService = bonEntreeLockService;
         _notificationRejetService = notificationRejetService;
         _categorieSortieService = categorieSortieService;
+        _chaineApprobationService = chaineApprobationService;
+        _dbContextFactory = dbContextFactory;
         _logger = logger;
     }
 
@@ -60,56 +68,33 @@ public class BonSortieService : IBonSortieService
                 raisonCode = await _repository.GetRaisonSortieCodeByIdAsync(request.RaisonId.Value, cancellationToken);
             }
 
-            // Auto-dériver TypeMateriel depuis RaisonSortie (source unique de vérité)
-            var typeMateriel = request.TypeMateriel;
+            // Description libre du matériel — plus de dépendance à un enum TypeMateriel
+            var descriptionMateriel = request.DescriptionMateriel;
             var resolvedRaisonCode = raisonCode ?? request.RaisonSortieCode;
-            if (!string.IsNullOrEmpty(resolvedRaisonCode))
+
+            // TypeMateriel enum supprimé. BonEntree est toujours obligatoire.
+            if (!request.BonEntreeAssocieId.HasValue)
             {
-                var resolved = await _repository.GetTypeMaterielByRaisonCodeAsync(resolvedRaisonCode, cancellationToken);
-                if (resolved.HasValue)
-                {
-                    typeMateriel = resolved.Value;
-                    _logger.LogInformation("TypeMateriel auto-dérivé depuis RaisonSortie '{Code}': {Type}", resolvedRaisonCode, typeMateriel);
-                }
+                return BonSortieResult.Fail("Un bon d'entrée associé est obligatoire");
             }
 
-            // BSM-025: Logique Circulaire - pas de lien BonEntree, validité 6 mois
-            // BSM-020: Pour les autres types, BonEntree est obligatoire
-            if (request.TypeMateriel == TypeMateriel.Circulaire || typeMateriel == TypeMateriel.Circulaire)
+            // BSM-031: Vérifier que le bon d'entrée existe et est disponible
+            var availabilityResult = await _bonEntreeLockService.CheckAvailabilityAsync(request.BonEntreeAssocieId.Value, cancellationToken);
+            if (!availabilityResult.IsAvailable)
             {
-                var maxExpiration = DateTime.Now.AddMonths(6);
-                if (request.DateExpiration > maxExpiration)
-                {
-                    return BonSortieResult.Fail($"Pour un bon circulaire, la date d'expiration ne peut pas dépasser 6 mois ({maxExpiration:dd/MM/yyyy})");
-                }
+                return BonSortieResult.Fail($"Bon d'entrée non disponible: {availabilityResult.ErrorMessage}");
             }
-            else
+
+            _logger.LogInformation("BSM-031: BEM {BemNumero} ({Compagnie}) validé pour liaison avec BSM",
+                availabilityResult.NumeroReference, availabilityResult.NomCompagnie);
+
+            var coherenceError = await ValidateBonEntreeMotifCoherenceAsync(
+                request.BonEntreeAssocieId.Value,
+                resolvedRaisonCode,
+                cancellationToken);
+            if (!string.IsNullOrWhiteSpace(coherenceError))
             {
-                // BSM-020 & BSM-031: Pour les autres types, BonEntree associé obligatoire
-                if (!request.BonEntreeAssocieId.HasValue)
-                {
-                    return BonSortieResult.Fail("Un bon d'entrée associé est obligatoire pour ce type de sortie (sauf Circulaire)");
-                }
-
-                // BSM-031: Vérifier que le bon d'entrée existe et est disponible
-                var availabilityResult = await _bonEntreeLockService.CheckAvailabilityAsync(request.BonEntreeAssocieId.Value, cancellationToken);
-                if (!availabilityResult.IsAvailable)
-                {
-                    return BonSortieResult.Fail($"Bon d'entrée non disponible: {availabilityResult.ErrorMessage}");
-                }
-
-                _logger.LogInformation("BSM-031: BEM {BemNumero} ({Compagnie}) validé pour liaison avec BSM",
-                    availabilityResult.NumeroReference, availabilityResult.NomCompagnie);
-
-                var coherenceError = await ValidateBonEntreeMotifCoherenceAsync(
-                    request.BonEntreeAssocieId.Value,
-                    resolvedRaisonCode,
-                    typeMateriel,
-                    cancellationToken);
-                if (!string.IsNullOrWhiteSpace(coherenceError))
-                {
-                    return BonSortieResult.Fail(coherenceError);
-                }
+                return BonSortieResult.Fail(coherenceError);
             }
 
             var numeroReference = await _repository.GenerateNextNumeroAsync("BSE", cancellationToken);
@@ -125,7 +110,7 @@ public class BonSortieService : IBonSortieService
                 destination: request.Destination,
                 dateExpiration: request.DateExpiration,
                 nomDestinataire: request.NomDestinataire,
-                typeMateriel: typeMateriel,
+                descriptionMateriel: descriptionMateriel,
                 bonEntreeAssocieId: request.BonEntreeAssocieId,
                 raisonSortieCode: resolvedRaisonCode,
                 description: request.Description,
@@ -139,6 +124,14 @@ public class BonSortieService : IBonSortieService
 
             var bonSortie = createResult.Value;
             bonSortie.SetNumeroReference(numeroReference);
+
+            // v2 — Site KCC + RequestedFor (chaîne d'approbation par site/département)
+            bonSortie.SiteId = request.SiteId;
+            bonSortie.RequestedForEmployeeCode = request.RequestedForEmployeeCode;
+            bonSortie.RequestedForDisplay = request.RequestedForDisplay;
+            bonSortie.RequestedForDepartement = request.RequestedForDepartement;
+            bonSortie.SiteManager = request.SiteManager;
+            bonSortie.TypeMaterielSortieId = request.TypeMaterielSortieId;
 
             // Ajouter les matériels via le domain method
             foreach (var mat in request.Materiels)
@@ -180,24 +173,14 @@ public class BonSortieService : IBonSortieService
                 raisonCode = await _repository.GetRaisonSortieCodeByIdAsync(request.RaisonId.Value, cancellationToken);
             }
 
-            var typeMateriel = request.TypeMateriel;
+            var descriptionMateriel = request.DescriptionMateriel;
             var resolvedRaisonCode = raisonCode ?? request.RaisonSortieCode;
-            if (!string.IsNullOrEmpty(resolvedRaisonCode))
-            {
-                var resolved = await _repository.GetTypeMaterielByRaisonCodeAsync(resolvedRaisonCode, cancellationToken);
-                if (resolved.HasValue)
-                {
-                    typeMateriel = resolved.Value;
-                    _logger.LogInformation("TypeMateriel auto-dérivé depuis RaisonSortie '{Code}': {Type}", resolvedRaisonCode, typeMateriel);
-                }
-            }
 
             if (request.BonEntreeAssocieId.HasValue)
             {
                 var coherenceError = await ValidateBonEntreeMotifCoherenceAsync(
                     request.BonEntreeAssocieId.Value,
                     resolvedRaisonCode,
-                    typeMateriel,
                     cancellationToken);
                 if (!string.IsNullOrWhiteSpace(coherenceError))
                 {
@@ -216,7 +199,7 @@ public class BonSortieService : IBonSortieService
                 provenance: request.Provenance,
                 destination: request.Destination,
                 dateExpiration: request.DateExpiration,
-                typeMateriel: typeMateriel,
+                descriptionMateriel: descriptionMateriel,
                 bonEntreeAssocieId: request.BonEntreeAssocieId,
                 raisonSortieCode: resolvedRaisonCode,
                 description: request.Description,
@@ -231,6 +214,14 @@ public class BonSortieService : IBonSortieService
 
             var bonSortie = createResult.Value;
             bonSortie.SetNumeroReference(numeroReference);
+
+            // v2 — Site KCC + RequestedFor (chaîne d'approbation par site/département)
+            bonSortie.SiteId = request.SiteId;
+            bonSortie.RequestedForEmployeeCode = request.RequestedForEmployeeCode;
+            bonSortie.RequestedForDisplay = request.RequestedForDisplay;
+            bonSortie.RequestedForDepartement = request.RequestedForDepartement;
+            bonSortie.SiteManager = request.SiteManager;
+            bonSortie.TypeMaterielSortieId = request.TypeMaterielSortieId;
 
             foreach (var mat in request.Materiels)
             {
@@ -274,24 +265,14 @@ public class BonSortieService : IBonSortieService
                 raisonCode = "PRET";
             }
 
-            var typeMateriel = request.TypeMateriel;
+            var descriptionMateriel = request.DescriptionMateriel;
             var resolvedRaisonCode = raisonCode ?? request.RaisonSortieCode;
-            if (!string.IsNullOrEmpty(resolvedRaisonCode))
-            {
-                var resolved = await _repository.GetTypeMaterielByRaisonCodeAsync(resolvedRaisonCode, cancellationToken);
-                if (resolved.HasValue)
-                {
-                    typeMateriel = resolved.Value;
-                    _logger.LogInformation("TypeMateriel auto-dérivé depuis RaisonSortie '{Code}': {Type}", resolvedRaisonCode, typeMateriel);
-                }
-            }
 
             if (request.BonEntreeAssocieId.HasValue)
             {
                 var coherenceError = await ValidateBonEntreeMotifCoherenceAsync(
                     request.BonEntreeAssocieId.Value,
                     resolvedRaisonCode,
-                    typeMateriel,
                     cancellationToken);
                 if (!string.IsNullOrWhiteSpace(coherenceError))
                 {
@@ -313,7 +294,7 @@ public class BonSortieService : IBonSortieService
                 destination: request.Destination,
                 dateExpiration: request.DateExpiration,
                 nomDestinataire: request.NomDestinataire,
-                typeMateriel: typeMateriel,
+                descriptionMateriel: descriptionMateriel,
                 dateRetourPrevue: dateRetourPrevue,
                 bonEntreeAssocieId: request.BonEntreeAssocieId,
                 raisonSortieCode: resolvedRaisonCode,
@@ -325,6 +306,13 @@ public class BonSortieService : IBonSortieService
 
             var pret = createResult.Value;
             pret.SetNumeroReference(numeroReference);
+
+            // v2 — Site KCC + RequestedFor
+            pret.SiteId = request.SiteId;
+            pret.RequestedForEmployeeCode = request.RequestedForEmployeeCode;
+            pret.RequestedForDisplay = request.RequestedForDisplay;
+            pret.RequestedForDepartement = request.RequestedForDepartement;
+            pret.SiteManager = request.SiteManager;
 
             foreach (var mat in request.Materiels)
             {
@@ -523,35 +511,11 @@ public class BonSortieService : IBonSortieService
 
     #endregion
 
-    private async Task<string?> ValidateBonEntreeMotifCoherenceAsync(int bonEntreeId, string? raisonSortieCode, TypeMateriel typeMateriel, CancellationToken cancellationToken)
+    private async Task<string?> ValidateBonEntreeMotifCoherenceAsync(int bonEntreeId, string? raisonSortieCode, CancellationToken cancellationToken)
     {
-        // Résoudre le département attendu depuis la BD (remplace le mapping hardcodé)
-        var expectedDeptCode = !string.IsNullOrWhiteSpace(raisonSortieCode)
-            ? await _categorieSortieService.GetDepartementCodeForRaisonAsync(raisonSortieCode)
-            : null;
-
-        if (string.IsNullOrWhiteSpace(expectedDeptCode))
-        {
-            return null; // Raison fait partie du mapping par défaut, pas de contrainte de département
-        }
-
-        var bemDetails = await _bonEntreeLockService.GetDetailsForSortieAsync(bonEntreeId, cancellationToken);
-        if (bemDetails == null)
-        {
-            return "Bon d'entrée associé introuvable pour contrôle de cohérence métier.";
-        }
-
-        var hostDepartment = bemDetails.HostDepartment?.Trim();
-        if (string.IsNullOrWhiteSpace(hostDepartment))
-        {
-            return $"Le BEM {bemDetails.NumeroReference} n'a pas de département hôte renseigné. Impossible de valider la cohérence avec le motif sélectionné.";
-        }
-
-        if (!hostDepartment.Contains(expectedDeptCode, StringComparison.OrdinalIgnoreCase))
-        {
-            return $"Incohérence métier: le motif '{raisonSortieCode ?? typeMateriel.ToString()}' requiert un BEM du département '{expectedDeptCode}', mais le BEM sélectionné est rattaché à '{hostDepartment}'.";
-        }
-
+        // Mapping département-raison désactivé (T_Departements supprimée).
+        await Task.CompletedTask;
+        _ = bonEntreeId; _ = raisonSortieCode; _ = cancellationToken;
         return null;
     }
 
@@ -573,16 +537,136 @@ public class BonSortieService : IBonSortieService
 
     public async Task<IReadOnlyList<Domain.Entities.BonSortie>> GetPendingApprovalsAsync(CancellationToken cancellationToken = default)
     {
-        var roles = _currentUserService.GetUserRoles();
-        var allPending = new List<Domain.Entities.BonSortie>();
+        var roles = _currentUserService.GetUserRoles().ToList();
+        var isAdmin = roles.Any(r =>
+            string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase));
 
-        foreach (var role in roles)
+        var bons = await _repository.GetPendingApprovalsByEmployeeAsync(0, isAdmin, cancellationToken);
+        
+        _logger.LogInformation("GetPendingApprovalsAsync - Found {TotalCount} pending bons for admin={IsAdmin}", bons.Count, isAdmin);
+        
+        if (isAdmin) 
         {
-            var pending = await _repository.GetPendingApprovalAsync(role, cancellationToken);
-            allPending.AddRange(pending);
+            _logger.LogInformation("GetPendingApprovalsAsync - Returning all {Count} bons (user is admin)", bons.Count);
+            return bons;
         }
 
-        return allPending.DistinctBy(b => b.Id).ToList();
+        // Filter by current approver (EmployeeId, or fallback by login/matricule)
+        var empId = await ResolveCurrentEmployeeIdAsync(cancellationToken);
+        var currentUser = _currentUserService.GetUserLogin()?.ToLowerInvariant() ?? "";
+        var currentUserMatricule = _currentUserService.Matricule?.ToLowerInvariant() ?? "";
+        
+        _logger.LogInformation(
+            "GetPendingApprovalsAsync - Filtering for user: EmployeeId={EmpId}, Login={Login}, Matricule={Matricule}",
+            empId ?? 0, currentUser, currentUserMatricule);
+
+        // Stratégie 4 : pré-charger les approbateurs spéciaux actifs (OPJ / IDENTIFICATION)
+        // pour détecter les bons dont le snapshot est périmé (approbateur changé après soumission).
+        await using var ctxSpecial = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var activeSpecials = await ctxSpecial.WorkflowApprobateursSpeciaux
+            .Where(x => x.EstActif &&
+                (x.Type == TypeApprobateurSpecial.OPJ || x.Type == TypeApprobateurSpecial.Identification))
+            .OrderBy(x => x.Ordre)
+            .Select(x => new { x.EmployeeId, x.Type, x.SiteId })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+        var activeOPJs = activeSpecials.Where(x => x.Type == TypeApprobateurSpecial.OPJ).ToList();
+        var activeIdentifIds = activeSpecials
+            .Where(x => x.Type == TypeApprobateurSpecial.Identification)
+            .Select(x => x.EmployeeId)
+            .ToHashSet();
+
+        var filtered = bons.Where(b =>
+        {
+            var current = b.Approbations
+                .Where(a => a.Decision == "En attente")
+                .OrderBy(a => a.OrdreEtape)
+                .FirstOrDefault();
+            
+            if (current == null)
+            {
+                _logger.LogDebug("Bon {BonId} has no pending approvals", b.Id);
+                return false;
+            }
+
+            // Stratégie 1 : correspondance par EmployeeId
+            if (current.ApprobateurId.HasValue && empId.HasValue && current.ApprobateurId == empId)
+            {
+                _logger.LogDebug("Bon {BonId}: MATCH by EmployeeId ({EmpId})", b.Id, empId);
+                return true;
+            }
+
+            // Stratégie 2 : correspondance par login normalisé (strip préfixe domaine)
+            static string NormLogin(string? s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return "";
+                s = s.Trim().ToLowerInvariant();
+                var bs = s.LastIndexOf('\\');
+                if (bs >= 0) s = s[(bs + 1)..];
+                var at = s.IndexOf('@');
+                if (at >= 0) s = s[..at];
+                return s;
+            }
+
+            var approvalLoginNorm = NormLogin(current.ApprobateurLogin);
+            var currentLoginNorm  = NormLogin(currentUser);
+            if (!string.IsNullOrEmpty(approvalLoginNorm) && !string.IsNullOrEmpty(currentLoginNorm)
+                && approvalLoginNorm == currentLoginNorm)
+            {
+                _logger.LogDebug("Bon {BonId}: MATCH by login ({Login})", b.Id, currentLoginNorm);
+                return true;
+            }
+
+            // Stratégie 3 : correspondance par matricule (majuscules)
+            var approvalMatricule  = current.ApprobateurMatricule?.Trim().ToUpperInvariant() ?? "";
+            var currentMatUpper    = currentUserMatricule.Trim().ToUpperInvariant();
+            if (!string.IsNullOrEmpty(approvalMatricule) && !string.IsNullOrEmpty(currentMatUpper)
+                && approvalMatricule == currentMatUpper)
+            {
+                _logger.LogDebug("Bon {BonId}: MATCH by matricule ({Mat})", b.Id, currentMatUpper);
+                return true;
+            }
+
+            // Stratégie 4 : snapshot périmé — vérifier si l'utilisateur courant est
+            // parmi les approbateurs spéciaux actifs pour l'étape OPJ / IDENTIFICATION.
+            // Plusieurs approbateurs peuvent coexister pour un même site ; le premier qui approuve fait le job.
+            if (empId.HasValue)
+            {
+                var stepCode = current.CodeEtape?.Trim().ToUpperInvariant();
+                if (stepCode == "OPJ")
+                {
+                    var siteSpecificOPJs = activeOPJs.Where(x => x.SiteId == b.SiteId).ToList();
+                    var candidateOPJs = siteSpecificOPJs.Any()
+                        ? siteSpecificOPJs
+                        : activeOPJs.Where(x => x.SiteId == null).ToList();
+                    if (candidateOPJs.Any(x => x.EmployeeId == empId.Value))
+                    {
+                        _logger.LogDebug("Bon {BonId}: MATCH by active OPJ config (stale snapshot)", b.Id);
+                        return true;
+                    }
+                }
+                else if (stepCode == "IDENTIFICATION")
+                {
+                    if (activeIdentifIds.Contains(empId.Value))
+                    {
+                        _logger.LogDebug("Bon {BonId}: MATCH by active IDENTIFICATION config (stale snapshot)", b.Id);
+                        return true;
+                    }
+                }
+            }
+
+            _logger.LogDebug(
+                "Bon {BonId}: No match - AppId={AppId}vs{CurrId}, Login='{ALogin}'vs'{CLogin}', Mat='{AMat}'vs'{CMat}'",
+                b.Id, current.ApprobateurId, empId, approvalLoginNorm, currentLoginNorm,
+                approvalMatricule, currentMatUpper);
+            return false;
+        }).ToList();
+        
+        _logger.LogInformation("GetPendingApprovalsAsync - Filtered {ResultCount} of {TotalCount} bons for user approval", 
+            filtered.Count, bons.Count);
+        
+        return filtered.AsReadOnly();
     }
 
     public async Task<IReadOnlyList<ApprobationSortie>> GetApprobationsAsync(int bonId, CancellationToken cancellationToken = default)
@@ -625,6 +709,50 @@ public class BonSortieService : IBonSortieService
         return returnedBons.OrderByDescending(r => r.DateRetour).ToList();
     }
 
+    public async Task<IReadOnlyList<Domain.Entities.BonSortie>> GetApprovedByMeAsync(CancellationToken cancellationToken = default)
+    {
+        var bons = await _repository.GetApprovedBonsWithApprobationsAsync(cancellationToken);
+
+        var empId = await ResolveCurrentEmployeeIdAsync(cancellationToken);
+        var currentUser = _currentUserService.GetUserLogin()?.ToLowerInvariant() ?? "";
+        var currentUserMatricule = _currentUserService.Matricule?.ToLowerInvariant() ?? "";
+
+        static string NormLogin(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return "";
+            s = s.Trim().ToLowerInvariant();
+            var bs = s.LastIndexOf('\\');
+            if (bs >= 0) s = s[(bs + 1)..];
+            var at = s.IndexOf('@');
+            if (at >= 0) s = s[..at];
+            return s;
+        }
+
+        return bons.Where(b =>
+        {
+            var lastApproved = b.Approbations
+                .Where(a => a.Decision is "Approuvé" or "Approuve")
+                .OrderByDescending(a => a.OrdreEtape)
+                .FirstOrDefault();
+
+            if (lastApproved == null) return false;
+
+            if (lastApproved.ApprobateurId.HasValue && empId.HasValue && lastApproved.ApprobateurId == empId)
+                return true;
+
+            var approvalLoginNorm = NormLogin(lastApproved.ApprobateurLogin);
+            var currentLoginNorm  = NormLogin(currentUser);
+            if (!string.IsNullOrEmpty(approvalLoginNorm) && !string.IsNullOrEmpty(currentLoginNorm)
+                && approvalLoginNorm == currentLoginNorm)
+                return true;
+
+            var approvalMat = lastApproved.ApprobateurMatricule?.Trim().ToUpperInvariant() ?? "";
+            var currentMat  = currentUserMatricule.Trim().ToUpperInvariant();
+            return !string.IsNullOrEmpty(approvalMat) && !string.IsNullOrEmpty(currentMat)
+                   && approvalMat == currentMat;
+        }).ToList().AsReadOnly();
+    }
+
     #endregion
 
     #region Workflow
@@ -661,8 +789,7 @@ public class BonSortieService : IBonSortieService
 
             var oldStatut = bon.StatutActuel;
             var firstStep = bon.Approbations.OrderBy(a => a.OrdreEtape).First();
-            // NomEtape stocke le RoleCode canonisé — c'est la source de vérité pour le routing
-            var newStatut = GetPendingStatusForRoleCode(firstStep.NomEtape);
+            var newStatut = GetStatutForCodeEtape(firstStep.CodeEtape);
             bon.StatutActuel = newStatut;
 
             await _repository.UpdateAsync(bon, cancellationToken);
@@ -691,26 +818,75 @@ public class BonSortieService : IBonSortieService
     /// </summary>
     private async Task CreateApprovalStepsAsync(Domain.Entities.BonSortie bon, CancellationToken cancellationToken)
     {
-        var workflowEtapes = await _workflowConfigService.GetResolvedWorkflowEtapesAsync("BSM", bon.RaisonSortieCode, cancellationToken);
+        // Chaîne v2 — fondée sur Glencore (ReportsTo → GM → [IT|Env selon TypeMateriel] → OPJ → Identification).
+        var creatorLogin = !string.IsNullOrWhiteSpace(bon.CreatedByLogin)
+            ? bon.CreatedByLogin
+            : _currentUserService.GetUserLogin();
 
-        if (workflowEtapes.Count == 0)
+        if (string.IsNullOrWhiteSpace(creatorLogin))
         {
-            workflowEtapes = BuildDefaultWorkflowEtapes(bon).ToList();
+            _logger.LogError("Impossible de construire la chaîne d'approbation : CreatedByLogin et login courant sont vides (bon {BonId}).", bon.Id);
+            throw new InvalidOperationException(
+                "Impossible de déterminer le créateur du bon : CreatedByLogin et login courant sont vides.");
+        }
+        var creator = await ResolveOrProvisionEmployeeAsync(creatorLogin, cancellationToken);
+        if (creator == null)
+        {
+            _logger.LogError(
+                "Impossible de construire la chaîne d'approbation : aucun Employee local pour CreatedByLogin='{Login}' (bon {BonId}).",
+                creatorLogin, bon.Id);
+            throw new InvalidOperationException(
+                $"Aucun Employee local trouvé pour '{creatorLogin}' (login ou matricule). " +
+                "Vérifier l'auto-création depuis Glencore.");
         }
 
-        var ordreEtape = 1;
-        foreach (var etape in workflowEtapes.OrderBy(x => x.OrdreEtape))
+        // Récupérer le WorkflowRoutage associé au type de matériel du bon.
+        var routage = WorkflowRoutage.Standard;
+        if (bon.TypeMaterielSortieId.HasValue)
         {
-            var approbation = new ApprobationSortie(bon.Id, ordreEtape++, CanonicalizeRoleCode(etape.RoleCode));
-            // ApprobationSortie a public set — on peut aussi stocker le nom lisible dans RoleApprobateur
-            approbation.RoleApprobateur = etape.NomEtape;
+            await using var ctxRoutage = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            routage = await ctxRoutage.TypesMateriels
+                .AsNoTracking()
+                .Where(t => t.Id == bon.TypeMaterielSortieId.Value)
+                .Select(t => t.WorkflowRoutage)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
 
+        var chain = await _chaineApprobationService.ConstruireChaineAsync(
+            creator.Id, descriptionMateriel: null, siteId: bon.SiteId, routage: routage, cancellationToken);
+
+        if (chain.Etapes.Count == 0)
+            throw new InvalidOperationException($"Chaîne d'approbation vide pour le bon {bon.NumeroReference}.");
+
+        foreach (var etape in chain.Etapes.OrderBy(e => e.Ordre))
+        {
+            var approbation = new ApprobationSortie(
+                bonId: bon.Id,
+                ordreEtape: etape.Ordre,
+                codeEtape: etape.Kind.ToString().ToUpperInvariant(),
+                nomEtape: GetEtapeLabel(etape.Kind),
+                approbateurId: etape.EmployeeId,
+                approbateurMatricule: etape.EmployeeMatricule,
+                approbateurLogin: etape.EmployeeLogin,
+                nomApprobateur: etape.EmployeeNomComplet);
             await _repository.AddApprobationAsync(approbation, cancellationToken);
         }
 
         _logger.LogInformation("Créé {Count} étapes d'approbation pour le bon {Numero}",
-            workflowEtapes.Count, bon.NumeroReference);
+            chain.Etapes.Count, bon.NumeroReference);
     }
+
+    private static string GetEtapeLabel(KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind kind) => kind switch
+    {
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.SuperIntendent => "Superintendent",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.ReportsTo => "Manager",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.GM => "General Manager",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.ITDepartment => "Département IT",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.EnvironmentDepartment => "Département Environnement",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.OPJ => "OPJ",
+        KCCMaterialFlow.Application.Common.Interfaces.EtapeApprobationKind.Identification => "Identification",
+        _ => kind.ToString()
+    };
 
     public async Task<BonSortieResult> ApproveAsync(BonSortieApprovalRequest request, CancellationToken cancellationToken = default)
     {
@@ -728,13 +904,25 @@ public class BonSortieService : IBonSortieService
             if (currentStep == null)
                 return BonSortieResult.Fail("Aucune étape en attente pour ce bon");
 
-            // NomEtape contient le RoleCode canonisé
-            var requiredRole = GetRequiredRoleFromRoleCode(currentStep.NomEtape);
-            var userRoles = _currentUserService.GetUserRoles().ToList();
+            // Résoudre l'identité de l'utilisateur courant avant le refresh (nécessaire pour la sélection multi-approbateurs).
+            var currentEmpId = await ResolveCurrentEmployeeIdAsync(cancellationToken);
 
-            if (!UserHasRequiredRole(userRoles, requiredRole))
+            // Refresh : synchroniser l'approbateur depuis la config actuelle — si plusieurs approbateurs actifs pour l'étape,
+            // le candidat courant est prioritaire (premier qui approuve fait le job).
+            await RefreshCurrentStepApproverAsync(bon, currentStep, cancellationToken, currentEmpId);
+
+            // NomEtape contient le RoleCode canonisé
+            var requiredRole = currentStep.RoleApprobateur ?? currentStep.NomEtape ?? "";
+
+            // Auth v2 : vérifier l'approbateur désigné (ApprobateurId), avec override Admin.
+            var isAdminOverride = _currentUserService.GetUserRoles().Any(r =>
+                string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase));
+
+            if (!isAdminOverride && (currentEmpId == null || currentStep.ApprobateurId != currentEmpId))
             {
-                return BonSortieResult.Fail($"Vous n'êtes pas autorisé à approuver cette étape. Rôle requis: {requiredRole} (votre étape: {currentStep.NomEtape})");
+                return BonSortieResult.Fail(
+                    $"Vous n'êtes pas autorisé à approuver cette étape. Approbateur attendu : {currentStep.NomApprobateur ?? currentStep.NomEtape}.");
             }
 
             var oldStatut = bon.StatutActuel;
@@ -752,7 +940,7 @@ public class BonSortieService : IBonSortieService
                 .FirstOrDefault();
 
             var nextStatut = nextStep != null
-                ? GetPendingStatusForRoleCode(nextStep.NomEtape)
+                ? GetStatutForCodeEtape(nextStep.CodeEtape)
                 : "Approved";
 
             bon.StatutActuel = nextStatut;
@@ -764,32 +952,69 @@ public class BonSortieService : IBonSortieService
             // BSM-030: Après approbation finale
             if (nextStatut == "Approved")
             {
-                // STOCK: Décrémenter les quantités disponibles dans les matériels source
-                _logger.LogInformation("Vérification des matériels pour décrémentation stock - BSM {Numero}", bon.NumeroReference);
-
-                if (bon.Materiels.Any(m => m.MaterielEntreeId.HasValue))
+                // STOCK: Décrémenter les quantités disponibles dans les matériels source du BEM
+                if (bon is BonSortieExterne externeForStock && externeForStock.BonEntreeAssocieId.HasValue)
                 {
                     try
                     {
-                        var materielsASortir = bon.Materiels
-                            .Where(m => m.MaterielEntreeId.HasValue)
-                            .Select(m => new MaterielStockDecrement
-                            {
-                                MaterielEntreeId = m.MaterielEntreeId!.Value,
-                                QuantiteASortir = m.Quantite
-                            })
-                            .ToList();
+                        var materielsASortir = new List<MaterielStockDecrement>();
 
-                        var stockResult = await _bonEntreeLockService.DecrementStockAsync(materielsASortir, cancellationToken);
-                        if (!stockResult.Success)
+                        if (bon.Materiels.Any(m => m.MaterielEntreeId.HasValue))
                         {
-                            _logger.LogWarning("Échec de la mise à jour du stock pour BSM {Numero}: {Message}",
-                                bon.NumeroReference, stockResult.ErrorMessage);
+                            // Cas 1: MaterielEntreeId déjà renseigné sur les lignes BSM
+                            materielsASortir = bon.Materiels
+                                .Where(m => m.MaterielEntreeId.HasValue)
+                                .Select(m => new MaterielStockDecrement
+                                {
+                                    MaterielEntreeId = m.MaterielEntreeId!.Value,
+                                    QuantiteASortir = m.Quantite
+                                })
+                                .ToList();
                         }
                         else
                         {
-                            _logger.LogInformation("Stock décrémenté pour {Count} matériels du BSM {Numero}",
-                                bon.Materiels.Count(m => m.MaterielEntreeId.HasValue), bon.NumeroReference);
+                            // Cas 2 (courant): MaterielEntreeId non défini → matcher par CodeProduitSerial depuis le BEM
+                            var bemDetails = await _bonEntreeLockService.GetDetailsForSortieAsync(
+                                externeForStock.BonEntreeAssocieId.Value, cancellationToken);
+
+                            if (bemDetails != null)
+                            {
+                                foreach (var matSortie in bon.Materiels)
+                                {
+                                    var matBem = bemDetails.Materiels.FirstOrDefault(m =>
+                                        string.Equals(m.CodeProduitSerial, matSortie.CodeProduitSerial,
+                                            StringComparison.OrdinalIgnoreCase));
+                                    if (matBem != null)
+                                    {
+                                        materielsASortir.Add(new MaterielStockDecrement
+                                        {
+                                            MaterielEntreeId = matBem.IdMateriel,
+                                            QuantiteASortir = matSortie.Quantite
+                                        });
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning("BSM {Numero}: matériel '{Serial}' non trouvé dans BEM {BemId} — stock non décrémenté pour cette ligne",
+                                            bon.NumeroReference, matSortie.CodeProduitSerial, externeForStock.BonEntreeAssocieId.Value);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (materielsASortir.Any())
+                        {
+                            var stockResult = await _bonEntreeLockService.DecrementStockAsync(materielsASortir, cancellationToken);
+                            if (!stockResult.Success)
+                                _logger.LogWarning("Échec de la mise à jour du stock pour BSM {Numero}: {Message}",
+                                    bon.NumeroReference, stockResult.ErrorMessage);
+                            else
+                                _logger.LogInformation("Stock décrémenté pour {Count} matériels du BSM {Numero}",
+                                    materielsASortir.Count, bon.NumeroReference);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("BSM {Numero}: aucun matériel à décrémenter (BEM {BemId})",
+                                bon.NumeroReference, externeForStock.BonEntreeAssocieId.Value);
                         }
                     }
                     catch (Exception ex)
@@ -863,12 +1088,22 @@ public class BonSortieService : IBonSortieService
             if (currentStep == null)
                 return BonSortieResult.Fail("Aucune étape en attente pour ce bon");
 
-            var requiredRole = GetRequiredRoleFromRoleCode(currentStep.NomEtape);
-            var userRoles = _currentUserService.GetUserRoles().ToList();
+            // Résoudre l'identité de l'utilisateur courant avant le refresh (nécessaire pour la sélection multi-approbateurs).
+            var currentEmpId = await ResolveCurrentEmployeeIdAsync(cancellationToken);
 
-            if (!UserHasRequiredRole(userRoles, requiredRole))
+            // Refresh : synchroniser l'approbateur depuis la config actuelle — si plusieurs approbateurs actifs pour l'étape,
+            // le candidat courant est prioritaire (premier qui rejette fait le job).
+            await RefreshCurrentStepApproverAsync(bon, currentStep, cancellationToken, currentEmpId);
+
+            var requiredRole = currentStep.RoleApprobateur ?? currentStep.NomEtape ?? "";
+            var isAdminOverride = _currentUserService.GetUserRoles().Any(r =>
+                string.Equals(r, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(r, "SuperAdmin", StringComparison.OrdinalIgnoreCase));
+
+            if (!isAdminOverride && (currentEmpId == null || currentStep.ApprobateurId != currentEmpId))
             {
-                return BonSortieResult.Fail($"Vous n'êtes pas autorisé à rejeter cette étape. Rôle requis: {requiredRole} (votre étape: {currentStep.NomEtape})");
+                return BonSortieResult.Fail(
+                    $"Vous n'êtes pas autorisé à rejeter cette étape. Approbateur attendu : {currentStep.NomApprobateur ?? currentStep.NomEtape}.");
             }
 
             var oldStatut = bon.StatutActuel;
@@ -993,6 +1228,92 @@ public class BonSortieService : IBonSortieService
         };
     }
 
+    /// <summary>Mapping CodeEtape (kind stable) → StatutActuel pour BSM.</summary>
+    private static string GetStatutForCodeEtape(string? codeEtape)
+    {
+        return (codeEtape ?? "").ToUpperInvariant() switch
+        {
+            "SUPERINTENDENT" or "REPORTSTO" => "PendingSup",
+            "GM" => "PendingGM",
+            "ITDEPARTMENT" or "IT" => "PendingIT",
+            "ENVIRONMENTDEPARTMENT" or "ENV" => "PendingEnv",
+            "OPJ" => "PendingOPJ",
+            "IDENTIFICATION" => "PendingIdentification",
+            _ => "PendingSup"
+        };
+    }
+
+    /// <summary>Résoud l'EmployeeId courant via le login Windows ou matricule, avec auto-provisioning Glencore.</summary>
+    private async Task<int?> ResolveCurrentEmployeeIdAsync(CancellationToken ct)
+    {
+        var login = _currentUserService.GetUserLogin();
+        var emp = await ResolveOrProvisionEmployeeAsync(login, ct);
+        return emp?.Id;
+    }
+
+    /// <summary>
+    /// Trouve un Employee local par Login Windows OU Matricule (l'impersonation injecte le matricule
+    /// comme login). Si introuvable, tente une auto-création depuis le référentiel Glencore.
+    /// </summary>
+    private async Task<Domain.Entities.Employee?> ResolveOrProvisionEmployeeAsync(string? loginOrMatricule, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(loginOrMatricule)) return null;
+        var key = loginOrMatricule.Trim();
+        var keyLower = key.ToLowerInvariant();
+        var sam = key.Contains('\\') ? key[(key.LastIndexOf('\\') + 1)..] : key;
+        var samLower = sam.ToLowerInvariant();
+
+        await using var ctx = await _dbContextFactory.CreateDbContextAsync(ct);
+
+        // 1) Via T_Users : Login → EmployeeId → Employee
+        var empId = await ctx.AppUsers.AsNoTracking()
+            .Where(u => u.EstActif && (u.Login.ToLower() == keyLower || u.Login.ToLower().EndsWith("\\" + samLower)))
+            .Select(u => u.EmployeeId)
+            .FirstOrDefaultAsync(ct);
+        Domain.Entities.Employee? emp = null;
+        if (empId.HasValue)
+            emp = await ctx.Set<Domain.Entities.Employee>().FirstOrDefaultAsync(e => e.Id == empId.Value, ct);
+
+        // 2) Fallback : par Matricule
+        if (emp == null)
+            emp = await ctx.Set<Domain.Entities.Employee>().FirstOrDefaultAsync(e =>
+                e.Matricule != null && (e.Matricule.ToLower() == keyLower || e.Matricule.ToLower() == samLower), ct);
+        if (emp != null) return emp;
+
+        // 2) Auto-provisioning depuis Glencore : on tente UserName puis EmployeeCode.
+        var g = await ctx.Set<Domain.Entities.AllEmployee>().AsNoTracking().FirstOrDefaultAsync(x =>
+            (x.UserName != null && (x.UserName.ToLower() == keyLower
+                                    || x.UserName.ToLower().EndsWith("\\" + samLower)
+                                    || x.UserName.ToLower() == samLower))
+            || x.EmployeeCode.ToLower() == keyLower
+            || x.EmployeeCode.ToLower() == samLower, ct);
+        if (g == null)
+        {
+            _logger.LogWarning("Résolution Employee : '{Key}' introuvable dans T_Employees ET T_AllEmployees.", key);
+            return null;
+        }
+
+        var displayName = $"{g.FirstName} {g.LastName}".Trim();
+        if (string.IsNullOrWhiteSpace(displayName)) displayName = g.EmployeeCode;
+
+        emp = new Domain.Entities.Employee
+        {
+            Matricule = g.EmployeeCode,
+            NomComplet = displayName,
+            DisplayName = displayName,
+            Prenom = g.FirstName,
+            Nom = g.LastName,
+            Email = g.Mail,
+            DepartementNom = g.Departement,
+            EstInterne = true,
+            DateCreation = DateTime.Now
+        };
+        ctx.Set<Domain.Entities.Employee>().Add(emp);
+        await ctx.SaveChangesAsync(ct);
+        _logger.LogInformation("Employee local auto-provisionné depuis Glencore : {Code} (Id={Id})", g.EmployeeCode, emp.Id);
+        return emp;
+    }
+
     private string GetRequiredRoleFromRoleCode(string? roleCode)
     {
         return CanonicalizeRoleCode(roleCode) switch
@@ -1049,28 +1370,138 @@ public class BonSortieService : IBonSortieService
         return string.IsNullOrWhiteSpace(normalized) ? "Unknown" : normalized;
     }
 
+    /// <summary>
+    /// Synchronise l'approbateur d'une étape en attente depuis la configuration actuelle.
+    /// — Étapes spéciales (OPJ, Identification) : requête directe dans WorkflowApprobateursSpeciaux,
+    ///   indépendamment du reste de la chaîne (résistant à la suppression/remplacement de l'approbateur).
+    /// — Étapes Glencore (SuperIntendent, GM, ReportsTo) : reconstruction de la chaîne.
+    /// La persistance est assurée par UpdateAsync(bon) appelé en fin de ApproveAsync/RejectAsync.
+    /// </summary>
+    private async Task RefreshCurrentStepApproverAsync(
+        KCCMaterialFlow.Domain.Entities.BonSortie bon, ApprobationSortie step, CancellationToken ct, int? candidateEmpId = null)
+    {
+        if (string.IsNullOrWhiteSpace(step.CodeEtape))
+            return;
+
+        var codeUpper = step.CodeEtape.ToUpperInvariant();
+
+        try
+        {
+            int? newId = null;
+            string? newNom = null, newMatricule = null, newLogin = null;
+
+            if (codeUpper is "OPJ" or "IDENTIFICATION")
+            {
+                // Étapes spéciales : requête directe, pas besoin de reconstruire toute la chaîne.
+                var typeSpecial = codeUpper == "OPJ"
+                    ? TypeApprobateurSpecial.OPJ
+                    : TypeApprobateurSpecial.Identification;
+
+                await using var ctx = await _dbContextFactory.CreateDbContextAsync(ct);
+                var specials = await ctx.WorkflowApprobateursSpeciaux
+                    .Include(x => x.Employee)
+                    .Where(x => x.Type == typeSpecial && x.EstActif)
+                    .OrderBy(x => x.Ordre)
+                    .AsNoTracking()
+                    .ToListAsync(ct);
+
+                WorkflowApprobateurSpecial? match = null;
+                if (typeSpecial == TypeApprobateurSpecial.OPJ)
+                {
+                    // Construire le pool : site-spécifique, sinon global.
+                    var pool = (bon.SiteId is int siteId
+                        ? specials.Where(x => x.SiteId == siteId).ToList()
+                        : new List<WorkflowApprobateurSpecial>());
+                    if (!pool.Any())
+                        pool = specials.Where(x => x.SiteId == null).ToList();
+                    // Si un candidat (qui tente d'approuver) est dans le pool, le prendre en priorité.
+                    match = (candidateEmpId.HasValue ? pool.FirstOrDefault(x => x.EmployeeId == candidateEmpId) : null)
+                            ?? pool.FirstOrDefault();
+                }
+                else
+                {
+                    // IDENTIFICATION : préférer le candidat s'il est dans la liste active.
+                    match = (candidateEmpId.HasValue ? specials.FirstOrDefault(x => x.EmployeeId == candidateEmpId) : null)
+                            ?? specials.FirstOrDefault();
+                }
+
+                if (match == null)
+                {
+                    _logger.LogWarning(
+                        "Aucun approbateur actif pour l'étape {Code} du bon {Ref} — rafraîchissement impossible.",
+                        codeUpper, bon.NumeroReference);
+                    return;
+                }
+
+                newId = match.EmployeeId;
+                newNom = match.Employee.NomComplet;
+                newMatricule = match.Employee.Matricule;
+                var matchUser = await ctx.AppUsers.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.EmployeeId == match.EmployeeId, ct);
+                newLogin = matchUser?.Login;
+            }
+            else
+            {
+                // Étapes Glencore : reconstruction de la chaîne.
+                var creatorLogin = !string.IsNullOrWhiteSpace(bon.CreatedByLogin) ? bon.CreatedByLogin : null;
+                if (string.IsNullOrWhiteSpace(creatorLogin)) return;
+
+                var creator = await ResolveOrProvisionEmployeeAsync(creatorLogin, ct);
+                if (creator == null) return;
+
+                var routageRefresh = WorkflowRoutage.Standard;
+                if (bon.TypeMaterielSortieId.HasValue)
+                {
+                    await using var ctxR = await _dbContextFactory.CreateDbContextAsync(ct);
+                    routageRefresh = await ctxR.TypesMateriels
+                        .AsNoTracking()
+                        .Where(t => t.Id == bon.TypeMaterielSortieId.Value)
+                        .Select(t => t.WorkflowRoutage)
+                        .FirstOrDefaultAsync(ct);
+                }
+
+                var freshChain = await _chaineApprobationService.ConstruireChaineAsync(
+                    creator.Id, descriptionMateriel: null, siteId: bon.SiteId, routage: routageRefresh, ct);
+
+                var freshEtape = freshChain.Etapes.FirstOrDefault(e =>
+                    string.Equals(e.Kind.ToString().ToUpperInvariant(), codeUpper,
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (freshEtape == null) return;
+
+                newId = freshEtape.EmployeeId;
+                newNom = freshEtape.EmployeeNomComplet;
+                newMatricule = freshEtape.EmployeeMatricule;
+                newLogin = freshEtape.EmployeeLogin;
+            }
+
+            if (newId != null && newId != step.ApprobateurId)
+            {
+                _logger.LogInformation(
+                    "Approbateur mis à jour pour étape {Code} du bon {Ref} : {OldId} → {NewId} ({Nom})",
+                    codeUpper, bon.NumeroReference, step.ApprobateurId, newId, newNom);
+
+                step.ApprobateurId = newId;
+                step.NomApprobateur = newNom;
+                step.ApprobateurMatricule = newMatricule;
+                step.ApprobateurLogin = newLogin;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Impossible de rafraîchir l'approbateur pour l'étape {Code} du bon {Ref}",
+                codeUpper, bon.NumeroReference);
+        }
+    }
+
     private static IEnumerable<WorkflowEtapeConfig> BuildDefaultWorkflowEtapes(Domain.Entities.BonSortie bon)
     {
-        var typeMateriel = bon switch
-        {
-            BonSortieExterne ext => ext.TypeMateriel,
-            BonSortieInterne inter => inter.TypeMateriel,
-            _ => TypeMateriel.Autre
-        };
-
+        // LEGACY CODE — TypeMateriel enum supprimé. À refactoriser.
         var etapes = new List<WorkflowEtapeConfig>();
         var ordre = 1;
 
-        if (typeMateriel == TypeMateriel.Informatique)
-        {
-            etapes.Add(new WorkflowEtapeConfig { OrdreEtape = ordre++, RoleCode = "IT", NomEtape = "IT", EstActif = true });
-        }
-
-        if (typeMateriel is TypeMateriel.Residu or TypeMateriel.Radioprotection or TypeMateriel.Modification)
-        {
-            etapes.Add(new WorkflowEtapeConfig { OrdreEtape = ordre++, RoleCode = "Environnement", NomEtape = "Environnement", EstActif = true });
-        }
-
+        // Pour l'instant, workflow standard sans différenciation IT/Env
         etapes.Add(new WorkflowEtapeConfig { OrdreEtape = ordre++, RoleCode = "Superviseur", NomEtape = "Superviseur", EstActif = true });
         etapes.Add(new WorkflowEtapeConfig { OrdreEtape = ordre++, RoleCode = "GM", NomEtape = "General Manager", EstActif = true });
         etapes.Add(new WorkflowEtapeConfig { OrdreEtape = ordre++, RoleCode = "OPJ", NomEtape = "OPJ", EstActif = true });

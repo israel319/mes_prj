@@ -1,131 +1,154 @@
-@page "/admin/parametres"
-@attribute [Authorize(Roles = "Admin")]
+﻿@page "/admin/parametres"
+@attribute [Authorize(Policy = "RealSuperAdminOnly")]
 @using Microsoft.AspNetCore.Authorization
 @inject IParametreSystemeService ParametreService
 @inject IAuditLogService AuditLogService
 @inject ICurrentUserService CurrentUserService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Administration - Paramètres Système</PageTitle>
+<PageTitle>Paramètres Système - Admin - KCC Material Flow</PageTitle>
 
-<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
-    <AdminNav />
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["Par_Title"]</h1>
+                <p class="kcp-subtitle">@L["Par_Subtitle"]</p>
+            </div>
+            <div class="kcp-hero-actions">
+                <button class="kcp-btn kcp-btn-primary" type="button" @onclick="ShowCreateDialog">
+                    <RadzenIcon Icon="add_circle" Style="font-size:1rem;" />
+                    @L["Par_BtnNew"]
+                </button>
+                <button class="kcp-btn" type="button" @onclick="LoadDataAsync">
+                    <RadzenIcon Icon="refresh" Style="font-size:1rem;" />
+                    @L["Btn_Refresh"]
+                </button>
+            </div>
+        </div>
+    </div>
+    <main class="kcp-main">
 
-    @* ─── En-tête ─── *@
-    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
-        <RadzenStack Gap="0.25rem">
-            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
-                Paramètres Système
-            </RadzenText>
+
+    @* === FILTRES === *@
+    <RadzenCard class="rz-mb-4" Style="padding: 1rem;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.75rem">
+            <RadzenTextBox @bind-Value="searchTerm" Placeholder="@L["Par_SearchPh"].Value" Style="flex: 1; min-width: 250px;" />
+            <RadzenDropDown TValue="string" Data="@GetCategoryList()" @bind-Value="filterCategorie" AllowClear="true" Placeholder="@L["Par_FilterAllCategories"].Value" Style="min-width: 200px;" />
+            <RadzenButton Icon="clear" Text="@L["Aul_BtnReset"].Value" ButtonStyle="ButtonStyle.Light" Variant="Variant.Outlined" Click="@ResetFilters" />
         </RadzenStack>
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
-            <RadzenButton Icon="refresh" Text="Actualiser" Variant="Variant.Outlined"
-                          ButtonStyle="ButtonStyle.Secondary" Click="@LoadDataAsync" />
-            <RadzenButton Text="Nouveau paramètre" Icon="add" ButtonStyle="ButtonStyle.Primary"
-                          Click="@ShowCreateDialog" />
-        </RadzenStack>
-    </RadzenStack>
+    </RadzenCard>
 
-    @* ─── Paramètres par catégorie ─── *@
+    @* === PARAMÈTRES PAR CATÉGORIE === *@
     @foreach (var category in GetCategoriesWithParametres())
-        {
-            <RadzenCard>
-                <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.SemiBold" class="rz-mb-4">
-                    <RadzenIcon Icon="@GetCategoryIcon(category.Key)" Style="margin-right: 0.5rem; vertical-align: middle;" />
-                    @category.Key
-                </RadzenText>
-                
-                <RadzenDataGrid Data="@category.Value" TItem="ParametreSysteme" 
-                                AllowFiltering="false" AllowSorting="false" AllowPaging="false">
-                    <Columns>
-                        <RadzenDataGridColumn TItem="ParametreSysteme" Property="Cle" Title="Clé" Width="250px">
-                            <Template Context="param">
-                                <RadzenStack Gap="0">
-                                    <RadzenText TextStyle="TextStyle.Body1" FontWeight="FontWeight.SemiBold">
-                                        @param.Cle
-                                    </RadzenText>
-                                    @if (param.EstSysteme)
-                                    {
-                                        <RadzenBadge Text="Système" BadgeStyle="BadgeStyle.Secondary" Style="font-size: 0.6rem;" />
-                                    }
-                                </RadzenStack>
-                            </Template>
-                        </RadzenDataGridColumn>
-                        
-                        <RadzenDataGridColumn TItem="ParametreSysteme" Property="Description" Title="Description" />
-                        
-                        <RadzenDataGridColumn TItem="ParametreSysteme" Title="Valeur" Width="200px">
-                            <Template Context="param">
-                                @switch (param.TypeDonnee)
-                                {
-                                    case "Boolean":
-                                        <RadzenSwitch TValue="bool" Value="@(param.Valeur?.ToLower() == "true")" 
-                                                     Disabled="@(!param.EstModifiable)"
-                                                     Change="@(value => UpdateBooleanValue(param, value))" />
-                                        break;
-                                    case "Integer":
-                                        <RadzenNumeric TValue="int" Value="@(int.TryParse(param.Valeur, out var intVal) ? intVal : 0)"
-                                                       Disabled="@(!param.EstModifiable)"
-                                                       Min="@(param.ValeurMin ?? int.MinValue)"
-                                                       Max="@(param.ValeurMax ?? int.MaxValue)"
-                                                       Change="@(value => UpdateIntegerValue(param, value))"
-                                                       Style="width: 100%;" />
-                                        break;
-                                    default:
-                                        <RadzenTextBox Value="@param.Valeur" 
-                                                       Disabled="@(!param.EstModifiable)"
-                                                       Change="@(value => UpdateStringValue(param, value))"
-                                                       Style="width: 100%;" />
-                                        break;
-                                }
-                            </Template>
-                        </RadzenDataGridColumn>
-                        
-                        <RadzenDataGridColumn TItem="ParametreSysteme" Property="TypeDonnee" Title="Type" Width="100px" TextAlign="TextAlign.Center">
-                            <Template Context="param">
-                                <RadzenBadge Text="@param.TypeDonnee" BadgeStyle="BadgeStyle.Light" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                        
-                        <RadzenDataGridColumn TItem="ParametreSysteme" Title="Contraintes" Width="120px">
-                            <Template Context="param">
+    {
+        <RadzenCard class="rz-mb-4" Style="padding: 0;">
+            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Style="padding: 0.75rem 1rem; background: var(--rz-base-200); border-bottom: 1px solid var(--gray-400);">
+                <RadzenIcon Icon="@GetCategoryIcon(category.Key)" Style="color: var(--kcc-info); font-size: 1.25rem;" />
+                <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight: 700; color: var(--kcc-grey); margin: 0;">@category.Key</RadzenText>
+                <RadzenBadge Text="@category.Value.Count.ToString()" BadgeStyle="BadgeStyle.Info" Style="margin-left: 0.5rem;" />
+            </RadzenStack>
+
+            <RadzenDataGrid Data="@category.Value" TItem="ParametreSysteme"
+                            AllowFiltering="false" AllowSorting="true" AllowPaging="false"
+                            Density="Density.Compact"
+                            GridLines="DataGridGridLines.Horizontal"
+                            ExpandMode="DataGridExpandMode.Single"
+                            EmptyText="@L["Par_Empty"].Value">
+                <Template Context="param">
+                    <div style="padding: 1rem; background: var(--rz-base-200);">
+                        <RadzenRow Gap="1rem">
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-weight: 600; color: var(--kcc-grey);">@L["Par_LblDescription"]</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2">@(string.IsNullOrEmpty(param.Description) ? "—" : param.Description)</RadzenText>
+                            </RadzenColumn>
+                            <RadzenColumn Size="12" SizeMD="6">
+                                <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-weight: 600; color: var(--kcc-grey);">@L["Par_LblMetadata"]</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2"><strong>@L["Par_LblType"]</strong> @param.TypeDonnee</RadzenText>
                                 @if (param.ValeurMin.HasValue || param.ValeurMax.HasValue)
                                 {
-                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">
-                                        @if (param.ValeurMin.HasValue && param.ValeurMax.HasValue)
-                                        {
-                                            @($"{param.ValeurMin} - {param.ValeurMax}")
-                                        }
-                                        else if (param.ValeurMin.HasValue)
-                                        {
-                                            @($"Min: {param.ValeurMin}")
-                                        }
-                                        else
-                                        {
-                                            @($"Max: {param.ValeurMax}")
-                                        }
-                                    </RadzenText>
+                                    <RadzenText TextStyle="TextStyle.Body2"><strong>@L["Par_LblConstraints"]</strong> @FormatContraintes(param)</RadzenText>
                                 }
-                            </Template>
-                        </RadzenDataGridColumn>
-                        
-                        <RadzenDataGridColumn TItem="ParametreSysteme" Title="Actions" Width="80px" TextAlign="TextAlign.Center" Sortable="false">
-                            <Template Context="param">
-                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                              Click="@(() => ShowEditDialog(param))" title="Modifier"
-                                              Disabled="@param.EstSysteme" />
-                            </Template>
-                        </RadzenDataGridColumn>
-                    </Columns>
-                </RadzenDataGrid>
-            </RadzenCard>
-        }
-</RadzenStack>
+                                <RadzenText TextStyle="TextStyle.Body2"><strong>@L["Par_LblEditable"]</strong> @(param.EstModifiable ? L["Par_Yes"] : L["Par_No"])</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Body2"><strong>@L["Par_LblSystem"]</strong> @(param.EstSysteme ? L["Par_Yes"] : L["Par_No"])</RadzenText>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    </div>
+                </Template>
+                <Columns>
+                    <RadzenDataGridColumn TItem="ParametreSysteme" Property="Cle" Title="@L["Par_ColKey"].Value" Width="280px">
+                        <Template Context="param">
+                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600;">@param.Cle</RadzenText>
+                                @if (param.EstSysteme)
+                                {
+                                    <RadzenBadge Text="@L["Par_BadgeSystem"].Value" BadgeStyle="BadgeStyle.Secondary" Style="font-size: 0.6rem;" />
+                                }
+                            </RadzenStack>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ParametreSysteme" Property="Description" Title="@L["Par_ColDescription"].Value">
+                        <Template Context="param">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-grey);">@(string.IsNullOrEmpty(param.Description) ? "—" : param.Description)</RadzenText>
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ParametreSysteme" Title="@L["Par_ColValue"].Value" Width="220px">
+                        <Template Context="param">
+                            @switch (param.TypeDonnee)
+                            {
+                                case "Boolean":
+                                    <RadzenSwitch TValue="bool" Value="@(param.Valeur?.ToLower() == "true")"
+                                                  Disabled="@(!param.EstModifiable)"
+                                                  Change="@(value => UpdateBooleanValue(param, value))" />
+                                    break;
+                                case "Integer":
+                                    <RadzenNumeric TValue="int" Value="@(int.TryParse(param.Valeur, out var intVal) ? intVal : 0)"
+                                                   Disabled="@(!param.EstModifiable)"
+                                                   Min="@(param.ValeurMin ?? int.MinValue)"
+                                                   Max="@(param.ValeurMax ?? int.MaxValue)"
+                                                   Change="@(value => UpdateIntegerValue(param, value))"
+                                                   Style="width: 100%;" />
+                                    break;
+                                default:
+                                    <RadzenTextBox Value="@param.Valeur"
+                                                   Disabled="@(!param.EstModifiable)"
+                                                   Change="@(value => UpdateStringValue(param, value))"
+                                                   Style="width: 100%;" />
+                                    break;
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ParametreSysteme" Property="TypeDonnee" Title="@L["Col_Type"]" Width="100px" TextAlign="TextAlign.Center">
+                        <Template Context="param">
+                            <RadzenBadge Text="@param.TypeDonnee" BadgeStyle="BadgeStyle.Light" Style="font-size: 0.7rem;" />
+                        </Template>
+                    </RadzenDataGridColumn>
+
+                    <RadzenDataGridColumn TItem="ParametreSysteme" Title="@L["Col_Actions"]" Width="90px" TextAlign="TextAlign.Center" Sortable="false" Filterable="false">
+                        <Template Context="param">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Info" Variant="Variant.Text" Size="ButtonSize.Small"
+                                          Click="@(() => ShowEditDialog(param))" title="@L["Btn_Edit"].Value"
+                                          Disabled="@param.EstSysteme" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    }
+    </main>
+</div>
+
 
 @code {
     private List<ParametreSysteme> parametres = [];
-    private Dictionary<string, bool> expandedCategories = [];
+    private string searchTerm = string.Empty;
+    private string? filterCategorie;
 
     protected override async Task OnInitializedAsync()
     {
@@ -146,13 +169,56 @@
 
     private IEnumerable<KeyValuePair<string, List<ParametreSysteme>>> GetCategoriesWithParametres()
     {
-        return parametres
+        IEnumerable<ParametreSysteme> filtered = parametres;
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var s = searchTerm.Trim().ToLower();
+            filtered = filtered.Where(p =>
+                (p.Cle?.ToLower().Contains(s) ?? false) ||
+                (p.Description?.ToLower().Contains(s) ?? false));
+        }
+
+        if (!string.IsNullOrEmpty(filterCategorie))
+        {
+            filtered = filtered.Where(p => (p.Categorie ?? "Autre") == filterCategorie);
+        }
+
+        return filtered
             .GroupBy(p => p.Categorie ?? "Autre")
             .OrderBy(g => GetCategoryOrder(g.Key))
             .Select(g => new KeyValuePair<string, List<ParametreSysteme>>(g.Key, g.OrderBy(p => p.Ordre).ToList()));
     }
 
-    private int GetCategoryOrder(string category) => category switch
+    private List<string> GetCategoryList() =>
+        parametres.Select(p => p.Categorie ?? "Autre").Distinct().OrderBy(c => GetCategoryOrder(c)).ToList();
+
+    private void SetCategoryFilter(string? cat)
+    {
+        filterCategorie = cat;
+    }
+
+    private string GetCardStyle(string? cat, string bgColor)
+    {
+        var border = filterCategorie == cat ? "2px solid var(--kcc-primary)" : "1px solid transparent";
+        return $"background: {bgColor}; border: {border};";
+    }
+
+    private void ResetFilters()
+    {
+        searchTerm = string.Empty;
+        filterCategorie = null;
+    }
+
+    private static string FormatContraintes(ParametreSysteme p)
+    {
+        if (p.ValeurMin.HasValue && p.ValeurMax.HasValue) return $"{p.ValeurMin} - {p.ValeurMax}";
+        if (p.ValeurMin.HasValue) return $"Min : {p.ValeurMin}";
+        if (p.ValeurMax.HasValue) return $"Max : {p.ValeurMax}";
+        return "—";
+    }
+
+    private static int GetCategoryOrder(string category) => category switch
     {
         "General" => 1,
         "Workflow" => 2,
@@ -162,7 +228,7 @@
         _ => 99
     };
 
-    private string GetCategoryIcon(string category) => category switch
+    private static string GetCategoryIcon(string category) => category switch
     {
         "General" => "settings",
         "Workflow" => "account_tree",
@@ -177,7 +243,7 @@
         var result = await DialogService.OpenAsync<ParametreEditDialog>("Nouveau paramètre",
             new Dictionary<string, object>(),
             new DialogOptions { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
-        
+
         if (result == true)
         {
             ParametreService.InvalidateCache();
@@ -200,20 +266,9 @@
         }
     }
 
-    private async Task UpdateBooleanValue(ParametreSysteme param, bool value)
-    {
-        await UpdateParameterValue(param, value.ToString().ToLower());
-    }
-
-    private async Task UpdateIntegerValue(ParametreSysteme param, int value)
-    {
-        await UpdateParameterValue(param, value.ToString());
-    }
-
-    private async Task UpdateStringValue(ParametreSysteme param, string value)
-    {
-        await UpdateParameterValue(param, value);
-    }
+    private async Task UpdateBooleanValue(ParametreSysteme param, bool value) => await UpdateParameterValue(param, value.ToString().ToLower());
+    private async Task UpdateIntegerValue(ParametreSysteme param, int value) => await UpdateParameterValue(param, value.ToString());
+    private async Task UpdateStringValue(ParametreSysteme param, string value) => await UpdateParameterValue(param, value);
 
     private async Task UpdateParameterValue(ParametreSysteme param, string newValue)
     {
@@ -222,8 +277,6 @@
             var ancienneValeur = param.Valeur;
             var userLogin = CurrentUserService.GetUserLogin();
             await ParametreService.UpdateValueAsync(param.Cle, newValue, userLogin);
-
-            // Mettre à jour localement pour reflet immédiat
             param.Valeur = newValue;
 
             await AuditLogService.LogAsync(

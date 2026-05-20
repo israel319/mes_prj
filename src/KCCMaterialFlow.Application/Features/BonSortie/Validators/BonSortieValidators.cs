@@ -60,8 +60,9 @@ public class CreateBonSortieExterneRequestValidator : AbstractValidator<CreateBo
             .Matches(@"^[\d\s\+\-\(\)]+$").WithMessage("Format de téléphone invalide.")
             .When(x => !string.IsNullOrEmpty(x.TelephoneChauffeur));
 
-        RuleFor(x => x.TypeMateriel)
-            .IsInEnum().WithMessage("Le type de matériel est invalide.");
+        RuleFor(x => x.DescriptionMateriel)
+            .MaximumLength(200).WithMessage("La description du matériel ne peut pas dépasser 200 caractères.")
+            .When(x => !string.IsNullOrEmpty(x.DescriptionMateriel));
 
         RuleFor(x => x.Materiels)
             .NotEmpty().WithMessage("Au moins un matériel doit être spécifié.");
@@ -122,8 +123,9 @@ public class CreateBonSortieInterneRequestValidator : AbstractValidator<CreateBo
             .MaximumLength(2000).WithMessage("La description ne peut pas dépasser 2000 caractères.")
             .When(x => !string.IsNullOrEmpty(x.Description));
 
-        RuleFor(x => x.TypeMateriel)
-            .IsInEnum().WithMessage("Le type de matériel est invalide.");
+        RuleFor(x => x.DescriptionMateriel)
+            .MaximumLength(200).WithMessage("La description du matériel ne peut pas dépasser 200 caractères.")
+            .When(x => !string.IsNullOrEmpty(x.DescriptionMateriel));
 
         RuleFor(x => x.Materiels)
             .NotEmpty().WithMessage("Au moins un matériel doit être spécifié.");

@@ -1,268 +1,466 @@
-using KCCMaterialFlow.Infrastructure.Data;
-using KCCMaterialFlow.Domain.Enums;
-using KCCMaterialFlow.Domain.Entities;
 using KCCMaterialFlow.Application.Common.Interfaces;
+using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using DomainTypeMateriel = KCCMaterialFlow.Domain.Enums.TypeMateriel;
 
 namespace KCCMaterialFlow.Infrastructure.Services.Shared;
 
-public class WorkflowConfigService : IWorkflowConfigService
+/// <summary>
+/// Service de gestion du workflow d'approbation configurable.
+/// Priorité de résolution :
+///   1. Config spécifique au département (BonType + DepartementCode)
+///   2. Config générique (BonType, DepartementCode = null)
+///   3. Défaut métier codé : SUPERINTENDENT → GM → OPJ → IDENTIFICATION
+/// </summary>
+public sealed class WorkflowConfigService : IWorkflowConfigService
 {
-    private readonly IDbContextFactory<KCCMaterialFlowDbContext> _dbContextFactory;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<WorkflowConfigService> _logger;
+    private readonly IDbContextFactory<KCCMaterialFlowDbContext> _factory;
 
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10);
-    private const string CachePrefix = "WorkflowConfig_";
+    private static readonly IReadOnlyList<WorkflowEtapeConfig> _defaultWorkflow =
+        new List<WorkflowEtapeConfig>
+        {
+            new() { BonType = "DEFAULT", OrdreEtape = 1, RoleCode = "SUPERINTENDENT", NomEtape = "Superintendent", EstActif = true },
+            new() { BonType = "DEFAULT", OrdreEtape = 2, RoleCode = "GM",             NomEtape = "General Manager",  EstActif = true },
+            new() { BonType = "DEFAULT", OrdreEtape = 3, RoleCode = "OPJ",            NomEtape = "OPJ",              EstActif = true },
+            new() { BonType = "DEFAULT", OrdreEtape = 4, RoleCode = "IDENTIFICATION", NomEtape = "Identification",   EstActif = true },
+        };
 
-    public WorkflowConfigService(IDbContextFactory<KCCMaterialFlowDbContext> dbContextFactory, IMemoryCache cache, ILogger<WorkflowConfigService> logger)
+    public WorkflowConfigService(IDbContextFactory<KCCMaterialFlowDbContext> factory)
+        => _factory = factory;
+
+    // ─── Résolution runtime ──────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<WorkflowEtapeConfig>> GetResolvedWorkflowEtapesAsync(
+        string bonType, string? raisonSortieCode, string? agentDepartementCode = null,
+        CancellationToken cancellationToken = default)
     {
-        _dbContextFactory = dbContextFactory;
-        _cache = cache;
-        _logger = logger;
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+
+        // 1. Exception cross-département : raison + département de l'agent demandeur
+        if (!string.IsNullOrWhiteSpace(agentDepartementCode) && raisonSortieCode != null)
+        {
+            var crossEtapes = await ctx.WorkflowEtapeConfigs
+                .Where(x => x.BonType == bonType && x.EstActif &&
+                            x.RaisonSortieCode == raisonSortieCode &&
+                            x.DepartementCode == agentDepartementCode)
+                .OrderBy(x => x.OrdreEtape)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+            if (crossEtapes.Count > 0) return crossEtapes;
+        }
+
+        // 2. Config spécifique à la raison (aucun département)
+        if (raisonSortieCode != null)
+        {
+            var raisonEtapes = await ctx.WorkflowEtapeConfigs
+                .Where(x => x.BonType == bonType && x.EstActif &&
+                            x.RaisonSortieCode == raisonSortieCode && x.DepartementCode == null)
+                .OrderBy(x => x.OrdreEtape)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+            if (raisonEtapes.Count > 0) return raisonEtapes;
+        }
+
+        // 3. Config générique (aucune raison, aucun département)
+        var genericEtapes = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType && x.EstActif &&
+                        x.RaisonSortieCode == null && x.DepartementCode == null)
+            .OrderBy(x => x.OrdreEtape)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return genericEtapes.Count > 0 ? genericEtapes : _defaultWorkflow;
     }
 
-    // ─── Résolution du workflow effectif (sans écriture BD) ─────────────────
-    public async Task<IReadOnlyList<WorkflowEtapeConfig>> GetResolvedWorkflowEtapesAsync(
+    public async Task<IReadOnlyList<WorkflowEtapeConfig>> GetResolvedWorkflowEtapesForDepartementAsync(
+        string bonType, string? departementCode, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+
+        // 1. Config spécifique département
+        if (!string.IsNullOrWhiteSpace(departementCode))
+        {
+            var deptEtapes = await ctx.WorkflowEtapeConfigs
+                .Where(x => x.BonType == bonType && x.EstActif &&
+                            x.DepartementCode == departementCode &&
+                            x.RaisonSortieCode == null)
+                .OrderBy(x => x.OrdreEtape)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            if (deptEtapes.Count > 0) return deptEtapes;
+        }
+
+        // 2. Config générique
+        var genericEtapes = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType && x.EstActif &&
+                        x.DepartementCode == null && x.RaisonSortieCode == null)
+            .OrderBy(x => x.OrdreEtape)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return genericEtapes.Count > 0 ? genericEtapes : _defaultWorkflow;
+    }
+
+    // ─── Lecture admin ───────────────────────────────────────────────────────
+
+    public async Task<IReadOnlyList<WorkflowEtapeConfig>> GetWorkflowEtapesForAdminAsync(
         string bonType, string? raisonSortieCode, CancellationToken cancellationToken = default)
     {
-        var normalizedBonType = NormalizeBonType(bonType);
-        var normalizedRaison  = NormalizeRaison(raisonSortieCode);
-
-        // 1) Config BD spécifique (BonType + Motif)
-        var specific = await GetWorkflowEtapesForAdminAsync(normalizedBonType, normalizedRaison, cancellationToken);
-        if (specific.Count > 0) return specific;
-
-        // 2) Config BD générique (BonType sans motif)
-        var generic = await GetWorkflowEtapesForAdminAsync(normalizedBonType, null, cancellationToken);
-        if (generic.Count > 0) return generic;
-
-        // 3) Défaut métier (calcul à la volée, sans écrire en BD)
-        return await BuildBusinessDefaultWorkflowAsync(normalizedBonType, normalizedRaison, cancellationToken);
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+        return await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType &&
+                        x.DepartementCode == null &&
+                        (raisonSortieCode == null ? x.RaisonSortieCode == null : x.RaisonSortieCode == raisonSortieCode))
+            .OrderBy(x => x.OrdreEtape)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
 
-    // ─── Résumé admin : quels motifs ont une config BD vs héritent ──────────
+    public async Task<IReadOnlyList<WorkflowEtapeConfig>> GetWorkflowEtapesForDepartementAsync(
+        string bonType, string? departementCode, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+        return await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType &&
+                        x.DepartementCode == departementCode &&
+                        x.RaisonSortieCode == null)
+            .OrderBy(x => x.OrdreEtape)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<WorkflowContextSummary>> GetWorkflowSummaryAsync(
         string bonType, CancellationToken cancellationToken = default)
     {
-        var normalizedBonType = NormalizeBonType(bonType);
-
-        await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-        // Toutes les entrées BD pour ce BonType
-        var allDbEntries = await context.Set<WorkflowEtapeConfig>()
-            .Where(x => x.BonType == normalizedBonType && x.EstActif)
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+        var configs = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType && x.DepartementCode == null)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var dbByRaison = allDbEntries
-            .GroupBy(x => x.RaisonSortieCode ?? "")
-            .ToDictionary(g => g.Key, g => g.OrderBy(x => x.OrdreEtape).ToList());
-
-        // Toutes les raisons de sortie actives
-        var raisons = await context.Set<RaisonSortie>()
-            .Where(x => x.EstActif)
-            .OrderBy(x => x.CategorieId).ThenBy(x => x.OrdreAffichage)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-
-        var genericCount = dbByRaison.TryGetValue("", out var genericList) ? genericList.Count : 0;
-        var hasGeneric   = genericCount > 0;
+        var raisons = await ctx.RaisonsSortie.AsNoTracking().ToListAsync(cancellationToken);
 
         var result = new List<WorkflowContextSummary>();
 
-        // Ligne "Workflow par défaut" (sans motif)
+        // Config générique (null raison)
+        var generiques = configs.Where(x => x.RaisonSortieCode == null).OrderBy(x => x.OrdreEtape).ToList();
         result.Add(new WorkflowContextSummary
         {
-            RaisonSortieCode  = null,
-            RaisonSortieNom   = "(Workflow par défaut – sans motif spécifique)",
-            EstPersonnalise   = hasGeneric,
-            NombreEtapesBD    = genericCount,
-            NombreEtapesResolu = hasGeneric
-                ? genericCount
-                : (await BuildBusinessDefaultWorkflowAsync(normalizedBonType, null, cancellationToken)).Count,
-            Source = hasGeneric ? "BD générique" : "Défaut métier"
+            RaisonSortieCode = null,
+            RaisonSortieNom = "Générique (toutes raisons)",
+            EstPersonnalise = generiques.Count > 0,
+            NombreEtapesBD = generiques.Count,
+            NombreEtapesResolu = generiques.Count > 0 ? generiques.Count : _defaultWorkflow.Count,
+            Source = generiques.Count > 0 ? "Base de données" : "Défaut métier",
         });
 
-        // Une ligne par motif
-        foreach (var r in raisons)
+        // Par raison de sortie
+        foreach (var raison in raisons.OrderBy(x => x.Nom))
         {
-            var code = NormalizeRaison(r.Code);
-            var hasSpecific = code != null && dbByRaison.TryGetValue(code, out var specificList) && specificList.Count > 0;
-            var specificCount = hasSpecific ? dbByRaison[code!].Count : 0;
-
-            var resolvedCount = hasSpecific
-                ? specificCount
-                : hasGeneric
-                    ? genericCount
-                    : (await BuildBusinessDefaultWorkflowAsync(normalizedBonType, code, cancellationToken)).Count;
-
-            var source = hasSpecific
-                ? "BD spécifique"
-                : hasGeneric
-                    ? "BD générique (hérité)"
-                    : "Défaut métier";
-
+            var etapes = configs.Where(x => x.RaisonSortieCode == raison.Code).OrderBy(x => x.OrdreEtape).ToList();
             result.Add(new WorkflowContextSummary
             {
-                RaisonSortieCode   = r.Code,
-                RaisonSortieNom    = r.Nom,
-                EstPersonnalise    = hasSpecific,
-                NombreEtapesBD     = specificCount,
-                NombreEtapesResolu = resolvedCount,
-                Source             = source
+                RaisonSortieCode = raison.Code,
+                RaisonSortieNom = raison.Nom,
+                EstPersonnalise = etapes.Count > 0,
+                NombreEtapesBD = etapes.Count,
+                NombreEtapesResolu = etapes.Count > 0 ? etapes.Count : (generiques.Count > 0 ? generiques.Count : _defaultWorkflow.Count),
+                Source = etapes.Count > 0 ? "Spécifique raison" : (generiques.Count > 0 ? "Hérité générique" : "Défaut métier"),
             });
         }
 
         return result;
     }
 
-    public async Task<IReadOnlyList<WorkflowEtapeConfig>> GetWorkflowEtapesForAdminAsync(string bonType, string? raisonSortieCode, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<WorkflowDepartementSummary>> GetDepartementWorkflowSummaryAsync(
+        string bonType, CancellationToken cancellationToken = default)
     {
-        var normalizedBonType = NormalizeBonType(bonType);
-        var normalizedRaison = NormalizeRaison(raisonSortieCode);
-        var cacheKey = BuildCacheKey(normalizedBonType, normalizedRaison);
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
 
-        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
-        {
-            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
-
-            await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-            var query = context.Set<WorkflowEtapeConfig>()
-                .Where(x => x.BonType == normalizedBonType && x.EstActif);
-
-            if (string.IsNullOrWhiteSpace(normalizedRaison))
-            {
-                query = query.Where(x => x.RaisonSortieCode == null || x.RaisonSortieCode == string.Empty);
-            }
-            else
-            {
-                query = query.Where(x => x.RaisonSortieCode == normalizedRaison);
-            }
-
-            return (IReadOnlyList<WorkflowEtapeConfig>)await query
-                .OrderBy(x => x.OrdreEtape)
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-        }) ?? [];
-    }
-
-    public async Task SaveWorkflowEtapesAsync(string bonType, string? raisonSortieCode, IEnumerable<WorkflowEtapeConfig> etapes, string? modifiedByLogin, CancellationToken cancellationToken = default)
-    {
-        var normalizedBonType = NormalizeBonType(bonType);
-        var normalizedRaison = NormalizeRaison(raisonSortieCode);
-
-        await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-        var existing = await context.Set<WorkflowEtapeConfig>()
-            .Where(x => x.BonType == normalizedBonType &&
-                ((normalizedRaison == null && (x.RaisonSortieCode == null || x.RaisonSortieCode == string.Empty)) ||
-                 (normalizedRaison != null && x.RaisonSortieCode == normalizedRaison)))
+        var configs = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType && x.EstActif)
+            .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        if (existing.Count > 0)
+        var depts = await ctx.AllEmployees
+            .Where(x => x.DepartementCode != null)
+            .GroupBy(x => new { x.DepartementCode, x.Departement })
+            .Select(g => new { g.Key.DepartementCode, g.Key.Departement, Count = g.Count() })
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var result = new List<WorkflowDepartementSummary>();
+
+        // Ligne générique (null dept)
+        var generiques = configs.Where(x => x.DepartementCode == null).OrderBy(x => x.OrdreEtape).ToList();
+        result.Add(new WorkflowDepartementSummary
         {
-            context.Set<WorkflowEtapeConfig>().RemoveRange(existing);
+            DepartementCode = null,
+            DepartementNom = "Générique (tous départements)",
+            EstPersonnalise = generiques.Count > 0,
+            NombreEmployes = await ctx.AllEmployees.CountAsync(cancellationToken),
+            EtapesConfigurees = generiques.Select(x => x.RoleCode).ToList(),
+            Source = generiques.Count > 0 ? "Base de données" : "Défaut métier",
+        });
+
+        // Par département
+        foreach (var dept in depts.OrderBy(x => x.Departement ?? x.DepartementCode))
+        {
+            var deptEtapes = configs.Where(x => x.DepartementCode == dept.DepartementCode).OrderBy(x => x.OrdreEtape).ToList();
+            result.Add(new WorkflowDepartementSummary
+            {
+                DepartementCode = dept.DepartementCode,
+                DepartementNom = dept.Departement ?? dept.DepartementCode ?? "Inconnu",
+                EstPersonnalise = deptEtapes.Count > 0,
+                NombreEmployes = dept.Count,
+                EtapesConfigurees = deptEtapes.Count > 0 ? deptEtapes.Select(x => x.RoleCode).ToList() : generiques.Select(x => x.RoleCode).ToList(),
+                Source = deptEtapes.Count > 0 ? "Spécifique département" : (generiques.Count > 0 ? "Hérité générique" : "Défaut métier"),
+            });
         }
 
-        var now = DateTime.Now;
-        var incoming = etapes
-            .Where(x => !string.IsNullOrWhiteSpace(x.RoleCode) && !string.IsNullOrWhiteSpace(x.NomEtape))
-            .OrderBy(x => x.OrdreEtape)
-            .Select((x, index) => new WorkflowEtapeConfig
+        return result;
+    }
+
+    public async Task<IReadOnlyList<DepartementInfo>> GetDepartementsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+        return await ctx.AllEmployees
+            .Where(x => x.DepartementCode != null)
+            .GroupBy(x => new { x.DepartementCode, x.Departement })
+            .Select(g => new DepartementInfo
             {
-                BonType = normalizedBonType,
-                RaisonSortieCode = normalizedRaison,
-                OrdreEtape = index + 1,
-                RoleCode = x.RoleCode.Trim(),
-                NomEtape = x.NomEtape.Trim(),
-                EstActif = true,
-                DateCreation = now,
-                DateModification = now,
-                ModifieParLogin = modifiedByLogin
+                Code = g.Key.DepartementCode!,
+                Nom = g.Key.Departement ?? g.Key.DepartementCode!,
+                NombreEmployes = g.Count(),
             })
-            .ToList();
-
-        if (incoming.Count > 0)
-        {
-            await context.Set<WorkflowEtapeConfig>().AddRangeAsync(incoming, cancellationToken);
-        }
-
-        await context.SaveChangesAsync(cancellationToken);
-
-        _cache.Remove(BuildCacheKey(normalizedBonType, normalizedRaison));
-        _cache.Remove(BuildCacheKey(normalizedBonType, null));
-    }
-
-    // ─── Suppression d'une config spécifique (retour à l'héritage) ──────────
-    public async Task DeleteWorkflowEtapesAsync(
-        string bonType, string? raisonSortieCode, string? modifiedByLogin, CancellationToken cancellationToken = default)
-    {
-        var normalizedBonType = NormalizeBonType(bonType);
-        var normalizedRaison  = NormalizeRaison(raisonSortieCode);
-
-        await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-
-        var existing = await context.Set<WorkflowEtapeConfig>()
-            .Where(x => x.BonType == normalizedBonType &&
-                ((normalizedRaison == null && (x.RaisonSortieCode == null || x.RaisonSortieCode == string.Empty)) ||
-                 (normalizedRaison != null && x.RaisonSortieCode == normalizedRaison)))
-            .ToListAsync(cancellationToken);
-
-        if (existing.Count > 0)
-        {
-            context.Set<WorkflowEtapeConfig>().RemoveRange(existing);
-            await context.SaveChangesAsync(cancellationToken);
-        }
-
-        _cache.Remove(BuildCacheKey(normalizedBonType, normalizedRaison));
-        _cache.Remove(BuildCacheKey(normalizedBonType, null));
-    }
-
-    public async Task<IReadOnlyList<RaisonSortie>> GetRaisonsSortieAsync(CancellationToken cancellationToken = default)
-    {
-        await using var context = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await context.Set<RaisonSortie>()
-            .Where(x => x.EstActif)
-            .OrderBy(x => x.CategorieId)
-            .ThenBy(x => x.OrdreAffichage)
+            .OrderBy(x => x.Nom)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
     }
 
-    private static string NormalizeBonType(string bonType) =>
-        string.IsNullOrWhiteSpace(bonType) ? "BSM" : bonType.Trim().ToUpperInvariant();
+    // ─── Sauvegarde / suppression ────────────────────────────────────────────
 
-    private static string? NormalizeRaison(string? raisonSortieCode)
+    public async Task SaveWorkflowEtapesAsync(
+        string bonType, string? raisonSortieCode,
+        IEnumerable<WorkflowEtapeConfig> etapes, string? modifiedByLogin,
+        CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(raisonSortieCode))
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+
+        // Supprimer les existants
+        var existing = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType && x.DepartementCode == null &&
+                        (raisonSortieCode == null ? x.RaisonSortieCode == null : x.RaisonSortieCode == raisonSortieCode))
+            .ToListAsync(cancellationToken);
+        ctx.WorkflowEtapeConfigs.RemoveRange(existing);
+
+        // Ajouter les nouvelles
+        var now = DateTime.Now;
+        foreach (var e in etapes)
         {
-            return null;
+            e.BonType = bonType;
+            e.RaisonSortieCode = raisonSortieCode;
+            e.DepartementCode = null;
+            e.DateModification = now;
+            e.ModifieParLogin = modifiedByLogin;
+            e.EstActif = true;
+            ctx.WorkflowEtapeConfigs.Add(e);
         }
 
-        return raisonSortieCode.Trim().ToUpperInvariant();
+        await ctx.SaveChangesAsync(cancellationToken);
     }
 
-    private static string BuildCacheKey(string bonType, string? raisonSortieCode)
-        => $"{CachePrefix}{bonType}_{raisonSortieCode ?? "DEFAULT"}";
-
-    private async Task<IReadOnlyList<WorkflowEtapeConfig>> BuildBusinessDefaultWorkflowAsync(string bonType, string? raisonSortieCode, CancellationToken cancellationToken)
+    public async Task SaveWorkflowEtapesForDepartementAsync(
+        string bonType, string? departementCode,
+        IEnumerable<WorkflowEtapeConfig> etapes, string? modifiedByLogin,
+        CancellationToken cancellationToken = default)
     {
-        // Fallback simplifié : chaîne standard sans branching IT/Env.
-        // La BD (T_WorkflowEtapesConfig) est la source de vérité pour les chaînes spécifiques.
-        // Ce fallback n'est atteint que si aucune config n'existe en BD.
-        _logger.LogWarning("Aucune config workflow en BD pour {BonType}/{Raison}, utilisation du fallback standard", bonType, raisonSortieCode ?? "DEFAULT");
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
 
-        return
-        [
-            new WorkflowEtapeConfig { BonType = bonType, RaisonSortieCode = raisonSortieCode, OrdreEtape = 1, RoleCode = "SUPERVISEUR", NomEtape = "Superviseur", EstActif = true },
-            new WorkflowEtapeConfig { BonType = bonType, RaisonSortieCode = raisonSortieCode, OrdreEtape = 2, RoleCode = "GM", NomEtape = "General Manager", EstActif = true },
-            new WorkflowEtapeConfig { BonType = bonType, RaisonSortieCode = raisonSortieCode, OrdreEtape = 3, RoleCode = "OPJ", NomEtape = "OPJ", EstActif = true },
-            new WorkflowEtapeConfig { BonType = bonType, RaisonSortieCode = raisonSortieCode, OrdreEtape = 4, RoleCode = "IDENTIFICATION", NomEtape = "Identification", EstActif = true }
-        ];
+        var existing = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType && x.DepartementCode == departementCode && x.RaisonSortieCode == null)
+            .ToListAsync(cancellationToken);
+        ctx.WorkflowEtapeConfigs.RemoveRange(existing);
+
+        var now = DateTime.Now;
+        foreach (var e in etapes)
+        {
+            e.BonType = bonType;
+            e.DepartementCode = departementCode;
+            e.RaisonSortieCode = null;
+            e.DateModification = now;
+            e.ModifieParLogin = modifiedByLogin;
+            e.EstActif = true;
+            ctx.WorkflowEtapeConfigs.Add(e);
+        }
+
+        await ctx.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteWorkflowEtapesAsync(
+        string bonType, string? raisonSortieCode, string? modifiedByLogin,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+        var existing = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType && x.DepartementCode == null &&
+                        (raisonSortieCode == null ? x.RaisonSortieCode == null : x.RaisonSortieCode == raisonSortieCode))
+            .ToListAsync(cancellationToken);
+        ctx.WorkflowEtapeConfigs.RemoveRange(existing);
+        await ctx.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteWorkflowEtapesForDepartementAsync(
+        string bonType, string? departementCode, string? modifiedByLogin,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+        var existing = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType && x.DepartementCode == departementCode && x.RaisonSortieCode == null)
+            .ToListAsync(cancellationToken);
+        ctx.WorkflowEtapeConfigs.RemoveRange(existing);
+        await ctx.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<RaisonSortie>> GetRaisonsSortieAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+        return await ctx.RaisonsSortie
+            .OrderBy(x => x.Nom)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    // ─── Exception cross-département ─────────────────────────────────────────
+
+    public async Task<IReadOnlyList<WorkflowEtapeConfig>> GetWorkflowEtapesCrossAsync(
+        string bonType, string? raisonSortieCode, string departementCode,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+
+        // Priorité : (raison spécifique + dept) > (générique dept sans raison)
+        if (raisonSortieCode != null)
+        {
+            var specific = await ctx.WorkflowEtapeConfigs
+                .Where(x => x.BonType == bonType &&
+                            x.DepartementCode == departementCode &&
+                            x.RaisonSortieCode == raisonSortieCode)
+                .OrderBy(x => x.OrdreEtape)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+
+            if (specific.Count > 0) return specific;
+
+            // Pas d'override spécifique → on retombe sur l'override générique du dept
+            return await ctx.WorkflowEtapeConfigs
+                .Where(x => x.BonType == bonType &&
+                            x.DepartementCode == departementCode &&
+                            x.RaisonSortieCode == null)
+                .OrderBy(x => x.OrdreEtape)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+        }
+
+        return await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType &&
+                        x.DepartementCode == departementCode &&
+                        x.RaisonSortieCode == null)
+            .OrderBy(x => x.OrdreEtape)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DepartementInfo>> GetDepartementOverridesForRaisonAsync(
+        string bonType, string? raisonSortieCode,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+
+        // Codes des départements qui ont au moins une étape pour cette combinaison.
+        // On remonte :  (1) les overrides spécifiques à cette raison
+        //               (2) les overrides génériques (sans raison) qui s'appliquent à tous les types
+        var deptCodes = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType &&
+                        x.DepartementCode != null &&
+                        (x.RaisonSortieCode == null || x.RaisonSortieCode == raisonSortieCode))
+            .Select(x => x.DepartementCode!)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        if (deptCodes.Count == 0) return Array.Empty<DepartementInfo>();
+
+        // Les codes de vraies départements (hors "*" qui est la branche universelle)
+        var realCodes = deptCodes.Where(c => c != "*").ToList();
+        var result = new List<DepartementInfo>();
+
+        // Branche spécifique universelle (code "*") : pas de jointure employés nécessaire
+        if (deptCodes.Contains("*"))
+            result.Add(new DepartementInfo { Code = "*", Nom = "Tous les départements", NombreEmployes = 0 });
+
+        if (realCodes.Count > 0)
+        {
+            var fromDb = await ctx.AllEmployees
+                .Where(x => x.DepartementCode != null && realCodes.Contains(x.DepartementCode!))
+                .GroupBy(x => new { x.DepartementCode, x.Departement })
+                .Select(g => new DepartementInfo
+                {
+                    Code = g.Key.DepartementCode!,
+                    Nom = g.Key.Departement ?? g.Key.DepartementCode!,
+                    NombreEmployes = g.Count(),
+                })
+                .OrderBy(x => x.Nom)
+                .AsNoTracking()
+                .ToListAsync(cancellationToken);
+            result.AddRange(fromDb);
+        }
+
+        return result;
+    }
+
+    public async Task SaveWorkflowEtapesCrossAsync(
+        string bonType, string? raisonSortieCode, string departementCode,
+        IEnumerable<WorkflowEtapeConfig> etapes, string? modifiedByLogin,
+        CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+
+        var existing = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType &&
+                        x.DepartementCode == departementCode &&
+                        (raisonSortieCode == null ? x.RaisonSortieCode == null : x.RaisonSortieCode == raisonSortieCode))
+            .ToListAsync(cancellationToken);
+        ctx.WorkflowEtapeConfigs.RemoveRange(existing);
+
+        var now = DateTime.Now;
+        foreach (var e in etapes)
+        {
+            e.BonType = bonType;
+            e.RaisonSortieCode = raisonSortieCode;
+            e.DepartementCode = departementCode;
+            e.DateModification = now;
+            e.ModifieParLogin = modifiedByLogin;
+            e.EstActif = true;
+            ctx.WorkflowEtapeConfigs.Add(e);
+        }
+
+        await ctx.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task DeleteWorkflowEtapesCrossAsync(
+        string bonType, string? raisonSortieCode, string departementCode,
+        string? modifiedByLogin, CancellationToken cancellationToken = default)
+    {
+        await using var ctx = await _factory.CreateDbContextAsync(cancellationToken);
+        var existing = await ctx.WorkflowEtapeConfigs
+            .Where(x => x.BonType == bonType &&
+                        x.DepartementCode == departementCode &&
+                        (raisonSortieCode == null ? x.RaisonSortieCode == null : x.RaisonSortieCode == raisonSortieCode))
+            .ToListAsync(cancellationToken);
+        ctx.WorkflowEtapeConfigs.RemoveRange(existing);
+        await ctx.SaveChangesAsync(cancellationToken);
     }
 }

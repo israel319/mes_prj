@@ -1,22 +1,23 @@
-using KCCMaterialFlow.Domain.Entities;
+﻿using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Domain.Entities.Staging;
 using Microsoft.EntityFrameworkCore;
 
 namespace KCCMaterialFlow.Application.Common.Interfaces;
 
 /// <summary>
-/// Abstraction du DbContext — l'Application ne connait PAS EF Core impl.
-/// Implémenté par Infrastructure/Data/ApplicationDbContext.
+/// Abstraction du DbContext â€” l'Application ne connait PAS EF Core impl.
+/// ImplÃ©mentÃ© par Infrastructure/Data/ApplicationDbContext.
 /// </summary>
 public interface IApplicationDbContext
 {
-    // ── BonEntree Aggregate ─────────────────────────────────────────
+    // â”€â”€ BonEntree Aggregate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     DbSet<BonEntree> BonsEntree { get; }
     DbSet<Materiel> Materiels { get; }
     DbSet<Approbation> Approbations { get; }
     DbSet<ItinerairePrevu> ItinerairesPrevu { get; }
     DbSet<BonEntreeHistory> BonEntreeHistoriques { get; }
 
-    // ── BonSortie Aggregate ─────────────────────────────────────────
+    // â”€â”€ BonSortie Aggregate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     DbSet<BonSortie> BonsSortie { get; }
     DbSet<BonSortieExterne> BonsSortieExterne { get; }
     DbSet<BonSortieInterne> BonsSortieInterne { get; }
@@ -26,25 +27,25 @@ public interface IApplicationDbContext
     DbSet<ItineraireSortie> ItinerairesSortie { get; }
     DbSet<BonSortieHistory> BonSortieHistoriques { get; }
 
-    // ── Securite ────────────────────────────────────────────────────
+    // â”€â”€ Securite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     DbSet<ScanEvenement> ScansEvenement { get; }
     DbSet<Anomalie> Anomalies { get; }
     DbSet<HistoriqueScan> HistoriqueScans { get; }
 
-    // ── Référence / Admin ───────────────────────────────────────────
+    // â”€â”€ RÃ©fÃ©rence / Admin â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<Barriere> Barrieres { get; }
     DbSet<ParametreSysteme> ParametresSysteme { get; }
-    DbSet<Utilisateur> Utilisateurs { get; }
-    DbSet<Role> Roles { get; }
-    DbSet<UtilisateurRole> UtilisateurRoles { get; }
-    DbSet<Departement> Departements { get; }
     DbSet<WorkflowEtapeConfig> WorkflowEtapeConfigs { get; }
-    DbSet<Activite> Activites { get; }
-    DbSet<UtilisateurActivite> UtilisateurActivites { get; }
     DbSet<Compagnie> Compagnies { get; }
     DbSet<Contrat> Contrats { get; }
     DbSet<Employee> Employees { get; }
+    DbSet<AppUser> AppUsers { get; }
+    DbSet<WorkflowApprobateurSpecial> WorkflowApprobateursSpeciaux { get; }
+
+    // â”€â”€ Tables tampons (import DATA.xlsx) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    DbSet<StagingCompany> StagingCompanies { get; }
+    DbSet<StagingContract> StagingContracts { get; }
     DbSet<CategorieSortie> CategoriesSortie { get; }
     DbSet<RaisonSortie> RaisonsSortie { get; }
     DbSet<Site> Sites { get; }
@@ -52,8 +53,6 @@ public interface IApplicationDbContext
     DbSet<SoldeMateriel> SoldeMateriels { get; }
     DbSet<Checkpoint> Checkpoints { get; }
     DbSet<PassageCheckpoint> PassagesCheckpoint { get; }
-    DbSet<Permission> Permissions { get; }
-    DbSet<RolePermission> RolePermissions { get; }
     DbSet<Statut> Statuts { get; }
     DbSet<TypeMaterielEntity> TypesMateriels { get; }
 

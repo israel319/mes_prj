@@ -2,40 +2,41 @@
 
 @inject IAnomalieService AnomalieService
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1rem">
     <RadzenText TextStyle="TextStyle.Subtitle1" FontWeight="FontWeight.Bold">
-        Signaler une Anomalie
+        @L["Sad_Title"]
     </RadzenText>
 
     @if (!string.IsNullOrWhiteSpace(NumeroReference))
     {
         <RadzenCard Variant="Variant.Flat" Style="background-color: #f7fafc; border-radius: 6px; padding: 0.75rem;">
-            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Bon Concerné</RadzenText>
+            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">@L["Sad_BonConcerne"]</RadzenText>
             <RadzenText FontWeight="FontWeight.Bold" Style="font-family: monospace;">@NumeroReference (@TypeBon)</RadzenText>
         </RadzenCard>
     }
 
     <RadzenStack Gap="0.5rem">
-        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Type d'Anomalie *</RadzenText>
+        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Sad_TypeLabel"]</RadzenText>
         <RadzenDropDown @bind-Value="@request.TypeAnomalie" Data="@typesAnomalie" Style="width: 100%; border-radius: 6px;"
-                        Placeholder="Sélectionnez le type..." />
+                        Placeholder="@L["Sad_TypePlaceholder"].Value" />
     </RadzenStack>
 
     <RadzenStack Gap="0.5rem">
-        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Niveau de Gravité *</RadzenText>
+        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Sad_GravityLabel"]</RadzenText>
         <RadzenDropDown @bind-Value="@request.NiveauGravite" Data="@niveauxGravite" Style="width: 100%; border-radius: 6px;" />
     </RadzenStack>
 
     <RadzenStack Gap="0.5rem">
-        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Description *</RadzenText>
+        <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Sad_DescLabel"]</RadzenText>
         <RadzenTextArea @bind-Value="@request.Description" Rows="3" Style="width: 100%; border-radius: 6px;"
-                        Placeholder="Décrivez l'anomalie constatée..." />
+                        Placeholder="@L["Sad_DescPlaceholder"].Value" />
     </RadzenStack>
 
     <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.End" Style="margin-top: 1rem;">
-        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" Style="border-radius: 6px;" />
-        <RadzenButton Text="Signaler" Icon="warning" ButtonStyle="ButtonStyle.Warning" Click="@Submit"
+        <RadzenButton Text="@L["Sad_Btn_Cancel"].Value" ButtonStyle="ButtonStyle.Light" Click="@Cancel" Style="border-radius: 6px;" />
+        <RadzenButton Text="@L["Sad_Btn_Report"].Value" Icon="warning" ButtonStyle="ButtonStyle.Warning" Click="@Submit"
                       Disabled="@(!IsValid())" Style="border-radius: 6px;" />
     </RadzenStack>
 </RadzenStack>
@@ -95,18 +96,18 @@
             var result = await AnomalieService.CreateAsync(request);
             if (result.Success)
             {
-                NotificationService.Notify(NotificationSeverity.Success, "Anomalie Signalée", 
-                    $"Anomalie #{result.Anomalie?.Id} créée avec succès");
+                NotificationService.Notify(NotificationSeverity.Success, L["Sad_Title"].Value, 
+                    string.Format(L["Msg_AnomalyCreated"].Value, result.Anomalie?.Id));
                 DialogService.Close(result.Anomalie);
             }
             else
             {
-                NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message);
+                NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, result.Message);
             }
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, ex.Message);
         }
     }
 

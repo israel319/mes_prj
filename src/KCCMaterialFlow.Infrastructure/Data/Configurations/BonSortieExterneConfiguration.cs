@@ -17,11 +17,9 @@ public class BonSortieExterneConfiguration : IEntityTypeConfiguration<BonSortieE
         builder.Property(b => b.BonEntreeAssocieId)
             .HasColumnName("BonEntreeAssocieId");
 
-        builder.Property(b => b.TypeMateriel)
-            .HasColumnName("TypeMateriel")
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .IsRequired();
+        builder.Property(b => b.DescriptionMateriel)
+            .HasColumnName("DescriptionMateriel")
+            .HasMaxLength(200);
 
         builder.Property(b => b.NomDestinataire)
             .HasColumnName("NomDestinataire")
@@ -55,9 +53,9 @@ public class BonSortieExterneConfiguration : IEntityTypeConfiguration<BonSortieE
         builder.HasIndex(b => b.BonEntreeAssocieId)
             .HasDatabaseName("IX_BonsSortie_BonEntreeAssocie");
 
-        // Index sur le type de matériel
-        builder.HasIndex(b => b.TypeMateriel)
-            .HasDatabaseName("IX_BonsSortie_TypeMateriel");
+        // Index sur le description du matériel
+        builder.HasIndex(b => b.DescriptionMateriel)
+            .HasDatabaseName("IX_BonsSortie_DescriptionMateriel");
 
         // Index sur le destinataire
         builder.HasIndex(b => b.NomDestinataire)

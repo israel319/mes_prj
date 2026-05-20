@@ -12,6 +12,7 @@ public enum StatutBonSortie
     PendingIT = 25,
     PendingEnv = 26,
     PendingOPJ = 30,
+    PendingIdentification = 35,
     Approved = 50,
     InTransit = 60,
     Completed = 70,

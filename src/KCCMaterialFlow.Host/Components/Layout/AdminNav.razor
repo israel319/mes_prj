@@ -1,28 +1,35 @@
 @inject NavigationManager Navigation
+@inject ICurrentUserService CurrentUser
+@inject IStringLocalizer<SharedResource> L
+@using KCCMaterialFlow.Domain.Enums
 
 <div class="kcc-admin-nav">
     <NavLink href="/admin/utilisateurs" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
-        <RadzenIcon Icon="people" Style="font-size: 1rem;" /> Utilisateurs
+        <RadzenIcon Icon="people" Style="font-size: 1rem;" /> @L["AdmNav_Users"]
     </NavLink>
     <NavLink href="/admin/roles" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
-        <RadzenIcon Icon="admin_panel_settings" Style="font-size: 1rem;" /> Rôles
-    </NavLink>
-    <NavLink href="/admin/departements" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
-        <RadzenIcon Icon="business" Style="font-size: 1rem;" /> Départements
-    </NavLink>
-    <NavLink href="/admin/types-materiels" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
-        <RadzenIcon Icon="category" Style="font-size: 1rem;" /> Types Matériels
-    </NavLink>
-    <NavLink href="/admin/statuts" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
-        <RadzenIcon Icon="toggle_on" Style="font-size: 1rem;" /> Statuts
-    </NavLink>
-    <NavLink href="/admin/parametres" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
-        <RadzenIcon Icon="tune" Style="font-size: 1rem;" /> Paramètres
+        <RadzenIcon Icon="admin_panel_settings" Style="font-size: 1rem;" /> @L["AdmNav_Roles"]
     </NavLink>
     <NavLink href="/admin/workflows" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
-        <RadzenIcon Icon="route" Style="font-size: 1rem;" /> Workflows
+        <RadzenIcon Icon="route" Style="font-size: 1rem;" /> @L["AdmNav_Workflows"]
     </NavLink>
-    <NavLink href="/admin/audit" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
-        <RadzenIcon Icon="history" Style="font-size: 1rem;" /> Audit Logs
+    <NavLink href="/admin/workflow-approbateurs" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
+        <RadzenIcon Icon="verified_user" Style="font-size: 1rem;" /> @L["AdmNav_SpecialApprovers"]
     </NavLink>
+    @if (IsSuperAdmin)
+    {
+        <NavLink href="/admin/parametres" class="kcc-admin-nav__item" Match="NavLinkMatch.All">
+            <RadzenIcon Icon="tune" Style="font-size: 1rem;" /> @L["AdmNav_Parameters"]
+        </NavLink>
+    }
 </div>
+
+@code {
+    private bool IsSuperAdmin;
+
+    protected override void OnInitialized()
+    {
+        var info = CurrentUser.GetCurrentUser();
+        IsSuperAdmin = info?.NiveauAdmin == NiveauAdmin.SuperAdmin;
+    }
+}

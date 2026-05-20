@@ -1,4 +1,4 @@
-using KCCMaterialFlow.Application.Common.Interfaces;
+﻿using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Infrastructure.Data;
 using KCCMaterialFlow.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -92,28 +92,6 @@ public class ReferenceDataService : IReferenceDataService
 
     #endregion
 
-    #region Départements
-
-    public async Task<IEnumerable<Departement>> GetDepartementsAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
-    {
-        var query = _context.Departements.AsQueryable();
-        
-        if (activeOnly)
-            query = query.Where(d => d.EstActif);
-
-        return await query
-            .OrderBy(d => d.NomDepartement)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<Departement?> GetDepartementByIdAsync(int id, CancellationToken cancellationToken = default)
-    {
-        return await _context.Departements
-            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
-    }
-
-    #endregion
-
     #region Sites
 
     public async Task<IEnumerable<Site>> GetSitesAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
@@ -160,13 +138,9 @@ public class ReferenceDataService : IReferenceDataService
     public async Task<IEnumerable<Employee>> GetEmployeesAsync(bool activeOnly = true, CancellationToken cancellationToken = default)
     {
         var query = _context.Employees
-            .Include(e => e.Departement)
             .Include(e => e.Compagnie)
             .AsQueryable();
         
-        if (activeOnly)
-            query = query.Where(e => e.EstActif);
-
         return await query
             .OrderBy(e => e.NomComplet)
             .ToListAsync(cancellationToken);
@@ -175,8 +149,7 @@ public class ReferenceDataService : IReferenceDataService
     public async Task<IEnumerable<Employee>> GetEscorteursAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Employees
-            .Include(e => e.Departement)
-            .Where(e => e.EstActif && e.PeutEtreEscorteur)
+            .Where(e => e.PeutEtreEscorteur)
             .OrderBy(e => e.NomComplet)
             .ToListAsync(cancellationToken);
     }
@@ -184,17 +157,7 @@ public class ReferenceDataService : IReferenceDataService
     public async Task<IEnumerable<Employee>> GetEmployeesByCompagnieAsync(int compagnieId, CancellationToken cancellationToken = default)
     {
         return await _context.Employees
-            .Include(e => e.Departement)
-            .Where(e => e.EstActif && e.CompagnieId == compagnieId)
-            .OrderBy(e => e.NomComplet)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<Employee>> GetEmployeesByDepartementAsync(int departementId, CancellationToken cancellationToken = default)
-    {
-        return await _context.Employees
-            .Include(e => e.Compagnie)
-            .Where(e => e.EstActif && e.DepartementId == departementId)
+            .Where(e => e.CompagnieId == compagnieId)
             .OrderBy(e => e.NomComplet)
             .ToListAsync(cancellationToken);
     }
@@ -202,23 +165,26 @@ public class ReferenceDataService : IReferenceDataService
     public async Task<Employee?> GetEmployeeByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return await _context.Employees
-            .Include(e => e.Departement)
             .Include(e => e.Compagnie)
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 
     public async Task<Employee?> GetEmployeeByLoginAsync(string login, CancellationToken cancellationToken = default)
     {
-        return await _context.Employees
-            .Include(e => e.Departement)
+        using var ctx = _dbContextFactory.CreateDbContext();
+        var empId = await ctx.AppUsers.AsNoTracking()
+            .Where(u => u.Login == login)
+            .Select(u => u.EmployeeId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (empId == null) return null;
+        return await ctx.Employees
             .Include(e => e.Compagnie)
-            .FirstOrDefaultAsync(e => e.Login == login, cancellationToken);
+            .FirstOrDefaultAsync(e => e.Id == empId.Value, cancellationToken);
     }
 
     public async Task<Employee?> GetEmployeeByMatriculeAsync(string matricule, CancellationToken cancellationToken = default)
     {
         return await _context.Employees
-            .Include(e => e.Departement)
             .Include(e => e.Compagnie)
             .FirstOrDefaultAsync(e => e.Matricule == matricule, cancellationToken);
     }
@@ -235,9 +201,8 @@ public class ReferenceDataService : IReferenceDataService
         var term = searchTerm.ToLower();
 
         return await _context.Employees
-            .Include(e => e.Departement)
             .Include(e => e.Compagnie)
-            .Where(e => e.EstActif && 
+            .Where(e =>
                 (e.NomComplet.ToLower().Contains(term) ||
                  (e.Matricule != null && e.Matricule.ToLower().Contains(term)) ||
                  (e.Email != null && e.Email.ToLower().Contains(term))))

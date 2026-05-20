@@ -1,5 +1,6 @@
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
     <RadzenStack Gap="1rem">
@@ -19,7 +20,7 @@
                     <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
                         Login <span style="color: #e31b23;">*</span>
                     </RadzenText>
-                    <RadzenTextBox @bind-Value="@model.AgentLogin" Placeholder="jdupont" 
+                    <RadzenTextBox @bind-Value="@model.AgentLogin" Placeholder="@L["Sec_PlAgentLogin"].Value" 
                                    Style="width: 100%; border-radius: 6px;" />
                 </RadzenStack>
             </RadzenColumn>
@@ -30,7 +31,7 @@
             <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
                 Nom Complet <span style="color: #e31b23;">*</span>
             </RadzenText>
-            <RadzenTextBox @bind-Value="@model.AgentNom" Placeholder="Jean Dupont" 
+            <RadzenTextBox @bind-Value="@model.AgentNom" Placeholder="@L["Sec_PlAgentName"].Value" 
                            Style="width: 100%; border-radius: 6px;" />
         </RadzenStack>
 
@@ -42,7 +43,7 @@
                         Barrière <span style="color: #e31b23;">*</span>
                     </RadzenText>
                     <RadzenDropDown @bind-Value="@model.BarriereId" Data="@Barrieres" TextProperty="NomBarriere" ValueProperty="Id"
-                                    Placeholder="Sélectionner une barrière" Style="width: 100%; border-radius: 6px;" />
+                                    Placeholder="@L["Sec_PlSelectBarriere"].Value" Style="width: 100%; border-radius: 6px;" />
                 </RadzenStack>
             </RadzenColumn>
             <RadzenColumn Size="12" SizeMD="5">
@@ -78,7 +79,7 @@
         <RadzenCard Variant="Variant.Flat" Style="background: #f8fafc; border-radius: 8px; padding: 0.75rem;">
             <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
                 <RadzenIcon Icon="info" Style="vertical-align: middle; font-size: 0.9rem;" />
-                Laissez la date de fin vide pour une affectation permanente
+                @L["Adm_HintPermanentDate"]
             </RadzenText>
         </RadzenCard>
 
@@ -91,8 +92,8 @@
 
     @* Actions *@
     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="margin-top: 1rem;">
-        <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
-        <RadzenButton Text="@(isNew ? "Créer" : "Enregistrer")" Icon="save" ButtonStyle="ButtonStyle.Danger" 
+        <RadzenButton Text="@L["Btn_Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@L[isNew ? "Btn_Create" : "Btn_Save"]" Icon="save" ButtonStyle="ButtonStyle.Danger" 
                       Style="background-color: #e31b23;" Click="@Submit" IsBusy="@isSaving" 
                       Disabled="@(!IsValid)" />
     </RadzenStack>
@@ -147,7 +148,7 @@
     {
         if (!IsValid)
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Veuillez remplir tous les champs obligatoires");
+            NotificationService.Notify(NotificationSeverity.Warning, L["Lbl_Error"].Value, L["Msg_FillRequired"].Value);
             return;
         }
 

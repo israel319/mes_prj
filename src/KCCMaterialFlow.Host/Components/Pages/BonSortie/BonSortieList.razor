@@ -1,146 +1,202 @@
-@page "/bon-sortie"
+﻿@page "/bon-sortie"
 @using BonSortieEntity = KCCMaterialFlow.Domain.Entities.BonSortie
 @attribute [Authorize]
 @inject IBonSortieService BonSortieService
-@inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Bons de Sortie - KCC Material Flow</PageTitle>
+<PageTitle>@L["Bsl_PageTitle"]</PageTitle>
 
-<div class="bsm-container">
-    @* === PAGE HEADER (Style Figma) === *@
-    <div class="page-header">
-        <div>
-            <h1 class="page-title">Bons de sortie</h1>
-            <p class="page-subtitle">Gérer les sorties de matériel de l'entreprise</p>
-        </div>
-        <RadzenButton Text="Nouveau bon de sortie" Icon="add_circle" ButtonStyle="ButtonStyle.Primary"
-                      Click="@(() => Navigation.NavigateTo("/bon-sortie/nouveau"))" />
-    </div>
-
-    @* === STATS (Style Figma) === *@
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-value" style="color: var(--kcc-slate);">@stats.TotalBons</div>
-            <div class="stat-label">Total</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" style="color: var(--kcc-orange);">@stats.BonsEnAttente</div>
-            <div class="stat-label">En attente</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" style="color: #22c55e;">@stats.BonsApprouves</div>
-            <div class="stat-label">Approuvés</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" style="color: var(--kcc-blue);">@stats.PretsEnCours</div>
-            <div class="stat-label">Prêts en cours</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" style="color: #ef4444;">@stats.PretsEnRetard</div>
-            <div class="stat-label">En retard</div>
-        </div>
-    </div>
-
-    @* === CARD CONTAINER === *@
-    <div class="section-card">
-        <div class="card-header">
-            <h3 class="card-title">Liste des bons de sortie</h3>
-            <p class="card-description">Consulter et gérer tous les bons de sortie de matériel</p>
-        </div>
-
-        @* Filters (Style Figma) *@
-        <div class="filters-bar">
-            <div class="search-wrapper">
-                <RadzenIcon Icon="search" class="search-icon" />
-                <RadzenTextBox @bind-Value="filter.SearchTerm" Placeholder="Rechercher..." Style="width: 100%;" />
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["Bsl_Title"]</h1>
+                <p class="kcp-subtitle">@L["Bsl_Subtitle"]</p>
             </div>
-            <RadzenDropDown TValue="string" @bind-Value="filter.Statut" Data="@statutOptions"
-                            TextProperty="Text" ValueProperty="Value" Placeholder="Tous statuts"
-                            AllowClear="true" Style="min-width: 160px;" />
-            <RadzenDropDown TValue="string" @bind-Value="filter.TypeSortie" Data="@typeOptions"
-                            TextProperty="Text" ValueProperty="Value" Placeholder="Tous types"
-                            AllowClear="true" Style="min-width: 140px;" />
-            <RadzenButton Text="Filtrer" Icon="search" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
-                          Click="@LoadDataAsync" />
-            <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Variant="Variant.Text"
-                          Click="@ResetFilter" />
+            <div class="kcp-hero-actions">
+                <button class="kcp-btn kcp-btn-primary" type="button" @onclick="@(() => NavigationManager.NavigateTo("/bon-sortie/nouveau"))">
+                    <RadzenIcon Icon="add_circle" Style="font-size:1rem;" />
+                    @L["Bsl_New"]
+                </button>
+                <button class="kcp-btn" type="button" @onclick="LoadAllAsync">
+                    <RadzenIcon Icon="refresh" Style="font-size:1rem;" />
+                    @L["Btn_Refresh"]
+                </button>
+            </div>
         </div>
+    </div>
+    <main class="kcp-main">
 
-        @* DataGrid *@
-        <RadzenDataGrid @ref="grid" Data="@items" TItem="BonSortieEntity" IsLoading="@isLoading"
-                        AllowPaging="true" PageSize="15" AllowSorting="true" Count="@totalCount"
-                        Variant="Variant.Flat" GridLines="DataGridGridLines.None">
+
+    @* Filtre actif *@
+    @if (!string.IsNullOrEmpty(activeFilter))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter"
+                     AllowClose="true" Close="@(() => SetFilter(null))" class="rz-mb-4">
+            @L["Bsl_ActiveFilter"] <strong>@(activeFilter == "pending" ? L["Bsl_FilterPending"].Value : L["Bsl_FilterApproved"].Value)</strong>
+        </RadzenAlert>
+    }
+
+    @* === BARRE DE RECHERCHE === *@
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" class="rz-mb-4">
+        <RadzenIcon Icon="search" Style="color: var(--gray-400);" />
+        <RadzenTextBox @bind-Value="searchTerm" Placeholder="@L["Bsl_SearchPlaceholder"].Value"
+                       Style="flex: 1; min-width: 240px;" Change="@(_ => StateHasChanged())" />
+        <RadzenDropDown TValue="string" @bind-Value="typeFilter" Data="@typeOptions"
+                        TextProperty="Text" ValueProperty="Value" Placeholder="@L["Bsl_AllTypes"].Value"
+                        AllowClear="true" Style="min-width: 160px;" Change="@(_ => StateHasChanged())" />
+        @if (!string.IsNullOrWhiteSpace(searchTerm) || !string.IsNullOrEmpty(typeFilter))
+        {
+            <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                          Click="@ClearSearch" />
+        }
+    </RadzenStack>
+
+    @* === CONTENU === *@
+    @if (isLoading)
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 4rem;">
+                <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500);">@L["Bsl_Loading"]</RadzenText>
+            </RadzenStack>
+        </RadzenCard>
+    }
+    else if (!filteredItems.Any())
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 4rem;">
+                <RadzenIcon Icon="inventory_2" Style="font-size: 4rem; color: var(--gray-400); opacity: 0.5;" />
+                <RadzenText TextStyle="TextStyle.H6" Style="color: var(--gray-500); font-weight: 600;">@L["Bsl_Empty"]</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500);">@L["Bsl_NoResults"]</RadzenText>
+            </RadzenStack>
+        </RadzenCard>
+    }
+    else
+    {
+        <RadzenDataGrid Data="@filteredItems" TItem="BonSortieEntity"
+                        AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                        AllowSorting="true" AllowFiltering="false"
+                        Density="Density.Compact"
+                        GridLines="DataGridGridLines.Horizontal">
             <Columns>
-                <RadzenDataGridColumn TItem="BonSortieEntity" Property="NumeroReference" Title="RÉFÉRENCE" Width="140px">
-                    <Template Context="bon">
-                        <span class="cell-ref">@bon.NumeroReference</span>
-                    </Template>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="BonSortieEntity" Title="TYPE" Width="100px">
+                <RadzenDataGridColumn TItem="BonSortieEntity" Title="@L["Bsl_ColType"]" Width="110px" Sortable="false">
                     <Template Context="bon">
                         <RadzenBadge Text="@GetTypeLabel(bon)" BadgeStyle="@GetTypeBadgeStyle(bon)" />
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="BonSortieEntity" Property="NomDemandeur" Title="DEMANDEUR" />
-                <RadzenDataGridColumn TItem="BonSortieEntity" Property="Destination" Title="DESTINATION" Width="150px" />
-                <RadzenDataGridColumn TItem="BonSortieEntity" Property="DateCreation" Title="DATE" Width="100px">
-                    <Template Context="bon">@bon.DateCreation.ToString("dd/MM/yyyy")</Template>
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="NumeroReference" Title="@L["Bsl_ColReference"]" Width="180px" Sortable="true">
+                    <Template Context="bon">
+                        <RadzenStack Gap="0">
+                            <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600; margin: 0;">@bon.NumeroReference</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); margin: 0;">
+                                @bon.DateCreation.ToString("dd/MM/yyyy")
+                            </RadzenText>
+                        </RadzenStack>
+                    </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="BonSortieEntity" Property="StatutActuel" Title="STATUT" Width="130px">
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="NomDemandeur" Title="@L["BsmF_Requester"]" Width="180px" Sortable="true" />
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="Destination" Title="@L["Bsl_ColDestination"]" Width="180px" Sortable="true" />
+                <RadzenDataGridColumn TItem="BonSortieEntity" Property="StatutActuel" Title="@L["Col_Status"]" Width="160px" Sortable="true">
                     <Template Context="bon">
                         <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" BadgeStyle="@GetStatutBadgeStyle(bon.StatutActuel)" />
                     </Template>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="BonSortieEntity" Title="" Width="50px" TextAlign="TextAlign.Center" Sortable="false">
+                <RadzenDataGridColumn TItem="BonSortieEntity" Title="@L["Col_Actions"]" Width="140px" TextAlign="TextAlign.Right" Sortable="false">
                     <Template Context="bon">
-                        <RadzenButton Icon="visibility" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
-                                      Click="@(() => Navigation.NavigateTo($"/bon-sortie/{bon.Id}"))" />
+                        <RadzenButton Icon="visibility" Text="@L["Btn_Detail"].Value" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                      ButtonStyle="ButtonStyle.Dark"
+                                      Click="@(() => NavigationManager.NavigateTo($"/bon-sortie/{bon.Id}"))" />
                     </Template>
                 </RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
-    </div>
+    }
+    </main>
 </div>
 
 @code {
-    private RadzenDataGrid<BonSortieEntity>? grid;
     private List<BonSortieEntity> items = [];
     private BonSortieStats stats = new();
-    private BonSortieFilter filter = new() { Take = 15 };
-    private int totalCount = 0;
     private bool isLoading = true;
+    private string? activeFilter;
+    private string? searchTerm;
+    private string? typeFilter;
 
-    private List<object> statutOptions = new()
+    private List<object> typeOptions => new()
     {
-        new { Text = "Brouillon", Value = "Draft" },
-        new { Text = "Attente IT", Value = "PendingIT" },
-        new { Text = "Attente ENV", Value = "PendingEnv" },
-        new { Text = "Approuvé", Value = "Approved" },
-        new { Text = "Rejeté", Value = "Rejected" }
+        new { Text = L["Bsl_TypeExterne"].Value, Value = "Externe" },
+        new { Text = L["Bsl_TypeInterne"].Value, Value = "Interne" },
+        new { Text = L["Bsl_TypePret"].Value, Value = "Pret" }
     };
 
-    private List<object> typeOptions = new()
+    private IEnumerable<BonSortieEntity> filteredItems
     {
-        new { Text = "Externe", Value = "Externe" },
-        new { Text = "Interne", Value = "Interne" },
-        new { Text = "Prêt", Value = "Pret" }
-    };
+        get
+        {
+            IEnumerable<BonSortieEntity> q = items;
+
+            if (activeFilter == "pending")
+                q = q.Where(b => b.StatutActuel != null && b.StatutActuel.StartsWith("Pending"));
+            else if (activeFilter == "approved")
+                q = q.Where(b => b.StatutActuel == "Approved");
+
+            if (!string.IsNullOrEmpty(typeFilter))
+            {
+                q = typeFilter switch
+                {
+                    "Externe" => q.OfType<BonSortieExterne>().Cast<BonSortieEntity>(),
+                    "Interne" => q.OfType<BonSortieInterne>().Cast<BonSortieEntity>(),
+                    "Pret" => q.OfType<Pret>().Cast<BonSortieEntity>(),
+                    _ => q
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var s = searchTerm.Trim();
+                q = q.Where(b =>
+                    (b.NumeroReference ?? "").Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    (b.NomDemandeur ?? "").Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    (b.Destination ?? "").Contains(s, StringComparison.OrdinalIgnoreCase));
+            }
+            return q;
+        }
+    }
+
+    private void SetFilter(string? f)
+    {
+        activeFilter = f;
+        StateHasChanged();
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = null;
+        typeFilter = null;
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
-        await LoadStatsAsync();
+        await LoadAllAsync();
     }
 
-    private async Task LoadDataAsync()
+    private async Task LoadAllAsync()
     {
         isLoading = true;
         try
         {
-            var result = await BonSortieService.GetListAsync(filter);
+            // Charger une grande page côté serveur, on filtre en mémoire ensuite
+            var result = await BonSortieService.GetListAsync(new BonSortieFilter { Take = 1000 });
             items = result.Items.ToList();
-            totalCount = result.TotalCount;
+            stats = await BonSortieService.GetStatsAsync();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, $"{L["Msg_LoadFailed"].Value} {ex.Message}");
         }
         finally
         {
@@ -148,47 +204,25 @@
         }
     }
 
-    private async Task LoadStatsAsync()
-    {
-        stats = await BonSortieService.GetStatsAsync();
-    }
-
-    private async Task ResetFilter()
-    {
-        filter = new BonSortieFilter { Take = 15 };
-        await LoadDataAsync();
-    }
-
     private string GetTypeLabel(BonSortieEntity bon) => bon switch
     {
-        Pret => "Prêt",
-        BonSortieInterne => "Interne",
-        BonSortieExterne => "Externe",
-        _ => "Sortie"
+        Pret => L["Bsl_TypePret"].Value,
+        BonSortieInterne => L["Bsl_TypeInterne"].Value,
+        BonSortieExterne => L["Bsl_TypeExterne"].Value,
+        _ => L["Bsl_TypeSortie"].Value
     };
 
     private string GetStatutLabel(string statut) => statut switch
     {
-        "Draft" => "Brouillon",
-        "Approved" => "Approuvé",
-        "Rejected" => "Rejeté",
-        "Returned" => "Retourné",
-        "Cancelled" => "Annulé",
-        "PendingIT" => "Attente IT",
-        "PendingEnv" => "Attente ENV",
-        "PendingIdentification" => "Attente ID",
+        "Draft" => L["Statut_Draft"].Value,
+        "Approved" => L["Statut_Approved"].Value,
+        "Rejected" => L["Statut_Rejected"].Value,
+        "Returned" => L["Statut_Returned"].Value,
+        "Cancelled" => L["Statut_Cancelled"].Value,
+        "PendingIT" => L["Statut_PendingIT"].Value,
+        "PendingEnv" => L["Statut_PendingEnv"].Value,
+        "PendingIdentification" => L["Statut_PendingId"].Value,
         _ => statut
-    };
-
-    private string GetStatutClass(string statut) => statut switch
-    {
-        "Draft" => "badge-gray",
-        "Approved" => "badge-success",
-        "Rejected" => "badge-danger",
-        "Returned" => "badge-blue",
-        "Cancelled" => "badge-gray",
-        _ when statut.StartsWith("Pending") => "badge-warning",
-        _ => "badge-gray"
     };
 
     private BadgeStyle GetStatutBadgeStyle(string statut) => statut switch
@@ -198,7 +232,7 @@
         "Rejected" => BadgeStyle.Danger,
         "Returned" => BadgeStyle.Warning,
         "Cancelled" => BadgeStyle.Light,
-        _ when statut.StartsWith("Pending") => BadgeStyle.Warning,
+        _ when statut != null && statut.StartsWith("Pending") => BadgeStyle.Warning,
         _ => BadgeStyle.Light
     };
 

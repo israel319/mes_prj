@@ -21,7 +21,7 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<KCCMateria
 
         // Connection string par défaut pour les migrations
         // En production, cette valeur est remplacée par celle de appsettings.json
-        var connectionString = "Server=CDKTGNBK01127;Database=AppDev_KCCMaterialFlow_DB_Dev;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true";
+        var connectionString = "Server=CDKTGSVC9DB0034;Database=AppDev_SecurityPortal_DB;User Id=svc-cd-ktg-devdbt;Password=Bdoj821_;TrustServerCertificate=True;MultipleActiveResultSets=true";
 
         optionsBuilder.UseSqlServer(connectionString, options =>
         {

@@ -1,6 +1,7 @@
 @inject IBarriereService BarriereService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
     <EditForm Model="@model" OnValidSubmit="@Submit">
@@ -24,7 +25,7 @@
                         <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
                             Nom de la Barrière <span style="color: #e31b23;">*</span>
                         </RadzenText>
-                        <RadzenTextBox @bind-Value="@model.NomBarriere" Placeholder="Barrière Principale" 
+                        <RadzenTextBox @bind-Value="@model.NomBarriere" Placeholder="@L["Sec_PlBarriereName"].Value" 
                                        Style="width: 100%; border-radius: 6px;" />
                         <ValidationMessage For="@(() => model.NomBarriere)" />
                     </RadzenStack>
@@ -36,7 +37,7 @@
                 <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
                     Localisation <span style="color: #e31b23;">*</span>
                 </RadzenText>
-                <RadzenTextBox @bind-Value="@model.Localisation" Placeholder="Entrée principale - Bâtiment A" 
+                <RadzenTextBox @bind-Value="@model.Localisation" Placeholder="@L["Sec_PlLocation"].Value" 
                                Style="width: 100%; border-radius: 6px;" />
                 <ValidationMessage For="@(() => model.Localisation)" />
             </RadzenStack>
@@ -62,14 +63,14 @@
             @* Téléphone *@
             <RadzenStack Gap="0.25rem">
                 <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Téléphone</RadzenText>
-                <RadzenTextBox @bind-Value="@model.Telephone" Placeholder="+243 XXX XXX XXX" 
+                <RadzenTextBox @bind-Value="@model.Telephone" Placeholder="@L["Sec_PlPhone"].Value" 
                                Style="width: 100%; border-radius: 6px;" />
             </RadzenStack>
 
             @* Description *@
             <RadzenStack Gap="0.25rem">
                 <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Description</RadzenText>
-                <RadzenTextArea @bind-Value="@model.Description" Rows="3" Placeholder="Description détaillée de la barrière..."
+                <RadzenTextArea @bind-Value="@model.Description" Rows="3" Placeholder="@L["Sec_PlDescription"].Value"
                                 Style="width: 100%; border-radius: 6px;" />
             </RadzenStack>
 
@@ -82,8 +83,8 @@
 
         @* Actions *@
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="margin-top: 1.5rem;">
-            <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" ButtonType="ButtonType.Button" />
-            <RadzenButton Text="@(isNew ? "Créer" : "Enregistrer")" Icon="save" ButtonStyle="ButtonStyle.Danger" 
+            <RadzenButton Text="@L["Btn_Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" ButtonType="ButtonType.Button" />
+            <RadzenButton Text="@L[isNew ? "Btn_Create" : "Btn_Save"]" Icon="save" ButtonStyle="ButtonStyle.Danger" 
                           Style="background-color: #e31b23;" ButtonType="ButtonType.Submit" IsBusy="@isSaving" />
         </RadzenStack>
     </EditForm>
@@ -133,7 +134,7 @@
             string.IsNullOrWhiteSpace(model.NomBarriere) ||
             string.IsNullOrWhiteSpace(model.Localisation))
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Veuillez remplir tous les champs obligatoires");
+            NotificationService.Notify(NotificationSeverity.Warning, L["Lbl_Error"].Value, L["Msg_FillRequired"].Value);
             return;
         }
 
@@ -156,7 +157,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"].Value, ex.Message);
         }
         finally
         {

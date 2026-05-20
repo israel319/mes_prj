@@ -1,6 +1,7 @@
 @inject DialogService DialogService
 @inject IScanService ScanService
 @inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
     @if (Scan != null)
@@ -20,7 +21,7 @@
             </RadzenStack>
             @if (Scan.AnomalieSignalee)
             {
-                <RadzenBadge Text="Anomalie" BadgeStyle="BadgeStyle.Warning" />
+                <RadzenBadge Text="@L["Sdd_AnomalyBadge"].Value" BadgeStyle="BadgeStyle.Warning" />
             }
         </RadzenStack>
 
@@ -30,20 +31,20 @@
                 <RadzenColumn Size="6">
                     <RadzenStack Gap="0.75rem">
                         <RadzenStack Gap="0.125rem">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Référence Document</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">@L["Sdd_RefDocument"]</RadzenText>
                             <RadzenText FontWeight="FontWeight.Bold" Style="font-family: monospace; color: #e31b23; font-size: 1.1rem;">
                                 @Scan.NumeroReferenceBon
                             </RadzenText>
                         </RadzenStack>
                         <RadzenStack Gap="0.125rem">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Type de Document</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">@L["Sdd_TypeDocument"]</RadzenText>
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
                                 <RadzenBadge Text="@Scan.TypeBon" BadgeStyle="@(Scan.TypeBon == "BEM" ? BadgeStyle.Info : BadgeStyle.Success)" />
                                 <span style="color: #4a5568;">@GetTypeBonLabel()</span>
                             </RadzenStack>
                         </RadzenStack>
                         <RadzenStack Gap="0.125rem">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Type de Mouvement</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">@L["Sdd_TypeMouvement"]</RadzenText>
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
                                 <RadzenIcon Icon="@(Scan.TypeMouvement == "Entree" ? "login" : "logout")" 
                                             Style="@($"color: {(Scan.TypeMouvement == "Entree" ? "#48bb78" : "#ed8936")};")" />
@@ -55,14 +56,14 @@
                 <RadzenColumn Size="6">
                     <RadzenStack Gap="0.75rem">
                         <RadzenStack Gap="0.125rem">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Barrière</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">@L["Sdd_Barrier"]</RadzenText>
                             <RadzenText FontWeight="FontWeight.SemiBold">
                                 <RadzenIcon Icon="location_on" Style="vertical-align: middle; margin-right: 0.25rem; color: #4299e1;" />
                                 @(Scan.Barriere?.NomBarriere ?? "N/A")
                             </RadzenText>
                         </RadzenStack>
                         <RadzenStack Gap="0.125rem">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Agent de Sécurité</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">@L["Sdd_Agent"]</RadzenText>
                             <RadzenText FontWeight="FontWeight.SemiBold">
                                 <RadzenIcon Icon="person" Style="vertical-align: middle; margin-right: 0.25rem; color: #718096;" />
                                 @(Scan.AgentNom ?? Scan.AgentLogin)
@@ -71,7 +72,7 @@
                         @if (!string.IsNullOrEmpty(Scan.NumeroPreuve))
                         {
                             <RadzenStack Gap="0.125rem">
-                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">Numéro de Preuve</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.75rem;">@L["Sdd_ProofNumber"]</RadzenText>
                                 <RadzenText FontWeight="FontWeight.SemiBold" Style="font-family: monospace;">
                                     <RadzenIcon Icon="receipt" Style="vertical-align: middle; margin-right: 0.25rem; color: #48bb78;" />
                                     @Scan.NumeroPreuve
@@ -88,7 +89,7 @@
         {
             <RadzenCard Variant="Variant.Flat" Style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem;">
                 <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold" Style="color: #718096; margin-bottom: 0.75rem;">
-                    TRAJET PRÉVU
+                    @L["Sdd_PlannedRoute"]
                 </RadzenText>
                 <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Style="flex: 1;">
@@ -96,7 +97,7 @@
                             <div style="background: #e2e8f0; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
                                 <RadzenIcon Icon="flight_takeoff" Style="color: #4a5568;" />
                             </div>
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Provenance</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">@L["Sdd_Origin"]</RadzenText>
                             <RadzenText FontWeight="FontWeight.Bold" Style="color: #2d3748;">@(Scan.ProvenanceLieu ?? "N/A")</RadzenText>
                         </RadzenStack>
                         <RadzenIcon Icon="arrow_forward" Style="color: #cbd5e0; font-size: 1.5rem;" />
@@ -104,7 +105,7 @@
                             <div style="background: #e2e8f0; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
                                 <RadzenIcon Icon="flight_land" Style="color: #4a5568;" />
                             </div>
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Destination</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">@L["Sdd_Destination"]</RadzenText>
                             <RadzenText FontWeight="FontWeight.Bold" Style="color: #2d3748;">@(Scan.DestinationLieu ?? "N/A")</RadzenText>
                         </RadzenStack>
                     </RadzenStack>
@@ -129,14 +130,14 @@
                 <RadzenStack Gap="0.5rem">
                     <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
                         <RadzenIcon Icon="warning" Style="color: #d69e2e;" />
-                        <RadzenText FontWeight="FontWeight.Bold" Style="color: #744210;">Anomalie Signalée</RadzenText>
+                        <RadzenText FontWeight="FontWeight.Bold" Style="color: #744210;">@L["Sdd_AnomalyReported"]</RadzenText>
                     </RadzenStack>
                     <RadzenRow>
                         <RadzenColumn Size="6">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #975a16;">Type: @PremièreAnomalie.TypeAnomalie</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #975a16;">@(L["Sdd_AnomalyType"].Value + ": " + PremièreAnomalie.TypeAnomalie)</RadzenText>
                         </RadzenColumn>
                         <RadzenColumn Size="6">
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #975a16;">Gravité: @PremièreAnomalie.NiveauGravite</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #975a16;">@(L["Sdd_AnomalyGravity"].Value + ": " + PremièreAnomalie.NiveauGravite)</RadzenText>
                         </RadzenColumn>
                     </RadzenRow>
                     @if (!string.IsNullOrEmpty(PremièreAnomalie.Description))
@@ -153,10 +154,10 @@
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
             @if (Scan.StatutScan == StatutScanValues.Valid && !string.IsNullOrEmpty(Scan.NumeroPreuve))
             {
-                <RadzenButton Text="Réimprimer Preuve" Icon="print" ButtonStyle="ButtonStyle.Light" Click="@ReimprimerPreuve" />
+                <RadzenButton Text="@L["Sdd_Btn_Reprint"].Value" Icon="print" ButtonStyle="ButtonStyle.Light" Click="@ReimprimerPreuve" />
             }
-            <RadzenButton Text="Voir le Bon" Icon="description" ButtonStyle="ButtonStyle.Info" Click="@VoirBon" Visible="@(Scan.BonId.HasValue)" />
-            <RadzenButton Text="Fermer" Icon="close" ButtonStyle="ButtonStyle.Dark" Click="@Close" />
+            <RadzenButton Text="@L["Sdd_Btn_ViewBon"].Value" Icon="description" ButtonStyle="ButtonStyle.Info" Click="@VoirBon" Visible="@(Scan.BonId.HasValue)" />
+            <RadzenButton Text="@L["Sdd_Btn_Close"].Value" Icon="close" ButtonStyle="ButtonStyle.Dark" Click="@Close" />
         </RadzenStack>
     }
     else
@@ -197,12 +198,12 @@
 
     private string GetStatutLabel() => Scan?.StatutScan switch
     {
-        "Valid" => "Scan Valide",
-        "Invalid" => "Document Invalide",
-        "Expired" => "Document Expiré",
-        "AlreadyUsed" => "Déjà Scanné",
-        "NotFound" => "Document Non Trouvé",
-        _ => "Statut Inconnu"
+        "Valid" => L["Scan_Statut_Valid"].Value,
+        "Invalid" => L["Scan_Statut_Invalid"].Value,
+        "Expired" => L["Scan_Statut_Expired"].Value,
+        "AlreadyUsed" => L["Scan_Statut_AlreadyUsed"].Value,
+        "NotFound" => L["Scan_Statut_NotFound"].Value,
+        _ => L["Scan_Statut_Unknown"].Value
     };
 
     private string GetTypeBonLabel() => Scan?.TypeBon switch

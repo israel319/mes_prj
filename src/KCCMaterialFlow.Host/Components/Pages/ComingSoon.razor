@@ -4,6 +4,7 @@
 @attribute [Authorize]
 
 @inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@PageTitle - KCC Material Flow</PageTitle>
 
@@ -22,14 +23,14 @@
 
     @* === Message === *@
     <RadzenText TextStyle="TextStyle.H6" Style="color: var(--kcc-text-light); text-align: center; margin: 0; font-weight: 400;">
-        Bientôt disponible
+        @L["ComingSoon_Soon"]
     </RadzenText>
 
     <RadzenCard Style="background: var(--rz-base-100, #f8f9fa); border: 1px dashed #dee2e6; text-align: center; max-width: 500px; width: 100%;">
         <RadzenStack Gap="0.75rem" AlignItems="AlignItems.Center">
             <RadzenIcon Icon="construction" Style="font-size: 2rem; color: #fd7e14;" />
             <RadzenText TextStyle="TextStyle.Body1" Style="color: #495057; margin: 0;">
-                Cette fonctionnalité est en cours de développement et sera disponible dans une prochaine mise à jour.
+                @L["ComingSoon_Desc"]
             </RadzenText>
             <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin: 0;">
                 @PageDescription
@@ -39,9 +40,9 @@
 
     @* === Actions === *@
     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" JustifyContent="JustifyContent.Center" Style="margin-top: 0.5rem;">
-        <RadzenButton Text="Retour au tableau de bord" Icon="home" ButtonStyle="ButtonStyle.Primary"
+        <RadzenButton Text="@L["Btn_BackDashboard"].Value" Icon="home" ButtonStyle="ButtonStyle.Primary"
                       Click="@(() => Navigation.NavigateTo("/"))" />
-        <RadzenButton Text="Retour" Icon="arrow_back" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Light"
+        <RadzenButton Text="@L["Btn_Back"].Value" Icon="arrow_back" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Light"
                       Click="@GoBack" />
     </RadzenStack>
 </RadzenStack>

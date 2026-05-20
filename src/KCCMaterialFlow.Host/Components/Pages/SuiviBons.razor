@@ -1,4 +1,4 @@
-@page "/suivi-bons"
+﻿@page "/suivi-bons"
 @page "/mes-bons-en-attente"
 @attribute [Authorize]
 @using BonEntreeEntity = KCCMaterialFlow.Domain.Entities.BonEntree
@@ -9,15 +9,21 @@
 @inject IBonSortieService BonSortieService
 @inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
+@inject KCCMaterialFlow.Host.Services.UserRoleCacheService RoleCacheService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Suivi de mes bons - KCC Material Flow</PageTitle>
+<PageTitle>@L["SuiviBons_Title"] — KCC Material Flow</PageTitle>
 
-<RadzenStack Gap="1.5rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
-
-    <RadzenStack Gap="0.25rem">
-        <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">Suivi de mes bons</RadzenText>
-        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin: 0;">Suivez l'avancement de vos demandes en cours d'approbation</RadzenText>
-    </RadzenStack>
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["SuiviBons_Title"]</h1>
+                <p class="kcp-subtitle">@L["SuiviBons_Subtitle"]</p>
+            </div>
+        </div>
+    </div>
+    <main class="kcp-main">
 
     @if (isLoading)
     {
@@ -32,11 +38,11 @@
         <RadzenCard>
             <RadzenStack AlignItems="AlignItems.Center" Gap="0.5rem" Style="padding: 3rem; color: var(--kcc-text-muted);">
                 <RadzenIcon Icon="check_circle" Style="font-size: 3rem; opacity: 0.5;" />
-                <RadzenText Style="color: var(--kcc-text-muted);">Vous n'avez aucun bon en attente d'approbation</RadzenText>
+                <RadzenText Style="color: var(--kcc-text-muted);">@L["SuiviBons_NoPending"]</RadzenText>
                 <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.Center" Style="margin-top: 1rem;">
-                    <RadzenButton Text="Nouveau bon d'entrée" Icon="add" ButtonStyle="ButtonStyle.Primary"
+                    <RadzenButton Text="@L["Btn_NewBEM"]" Icon="add" ButtonStyle="ButtonStyle.Primary"
                                   Click="@(() => NavigateTo("/bon-entree/nouveau"))" />
-                    <RadzenButton Text="Nouveau bon de sortie" Icon="add" ButtonStyle="ButtonStyle.Secondary"
+                    <RadzenButton Text="@L["Btn_NewBSM"]" Icon="add" ButtonStyle="ButtonStyle.Secondary"
                                   Click="@(() => NavigateTo("/bon-sortie/nouveau"))" />
                 </RadzenStack>
             </RadzenStack>
@@ -50,7 +56,7 @@
             <RadzenCard Style="padding: 0; overflow: hidden;">
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
                              Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border);">
-                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600; color: var(--kcc-slate);">Bons d'entrée en attente (@bemPending.Count)</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600; color: var(--kcc-slate);">@L["SuiviBons_PendingBEM"] (@bemPending.Count)</RadzenText>
                     <RadzenBadge Text="BEM" BadgeStyle="BadgeStyle.Info" />
                 </RadzenStack>
 
@@ -112,7 +118,7 @@
             <RadzenCard Style="padding: 0; overflow: hidden;">
                 <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center"
                              Style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--kcc-border);">
-                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600; color: var(--kcc-slate);">Bons de sortie en attente (@bsmPending.Count)</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-weight: 600; color: var(--kcc-slate);">@L["SuiviBons_PendingBSM"] (@bsmPending.Count)</RadzenText>
                     <RadzenBadge Text="BSM" BadgeStyle="BadgeStyle.Success" />
                 </RadzenStack>
 
@@ -168,7 +174,8 @@
             </RadzenCard>
         }
     }
-</RadzenStack>
+    </main>
+</div>
 
 @code {
     private bool isLoading = true;
@@ -178,6 +185,17 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Les approbateurs (Admin/SuperAdmin/manager/approbateur spécial) ont leur propre vue
+        // "Mes Approbations" - le suivi personnel n'a de sens que pour les utilisateurs simples.
+        var niveau = CurrentUserService.NiveauAdmin;
+        var isAdmin = niveau >= KCCMaterialFlow.Domain.Enums.NiveauAdmin.Admin;
+        var isApprover = isAdmin || RoleCacheService.IsApprover(CurrentUserService.GetUserLogin());
+        if (isApprover)
+        {
+            NavigationManager.NavigateTo("/mes-approbations", replace: true);
+            return;
+        }
+
         await LoadPendingBonsAsync();
     }
 
@@ -211,7 +229,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"].Value, ex.Message);
         }
         finally
         {
@@ -231,10 +249,12 @@
 
     private List<WorkflowStep> GetBEMWorkflowSteps(BonEntreeEntity bon)
     {
-        // Chaîne standard BEM: Superviseur → GM → OPJ → Identification
+        // Étape 1 : label dynamique depuis la chaîne réelle (Superintendent ou Manager)
+        var step1Label = bon.Approbations.OrderBy(a => a.OrdreEtape).FirstOrDefault()?.NomEtape ?? "Manager";
+        // Chaîne standard BEM: [Sup./Manager] → GM → OPJ → Identification
         var steps = new List<WorkflowStep>
         {
-            new() { Order = 1, Label = "Superviseur", StatusCode = "PendingSup" },
+            new() { Order = 1, Label = step1Label, StatusCode = "PendingSup" },
             new() { Order = 2, Label = "GM", StatusCode = "PendingGM" },
             new() { Order = 3, Label = "OPJ", StatusCode = "PendingOPJ" },
             new() { Order = 4, Label = "ID", StatusCode = "PendingIdentification" }
@@ -270,22 +290,28 @@
             steps.Add(new() { Order = 1, Label = "Env", StatusCode = "PendingEnv" });
         }
 
+        // Label dynamique pour l'étape Superintendent/Manager
+        var mgrAppro = bon.Approbations
+            .OrderBy(a => a.OrdreEtape)
+            .FirstOrDefault(a => a.CodeEtape == "SUPERINTENDENT" || a.CodeEtape == "REPORTSTO");
+        var mgrLabel = mgrAppro?.NomEtape ?? "Manager";
+
         // Chaîne commune
         var baseOrder = steps.Count;
         steps.AddRange(new[]
         {
-            new WorkflowStep { Order = baseOrder + 1, Label = "Sup", StatusCode = "PendingSuperviseur" },
+            new WorkflowStep { Order = baseOrder + 1, Label = mgrLabel, StatusCode = "PendingSuperviseur" },
             new WorkflowStep { Order = baseOrder + 2, Label = "GM", StatusCode = "PendingGM" },
             new WorkflowStep { Order = baseOrder + 3, Label = "OPJ", StatusCode = "PendingOPJ" },
             new WorkflowStep { Order = baseOrder + 4, Label = "ID", StatusCode = "PendingIdentification" }
         });
 
-        // Si pas de IT/Env au début, ajouter Superviseur en premier
+        // Si pas de IT/Env au début, la chaîne commence par Superintendent/Manager
         if (baseOrder == 0)
         {
             steps = new List<WorkflowStep>
             {
-                new() { Order = 1, Label = "Sup", StatusCode = "PendingSuperviseur" },
+                new() { Order = 1, Label = mgrLabel, StatusCode = "PendingSuperviseur" },
                 new() { Order = 2, Label = "GM", StatusCode = "PendingGM" },
                 new() { Order = 3, Label = "OPJ", StatusCode = "PendingOPJ" },
                 new() { Order = 4, Label = "ID", StatusCode = "PendingIdentification" }
@@ -307,13 +333,13 @@
 
     private string GetStatutLibelle(string? statut) => statut switch
     {
-        "PendingSup" or "PendingSuperviseur" => "Att. Superviseur",
+        "PendingSup" or "PendingSuperviseur" => "Att. Approbateur",
         "PendingGM" => "Att. GM",
         "PendingOPJ" => "Att. OPJ",
         "PendingIdentification" => "Att. Identification",
         "PendingIT" => "Att. IT",
         "PendingEnv" => "Att. Environnement",
-        _ => "En attente"
+        _ => L["Lbl_Pending"].Value
     };
 
     private void NavigateTo(string url) => NavigationManager.NavigateTo(url);
@@ -322,3 +348,4 @@
     private static string GetDotColor(WorkflowStep step) => step.IsCompleted || step.IsCurrent ? "white" : "#9ca3af";
     private static string GetLabelStyle(WorkflowStep step) => step.IsCurrent ? "text-align: center; max-width: 60px; color: #3b82f6; font-weight: 600;" : "text-align: center; max-width: 60px; color: #9ca3af;";
 }
+

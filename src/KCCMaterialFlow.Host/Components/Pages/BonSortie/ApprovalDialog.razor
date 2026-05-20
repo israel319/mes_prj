@@ -1,28 +1,29 @@
 @* Dialog pour approbation/rejet *@
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1rem">
     <RadzenText TextStyle="TextStyle.Body2">
         @if (IsReject)
         {
-            <span>Veuillez indiquer le motif.</span>
+            <span>@L["Dlg_RejectDesc"]</span>
         }
         else
         {
-            <span>Confirmer l'approbation.</span>
+            <span>@L["Dlg_ApproveDesc"]</span>
         }
     </RadzenText>
     
     <div>
-        <RadzenLabel Text="@(IsReject ? "Motif *" : "Commentaire (optionnel)")" 
+        <RadzenLabel Text="@(IsReject ? L["Dlg_RejectLabel"].Value : L["Dlg_CommentLabel"].Value)" 
                      Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
         <RadzenTextArea @bind-Value="@commentaire" Rows="3" Style="width:100%;" 
-                        Placeholder="@(IsReject ? "Expliquez le motif..." : "Ajouter un commentaire...")" />
+                        Placeholder="@(IsReject ? L["Dlg_RejectPlaceholder"].Value : L["Dlg_CommentPlaceholder"].Value)" />
     </div>
     
     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
-        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
-        <RadzenButton Text="@(IsReject ? "Confirmer" : "Approuver")" 
+        <RadzenButton Text="@L["Btn_Cancel"].Value" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@(IsReject ? L["Dlg_Confirm"].Value : L["Dlg_Approve"].Value)" 
                       ButtonStyle="@(IsReject ? ButtonStyle.Danger : ButtonStyle.Success)"
                       Click="@Confirm" Disabled="@(IsReject && string.IsNullOrWhiteSpace(commentaire))" />
     </RadzenStack>

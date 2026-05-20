@@ -9,171 +9,349 @@
 @inject ICategorieSortieService CategorieSortieService
 @inject IRaisonEntreeService RaisonEntreeService
 @inject IBonEntreeLockService BonEntreeLockService
+@inject IAllEmployeeSearchService GlencoreSearchService
 @inject NavigationManager Navigation
 @inject NotificationService NotificationService
 @inject DialogService DialogService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> L
+@inject ITypeMaterielService TypeMaterielService
 
-<PageTitle>Bon de sortie de matériel - KCC Material Flow</PageTitle>
+<PageTitle>@L["BsmF_PageTitleNew"]</PageTitle>
+
+<div class="kcp-page">
 
 @if (isLoading)
 {
-    <div style="text-align: center; padding: 3rem;">
-        <RadzenProgressBar ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+        <RadzenProgressBar ShowValue="false" Mode="ProgressBarMode.Indeterminate" Style="width: 200px;" />
     </div>
 }
 else
 {
-<div class="bon-form-layout">
-
-<div class="bon-form">
-
-    @* ── Header ── *@
-    <div class="bon-form__header">
-        <div class="bon-form__header-logo">
-            <div class="bon-form__header-icon">KCC</div>
-            <span class="bon-form__header-brand">KCC Material Flow</span>
-        </div>
-        <div class="bon-form__header-title">
-            <h1>Bon de Sortie de Matériel</h1>
-            <p>Property Removal Permit</p>
-        </div>
-        <div class="bon-form__header-meta">
-            <p style="margin: 0;">Expire : <strong>@DateTime.Today.AddMonths(6).ToString("dd/MM/yyyy")</strong></p>
-            <p style="margin: 0.2rem 0 0;">No : <em>@(generatedNumero ?? "(auto)")</em></p>
+    @* ── Hero ── *@
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <RadzenBadge Text="Nouveau BSM" BadgeStyle="BadgeStyle.Light" Shade="Shade.Lighter" Style="margin-bottom: 0.5rem; font-size: 0.7rem;" />
+                <h1 class="kcp-title">@L["BsmF_FormTitle"]</h1>
+                <p class="kcp-subtitle">@L["BsmF_FormSubtitle"] &bull; @L["Col_Reference"] : @(generatedNumero ?? "(auto)")</p>
+            </div>
+            <div class="kcp-hero-actions">
+                <NavLink href="/bon-sortie" class="kcp-btn">@L["Btn_Back"]</NavLink>
+                <button type="button" class="kcp-btn" @onclick="() => HandleSubmitAsync(false)" disabled="@isSubmitting">
+                    <RadzenIcon Icon="save" Style="font-size:1rem;" />
+                    @L["BemF_Draft"]
+                </button>
+                <button type="button" class="kcp-btn kcp-btn-primary" @onclick="() => HandleSubmitAsync(true)" disabled="@isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                                    Size="ProgressBarCircularSize.ExtraSmall"
+                                                    Style="width:1rem; height:1rem; flex-shrink:0;" />
+                    }
+                    else
+                    {
+                        <RadzenIcon Icon="send" Style="font-size:1rem;" />
+                    }
+                    @(isSubmitting ? L["BsmF_InProgress"] : L["BemF_Submit"])
+                </button>
+            </div>
         </div>
     </div>
-    <div class="bon-form__divider"></div>
 
-    @* ── Informations du demandeur ── *@
-    <section class="bon-form__section">
-        <h2 class="bon-form__section-title">Informations du demandeur</h2>
-        <div class="bon-form__section-line"></div>
-        <RadzenRow Gap="1.25rem">
-            <RadzenColumn Size="4">
-                <label class="bon-form__label">Name / Nom</label>
-                <RadzenTextBox @bind-Value="model.NomDemandeur" Placeholder="Nom complet" Style="width: 100%;" Density="Density.Compact" />
-            </RadzenColumn>
-            <RadzenColumn Size="4">
-                <label class="bon-form__label">Function / Fonction</label>
-                <RadzenTextBox @bind-Value="model.FonctionDemandeur" Placeholder="Fonction" Style="width: 100%;" Density="Density.Compact" />
-            </RadzenColumn>
-            <RadzenColumn Size="4">
-                <label class="bon-form__label">Department / Département</label>
-                <RadzenTextBox @bind-Value="model.DepartementDemandeur" Placeholder="Département" Style="width: 100%;" Density="Density.Compact" />
-            </RadzenColumn>
-        </RadzenRow>
-    </section>
+    @* ── Main : formulaire (gauche) + revue (droite) ── *@
+    <main class="kcp-main">
+    <div style="display: grid; grid-template-columns: 1fr 280px; gap: 1rem; align-items: start; max-width: 960px; margin: 0 auto;">
 
-    @* ── BEM Source (EXTERNE depuis un BEM) ── *@
-    @if (fromBemLink && selectedBemDetails != null)
+    @* ── Formulaire ── *@
+    <div class="kcc-form-scope">
+
+    @* ── Bannière info ── *@
+    <div class="conf-banner">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p><strong>@L["BsmF_FormTitle"] —</strong> @L["BsmF_FormSubtitle"]</p>
+    </div>
+
+    <div class="form-card">
+
+    @* ── Section 1 : Informations du demandeur ── *@
+    <div class="form-section-header">
+        <div class="section-number">1</div>
+        <h2>@L["BsmF_RequesterInfo"]</h2>
+    </div>
+    <div class="form-section-body">
+        <div class="field-row">
+            <div class="field-group">
+                <label class="field-label">@L["BsmF_NameLabel"]</label>
+                <RadzenTextBox @bind-Value="model.NomDemandeur" Placeholder="@L["BsmF_NamePlaceholder"].Value" Style="width: 100%;" Density="Density.Compact" />
+            </div>
+            <div class="field-group">
+                <label class="field-label">@L["BsmF_FunctionLabel"]</label>
+                <RadzenTextBox @bind-Value="model.FonctionDemandeur" Placeholder="@L["BsmF_FunctionPlaceholder"].Value" Style="width: 100%;" Density="Density.Compact" />
+            </div>
+            <div class="field-group">
+                <label class="field-label">@L["BsmF_DeptLabel"]</label>
+                <RadzenTextBox @bind-Value="model.DepartementDemandeur" Placeholder="@L["BsmF_DeptPlaceholder"].Value" Style="width: 100%;" Density="Density.Compact" />
+            </div>
+        </div>
+    </div>
+    <hr class="form-divider" />
+
+    @* ── Section 2 : Site KCC + Demande pour ── *@
+    <div class="form-section-header">
+        <div class="section-number">2</div>
+        <h2>@L["BsmF_SiteSection"]</h2>
+    </div>
+    <div class="form-section-body">
+        <div class="field-row">
+            <div class="field-group">
+                <label class="field-label">@L["BemF_KccSite"]</label>
+                <RadzenDropDown TValue="int?" @bind-Value="siteKccId"
+                                Data="@sites" TextProperty="Nom" ValueProperty="Id"
+                                Placeholder="@L["BemF_PlSelectKccSite"].Value" AllowFiltering="true" AllowClear="true"
+                                Style="width: 100%;" Density="Density.Compact" />
+            </div>
+            <div class="field-group">
+                <label class="field-label">@L["BsmF_RequestFor"]</label>
+                <RadzenDropDown TValue="string" @bind-Value="requestedForCode"
+                                Data="@requestedForCandidates"
+                                TextProperty="DisplayLabel" ValueProperty="EmployeeCode"
+                                AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                                AllowClear="true" LoadData="@OnRequestedForFilter"
+                                Placeholder="@L["BsmF_SearchEmployee"].Value"
+                                Change="@OnRequestedForChanged"
+                                Style="width: 100%;" Density="Density.Compact" />
+                @if (!string.IsNullOrWhiteSpace(requestedForDisplay))
+                {
+                    <div style="margin-top: 0.35rem; font-size: 0.72rem; color: #6b7280;">
+                        @requestedForDisplay
+                        @if (!string.IsNullOrWhiteSpace(requestedForDepartement))
+                        {
+                            <span> — @L["BsmF_DeptAbbr"] <strong>@requestedForDepartement</strong></span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(siteManagerAuto))
+                        {
+                            <span> — @L["BemF_SiteManager"] : <strong>@siteManagerAuto</strong></span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <hr class="form-divider" />
+
+    @* ── Section 3 : Type sortie INTERNE / EXTERNE ── *@
+    <div class="form-section-header">
+        <div class="section-number">3</div>
+        <h2>@L["BsmF_ExitType"]</h2>
+    </div>
+    <div class="form-section-body">
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="button" @onclick="@(async () => await SetMode(false))"
+                    class="mode-toggle-btn @(selectedMode == false ? "is-interne-active" : "")">
+                INTERNE
+            </button>
+            <button type="button" @onclick="@(async () => await SetMode(true))"
+                    class="mode-toggle-btn @(selectedMode == true ? "is-externe-active" : "")">
+                EXTERNE
+            </button>
+        </div>
+        @if (!selectedMode.HasValue)
+        {
+            <p style="font-size: 0.72rem; color: #9ca3af; margin: 0.5rem 0 0; font-style: italic;">
+                @L["BsmF_SelectTypeContinue"]
+            </p>
+        }
+    </div>
+    <hr class="form-divider" />
+
+    @* ── Section 4 : Type de matériel (workflow d'approbation) ── *@
+    <div class="form-section-header">
+        <div class="section-number">4</div>
+        <h2>Type de matériel</h2>
+    </div>
+    <div class="form-section-body">
+        <div class="field-group">
+            <label class="field-label">Type de matériel <span class="req">*</span></label>
+            <RadzenDropDown TValue="int?" @bind-Value="selectedTypeMaterielId"
+                            Data="@TypesSortieFiltered"
+                            TextProperty="NomType" ValueProperty="Id"
+                            Placeholder="Sélectionner un type de matériel..."
+                            Style="width: 100%;" Density="Density.Compact"
+                            Change="@OnTypeMaterielChanged" />
+        </div>
+    </div>
+    <hr class="form-divider" />
+
+    @* ── Section 5 : BEM Source (EXTERNE, non encore lié) ── *@
+    @if (selectedMode == true && selectedBemDetails == null && !IsPretType())
     {
-    <section class="bon-form__section">
-        <h2 class="bon-form__section-title">Bon d'Entrée (BEM) source - EXTERNE</h2>
-        <div class="bon-form__section-line"></div>
+    <div class="form-section-header">
+        <div class="section-number">5</div>
+        <h2>
+            <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <span style="padding: 0.2rem 0.65rem; font-size: 0.68rem; font-weight: 700; background: #3b82f6; color: #fff;">EXTERNE</span>
+                @L["BsmF_BemSource"]
+            </span>
+        </h2>
+    </div>
+    <div class="form-section-body">
+        <div class="field-group">
+            <label class="field-label">@L["BsmF_SearchApprovedBem"] <span class="req">*</span></label>
+            <RadzenDropDown TValue="int" @bind-Value="selectedBemIdPicker" Data="@bemsDisponiblesAll"
+                            TextProperty="DisplayText" ValueProperty="IdBon"
+                            AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            Placeholder="@L["BsmF_SearchBemPlaceholder"].Value"
+                            Change="@OnBemSelectedRadzen"
+                            Style="width: 100%;" Density="Density.Compact" />
+            @if (!bemsDisponiblesAll.Any())
+            {
+                <div style="margin-top: 0.5rem; font-size: 0.72rem; color: #f59e0b;">
+                    <RadzenIcon Icon="warning" Style="font-size: 0.75rem; vertical-align: middle;" />
+                    @L["BsmF_NoBemAvailable"]
+                </div>
+            }
+        </div>
+    </div>
+    <hr class="form-divider" />
+    }
+    @if (selectedMode == true && selectedBemDetails != null && !IsPretType())
+    {
+    <div class="form-section-body" style="padding-top: 0;">
         <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: rgba(59,130,246,0.06); border-left: 3px solid var(--rz-info);">
             <RadzenIcon Icon="link" Style="color: var(--rz-info);" />
             <span style="flex: 1; font-size: 0.8rem;">
                 <strong>@selectedBemDetails.NumeroReference</strong> — @selectedBemDetails.NomCompagnie (@selectedBemDetails.HostDepartment)
             </span>
-            <RadzenBadge Text="Lié" BadgeStyle="BadgeStyle.Info" />
+            <RadzenBadge Text="@L["BsmF_Linked"].Value" BadgeStyle="BadgeStyle.Info" />
+            <RadzenButton Icon="close" Size="ButtonSize.ExtraSmall" Variant="Variant.Text"
+                          ButtonStyle="ButtonStyle.Light" Click="@OnDeselectBem" />
         </div>
-    </section>
+    </div>
+    <hr class="form-divider" />
     }
-    else
+    @if (selectedMode == false)
     {
-    @* ── Motif (INTERNE) ── *@
-    <section class="bon-form__section">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <div style="display: flex; gap: 0.25rem;">
-                <span style="padding: 0.25rem 0.75rem; font-size: 0.68rem; font-weight: 700; background: #00B193; color: #fff;">INTERNE</span>
+    @* ── Section 5 (INTERNE) : Motif ── *@
+    <div class="form-section-header">
+        <div class="section-number">5</div>
+        <h2>
+            <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <span style="padding: 0.2rem 0.65rem; font-size: 0.68rem; font-weight: 700; background: #00B193; color: #fff;">INTERNE</span>
+                @L["BsmF_Reason"]
+            </span>
+        </h2>
+    </div>
+    <div class="form-section-body">
+        @if (!IsPretType())
+        {
+            <div class="field-group">
+                <RadzenTextBox @bind-Value="selectedRaisonCode" Placeholder="@L["BsmF_ReasonPlaceholder"].Value" Style="width: 100%;" Density="Density.Compact" />
             </div>
-            <span class="bon-form__section-title" style="margin: 0;">Motif</span>
-        </div>
-        <div class="bon-form__section-line"></div>
-        <RadzenDropDown TValue="string" @bind-Value="selectedRaisonCode" Data="@availableRaisons"
-                        TextProperty="Nom" ValueProperty="Code"
-                        Placeholder="-- Sélectionnez le motif --" Style="width: 100%;" Density="Density.Compact"
-                        Change="@OnRaisonDropdownChanged" />
-        @if (selectedRaisonCode == "AUTRE")
-        {
-            <RadzenTextBox @bind-Value="autreMotifTexte" Placeholder="Précisez le motif..." Style="width: 100%; margin-top: 0.5rem;" />
         }
-        @if (selectedRaisonCode == "PRET")
+        @if (IsPretType())
         {
-            <div style="margin-top: 0.75rem;">
-                <label class="bon-form__label">Date de retour prévue <span class="required-star">*</span></label>
+            <div style="font-size:0.78rem; color:#b45309; background:rgba(245,158,11,0.08); border-left:3px solid #f59e0b; padding:0.5rem 0.75rem; margin-bottom:0.5rem;">
+                <RadzenIcon Icon="swap_horiz" Style="font-size:0.85rem; vertical-align:middle; margin-right:0.25rem;" />
+                @L["BsmF_LoanModeInfo"]
+            </div>
+            <div class="field-group" style="margin-top: 0.5rem;">
+                <label class="field-label">@L["BsmF_ReturnDate"] <span class="req">*</span></label>
                 <RadzenDatePicker @bind-Value="@pretDateRetourPrevue" DateFormat="dd/MM/yyyy" Min="@DateTime.Today.AddDays(1)"
-                                  Placeholder="Sélectionner la date de retour" Style="width: 100%;" Density="Density.Compact" />
+                                  Placeholder="@L["BsmF_SelectReturnDate"].Value" Style="width: 100%;" Density="Density.Compact" />
             </div>
         }
-        @if (!string.IsNullOrWhiteSpace(selectedRaisonCode))
+        else if (selectedRaisonCode == "PRET")
         {
-            <RadzenTextBox @bind-Value="commentaireMotif" Placeholder="Commentaire optionnel (affiché entre parenthèses à l'impression)" Style="width: 100%; margin-top: 0.5rem; font-size: 0.78rem;" />
+            <div class="field-group" style="margin-top: 0.75rem;">
+                <label class="field-label">@L["BsmF_ReturnDate"] <span class="req">*</span></label>
+                <RadzenDatePicker @bind-Value="@pretDateRetourPrevue" DateFormat="dd/MM/yyyy" Min="@DateTime.Today.AddDays(1)"
+                                  Placeholder="@L["BsmF_SelectReturnDate"].Value" Style="width: 100%;" Density="Density.Compact" />
+            </div>
         }
-    </section>
+        @if (!string.IsNullOrWhiteSpace(selectedRaisonCode) && !IsPretType())
+        {
+            <div class="field-group" style="margin-top: 0.5rem;">
+                <RadzenTextBox @bind-Value="commentaireMotif" Placeholder="@L["BsmF_PlCommentOptional"].Value" Style="width: 100%; font-size: 0.78rem;" Density="Density.Compact" />
+            </div>
+        }
+    </div>
+    <hr class="form-divider" />
     }
 
-    @* ── Provenance / Destination ── *@
-    <section class="bon-form__section">
-        <h2 class="bon-form__section-title">Provenance / Destination</h2>
-        <div class="bon-form__section-line"></div>
-        <RadzenRow Gap="1.25rem">
-            <RadzenColumn Size="6">
-                <label class="bon-form__label">From (Provenance)</label>
+    @* ── Section 6 : Provenance / Destination ── *@
+    <div class="form-section-header">
+        <div class="section-number">6</div>
+        <h2>@L["BsmF_OriginDest"]</h2>
+    </div>
+    <div class="form-section-body">
+        <div class="field-row">
+            <div class="field-group">
+                <label class="field-label">@L["BemF_From"]</label>
                 <RadzenDropDown TValue="int?" @bind-Value="siteFromId" Data="@sites" TextProperty="Nom" ValueProperty="Id"
-                                Placeholder="-- Sélectionner la provenance --" Style="width: 100%;" Density="Density.Compact"
+                                Placeholder="@L["BsmF_SelectOrigin"].Value" Style="width: 100%;" Density="Density.Compact"
                                 Disabled="@destinationFromBem" Change="@OnSiteFromChanged" />
-            </RadzenColumn>
-            <RadzenColumn Size="6">
-                <label class="bon-form__label">To (Destination)</label>
+            </div>
+            <div class="field-group">
+                <label class="field-label">@L["BemF_To"]</label>
                 <RadzenDropDown TValue="int?" @bind-Value="siteToId" Data="@SitesExcludingFrom" TextProperty="Nom" ValueProperty="Id"
-                                Placeholder="-- Sélectionner la destination --" Style="width: 100%;" Density="Density.Compact" />
-            </RadzenColumn>
-        </RadzenRow>
+                                Placeholder="@L["BsmF_SelectDest"].Value" Style="width: 100%;" Density="Density.Compact" />
+            </div>
+        </div>
         @if (destinationFromBem)
         {
             <p style="font-size: 0.7rem; color: #6b7280; margin: 0.5rem 0 0; font-style: italic;">
-                <RadzenIcon Icon="info" Style="font-size: 0.75rem; vertical-align: middle;" /> La provenance est définie par le BEM source.
+                <RadzenIcon Icon="info" Style="font-size: 0.75rem; vertical-align: middle;" /> @L["BsmF_SourceFromBem"]
             </p>
         }
-    </section>
+    </div>
+    <hr class="form-divider" />
 
-    @* ── Matériels ── *@
-    <section class="bon-form__section">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <h2 class="bon-form__section-title" style="margin: 0;">Matériels</h2>
-            @if (fromBemLink && selectedBemDetails != null)
-            {
-                <RadzenButton Text="@($"Modifier ({selectedMateriels.Count})")" Icon="edit" ButtonStyle="ButtonStyle.Primary"
-                              Variant="Variant.Flat" Size="ButtonSize.ExtraSmall" Click="@OpenMaterielModal"
-                              Style="font-size: 0.68rem; gap: 0.2rem;" />
-            }
-        </div>
-        <div class="bon-form__section-line"></div>
-        @if (fromBemLink && selectedBemDetails != null)
+    @* ── Section 7 : Matériels ── *@
+    <div class="form-section-header">
+        <div class="section-number">7</div>
+        <h2>
+            <span style="display: inline-flex; align-items: center; gap: 0.75rem;">
+                @L["BemF_Materials"]
+                @if (selectedMode == true && selectedBemDetails != null)
+                {
+                    <RadzenButton Text="@(L["BemV_Edit"].Value + " (" + selectedMateriels.Count + ")")" Icon="edit" ButtonStyle="ButtonStyle.Primary"
+                                  Variant="Variant.Flat" Size="ButtonSize.ExtraSmall" Click="@OpenMaterielModal"
+                                  Style="font-size: 0.68rem; gap: 0.2rem;" />
+                }
+            </span>
+        </h2>
+    </div>
+    <div class="form-section-body">
+        @if (selectedMode == true && selectedBemDetails != null)
         {
             @* Mode EXTERNE (depuis BEM) *@
             <RadzenDataGrid TItem="MaterielSelectable" Data="@selectedMateriels" Density="Density.Compact" Style="font-size: 0.8rem;">
                 <Columns>
-                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Qté" Width="15%" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="@L["BsmV_ColQty"]" Width="15%" TextAlign="TextAlign.Center">
                         <Template Context="mat">
                             <RadzenNumeric @bind-Value="mat.QuantiteASortir" Min="1" Max="mat.QuantiteDisponible" Style="width: 55px; font-size: 0.8rem; text-align: center; margin: 0 auto;" />
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Code / N° Série" Width="25%">
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="@L["BsmV_ColSerial"]" Width="25%">
                         <Template Context="mat">
                             <code style="font-size: 0.75rem;">@mat.CodeProduitSerial</code>
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Description" Width="60%">
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="@L["BsmV_ColDesc"]" Width="60%">
                         <Template Context="mat">
                             <span style="font-size: 0.8rem; font-weight: 500;">@mat.Designation</span>
                         </Template>
                     </RadzenDataGridColumn>
                 </Columns>
                 <EmptyTemplate>
-                    <p style="text-align: center; padding: 1.5rem; color: #6b7280;">Sélectionnez des matériels depuis le BEM source</p>
+                    <p style="text-align: center; padding: 1.5rem; color: #6b7280;">@L["BsmF_SelectBemMaterials"]</p>
                 </EmptyTemplate>
             </RadzenDataGrid>
         }
@@ -182,17 +360,17 @@ else
             @* Mode INTERNE - Grille éditable *@
             <RadzenDataGrid TItem="MaterielSelectable" Data="@selectedMateriels" Density="Density.Compact" Style="font-size: 0.8rem;">
                 <Columns>
-                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Code produit / N° Serial" Width="25%">
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="@L["BsmF_SerialColTitle"]" Width="25%">
                         <Template Context="mat">
-                            <RadzenTextBox @bind-Value="mat.CodeProduitSerial" Placeholder="Code/Serial" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.8rem;" />
+                            <RadzenTextBox @bind-Value="mat.CodeProduitSerial" Placeholder="@L["BsmF_SerialColTitle"].Value" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.8rem;" />
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Désignation" Width="45%">
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="@L["BsmF_DesignationLabel"]" Width="45%">
                         <Template Context="mat">
-                            <RadzenTextBox @bind-Value="mat.Designation" Placeholder="Description du matériel" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.8rem;" />
+                            <RadzenTextBox @bind-Value="mat.Designation" Placeholder="@L["BsmF_MaterialDescPlaceholder"].Value" Style="width: 100%; border: none; box-shadow: none; padding: 0.15rem 0.25rem; font-size: 0.8rem;" />
                         </Template>
                     </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="Quantité" Width="15%" TextAlign="TextAlign.Center">
+                    <RadzenDataGridColumn TItem="MaterielSelectable" Title="@L["BemF_Qty"]" Width="15%" TextAlign="TextAlign.Center">
                         <Template Context="mat">
                             <RadzenNumeric @bind-Value="mat.QuantiteASortir" Min="1" Style="width: 100%; border: none; box-shadow: none; font-size: 0.8rem; text-align: center;" />
                         </Template>
@@ -205,102 +383,81 @@ else
                     </RadzenDataGridColumn>
                 </Columns>
                 <EmptyTemplate>
-                    <p style="text-align: center; padding: 1rem; color: #6b7280;">Ajoutez des matériels ci-dessous</p>
+                    <p style="text-align: center; padding: 1rem; color: #6b7280;">@L["BsmF_AddMaterialsBelow"]</p>
                 </EmptyTemplate>
             </RadzenDataGrid>
-            <div style="margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-size: 0.75rem; color: #6b7280;">Total : <strong style="color: #1a1a1a;">@selectedMateriels.Sum(m => m.QuantiteASortir)</strong> article@(selectedMateriels.Sum(m => m.QuantiteASortir) > 1 ? "s" : "")</span>
-                <button type="button" @onclick="AddEmptyMateriel" style="background: none; border: none; cursor: pointer; font-size: 0.75rem; font-weight: 500; color: #6b7280; display: flex; align-items: center; gap: 0.25rem;">
-                    <RadzenIcon Icon="add" Style="font-size: 0.85rem;" /> Ajouter
+            <div class="totaux-row">
+                <span>@L["BemF_Total"] <strong>@selectedMateriels.Sum(m => m.QuantiteASortir)</strong> @(selectedMateriels.Sum(m => m.QuantiteASortir) > 1 ? L["BemF_Articles"].Value : L["BemF_Article"].Value)</span>
+                <button type="button" @onclick="AddEmptyMateriel" style="background: none; border: none; cursor: pointer; font-size: .75rem; font-weight: 600; color: var(--kcc-f-teal); display: flex; align-items: center; gap: .25rem;">
+                    <RadzenIcon Icon="add" Style="font-size: .85rem;" /> @L["BemF_Add"]
                 </button>
             </div>
         }
-    </section>
+    </div>
 
-    @* ── Motif EXTERNE (depuis un BEM) ── *@
-    @if (fromBemLink && selectedBemDetails != null)
+    @* ── Section 8 : Motif EXTERNE ── *@
+    @if (selectedMode == true && (selectedBemDetails != null || IsPretType()))
     {
-    <section class="bon-form__section">
-        <h2 class="bon-form__section-title">Motif - EXTERNE</h2>
-        <div class="bon-form__section-line"></div>
-        @if (availableRaisons.Count > 0)
+    <hr class="form-divider" />
+    <div class="form-section-header">
+        <div class="section-number">8</div>
+        <h2>@L["BsmF_ExternalReason"]</h2>
+    </div>
+    <div class="form-section-body">
+        @if (IsPretType())
         {
-            <p style="font-size: 0.68rem; color: #6b7280; font-style: italic; margin: 0 0 0.75rem;">
-                Motifs autorisés pour ce BEM (@selectedBemDetails.HostDepartment): @string.Join(", ", availableRaisons.Select(r => r.Nom))
-            </p>
-        }
-        @if (motifLocked)
-        {
-            <div style="padding: 0.6rem 0.75rem; background: rgba(59,130,246,0.06); border-left: 3px solid var(--rz-info);">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <RadzenIcon Icon="lock" Style="color: var(--rz-info); font-size: 1rem;" />
-                    <span style="font-size: 0.8rem; font-weight: 600; color: #1a1a1a;">
-                        @(availableRaisons.FirstOrDefault()?.Nom ?? selectedRaisonCode)
-                    </span>
-                    <span style="font-size: 0.68rem; color: #6b7280;">(auto-sélectionné)</span>
-                </div>
+            <div style="font-size:0.78rem; color:#b45309; background:rgba(245,158,11,0.08); border-left:3px solid #f59e0b; padding:0.5rem 0.75rem; margin-bottom:0.5rem;">
+                <RadzenIcon Icon="swap_horiz" Style="font-size:0.85rem; vertical-align:middle; margin-right:0.25rem;" />
+                @L["BsmF_LoanModeInfo"]
+            </div>
+            <div class="field-group" style="margin-top: 0.5rem;">
+                <label class="field-label">@L["BsmF_ReturnDate"] <span class="req">*</span></label>
+                <RadzenDatePicker @bind-Value="@pretDateRetourPrevue" DateFormat="dd/MM/yyyy" Min="@DateTime.Today.AddDays(1)"
+                                  Placeholder="@L["BsmF_SelectReturnDate"].Value" Style="width: 100%;" Density="Density.Compact" />
             </div>
         }
         else
         {
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                @foreach (var raison in availableRaisons)
-                {
-                    var color = raison.Couleur ?? "#00B193";
-                    var isActive = selectedRaisonCode == raison.Code;
-                    var isOther = selectedRaisonCode != null && selectedRaisonCode != raison.Code;
-                    <div style="padding: 0.5rem 0.75rem; border: 1px solid @(isActive ? color : "transparent"); background: @(isActive ? $"color-mix(in srgb, {color} 6%, transparent)" : "transparent"); opacity: @(isOther ? "0.35" : "1"); cursor: pointer;" @onclick="@(() => SelectRaison(raison))">
-                        <div style="display: flex; align-items: center; gap: 0.35rem;">
-                            <div style="width: 16px; height: 16px; border: 2px solid @(isActive ? color : "#ccc"); display: flex; align-items: center; justify-content: center;">
-                                @if (isActive) { <div style="width: 8px; height: 8px; background: @color;"></div> }
-                            </div>
-                            @if (!string.IsNullOrWhiteSpace(raison.Icone))
-                            {
-                                <RadzenIcon Icon="@raison.Icone" Style="@($"font-size: 0.85rem; color: {color};")" />
-                            }
-                            <span style="font-size: 0.75rem; font-weight: 600; color: @color; text-transform: uppercase; letter-spacing: 0.05em;">@raison.Nom</span>
-                        </div>
-                    </div>
-                }
+            <div class="field-group">
+                <RadzenTextBox @bind-Value="selectedRaisonCode" Placeholder="@L["BsmF_ReasonPlaceholder"].Value" Style="width: 100%;" Density="Density.Compact" />
             </div>
+            @if (selectedRaisonCode == "PRET")
+            {
+                <div class="field-group" style="margin-top: 0.75rem;">
+                    <label class="field-label">@L["BsmF_ReturnDate"] <span class="req">*</span></label>
+                    <RadzenDatePicker @bind-Value="@pretDateRetourPrevue" DateFormat="dd/MM/yyyy" Min="@DateTime.Today.AddDays(1)"
+                                      Placeholder="@L["BsmF_SelectReturnDate"].Value" Style="width: 100%;" Density="Density.Compact" />
+                </div>
+            }
         }
-        @if (selectedRaisonCode != null)
-        {
-            <RadzenTextBox @bind-Value="commentaireMotif" Placeholder="Commentaire optionnel (affiché entre parenthèses à l'impression)" Style="width: 100%; margin-top: 0.75rem; font-size: 0.78rem;" />
-        }
-        @if (selectedRaisonCode == "PRET")
-        {
-            <div style="margin-top: 0.75rem;">
-                <label class="bon-form__label">Date de retour prévue <span class="required-star">*</span></label>
-                <RadzenDatePicker @bind-Value="@pretDateRetourPrevue" DateFormat="dd/MM/yyyy" Min="@DateTime.Today.AddDays(1)"
-                                  Placeholder="Sélectionner la date de retour" Style="width: 100%;" Density="Density.Compact" />
-            </div>
-        }
-    </section>
+    </div>
     }
 
-    @* ── Checkpoints ── *@
+    @* ── Section 9 : Checkpoints ── *@
     @if (!string.IsNullOrWhiteSpace(selectedRaisonCode))
     {
-        <section class="bon-form__section">
-            <h2 class="bon-form__section-title">Checkpoints</h2>
-            <div class="bon-form__section-line"></div>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                @foreach (var chk in checkpoints)
-                {
-                    <div style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.75rem;">
-                        <RadzenCheckBox TValue="bool" Value="@chk.EstSelectionne" Change="@(val => ToggleCheckpoint(chk, val))" />
-                        <span style="color: #1a1a1a;">@chk.Checkpoint.Nom</span>
-                        @if (chk.EstSelectionne)
-                        {
-                            <span style="background: #00B193; color: #fff; font-size: 0.55rem; font-weight: 700; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;">
-                                @chk.OrdrePrevu
-                            </span>
-                        }
-                    </div>
-                }
-            </div>
-        </section>
+    <hr class="form-divider" />
+    <div class="form-section-header">
+        <div class="section-number">9</div>
+        <h2>@L["BsmF_Checkpoints"]</h2>
+    </div>
+    <div class="form-section-body">
+        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+            @foreach (var chk in checkpoints)
+            {
+                <div style="display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-size: 0.75rem;">
+                    <RadzenCheckBox TValue="bool" Value="@chk.EstSelectionne" Change="@(val => ToggleCheckpoint(chk, val))" />
+                    <span style="color: #1a1a1a;">@chk.Checkpoint.Nom</span>
+                    @if (chk.EstSelectionne)
+                    {
+                        <span style="background: #00B193; color: #fff; font-size: 0.55rem; font-weight: 700; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;">
+                            @chk.OrdrePrevu
+                        </span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
     }
 
     @* ── Erreur ── *@
@@ -311,29 +468,20 @@ else
         </RadzenAlert>
     }
 
-    @* ── Actions ── *@
-    <div class="bon-form__actions">
-        <RadzenButton Text="Brouillon" Icon="save" class="bon-form__btn-draft"
-                      Click="@(() => HandleSubmitAsync(false))"
-                      Disabled="@isSubmitting" />
-        <RadzenButton Text="@(isSubmitting ? "En cours..." : "Soumettre")" Icon="send" class="bon-form__btn-submit"
-                      Click="@(() => HandleSubmitAsync(true))"
-                      Disabled="@isSubmitting" IsBusy="@isSubmitting" />
+    </div>
     </div>
 
-</div>
-
-    @* ===== REVIEW PANEL (droite) ===== *@
+    @* ── Panneau de revue ── *@
     <div class="bon-form__review">
         <div class="bon-form__review-header">
             <RadzenIcon Icon="fact_check" Style="font-size: 1rem;" />
-            <span>Review</span>
+            <span>@L["BemF_Review"]</span>
         </div>
 
         <div class="bon-form__review-body">
             @* Demandeur *@
             <div class="bon-form__review-section">
-                <div class="bon-form__review-label"><RadzenIcon Icon="person" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Demandeur</div>
+                <div class="bon-form__review-label"><RadzenIcon Icon="person" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />@L["BsmF_ReviewDemandeur"]</div>
                 @if (!string.IsNullOrWhiteSpace(model.NomDemandeur))
                 {
                     <div style="font-size: 0.78rem; font-weight: 600; color: #1a1a1a;">@model.NomDemandeur</div>
@@ -348,37 +496,55 @@ else
                 }
                 else
                 {
-                    <span class="bon-form__review-empty">Non renseigné</span>
+                    <span class="bon-form__review-empty">@L["BsmF_ReviewNotFilled"]</span>
                 }
             </div>
 
-            @* Type *@
+            @* Type INTERNE/EXTERNE *@
             <div class="bon-form__review-section">
-                <div class="bon-form__review-label"><RadzenIcon Icon="category" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Type</div>
-                @if (fromBemLink && selectedBemDetails != null)
+                <div class="bon-form__review-label"><RadzenIcon Icon="category" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />@L["BsmF_ReviewType"]</div>
+                @if (selectedMode == true)
                 {
                     <div style="display: flex; align-items: center; gap: 0.3rem;">
-                        <RadzenBadge Text="EXTERNE" BadgeStyle="BadgeStyle.Info" Style="font-size: 0.6rem;" />
-                        <span style="font-size: 0.68rem; color: #6b7280;">via @selectedBemDetails.NumeroReference</span>
+                        <RadzenBadge Text="@L["Bsm_BadgeExterne"].Value" BadgeStyle="BadgeStyle.Info" Style="font-size: 0.6rem;" />
+                        @if (selectedBemDetails != null)
+                        {
+                            <span style="font-size: 0.68rem; color: #6b7280;">via @selectedBemDetails.NumeroReference</span>
+                        }
                     </div>
+                }
+                else if (selectedMode == false)
+                {
+                    <RadzenBadge Text="@L["Bsm_BadgeInterne"].Value" BadgeStyle="BadgeStyle.Primary" Style="font-size: 0.6rem;" />
                 }
                 else
                 {
-                    <RadzenBadge Text="INTERNE" BadgeStyle="BadgeStyle.Primary" Style="font-size: 0.6rem;" />
+                    <span class="bon-form__review-empty">@L["BsmF_ReviewNotSelected"]</span>
+                }
+            </div>
+
+            @* Type de matériel *@
+            <div class="bon-form__review-section">
+                <div class="bon-form__review-label"><RadzenIcon Icon="inventory" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Type de matériel</div>
+                @{
+                    var selectedTypeMat = typesSortie.FirstOrDefault(t => t.Id == selectedTypeMaterielId);
+                }
+                @if (selectedTypeMat != null)
+                {
+                    <RadzenBadge Text="@selectedTypeMat.NomType" BadgeStyle="BadgeStyle.Success" Style="font-size: 0.65rem;" />
+                }
+                else
+                {
+                    <span class="bon-form__review-empty">@L["BsmF_ReviewNotSelected"]</span>
                 }
             </div>
 
             @* Motif *@
             <div class="bon-form__review-section">
-                <div class="bon-form__review-label"><RadzenIcon Icon="label" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Motif</div>
+                <div class="bon-form__review-label"><RadzenIcon Icon="label" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />@L["BsmF_Reason"]</div>
                 @if (!string.IsNullOrWhiteSpace(selectedRaisonCode))
                 {
-                    var motifDisplay = selectedRaisonNom ?? selectedRaisonCode;
-                    if (selectedRaisonCode == "AUTRE" && !string.IsNullOrWhiteSpace(autreMotifTexte))
-                    {
-                        motifDisplay = $"Autre: {autreMotifTexte}";
-                    }
-                    <RadzenBadge Text="@motifDisplay" BadgeStyle="BadgeStyle.Warning" Style="font-size: 0.65rem;" />
+                    <RadzenBadge Text="@selectedRaisonCode" BadgeStyle="BadgeStyle.Warning" Style="font-size: 0.65rem;" />
                     @if (!string.IsNullOrWhiteSpace(commentaireMotif))
                     {
                         <div style="font-size: 0.65rem; color: #9ca3af; margin-top: 0.15rem; font-style: italic;">@commentaireMotif</div>
@@ -386,19 +552,19 @@ else
                     @if (selectedRaisonCode == "PRET" && pretDateRetourPrevue.HasValue)
                     {
                         <div style="font-size: 0.65rem; color: #6b7280; margin-top: 0.15rem;">
-                            <RadzenIcon Icon="event" Style="font-size: 0.7rem; vertical-align: middle;" /> Retour: @pretDateRetourPrevue.Value.ToString("dd/MM/yyyy")
+                            <RadzenIcon Icon="event" Style="font-size: 0.7rem; vertical-align: middle;" /> @L["BsmF_ReviewReturn"] @pretDateRetourPrevue.Value.ToString("dd/MM/yyyy")
                         </div>
                     }
                 }
                 else
                 {
-                    <span class="bon-form__review-empty">Aucun motif sélectionné</span>
+                    <span class="bon-form__review-empty">@L["BsmF_ReviewNoReason"]</span>
                 }
             </div>
 
             @* Trajet *@
             <div class="bon-form__review-section">
-                <div class="bon-form__review-label"><RadzenIcon Icon="swap_horiz" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Trajet</div>
+                <div class="bon-form__review-label"><RadzenIcon Icon="swap_horiz" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />@L["BemF_Route"]</div>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
                     <div style="flex: 1; text-align: center; padding: 0.4rem; background: #f9fafb;">
                         <div style="font-size: 0.55rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em;">From</div>
@@ -414,7 +580,7 @@ else
 
             @* Matériels *@
             <div class="bon-form__review-section">
-                <div class="bon-form__review-label"><RadzenIcon Icon="inventory_2" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Matériels (@GetValidMaterielsCount())</div>
+                <div class="bon-form__review-label"><RadzenIcon Icon="inventory_2" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />@L["BemF_Materials"] (@GetValidMaterielsCount())</div>
                 @{
                     var reviewMateriels = selectedMateriels.Where(m => !string.IsNullOrWhiteSpace(m.Designation) || !string.IsNullOrWhiteSpace(m.CodeProduitSerial)).ToList();
                 }
@@ -426,7 +592,7 @@ else
                             <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; border-bottom: 1px solid #f3f4f6;">
                                 <div style="flex: 1; min-width: 0;">
                                     <div style="font-size: 0.72rem; font-weight: 500; color: #1a1a1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                        @(string.IsNullOrWhiteSpace(mat.Designation) ? "(Sans désignation)" : mat.Designation)
+                                        @(string.IsNullOrWhiteSpace(mat.Designation) ? L["BsmF_ReviewNoDesig"].Value : mat.Designation)
                                     </div>
                                     @if (!string.IsNullOrWhiteSpace(mat.CodeProduitSerial))
                                     {
@@ -439,23 +605,23 @@ else
                         @if (reviewMateriels.Count > 5)
                         {
                             <div style="font-size: 0.65rem; color: #9ca3af; text-align: center; padding: 0.3rem 0; font-style: italic;">
-                                + @(reviewMateriels.Count - 5) autre(s)...
+                                + @(reviewMateriels.Count - 5) @L["BsmF_ReviewMore"]
                             </div>
                         }
                     </div>
                     <div style="margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid #e5e7eb; font-size: 0.72rem; color: #1a1a1a;">
-                        Total: <strong>@selectedMateriels.Sum(m => m.QuantiteASortir)</strong> articles
+                        @L["BemF_Total"]: <strong>@selectedMateriels.Sum(m => m.QuantiteASortir)</strong> @L["BemF_Articles"]
                     </div>
                 }
                 else
                 {
-                    <span class="bon-form__review-empty">Aucun matériel saisi</span>
+                    <span class="bon-form__review-empty">@L["BemF_NoMaterialAdded"]</span>
                 }
             </div>
 
             @* Checkpoints *@
             <div class="bon-form__review-section">
-                <div class="bon-form__review-label"><RadzenIcon Icon="route" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />Checkpoints</div>
+                <div class="bon-form__review-label"><RadzenIcon Icon="route" Style="font-size: 0.75rem; vertical-align: middle; margin-right: 0.2rem;" />@L["BsmF_Checkpoints"]</div>
                 @{
                     var selectedCheckpoints = checkpoints.Where(c => c.EstSelectionne).OrderBy(c => c.OrdrePrevu).ToList();
                 }
@@ -473,7 +639,7 @@ else
                 }
                 else
                 {
-                    <span class="bon-form__review-empty">Aucun checkpoint</span>
+                    <span class="bon-form__review-empty">@L["BsmF_ReviewNoCheckpoint"]</span>
                 }
             </div>
         </div>
@@ -484,24 +650,27 @@ else
             {
                 <div style="display: flex; align-items: center; gap: 0.35rem; color: #16a34a;">
                     <RadzenIcon Icon="check_circle" Style="font-size: 1rem;" />
-                    <span style="font-size: 0.75rem; font-weight: 500;">Prêt à soumettre</span>
+                    <span style="font-size: 0.75rem; font-weight: 500;">@L["BsmF_ReadyToSubmit"]</span>
                 </div>
             }
             else
             {
                 <div style="display: flex; align-items: center; gap: 0.35rem; color: #9ca3af;">
                     <RadzenIcon Icon="info" Style="font-size: 1rem;" />
-                    <span style="font-size: 0.75rem;">Complétez le formulaire</span>
+                    <span style="font-size: 0.75rem;">@L["BsmF_FillForm"]</span>
                 </div>
             }
         </div>
     </div>
 
-</div>
+    </div>
+    </main>
 }
 
+</div>
+
 @* ── Modal sélection matériels (BEM EXTERNE uniquement) ── *@
-@if (showMaterielModal && fromBemLink && selectedBemDetails != null)
+@if (showMaterielModal && selectedMode == true && selectedBemDetails != null)
 {
     <div style="position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(37,60,69,0.35);"
          @onclick="CloseMaterielModal">
@@ -509,7 +678,7 @@ else
             @* Header *@
             <div style="padding: 1rem 1.25rem; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb;">
                 <div>
-                    <div style="font-size: 0.85rem; font-weight: 600; color: #1a1a1a;">Sélection des matériels</div>
+                    <div style="font-size: 0.85rem; font-weight: 600; color: #1a1a1a;">@L["BsmF_ModalTitle"]</div>
                     <div style="font-size: 0.72rem; color: #6b7280; margin-top: 0.15rem;">@selectedBemDetails.NumeroReference</div>
                 </div>
                 <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@CloseMaterielModal" />
@@ -541,18 +710,18 @@ else
                 else
                 {
                     <div style="text-align: center; color: #999; padding: 2rem; font-size: 0.8rem;">
-                        Aucun matériel disponible.
+                        @L["BsmF_NoMaterialAvail"]
                     </div>
                 }
             </div>
 
             @* Footer *@
             <div style="padding: 1rem 1.25rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; background: #f9fafb;">
-                <span style="font-size: 0.72rem; color: #6b7280;">@materielsBemSelectables.Count(m => m.EstSelectionne) sélectionné(s)</span>
+                <span style="font-size: 0.72rem; color: #6b7280;">@materielsBemSelectables.Count(m => m.EstSelectionne) @L["BsmF_NbSelected"]</span>
                 <div style="display: flex; gap: 0.75rem;">
-                    <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium"
+                    <RadzenButton Text="@L["Btn_Cancel"].Value" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Medium"
                                   Click="@CloseMaterielModal" Style="font-size: 0.75rem;" />
-                    <RadzenButton Text="Confirmer"
+                    <RadzenButton Text="@L["Dlg_Confirm"].Value"
                                   Icon="check" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Medium"
                                   Disabled="@(!materielsBemSelectables.Any(m => m.EstSelectionne))"
                                   Click="@ConfirmMaterielSelection" Style="font-size: 0.75rem;" />
@@ -573,21 +742,20 @@ else
     private bool showMaterielModal = false;
     private string? errorMessage;
     private string? generatedNumero = "(auto)";
-    private bool fromBemLink = false;
+    private bool? selectedMode = null;   // null = non choisi, true = EXTERNE, false = INTERNE
+    private int selectedBemIdPicker = 0;
 
     // === DONNÉES DE RÉFÉRENCE ===
     private List<KCCMaterialFlow.Domain.Entities.Site> sites = new();
     private List<CheckpointSelection> checkpoints = new();
     private List<BonEntreeForDropdown> bemsDisponibles = new();
     private List<BonEntreeForDropdown> bemsDisponiblesAll = new();
+    private List<KCCMaterialFlow.Domain.Entities.TypeMaterielEntity> typesSortie = new();
+    private int? selectedTypeMaterielId;
 
-    // === MOTIF (DB-DRIVEN) ===
-    private List<RaisonSortie> availableRaisons = new();
-    private string? selectedRaisonCode;
-    private string? selectedRaisonNom;
-    private string autreMotifTexte = "";
+    // === MOTIF (libre, pas de DB-driven) ===
+    private string? selectedRaisonCode;  // Motif libre (textbox) - replaces dropdown
     private string commentaireMotif = "";
-    private bool motifLocked = false;
     private DateTime? pretDateRetourPrevue = DateTime.Today.AddMonths(1);
 
     // === BEM ===
@@ -604,6 +772,68 @@ else
     private int? siteFromId;
     private int? siteToId;
     private bool destinationFromBem = false;
+
+    // === Site KCC + RequestedFor (Glencore) ===
+    private int? siteKccId;
+    private string? requestedForCode;
+    private string? requestedForDisplay;
+    private string? requestedForDepartement;
+    private string? siteManagerAuto;
+    private List<RequestedForOption> requestedForCandidates = new();
+
+    public sealed class RequestedForOption
+    {
+        public string EmployeeCode { get; set; } = string.Empty;
+        public string DisplayLabel { get; set; } = string.Empty;
+        public string? Display { get; set; }
+        public string? Departement { get; set; }
+        public string? ManagerHodCode { get; set; }
+        public string? ManagerHodDisplay { get; set; }
+    }
+
+    // === Catalogue matériel (filtré par département du RequestedFor) ===
+    // (supprimé — INTERNE n'utilise plus de catalogue)
+
+    private async Task OnRequestedForFilter(Radzen.LoadDataArgs args)
+    {
+        var matches = await GlencoreSearchService.SearchAsync(args.Filter, maxResults: 25);
+        requestedForCandidates = matches.Select(g => new RequestedForOption
+        {
+            EmployeeCode = g.EmployeeCode,
+            Display = $"{g.FirstName} {g.LastName}".Trim(),
+            Departement = g.Departement,
+            ManagerHodCode = g.ManagerHodEmployeeCode,
+            ManagerHodDisplay = g.ManagerHodEmployeeDisplay,
+            DisplayLabel = $"{g.EmployeeCode} — {g.FirstName} {g.LastName}".Trim()
+                           + (string.IsNullOrWhiteSpace(g.Departement) ? "" : $" ({g.Departement})")
+        }).ToList();
+    }
+
+    private async Task OnRequestedForChanged(object value)
+    {
+        if (value is string code && !string.IsNullOrWhiteSpace(code))
+        {
+            var picked = requestedForCandidates.FirstOrDefault(c => c.EmployeeCode == code);
+            if (picked != null)
+            {
+                requestedForCode = picked.EmployeeCode;
+                requestedForDisplay = picked.Display;
+                requestedForDepartement = picked.Departement;
+                // Auto-déduire le Site Manager depuis ManagerHodEmployeeDisplay
+                siteManagerAuto = !string.IsNullOrWhiteSpace(picked.ManagerHodDisplay)
+                    ? picked.ManagerHodDisplay
+                    : await GlencoreSearchService.GetSiteManagerForAsync(picked.EmployeeCode);
+            }
+        }
+        else
+        {
+            requestedForCode = null;
+            requestedForDisplay = null;
+            requestedForDepartement = null;
+            siteManagerAuto = null;
+        }
+        // (catalogue supprimé — mode INTERNE n'utilise plus de recherche)
+    }
 
     private IEnumerable<KCCMaterialFlow.Domain.Entities.Site> SitesExcludingFrom =>
         siteFromId.HasValue
@@ -666,7 +896,7 @@ else
 
     private async Task HandlePreselectedBemAsync(int bemId)
     {
-        fromBemLink = true;
+        selectedMode = true;
 
         selectedBemDetails = await BonEntreeLockService.GetDetailsForSortieAsync(bemId);
 
@@ -674,7 +904,7 @@ else
         {
             NotificationService.Notify(NotificationSeverity.Warning, "BEM non trouvé",
                 $"Le bon d'entrée #{bemId} n'est pas disponible pour sortie.");
-            fromBemLink = false;
+            selectedMode = null;
             return;
         }
 
@@ -713,44 +943,9 @@ else
 
     private async Task AutoSelectMotifFromBemAsync()
     {
-        if (selectedBemDetails == null) return;
-
-        if (selectedBemDetails.RaisonEntreeId.HasValue)
-        {
-            availableRaisons = (await RaisonEntreeService.GetRaisonsSortieByRaisonEntreeIdAsync(selectedBemDetails.RaisonEntreeId.Value)).ToList();
-        }
-
-        if (availableRaisons.Count == 0 && selectedBemDetails.DepartementId.HasValue)
-        {
-            availableRaisons = (await CategorieSortieService.GetRaisonsAutoriseesByDepartementIdAsync(selectedBemDetails.DepartementId)).ToList();
-        }
-
-        if (availableRaisons.Count == 0 && !string.IsNullOrWhiteSpace(selectedBemDetails.HostDepartment))
-        {
-            availableRaisons = (await CategorieSortieService.GetRaisonsAutoriseesByDepartementAsync(selectedBemDetails.HostDepartment)).ToList();
-        }
-
-        if (availableRaisons.Count == 0)
-        {
-            availableRaisons = (await CategorieSortieService.GetRaisonsByCategorieCodeAsync("EXTERNE"))
-                .Where(r => r.EstActif)
-                .OrderBy(r => r.OrdreAffichage)
-                .ToList();
-        }
-
-        if (availableRaisons.Count == 1)
-        {
-            var raison = availableRaisons[0];
-            selectedRaisonCode = raison.Code;
-            selectedRaisonNom = raison.Nom;
-            motifLocked = true;
-        }
-        else if (availableRaisons.Count > 1)
-        {
-            selectedRaisonCode = null;
-            selectedRaisonNom = null;
-            motifLocked = false;
-        }
+        // Motif est maintenant un champ libre - pas de sélection auto requise
+        selectedRaisonCode = null;
+        await Task.CompletedTask;
     }
 
     private async Task LoadReferenceDataAsync()
@@ -763,17 +958,9 @@ else
         bemsDisponiblesAll = (await BonEntreeLockService.GetAllAvailableForSortieAsync()).ToList();
         bemsDisponibles = bemsDisponiblesAll.ToList();
 
-        availableRaisons = (await CategorieSortieService.GetRaisonsAutoriseesByDepartementIdAsync(null)).ToList();
+        typesSortie = (await TypeMaterielService.GetByCategorieAsync("Workflow Sortie")).OrderBy(t => t.Ordre).ToList();
 
-        if (availableRaisons.Count == 0)
-        {
-            var allCategories = await CategorieSortieService.GetAllCategoriesWithRaisonsAsync();
-            availableRaisons = allCategories
-                .SelectMany(c => c.Raisons)
-                .Where(r => r.EstActif && !r.RequiertBonEntree)
-                .OrderBy(r => r.OrdreAffichage)
-                .ToList();
-        }
+        // Motif est libre - pas de chargement de raisons requises
     }
 
     private void InitializeUserData()
@@ -787,47 +974,87 @@ else
         }
     }
 
-    // === MOTIF (DB-DRIVEN) ===
-    private void SelectRaison(RaisonSortie raison)
-    {
-        if (motifLocked) return;
+    // === MODE (Interne / Externe) ===
+    private bool IsExterne() => selectedMode == true;
 
-        if (selectedRaisonCode == raison.Code)
+    private static readonly string[] _interneTypes = { "BSM_CIRCULANT", "BSM_PRET_MATERIEL", "BSM_EQUIPEMENT_IT" };
+    private static readonly string[] _externeExclus = { "BSM_CIRCULANT", "BSM_PRET_MATERIEL" };
+
+    private IEnumerable<TypeMaterielEntity> TypesSortieFiltered
+    {
+        get
         {
+            if (!selectedMode.HasValue) return typesSortie;
+            return selectedMode == false
+                ? typesSortie.Where(t => _interneTypes.Contains(t.CodeType))
+                : typesSortie.Where(t => !_externeExclus.Contains(t.CodeType));
+        }
+    }
+
+    private bool IsPretType() =>
+        selectedTypeMaterielId.HasValue &&
+        typesSortie.Any(t => t.Id == selectedTypeMaterielId.Value && t.CodeType == "BSM_PRET_MATERIEL");
+
+    private void OnTypeMaterielChanged(object value)
+    {
+        if (IsPretType())
+        {
+            selectedRaisonCode = "PRET";
+            // Un prêt ne nécessite pas de BEM source
+            selectedBemDetails = null;
+            selectedBemIdPicker = 0;
+            materielsBemSelectables.Clear();
+            if (!selectedMateriels.Any())
+                AddEmptyMateriel();
+            destinationFromBem = false;
+        }
+        else if (selectedRaisonCode == "PRET")
+        {
+            // Si on change de type depuis prêt, effacer le motif auto
             selectedRaisonCode = null;
-            selectedRaisonNom = null;
-            autreMotifTexte = "";
         }
-        else
+    }
+
+    private async Task SetMode(bool isExterne)
+    {
+        selectedMode = isExterne;
+
+        // Réinitialiser le type de matériel s'il n'est pas compatible avec le nouveau mode
+        if (selectedTypeMaterielId.HasValue)
         {
-            selectedRaisonCode = raison.Code;
-            selectedRaisonNom = raison.Nom;
-            if (raison.Code != "AUTRE") autreMotifTexte = "";
+            var compatible = isExterne
+                ? !_externeExclus.Contains(typesSortie.FirstOrDefault(t => t.Id == selectedTypeMaterielId.Value)?.CodeType)
+                : _interneTypes.Contains(typesSortie.FirstOrDefault(t => t.Id == selectedTypeMaterielId.Value)?.CodeType);
+            if (!compatible)
+            {
+                selectedTypeMaterielId = null;
+                selectedRaisonCode = null;
+            }
+        }
+
+        if (!isExterne)
+        {
+            selectedBemIdPicker = 0;
+            selectedBemDetails = null;
+            materielsBemSelectables.Clear();
+            selectedMateriels.Clear();
+            AddEmptyMateriel();
+            siteFromId = null;
+            destinationFromBem = false;
+            if (selectedRaisonCode != null && selectedRaisonCode != "PRET") selectedRaisonCode = null;
         }
     }
 
-    private string GetMotifText()
+    private void OnDeselectBem()
     {
-        if (string.IsNullOrWhiteSpace(selectedRaisonCode)) return "";
-
-        if (selectedRaisonCode == "AUTRE" && !string.IsNullOrWhiteSpace(autreMotifTexte))
-            return $"Autre: {autreMotifTexte}";
-
-        var text = selectedRaisonNom ?? selectedRaisonCode ?? "";
-        if (!string.IsNullOrWhiteSpace(commentaireMotif))
-            text += $" ({commentaireMotif})";
-
-        return text;
+        selectedBemIdPicker = 0;
+        selectedBemDetails = null;
+        materielsBemSelectables.Clear();
+        selectedMateriels.Clear();
+        siteFromId = null;
+        destinationFromBem = false;
+        selectedRaisonCode = null;
     }
-
-    private void OnRaisonDropdownChanged()
-    {
-        var raison = availableRaisons.FirstOrDefault(r => r.Code == selectedRaisonCode);
-        selectedRaisonNom = raison?.Nom;
-        if (selectedRaisonCode != "AUTRE") autreMotifTexte = "";
-    }
-
-    private bool IsExterne() => fromBemLink;
 
     // === BEM ===
     private async Task OnBemSelectedRadzen(object args)
@@ -874,10 +1101,7 @@ else
             selectedMateriels.Clear();
             siteFromId = null;
             destinationFromBem = false;
-            availableRaisons = (await CategorieSortieService.GetRaisonsAutoriseesByDepartementIdAsync(null)).ToList();
             selectedRaisonCode = null;
-            selectedRaisonNom = null;
-            motifLocked = false;
         }
     }
 
@@ -1012,15 +1236,15 @@ else
     // === VALIDATION ===
     private bool CanSubmit()
     {
+        if (!selectedMode.HasValue) return false;
         if (string.IsNullOrWhiteSpace(model.NomDemandeur)) return false;
         if (!siteFromId.HasValue || !siteToId.HasValue) return false;
-        if (string.IsNullOrWhiteSpace(selectedRaisonCode)) return false;
+        if (!IsPretType() && string.IsNullOrWhiteSpace(selectedRaisonCode)) return false;
 
-        if (selectedRaisonCode == "AUTRE" && string.IsNullOrWhiteSpace(autreMotifTexte)) return false;
+        if (IsPretType() && (!pretDateRetourPrevue.HasValue || pretDateRetourPrevue.Value <= DateTime.Today)) return false;
+        else if (selectedRaisonCode == "PRET" && (!pretDateRetourPrevue.HasValue || pretDateRetourPrevue.Value <= DateTime.Today)) return false;
 
-        if (selectedRaisonCode == "PRET" && (!pretDateRetourPrevue.HasValue || pretDateRetourPrevue.Value <= DateTime.Today)) return false;
-
-        if (!fromBemLink)
+        if (selectedMode != true)
         {
             return selectedMateriels.Count > 0
                 && selectedMateriels.All(m => !string.IsNullOrWhiteSpace(m.Designation) && !string.IsNullOrWhiteSpace(m.CodeProduitSerial));
@@ -1039,15 +1263,15 @@ else
         if (string.IsNullOrWhiteSpace(model.NomDemandeur)) validationErrors.Add("Nom du demandeur");
         if (!siteFromId.HasValue) validationErrors.Add("Provenance");
         if (!siteToId.HasValue) validationErrors.Add("Destination");
-        if (string.IsNullOrWhiteSpace(selectedRaisonCode)) validationErrors.Add("Motif");
-        if (selectedRaisonCode == "AUTRE" && string.IsNullOrWhiteSpace(autreMotifTexte)) validationErrors.Add("Précision du motif (Autre)");
-        if (selectedRaisonCode == "PRET" && (!pretDateRetourPrevue.HasValue || pretDateRetourPrevue.Value <= DateTime.Today)) validationErrors.Add("Date de retour prévue");
+        if (!IsPretType() && string.IsNullOrWhiteSpace(selectedRaisonCode)) validationErrors.Add("Motif");
+        if ((IsPretType() || selectedRaisonCode == "PRET") && (!pretDateRetourPrevue.HasValue || pretDateRetourPrevue.Value <= DateTime.Today)) validationErrors.Add("Date de retour prévue");
+        if (!selectedMode.HasValue) validationErrors.Add("Type de bon (INTERNE ou EXTERNE)");
         if (!selectedMateriels.Any()) validationErrors.Add("Au moins un matériel");
-        if (!fromBemLink && selectedMateriels.Any(m => string.IsNullOrWhiteSpace(m.Designation) || string.IsNullOrWhiteSpace(m.CodeProduitSerial)))
+        if (selectedMode != true && selectedMateriels.Any(m => string.IsNullOrWhiteSpace(m.Designation) || string.IsNullOrWhiteSpace(m.CodeProduitSerial)))
             validationErrors.Add("Désignation et code série de chaque matériel");
 
         // Vérifier les doublons de Code/N° Série
-        if (!fromBemLink)
+        if (selectedMode != true)
         {
             var duplicates = selectedMateriels
                 .Where(m => !string.IsNullOrWhiteSpace(m.CodeProduitSerial))
@@ -1096,9 +1320,9 @@ else
 
             BonSortieResult result;
 
-            var isPret = selectedRaisonCode == "PRET";
+            var isPret = IsPretType() || selectedRaisonCode == "PRET";
 
-            if (!fromBemLink && !isPret)
+            if (selectedMode != true && !isPret)
             {
                 var request = new CreateBonSortieInterneRequest
                 {
@@ -1107,17 +1331,23 @@ else
                     DepartementDemandeur = model.DepartementDemandeur,
                     Provenance = siteFrom?.Nom ?? string.Empty,
                     Destination = siteTo?.Nom ?? string.Empty,
-                    MotifSortie = GetMotifText(),
+                    MotifSortie = selectedRaisonCode ?? string.Empty,
                     RaisonSortieCode = selectedRaisonCode,
                     BonEntreeAssocieId = selectedBemDetails?.IdBon,
                     Materiels = materiels,
                     CheckpointsItineraire = checkpointsList,
-                    DateExpiration = DateTime.Now.AddMonths(6)
+                    DateExpiration = DateTime.Now.AddMonths(6),
+                    SiteId = siteKccId,
+                    RequestedForEmployeeCode = requestedForCode,
+                    RequestedForDisplay = requestedForDisplay,
+                    RequestedForDepartement = requestedForDepartement,
+                    SiteManager = siteManagerAuto,
+                    TypeMaterielSortieId = selectedTypeMaterielId
                 };
 
                 result = await BonSortieService.CreateInterneAsync(request);
             }
-            else if (!fromBemLink && isPret)
+            else if (selectedMode != true && isPret)
             {
                 var pretRequest = new CreatePretRequest
                 {
@@ -1126,14 +1356,20 @@ else
                     DepartementDemandeur = model.DepartementDemandeur,
                     Provenance = siteFrom?.Nom ?? string.Empty,
                     Destination = siteTo?.Nom ?? string.Empty,
-                    MotifSortie = GetMotifText(),
+                    MotifSortie = selectedRaisonCode ?? string.Empty,
                     RaisonSortieCode = selectedRaisonCode,
                     BonEntreeAssocieId = selectedBemDetails?.IdBon,
                     NomDestinataire = siteTo?.Nom ?? string.Empty,
                     Materiels = materiels,
                     CheckpointsItineraire = checkpointsList,
                     DateRetourPrevue = pretDateRetourPrevue ?? DateTime.Now.AddMonths(1),
-                    DateExpiration = DateTime.Now.AddMonths(6)
+                    DateExpiration = DateTime.Now.AddMonths(6),
+                    SiteId = siteKccId,
+                    RequestedForEmployeeCode = requestedForCode,
+                    RequestedForDisplay = requestedForDisplay,
+                    RequestedForDepartement = requestedForDepartement,
+                    SiteManager = siteManagerAuto,
+                    TypeMaterielSortieId = selectedTypeMaterielId
                 };
                 result = await BonSortieService.CreatePretAsync(pretRequest);
             }
@@ -1146,13 +1382,19 @@ else
                     DepartementDemandeur = model.DepartementDemandeur,
                     Provenance = siteFrom?.Nom ?? string.Empty,
                     Destination = siteTo?.Nom ?? string.Empty,
-                    MotifSortie = GetMotifText(),
+                    MotifSortie = selectedRaisonCode ?? string.Empty,
                     RaisonSortieCode = selectedRaisonCode,
                     BonEntreeAssocieId = selectedBemDetails?.IdBon,
                     NomDestinataire = selectedBemDetails?.NomCompagnie ?? siteTo?.Nom ?? string.Empty,
                     Materiels = materiels,
                     CheckpointsItineraire = checkpointsList,
-                    DateExpiration = DateTime.Now.AddMonths(6)
+                    DateExpiration = DateTime.Now.AddMonths(6),
+                    SiteId = siteKccId,
+                    RequestedForEmployeeCode = requestedForCode,
+                    RequestedForDisplay = requestedForDisplay,
+                    RequestedForDepartement = requestedForDepartement,
+                    SiteManager = siteManagerAuto,
+                    TypeMaterielSortieId = selectedTypeMaterielId
                 };
                 result = await BonSortieService.CreateExterneAsync(request);
             }
@@ -1167,10 +1409,10 @@ else
                 NotificationService.Notify(new NotificationMessage
                 {
                     Severity = NotificationSeverity.Success,
-                    Summary = "Succès",
+                    Summary = L["Lbl_Success"].Value,
                     Detail = submit
-                        ? $"Bon {result.Bon.NumeroReference} créé et soumis pour approbation"
-                        : $"Bon {result.Bon.NumeroReference} enregistré comme brouillon",
+                        ? string.Format(L["Bsm_NotifBonSubmitted"].Value, result.Bon.NumeroReference)
+                        : string.Format(L["Bsm_NotifBonDraft"].Value, result.Bon.NumeroReference),
                     Duration = 4000
                 });
 
@@ -1178,7 +1420,7 @@ else
             }
             else
             {
-                errorMessage = result.Errors.FirstOrDefault() ?? result.Message ?? "Une erreur est survenue";
+                errorMessage = result.Errors.FirstOrDefault() ?? result.Message ?? L["Bsm_ErrorOccurred"].Value;
             }
         }
         catch (Exception ex)

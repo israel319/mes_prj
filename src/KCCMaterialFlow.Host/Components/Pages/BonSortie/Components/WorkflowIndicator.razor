@@ -1,9 +1,10 @@
 @* BSM-068: Affichage étapes workflow selon type *@
 @using KCCMaterialFlow.Domain.Enums
+@inject IStringLocalizer<SharedResource> L
 
 <div class="workflow-indicator">
     <RadzenText TextStyle="TextStyle.Subtitle2" FontWeight="FontWeight.Bold" Style="margin-bottom: 0.75rem; color: #333;">
-        Workflow d'Approbation
+        @L["WF_Title"]
     </RadzenText>
 
     <div class="workflow-steps">
@@ -51,7 +52,7 @@
 </div>
 
 @code {
-    [Parameter] public TypeMateriel TypeMateriel { get; set; }
+    [Parameter] public string? DescriptionMateriel { get; set; }
     [Parameter] public string CurrentStatus { get; set; } = "Draft";
     [Parameter] public List<ApprovalStepInfo>? ApprovalHistory { get; set; }
     [Parameter] public bool IsExterne { get; set; } = true;
@@ -71,34 +72,14 @@
         steps.Add(new WorkflowStep
         {
             Code = "Created",
-            Title = "Création",
+            Title = L["WF_StepCreated"].Value,
             Status = StepStatus.Completed,
             Date = ApprovalHistory?.FirstOrDefault()?.Date
         });
 
-        // Étape 2: Selon TypeMateriel
-        if (TypeMateriel == TypeMateriel.Informatique)
-        {
-            steps.Add(new WorkflowStep
-            {
-                Code = "PendingIT",
-                Title = "Approbation IT",
-                Status = GetStepStatus("PendingIT", "ApprovedIT"),
-                Approver = GetApprover("IT"),
-                Date = GetApprovalDate("IT")
-            });
-        }
-        else if (TypeMateriel == TypeMateriel.Residu || TypeMateriel == TypeMateriel.Radioprotection || TypeMateriel == TypeMateriel.Modification)
-        {
-            steps.Add(new WorkflowStep
-            {
-                Code = "PendingEnv",
-                Title = "Approbation Environnement",
-                Status = GetStepStatus("PendingEnv", "ApprovedEnv"),
-                Approver = GetApprover("ENV"),
-                Date = GetApprovalDate("ENV")
-            });
-        }
+        // Étape 2 & 3: Logique IT/Env OBSOLÈTE (utilisait TypeMateriel enum)
+        // À refactoriser avec département du demandeur
+        // Pour l'instant, étapes ignorées.
 
         // Étape 3: Identification (pour Externe)
         if (IsExterne)
@@ -106,7 +87,7 @@
             steps.Add(new WorkflowStep
             {
                 Code = "PendingIdentification",
-                Title = "Approbation Identification",
+                Title = L["WF_StepIdentification"].Value,
                 Status = GetStepStatus("PendingIdentification", "Approved"),
                 Approver = GetApprover("Identification"),
                 Date = GetApprovalDate("Identification")
@@ -117,7 +98,7 @@
         steps.Add(new WorkflowStep
         {
             Code = "Approved",
-            Title = CurrentStatus == "Rejected" ? "Rejeté" : "Approuvé",
+            Title = CurrentStatus == "Rejected" ? L["Statut_Rejected"].Value : L["Statut_Approved"].Value,
             Status = CurrentStatus == "Approved" ? StepStatus.Completed : 
                      CurrentStatus == "Rejected" ? StepStatus.Rejected : StepStatus.Pending
         });

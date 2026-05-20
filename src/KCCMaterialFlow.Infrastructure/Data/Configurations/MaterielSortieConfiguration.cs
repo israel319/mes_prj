@@ -39,6 +39,10 @@ public class MaterielSortieConfiguration : IEntityTypeConfiguration<MaterielSort
             .HasPrecision(18, 4)
             .HasDefaultValue(1m);
 
+        builder.Property(m => m.DepartementCode)
+            .HasColumnName("DepartementCode")
+            .HasMaxLength(50);
+
         // Propriétés de liaison BEM
         builder.Property(m => m.MaterielEntreeId)
             .HasColumnName("MaterielEntreeId");

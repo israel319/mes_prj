@@ -72,6 +72,12 @@ public interface IBonSortieService
     Task<IReadOnlyList<Domain.Entities.BonSortie>> GetPendingApprovalsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Retourne les bons de sortie approuvés où l'utilisateur courant est le dernier approbateur (Identification).
+    /// Permet la réimpression après approbation finale.
+    /// </summary>
+    Task<IReadOnlyList<Domain.Entities.BonSortie>> GetApprovedByMeAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Récupère l'historique des approbations d'un bon de sortie
     /// </summary>
     Task<IReadOnlyList<ApprobationSortie>> GetApprobationsAsync(int bonId, CancellationToken cancellationToken = default);
@@ -275,6 +281,18 @@ public class CreateBonSortieExterneRequest
     public string? Description { get; set; }
     public DateTime DateExpiration { get; set; }
 
+    // === Site KCC + RequestedFor (Glencore) ===
+    /// <summary>Site KCC sur lequel porte la demande (filtre les approbateurs spéciaux).</summary>
+    public int? SiteId { get; set; }
+    /// <summary>Code Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForEmployeeCode { get; set; }
+    /// <summary>Nom affichable Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForDisplay { get; set; }
+    /// <summary>Département Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForDepartement { get; set; }
+    /// <summary>Site Manager auto-déduit depuis ManagerHodEmployeeDisplay du RequestedFor.</summary>
+    public string? SiteManager { get; set; }
+
     // Catégorie et Raison (nouveau système)
     public int? CategorieId { get; set; }
     public int? RaisonId { get; set; }
@@ -286,7 +304,7 @@ public class CreateBonSortieExterneRequest
 
     // Spécifiques à externe
     public int? BonEntreeAssocieId { get; set; }
-    public TypeMateriel TypeMateriel { get; set; }
+    public string? DescriptionMateriel { get; set; }
     public string NomDestinataire { get; set; } = string.Empty;
     public string? AdresseDestination { get; set; }
     public string? NumeroVehicule { get; set; }
@@ -297,6 +315,12 @@ public class CreateBonSortieExterneRequest
     /// Date de retour prévue (pour les prêts - max 6 mois)
     /// </summary>
     public DateTime? DateRetourPrevue { get; set; }
+
+    /// <summary>
+    /// Type de matériel sortie — détermine le workflow d'approbation (Standard / IT / Environnement).
+    /// Doit pointer vers un enregistrement TypeMaterielEntity de catégorie "Workflow Sortie".
+    /// </summary>
+    public int? TypeMaterielSortieId { get; set; }
 
     public List<MaterielDto> Materiels { get; set; } = [];
     public List<int> BarrieresIds { get; set; } = [];
@@ -330,6 +354,18 @@ public class CreateBonSortieInterneRequest
     public string? Description { get; set; }
     public DateTime DateExpiration { get; set; }
 
+    // === Site KCC + RequestedFor (Glencore) ===
+    /// <summary>Site KCC sur lequel porte la demande (filtre les approbateurs spéciaux).</summary>
+    public int? SiteId { get; set; }
+    /// <summary>Code Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForEmployeeCode { get; set; }
+    /// <summary>Nom affichable Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForDisplay { get; set; }
+    /// <summary>Département Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForDepartement { get; set; }
+    /// <summary>Site Manager auto-déduit depuis ManagerHodEmployeeDisplay du RequestedFor.</summary>
+    public string? SiteManager { get; set; }
+
     // BonEntree obligatoire pour traçabilité
     public int? BonEntreeAssocieId { get; set; }
 
@@ -343,12 +379,18 @@ public class CreateBonSortieInterneRequest
     public string? RaisonSortieCode { get; set; }
 
     // Spécifiques à interne
-    public TypeMateriel TypeMateriel { get; set; }
+    public string? DescriptionMateriel { get; set; }
     public string? DepartementOrigine { get; set; }
     public string? FonctionReceveur { get; set; }
     public string? EmailReceveur { get; set; }
     public string? LocalisationDestination { get; set; }
     public DateTime? DateTransfertPrevue { get; set; }
+
+    /// <summary>
+    /// Type de matériel sortie — détermine le workflow d'approbation (Standard / IT / Environnement).
+    /// Doit pointer vers un enregistrement TypeMaterielEntity de catégorie "Workflow Sortie".
+    /// </summary>
+    public int? TypeMaterielSortieId { get; set; }
 
     public List<MaterielDto> Materiels { get; set; } = [];
 

@@ -39,6 +39,10 @@ public class MaterielConfiguration : IEntityTypeConfiguration<Materiel>
             .HasPrecision(18, 2)
             .HasDefaultValue(1m);
 
+        builder.Property(m => m.DepartementCode)
+            .HasColumnName("DepartementCode")
+            .HasMaxLength(50);
+
         // Relation avec le Bon (définie dans BonConfiguration)
         // Ne pas redéfinir ici pour éviter les conflits
 

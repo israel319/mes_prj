@@ -1,0 +1,266 @@
+@page "/admin/impersonation"
+@attribute [Authorize(Policy = "RealSuperAdminOnly")]
+@using KCCMaterialFlow.Domain.Entities
+@using KCCMaterialFlow.Domain.Enums
+@using KCCMaterialFlow.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<KCCMaterialFlowDbContext> DbFactory
+@inject ICurrentUserService CurrentUser
+@inject IImpersonationService ImpersonationSvc
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>Impersonation — Admin</PageTitle>
+
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["Imp_Title"]</h1>
+                <p class="kcp-subtitle">@L["Imp_Subtitle"]</p>
+            </div>
+        </div>
+    </div>
+    <main class="kcp-main">
+
+    @* Bandeau impersonation active *@
+    @if (ImpersonationSvc.IsImpersonating)
+    {
+        <RadzenCard Style="background: #fef3c7; border: 1px solid #f59e0b; margin-bottom: 1.5rem;">
+            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                    <RadzenIcon Icon="warning" Style="color: #d97706;" />
+                    <span>
+                        <strong>@L["Imp_ActiveSession"]</strong> @L["Imp_LoggedAs"]
+                        <strong>@ImpersonationSvc.ImpersonatedMatricule</strong>
+                        (@L["Imp_RealAccount"] : @ImpersonationSvc.RealLogin)
+                    </span>
+                </RadzenStack>
+                <form method="post" action="/api/impersonation/stop">
+                    <button type="submit" class="rz-button rz-button-md rz-secondary">
+                        <i class="rzi">stop_circle</i> @L["Imp_BtnStop"]
+                    </button>
+                </form>
+            </RadzenStack>
+        </RadzenCard>
+    }
+
+    @* Recherche *@
+    <RadzenCard Style="padding: 1.25rem; margin-bottom: 1.5rem;">
+        <RadzenStack Gap="0.75rem">
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="font-weight:700; margin:0;">@L["Imp_SearchTitle"]</RadzenText>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+                <RadzenTextBox @bind-Value="searchText"
+                               @oninput="OnSearchInput"
+                               Placeholder="@L["Imp_SearchPh"].Value"
+                               Style="flex: 1;" />
+                <RadzenButton Icon="close" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Light"
+                              Click="@ClearSearch" Disabled="@string.IsNullOrEmpty(searchText)" />
+            </RadzenStack>
+
+            @if (loading)
+            {
+                <div style="text-align:center; padding: 1rem;">
+                    <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                              Size="ProgressBarCircularSize.Small" />
+                </div>
+            }
+            else if (!searched)
+            {
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-400); text-align: center; padding: 1rem 0;">
+                    @L["Imp_TypeMin2"]
+                </RadzenText>
+            }
+            else if (rows.Count == 0)
+            {
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-400); text-align: center; padding: 1rem 0;">
+                    @(L["Imp_NoEmployee"].Value + " « " + lastSearch + " »")
+                </RadzenText>
+            }
+            else
+            {
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500);">
+                    @rows.Count @L["Imp_Results"]
+                </RadzenText>
+                <RadzenDataGrid Data="@rows" TItem="ImpersonationRow"
+                                AllowPaging="@(rows.Count > 10)" PageSize="10"
+                                AllowSorting="true" GridLines="DataGridGridLines.Horizontal"
+                                Density="Density.Compact"
+                                EmptyText="@L["Imp_EmptyGrid"].Value">
+                    <Columns>
+                        <RadzenDataGridColumn TItem="ImpersonationRow" Property="EmployeeCode" Title="@L["Imp_ColMatricule"].Value" Width="110px">
+                            <Template Context="row">
+                                <span>@row.EmployeeCode</span>
+                                @if (row.IsStandalone)
+                                {
+                                    <span style="margin-left:0.3rem; font-size:0.7rem; background:#dbeafe; color:#1d4ed8; border-radius:3px; padding:1px 5px; font-weight:600; vertical-align:middle;">Local</span>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                        <RadzenDataGridColumn TItem="ImpersonationRow" Property="DisplayName" Title="@L["Imp_ColName"].Value" />
+                        <RadzenDataGridColumn TItem="ImpersonationRow" Property="Departement" Title="@L["Imp_ColDept"].Value" Width="200px" />
+                        <RadzenDataGridColumn TItem="ImpersonationRow" Property="UserName" Title="@L["Imp_ColLogin"].Value" Width="180px" />
+                        <RadzenDataGridColumn TItem="ImpersonationRow" Title="" Width="130px" TextAlign="TextAlign.Right" Sortable="false">
+                            <Template Context="row">
+                                @if (!string.Equals(row.EmployeeCode, RealMatricule, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <form method="post" action="/api/impersonation/start" style="margin:0;">
+                                        <input type="hidden" name="employeeCode" value="@row.EmployeeCode" />
+                                        <input type="hidden" name="userLogin" value="@(row.UserName ?? "")" />
+                                        <button type="submit" class="rz-button rz-button-sm rz-primary"
+                                                style="display:inline-flex; align-items:center; gap:0.3rem;">
+                                            <i class="rzi" style="font-size:0.9rem;">login</i> @L["Imp_BtnBecome"]
+                                        </button>
+                                    </form>
+                                }
+                            </Template>
+                        </RadzenDataGridColumn>
+                    </Columns>
+                </RadzenDataGrid>
+            }
+        </RadzenStack>
+    </RadzenCard>
+    </main>
+</div>
+
+@code {
+    private List<ImpersonationRow> rows = new();
+    private string searchText = "";
+    private string lastSearch = "";
+    private bool loading;
+    private bool searched;
+    private string? RealMatricule;
+    private System.Threading.CancellationTokenSource? _cts;
+
+    protected override void OnInitialized()
+    {
+        RealMatricule = CurrentUser.GetCurrentUser()?.Matricule;
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? "";
+        _cts?.Cancel();
+        _cts = new System.Threading.CancellationTokenSource();
+        var token = _cts.Token;
+
+        if (searchText.Trim().Length < 2)
+        {
+            rows = new();
+            searched = false;
+            return;
+        }
+
+        // Débounce 300 ms
+        try
+        {
+            await Task.Delay(300, token);
+        }
+        catch (TaskCanceledException) { return; }
+
+        await SearchAsync(searchText.Trim(), token);
+    }
+
+    private async Task SearchAsync(string query, System.Threading.CancellationToken ct = default)
+    {
+        loading = true;
+        lastSearch = query;
+        StateHasChanged();
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync(ct);
+            var q = query.ToLowerInvariant();
+
+            // ── Glencore (RH référentiel) ──────────────────────────
+            var glencore = await ctx.AllEmployees.AsNoTracking()
+                .Where(g => g.EmployeeCode.ToLower().Contains(q)
+                          || (g.FirstName + " " + g.LastName).ToLower().Contains(q)
+                          || (g.LastName + " " + g.FirstName).ToLower().Contains(q)
+                          || (g.Departement != null && g.Departement.ToLower().Contains(q))
+                          || (g.UserName != null && g.UserName.ToLower().Contains(q)))
+                .OrderBy(g => g.LastName).ThenBy(g => g.FirstName)
+                .Take(50)
+                .ToListAsync(ct);
+
+            var glencoreRows = glencore.Select(g =>
+            {
+                var display = $"{g.FirstName} {g.LastName}".Trim();
+                if (string.IsNullOrWhiteSpace(display)) display = g.EmployeeCode;
+                return new ImpersonationRow
+                {
+                    EmployeeCode = g.EmployeeCode,
+                    DisplayName  = display,
+                    Departement  = g.Departement,
+                    UserName     = g.UserName,
+                    IsStandalone = false
+                };
+            });
+
+            // ── Standalone (comptes locaux non liés à Glencore) ────
+            // Login et EstActif sont sur AppUser (T_Users), pas sur Employee.
+            var glencoreCodes = ctx.AllEmployees.Select(g => g.EmployeeCode);
+            var standaloneResults = await (
+                from e in ctx.Employees.AsNoTracking()
+                join u in ctx.AppUsers.AsNoTracking() on e.Id equals u.EmployeeId into users
+                from u in users.DefaultIfEmpty()
+                where (u == null || u.EstActif) &&
+                      (e.Matricule == null || !glencoreCodes.Contains(e.Matricule)) &&
+                      (e.NomComplet != null && e.NomComplet.ToLower().Contains(q) ||
+                       e.Prenom != null && e.Prenom.ToLower().Contains(q) ||
+                       e.Nom != null && e.Nom.ToLower().Contains(q) ||
+                       e.Matricule != null && e.Matricule.ToLower().Contains(q) ||
+                       u != null && u.Login != null && u.Login.ToLower().Contains(q) ||
+                       e.DepartementNom != null && e.DepartementNom.ToLower().Contains(q))
+                orderby e.Nom, e.Prenom
+                select new { e, Login = u != null ? u.Login : null }
+            ).Take(20).ToListAsync(ct);
+
+            var standaloneRows = standaloneResults.Select(r =>
+            {
+                var e = r.e;
+                var login = r.Login;
+                // Pour l'impersonation : Matricule en priorité, sinon login sans domaine
+                var identifier = e.Matricule
+                    ?? (login?.Contains('\\') == true
+                        ? login[(login.LastIndexOf('\\') + 1)..]
+                        : login)
+                    ?? "";
+                var display = (e.DisplayName ?? e.NomComplet ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(display)) display = identifier;
+                return new ImpersonationRow
+                {
+                    EmployeeCode = identifier,
+                    DisplayName  = display,
+                    Departement  = e.DepartementNom,
+                    UserName     = login,
+                    IsStandalone = true
+                };
+            });
+
+            rows = glencoreRows.Concat(standaloneRows).ToList();
+            searched = true;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception) { rows = new(); searched = true; }
+        finally
+        {
+            loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearSearch()
+    {
+        searchText = "";
+        rows = new();
+        searched = false;
+    }
+
+    private sealed class ImpersonationRow
+    {
+        public string EmployeeCode { get; set; } = "";
+        public string DisplayName  { get; set; } = "";
+        public string? Departement { get; set; }
+        public string? UserName    { get; set; }
+        public bool IsStandalone   { get; set; }
+    }
+}

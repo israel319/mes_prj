@@ -17,11 +17,9 @@ public class BonSortieInterneConfiguration : IEntityTypeConfiguration<BonSortieI
         builder.Property(b => b.BonEntreeAssocieId)
             .HasColumnName("BonEntreeAssocieId");
 
-        builder.Property(b => b.TypeMateriel)
-            .HasColumnName("TypeMaterielInterne")
-            .HasConversion<string>()
-            .HasMaxLength(50)
-            .IsRequired();
+        builder.Property(b => b.DescriptionMateriel)
+            .HasColumnName("DescriptionMaterielInterne")
+            .HasMaxLength(200);
 
         builder.Property(b => b.DepartementOrigine)
             .HasColumnName("DepartementOrigine")

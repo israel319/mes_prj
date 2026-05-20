@@ -1,0 +1,33 @@
+@* ─── Sélecteur de langue FR / EN ─── *@
+@inject NavigationManager Navigation
+
+<div style="display:inline-flex;align-items:center;flex-shrink:0;
+             background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.18);
+             border-radius:5px;overflow:hidden;margin-right:0.5rem;">
+    <a href="@GetLangUrl("fr")"
+       title="Français"
+       style="@BtnStyle("fr")">FR</a>
+    <span style="color:rgba(255,255,255,0.2);font-size:0.65rem;line-height:1;user-select:none;">|</span>
+    <a href="@GetLangUrl("en")"
+       title="English"
+       style="@BtnStyle("en")">EN</a>
+</div>
+
+@code {
+    private string CurrentLang = "fr";
+
+    protected override void OnInitialized()
+    {
+        CurrentLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName
+                      .ToLowerInvariant();
+    }
+
+    private string GetLangUrl(string lang) =>
+        $"/api/set-language?lang={lang}&returnUrl={Uri.EscapeDataString(Navigation.Uri)}";
+
+    private string BtnStyle(string lang) => lang == CurrentLang
+        ? "padding:0.3rem 0.65rem;font-size:0.75rem;font-weight:800;letter-spacing:0.05em;" +
+          "color:#ffffff;background:#00B193;text-decoration:none;line-height:1;transition:background 0.15s;"
+        : "padding:0.3rem 0.65rem;font-size:0.75rem;font-weight:600;letter-spacing:0.04em;" +
+          "color:rgba(255,255,255,0.45);background:transparent;text-decoration:none;line-height:1;transition:background 0.15s;";
+}

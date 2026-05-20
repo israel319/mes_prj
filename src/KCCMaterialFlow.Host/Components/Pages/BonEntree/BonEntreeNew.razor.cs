@@ -12,6 +12,7 @@ public partial class BonEntreeNew
 {
     [Inject] private IReferenceDataService ReferenceDataService { get; set; } = default!;
     [Inject] private IRaisonEntreeService RaisonEntreeService { get; set; } = default!;
+    [Inject] private IAllEmployeeSearchService GlencoreSearchService { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
     [Inject] private ILogger<BonEntreeNew> Logger { get; set; } = default!;
 
@@ -26,19 +27,16 @@ public partial class BonEntreeNew
     // Listes de reference
     private IEnumerable<Compagnie> compagnies = [];
     private IEnumerable<Contrat> contrats = [];
-    private IEnumerable<Departement> departements = [];
     private IEnumerable<Site> sites = [];
     private IReadOnlyList<RaisonEntree> raisonsEntree = [];
+    private IReadOnlyList<string> hostDepartements = [];
 
     // Selections
     private int? selectedCompagnieId;
     private int? selectedContratId;
-    private int? selectedDepartementId;
     private int? selectedProvenanceId;
     private int? selectedDestinationId;
-    private int? selectedRaisonEntreeId;
-    private string? selectedRaisonEntreeCode;
-    private string autreMotifEntreeTexte = string.Empty;
+    private string? raisonEntreeTexte;  // Motif d'entrée libre (textbox)
 
     // Contrats filtrés par compagnie sélectionnée
     private IEnumerable<Contrat> contratsFiltered =>
@@ -66,9 +64,9 @@ public partial class BonEntreeNew
         // Charger les donnees de reference
         compagnies = await ReferenceDataService.GetCompagniesAsync();
         contrats = await ReferenceDataService.GetContratsAsync();
-        departements = await ReferenceDataService.GetDepartementsAsync();
         sites = await ReferenceDataService.GetSitesAsync();
         raisonsEntree = await RaisonEntreeService.GetAllActiveAsync();
+        hostDepartements = await GlencoreSearchService.GetDistinctDepartementsAsync();
     }
 
     private void OnCompagnieChanged(object value)
@@ -84,16 +82,15 @@ public partial class BonEntreeNew
             if (compagnie != null)
             {
                 request.NomCompagnie = compagnie.Nom;
-                request.EmailContractant = compagnie.Email ?? string.Empty;
-                request.SiteManager = compagnie.SiteManager ?? string.Empty;
             }
         }
         else
         {
             request.NomCompagnie = string.Empty;
-            request.EmailContractant = string.Empty;
-            request.SiteManager = string.Empty;
         }
+        // Email & SiteManager sont désormais sur le Contrat — réinitialisés ici, remplis dans OnContratChanged
+        request.EmailContractant = string.Empty;
+        request.SiteManager = string.Empty;
     }
 
     private void OnContratChanged(object value)
@@ -105,55 +102,20 @@ public partial class BonEntreeNew
             {
                 request.ContratId = contrat.Id;
                 request.NumeroContrat = contrat.PoNumber;
+                request.EmailContractant = contrat.Email ?? string.Empty;
+                request.SiteManager = contrat.SiteManager ?? string.Empty;
             }
         }
         else
         {
             request.ContratId = null;
             request.NumeroContrat = string.Empty;
+            request.EmailContractant = string.Empty;
+            request.SiteManager = string.Empty;
         }
     }
 
-    private void OnDepartementChanged(object value)
-    {
-        if (value is int departementId)
-        {
-            var dept = departements.FirstOrDefault(d => d.Id == departementId);
-            request.HostDepartment = dept?.NomDepartement ?? string.Empty;
-            request.DepartementId = dept?.Id;
-        }
-        else
-        {
-            request.HostDepartment = string.Empty;
-            request.DepartementId = null;
-        }
-    }
-
-    private void OnRaisonEntreeChanged(object value)
-    {
-        if (value is int raisonId)
-        {
-            var raison = raisonsEntree.FirstOrDefault(r => r.Id == raisonId);
-            request.RaisonEntreeId = raisonId;
-            selectedRaisonEntreeCode = raison?.Code;
-            request.ReasonOnSite = raison?.Nom ?? string.Empty;
-        }
-        else
-        {
-            request.RaisonEntreeId = null;
-            selectedRaisonEntreeCode = null;
-            request.ReasonOnSite = string.Empty;
-            autreMotifEntreeTexte = string.Empty;
-        }
-    }
-
-    private void OnAutreMotifChanged(string value)
-    {
-        autreMotifEntreeTexte = value;
-        request.ReasonOnSite = string.IsNullOrWhiteSpace(value)
-            ? "Autre"
-            : $"Autre: {value}";
-    }
+    // Motif d'entrée maintenant libre (textbox) — pas de callback complexe nécessaire
 
     private void OnProvenanceChanged(object value)
     {
@@ -230,6 +192,9 @@ public partial class BonEntreeNew
 
     private async Task SaveAsync(bool submitAfterSave)
     {
+        // Mettre à jour le motif libre depuis le textbox
+        request.ReasonOnSite = raisonEntreeTexte ?? string.Empty;
+
         // Validation avec messages d'erreur
         var validationErrors = new List<string>();
         if (string.IsNullOrWhiteSpace(request.NomCompagnie)) validationErrors.Add("Compagnie");

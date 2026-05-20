@@ -1,5 +1,6 @@
 @using AuditLogEntity = KCCMaterialFlow.Domain.Entities.AuditLog
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1rem">
     <RadzenRow Gap="1rem">
@@ -7,18 +8,18 @@
             <RadzenCard Variant="Variant.Flat" Style="background-color: #ffebee;">
                 <RadzenText TextStyle="TextStyle.Subtitle1" FontWeight="FontWeight.SemiBold" Style="color: #c62828;">
                     <RadzenIcon Icon="remove_circle" Style="vertical-align: middle; margin-right: 0.5rem;" />
-                    Ancienne valeur
+                    @L["Adif_OldValue"]
                 </RadzenText>
-                <pre style="margin-top: 0.5rem; white-space: pre-wrap; word-break: break-all; background: #fff; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto;">@(string.IsNullOrEmpty(AuditLog?.AncienneValeur) ? "(vide)" : AuditLog.AncienneValeur)</pre>
+                <pre style="margin-top: 0.5rem; white-space: pre-wrap; word-break: break-all; background: #fff; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto;">@(string.IsNullOrEmpty(AuditLog?.AncienneValeur) ? L["Adif_Empty"].Value : AuditLog.AncienneValeur)</pre>
             </RadzenCard>
         </RadzenColumn>
         <RadzenColumn Size="12" SizeMD="6">
             <RadzenCard Variant="Variant.Flat" Style="background-color: #e8f5e9;">
                 <RadzenText TextStyle="TextStyle.Subtitle1" FontWeight="FontWeight.SemiBold" Style="color: #2e7d32;">
                     <RadzenIcon Icon="add_circle" Style="vertical-align: middle; margin-right: 0.5rem;" />
-                    Nouvelle valeur
+                    @L["Adif_NewValue"]
                 </RadzenText>
-                <pre style="margin-top: 0.5rem; white-space: pre-wrap; word-break: break-all; background: #fff; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto;">@(string.IsNullOrEmpty(AuditLog?.NouvelleValeur) ? "(vide)" : AuditLog.NouvelleValeur)</pre>
+                <pre style="margin-top: 0.5rem; white-space: pre-wrap; word-break: break-all; background: #fff; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto;">@(string.IsNullOrEmpty(AuditLog?.NouvelleValeur) ? L["Adif_Empty"].Value : AuditLog.NouvelleValeur)</pre>
             </RadzenCard>
         </RadzenColumn>
     </RadzenRow>
@@ -26,19 +27,19 @@
     <RadzenCard Variant="Variant.Flat" Style="background-color: #f5f5f5;">
         <RadzenRow Gap="1rem">
             <RadzenColumn Size="6" SizeMD="3">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">Date</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">@L["Adif_Date"]</RadzenText>
                 <RadzenText TextStyle="TextStyle.Body2">@AuditLog?.DateAction.ToString("dd/MM/yyyy HH:mm:ss")</RadzenText>
             </RadzenColumn>
             <RadzenColumn Size="6" SizeMD="3">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">Utilisateur</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">@L["Adif_User"]</RadzenText>
                 <RadzenText TextStyle="TextStyle.Body2">@AuditLog?.UtilisateurNom (@AuditLog?.UtilisateurLogin)</RadzenText>
             </RadzenColumn>
             <RadzenColumn Size="6" SizeMD="3">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">Action</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">@L["Adif_Action"]</RadzenText>
                 <RadzenText TextStyle="TextStyle.Body2">@AuditLog?.TypeAction</RadzenText>
             </RadzenColumn>
             <RadzenColumn Size="6" SizeMD="3">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">Entité</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">@L["Adif_Entity"]</RadzenText>
                 <RadzenText TextStyle="TextStyle.Body2">@AuditLog?.EntiteType #@AuditLog?.EntiteId</RadzenText>
             </RadzenColumn>
         </RadzenRow>
@@ -46,7 +47,7 @@
         {
             <RadzenRow class="rz-mt-2">
                 <RadzenColumn Size="12">
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">Adresse IP</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #666;">@L["Adif_IP"]</RadzenText>
                     <RadzenText TextStyle="TextStyle.Body2">@AuditLog.AdresseIP</RadzenText>
                 </RadzenColumn>
             </RadzenRow>
@@ -54,7 +55,7 @@
     </RadzenCard>
     
     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
-        <RadzenButton Text="Fermer" ButtonStyle="ButtonStyle.Light" Click="@Close" />
+        <RadzenButton Text="@L["Btn_Close"].Value" ButtonStyle="ButtonStyle.Light" Click="@Close" />
     </RadzenStack>
 </RadzenStack>
 

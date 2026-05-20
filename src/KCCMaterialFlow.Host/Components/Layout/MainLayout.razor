@@ -2,11 +2,46 @@
 @implements IDisposable
 @inject ICurrentUserService CurrentUserService
 @inject NavigationManager Navigation
-@inject IUtilisateurService UtilisateurService
 @inject IParametreSystemeService ParametreSystemeService
-@inject KCCMaterialFlow.Host.Services.UserRoleCacheService RoleCacheService
+@inject KCCMaterialFlow.Host.Services.UserRoleChangeTracker RoleChangeTracker
+@inject IImpersonationService ImpersonationSvc
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenComponents @rendermode="InteractiveServer" />
+
+@* ─── BANDEAU IMPERSONATION (hors RadzenHeader, pleine largeur en haut de page) ─── *@
+@if (ImpersonationSvc.IsImpersonating)
+{
+    <div style="display:flex;align-items:center;gap:0.75rem;width:100%;box-sizing:border-box;
+                padding:0.55rem 1.5rem;
+                background:linear-gradient(90deg,#b45309 0%,#d97706 50%,#f59e0b 100%);
+                color:#fff;font-size:0.82rem;font-weight:600;
+                border-bottom:2px solid #92400e;
+                box-shadow:0 2px 6px rgba(0,0,0,.18);
+                position:sticky;top:0;z-index:1200;">
+        <RadzenIcon Icon="warning" Style="font-size:1.1rem;color:#fef3c7;" />
+        <span style="flex:1;color:#fff;">
+            @L["Imp_Title"] :
+            <strong style="margin-left:0.25rem;padding:0.05rem 0.5rem;
+                           background:rgba(0,0,0,.22);border-radius:3px;
+                           font-weight:800;letter-spacing:.04em;">
+                @ImpersonationSvc.ImpersonatedMatricule
+            </strong>
+        </span>
+        <form method="post" action="/api/impersonation/stop" style="margin:0;">
+            <button type="submit"
+                    style="display:inline-flex;align-items:center;gap:0.4rem;
+                           padding:0.4rem 0.9rem;
+                           background:rgba(255,255,255,.22);color:#fff;
+                           border:1px solid rgba(255,255,255,.55);border-radius:4px;
+                           font-size:0.75rem;font-weight:700;cursor:pointer;
+                           text-transform:uppercase;letter-spacing:.04em;line-height:1;">
+                <RadzenIcon Icon="logout" Style="font-size:0.9rem;" />
+                <span>@L["Imp_Stop"]</span>
+            </button>
+        </form>
+    </div>
+}
 
 @* ============ LAYOUT PRINCIPAL ============ *@
 <RadzenLayout>
@@ -39,21 +74,21 @@
                     <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                     </svg>
-                    <span>Dashboard</span>
+                    <span>@L["Nav_Dashboard"]</span>
                 </a>
                 <a href="/liste-bons" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("bons")">
                     <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
                     </svg>
-                    <span>Tous les Bons</span>
+                    <span>@L["Nav_AllVouchers"]</span>
                 </a>
-                @if (CanApprove)
+                @if (CanApprove || IsAdmin)
                 {
                     <a href="/mes-approbations" class="kcc-topbar__tab kcc-topbar__tab--nav @TabCss("approbations")">
                         <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
                         </svg>
-                        <span>Approbations</span>
+                        <span>@L["Nav_Approvals"]</span>
                     </a>
                 }
                 @if (CanCreateBEM || CanCreateBSM)
@@ -63,17 +98,17 @@
                             <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
                             </svg>
-                            <span>Nouveau Bon</span>
+                            <span>@L["Nav_NewVoucher"]</span>
                             <svg class="kcc-topbar__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
                         </span>
                         <div class="kcc-topbar__dropdown-menu">
                             @if (CanCreateBEM)
                             {
-                                <a href="/bon-entree/nouveau" class="kcc-topbar__dropdown-item">Bon d'Entrée (BEM)</a>
+                                <a href="/bon-entree/nouveau" class="kcc-topbar__dropdown-item">@L["Nav_EntryVoucher"]</a>
                             }
                             @if (CanCreateBSM)
                             {
-                                <a href="/bon-sortie/nouveau" class="kcc-topbar__dropdown-item">Bon de Sortie (BSM)</a>
+                                <a href="/bon-sortie/nouveau" class="kcc-topbar__dropdown-item">@L["Nav_ExitVoucher"]</a>
                             }
                         </div>
                     </div>
@@ -84,7 +119,7 @@
                         <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/>
                         </svg>
-                        <span>Scanner</span>
+                        <span>@L["Nav_Scanner"]</span>
                     </a>
                 }
                 @if (IsAdmin)
@@ -93,11 +128,22 @@
                         <svg class="kcc-topbar__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                         </svg>
-                        <span>Admin</span>
+                        <span>@L["Nav_Admin"]</span>
                     </a>
                 }
                 @* ─── Spacer pour pousser le profil à droite ─── *@
                 <div class="kcc-topbar__spacer"></div>
+
+                @* ─── Accès rapide impersonation (SuperAdmin, hors mode actif) ─── *@
+                @if (!ImpersonationSvc.IsImpersonating && IsSuperAdmin)
+                {
+                    <a href="/admin/impersonation" class="kcc-topbar__tab kcc-topbar__tab--nav" title="@L["Imp_Title"]" style="padding:0.45rem 0.65rem;">
+                        <RadzenIcon Icon="manage_accounts" Style="font-size:1.2rem;" />
+                    </a>
+                }
+
+                @* ─── Sélecteur de langue ─── *@
+                <LanguageSwitcher />
 
                 @* ─── Profil utilisateur ─── *@
                 <div class="kcc-topbar__user">
@@ -109,6 +155,14 @@
                     }
                 </div>
             </nav>
+            @if (IsAdmin && IsAdminPage)
+            {
+                <div class="kcc-topbar-adminbar">
+                    <div class="kcc-topbar-adminbar__inner">
+                        <AdminNav />
+                    </div>
+                </div>
+            }
         </div>
     </RadzenHeader>
 
@@ -122,11 +176,11 @@
                 <ErrorContent Context="ex">
                     <div style="padding: 2rem; text-align: center;">
                         <RadzenIcon Icon="error_outline" Style="font-size: 3rem; color: var(--kcc-accent); margin-bottom: 1rem;" />
-                        <RadzenText TextStyle="TextStyle.H5" Style="color: var(--kcc-text-title); margin-bottom: 0.5rem;">Une erreur est survenue</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H5" Style="color: var(--kcc-text-title); margin-bottom: 0.5rem;">@L["Err_Title"]</RadzenText>
                         <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin-bottom: 1.5rem;">
-                            La page n'a pas pu se charger correctement. Veuillez réessayer.
+                            @L["Err_Message"]
                         </RadzenText>
-                        <RadzenButton Text="Réessayer" Icon="refresh" ButtonStyle="ButtonStyle.Primary"
+                        <RadzenButton Text="@L["Btn_Retry"]" Icon="refresh" ButtonStyle="ButtonStyle.Primary"
                                       Click="RecoverFromError" />
                     </div>
                 </ErrorContent>
@@ -145,9 +199,14 @@
     private string userInitials = "";
     private string currentRoleName = "";
     private string appName = "KCC Material Flow";
-    private Utilisateur? currentDbUser;
+    private KCCMaterialFlow.Domain.Entities.Employee? currentDbUser;
     private bool mobileMenuOpen;
     private ErrorBoundary? errorBoundary;
+
+    // Suivi des changements de rôle pour rechargement immédiat
+    private DateTime _circuitStartTime;
+    private string? _myMatricule;
+    private System.Threading.Timer? _roleWatchTimer;
 
     // Permissions pour la topbar (recalculées à chaque navigation)
     private bool CanApprove;
@@ -155,6 +214,8 @@
     private bool CanCreateBSM;
     private bool CanScan;
     private bool IsAdmin;
+    private bool IsSuperAdmin;
+    private bool IsAdminPage => new Uri(Navigation.Uri).AbsolutePath.StartsWith("/admin", StringComparison.OrdinalIgnoreCase);
 
     private string TabCss(string section)
     {
@@ -184,6 +245,14 @@
     protected override async Task OnInitializedAsync()
     {
         Navigation.LocationChanged += OnLocationChanged;
+        _circuitStartTime = DateTime.UtcNow;
+        _myMatricule = CurrentUserService.Matricule;
+        // Vérifier toutes les 5 secondes si le rôle de cet utilisateur a changé
+        _roleWatchTimer = new System.Threading.Timer(
+            async _ => await CheckRoleChangedAsync(),
+            null,
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(5));
         await LoadDataAsync();
     }
 
@@ -208,13 +277,17 @@
     /// </summary>
     private void RefreshPermissions()
     {
-        // Lire le rôle FRAIS depuis le cache centralisé (pas de cache local)
-        var login = CurrentUserService.GetUserLogin();
-        var roleCode = RoleCacheService.GetUserRole(login);
-
+        var niveau = CurrentUserService.NiveauAdmin;
+        var roleCode = niveau switch
+        {
+            NiveauAdmin.SuperAdmin => "SuperAdmin",
+            NiveauAdmin.Admin => "Admin",
+            _ => ""
+        };
         currentRoleName = GetRoleDisplayName(roleCode);
-        IsAdmin = !string.IsNullOrEmpty(roleCode) && roleCode.Equals("Admin", StringComparison.OrdinalIgnoreCase);
-        CanApprove = CurrentUserService.HasAnyActivite("BEM_APPROUVER", "BEM_REJETER", "BEM_RETOURNER", "BSM_APPROUVER", "BSM_REJETER", "BSM_RETOURNER");
+        IsAdmin = CurrentUserService.IsAdmin;
+        IsSuperAdmin = CurrentUserService.NiveauAdmin == NiveauAdmin.SuperAdmin;
+        CanApprove = CurrentUserService.IsApprover;
         CanCreateBEM = CurrentUserService.HasActivite("BEM_CREER");
         CanCreateBSM = CurrentUserService.HasActivite("BSM_CREER");
         CanScan = CurrentUserService.HasActivite("SEC_SCANNER");
@@ -222,6 +295,7 @@
 
     private static string GetRoleDisplayName(string? roleCode) => roleCode?.ToUpperInvariant() switch
     {
+        "SUPERADMIN" => "SuperAdmin",
         "ADMIN" => "Admin",
         "GM" => "GM",
         "SUPERVISEUR" => "Superviseur",
@@ -246,16 +320,9 @@
             // Permissions recalculées à chaque navigation via RefreshPermissions()
             RefreshPermissions();
 
-            // Lancer les deux appels DB en parallèle
-            Task<Utilisateur?> userTask =
-                !string.IsNullOrEmpty(login) && login != "Anonyme"
-                    ? UtilisateurService.GetByLoginAsync(login)
-                    : Task.FromResult<Utilisateur?>(null);
+            currentDbUser = CurrentUserService.GetCurrentEmployee();
             var appNameTask = ParametreSystemeService.GetValueAsync("APP_NOM");
-
-            await Task.WhenAll(userTask, appNameTask);
-
-            currentDbUser = userTask.Result;
+            await appNameTask;
             displayName = currentDbUser?.NomComplet ?? CurrentUserService.GetUserDisplayName();
             userInitials = GetInitials(displayName);
 
@@ -282,5 +349,25 @@
     public void Dispose()
     {
         Navigation.LocationChanged -= OnLocationChanged;
+        _roleWatchTimer?.Dispose();
+    }
+
+    /// <summary>
+    /// Vérifie si le rôle de l'utilisateur courant a été modifié depuis le démarrage du circuit.
+    /// Si oui, force un rechargement complet pour obtenir des claims frais.
+    /// </summary>
+    private async Task CheckRoleChangedAsync()
+    {
+        if (string.IsNullOrEmpty(_myMatricule)) return;
+        var lastChange = RoleChangeTracker.GetLastChange(_myMatricule);
+        if (lastChange.HasValue && lastChange.Value > _circuitStartTime)
+        {
+            try
+            {
+                await InvokeAsync(() =>
+                    Navigation.NavigateTo(Navigation.Uri, forceLoad: true));
+            }
+            catch { /* circuit déjà fermé — ignorer */ }
+        }
     }
 }

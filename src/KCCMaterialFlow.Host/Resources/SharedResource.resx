@@ -1,0 +1,3853 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ═══ NAVIGATION ═══ -->
+  <data name="Nav_Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Nav_AllVouchers" xml:space="preserve">
+    <value>All Vouchers</value>
+  </data>
+  <data name="Nav_Approvals" xml:space="preserve">
+    <value>Approvals</value>
+  </data>
+  <data name="Nav_NewVoucher" xml:space="preserve">
+    <value>New Voucher</value>
+  </data>
+  <data name="Nav_EntryVoucher" xml:space="preserve">
+    <value>Entry Voucher (BEM)</value>
+  </data>
+  <data name="Nav_ExitVoucher" xml:space="preserve">
+    <value>Exit Voucher (BSM)</value>
+  </data>
+  <data name="Nav_Scanner" xml:space="preserve">
+    <value>Scanner</value>
+  </data>
+  <data name="Nav_Admin" xml:space="preserve">
+    <value>Admin</value>
+  </data>
+
+  <!-- ═══ BOUTONS COMMUNS ═══ -->
+  <data name="Btn_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Btn_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Btn_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Btn_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Btn_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Btn_Submit" xml:space="preserve">
+    <value>Submit</value>
+  </data>
+  <data name="Btn_Approve" xml:space="preserve">
+    <value>Approve</value>
+  </data>
+  <data name="Btn_Reject" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="Btn_Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Btn_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Btn_Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Btn_Print" xml:space="preserve">
+    <value>Print</value>
+  </data>
+  <data name="Btn_Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Btn_Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Btn_Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Btn_Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Filter_DateFrom" xml:space="preserve"><value>From</value></data>
+  <data name="Filter_DateTo" xml:space="preserve"><value>To</value></data>
+  <data name="Btn_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Btn_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Btn_New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="Btn_Activate" xml:space="preserve">
+    <value>Activate</value>
+  </data>
+  <data name="Btn_Deactivate" xml:space="preserve">
+    <value>Deactivate</value>
+  </data>
+  <data name="Btn_Download" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="Btn_View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Btn_Import" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="Btn_Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Btn_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+
+  <!-- ═══ ÉTIQUETTES COMMUNES ═══ -->
+  <data name="Lbl_Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="Lbl_Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Lbl_NoData" xml:space="preserve">
+    <value>No data</value>
+  </data>
+  <data name="Lbl_NoResults" xml:space="preserve">
+    <value>No results</value>
+  </data>
+  <data name="Lbl_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Lbl_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Lbl_All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Lbl_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Lbl_Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Lbl_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Lbl_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Lbl_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Lbl_Employee" xml:space="preserve">
+    <value>Employee</value>
+  </data>
+  <data name="Lbl_Site" xml:space="preserve">
+    <value>Site</value>
+  </data>
+  <data name="Lbl_Reference" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="Lbl_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Lbl_Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="Lbl_Comments" xml:space="preserve">
+    <value>Comments</value>
+  </data>
+  <data name="Lbl_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Lbl_CreatedAt" xml:space="preserve">
+    <value>Created at</value>
+  </data>
+  <data name="Lbl_CreatedBy" xml:space="preserve">
+    <value>Created by</value>
+  </data>
+  <data name="Lbl_UpdatedAt" xml:space="preserve">
+    <value>Updated at</value>
+  </data>
+  <data name="Lbl_Requester" xml:space="preserve">
+    <value>Requester</value>
+  </data>
+  <data name="Lbl_Approver" xml:space="preserve">
+    <value>Approver</value>
+  </data>
+  <data name="Lbl_Department" xml:space="preserve">
+    <value>Department</value>
+  </data>
+  <data name="Lbl_Matricule" xml:space="preserve">
+    <value>Staff ID</value>
+  </data>
+  <data name="Lbl_Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Lbl_Order" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="Lbl_Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Lbl_Inactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Lbl_Observations" xml:space="preserve">
+    <value>Observations</value>
+  </data>
+  <data name="Lbl_Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Lbl_Of" xml:space="preserve">
+    <value>of</value>
+  </data>
+  <data name="Lbl_Contract" xml:space="preserve">
+    <value>Contract</value>
+  </data>
+  <data name="Lbl_Company" xml:space="preserve">
+    <value>Company</value>
+  </data>
+  <data name="Lbl_Material" xml:space="preserve">
+    <value>Material</value>
+  </data>
+  <data name="Lbl_Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Lbl_Requester_short" xml:space="preserve">
+    <value>Req.</value>
+  </data>
+  <data name="Lbl_EntryDate" xml:space="preserve">
+    <value>Entry date</value>
+  </data>
+  <data name="Lbl_ExitDate" xml:space="preserve">
+    <value>Exit date</value>
+  </data>
+  <data name="Lbl_SubmittedAt" xml:space="preserve">
+    <value>Submitted at</value>
+  </data>
+  <data name="Lbl_ApprovedAt" xml:space="preserve">
+    <value>Approved at</value>
+  </data>
+  <data name="Lbl_RejectedAt" xml:space="preserve">
+    <value>Rejected at</value>
+  </data>
+  <data name="Lbl_Filters" xml:space="preserve">
+    <value>Filters</value>
+  </data>
+  <data name="Lbl_Results" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="Lbl_Page" xml:space="preserve">
+    <value>Page</value>
+  </data>
+  <data name="Lbl_SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Lbl_Profile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="Lbl_Role" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="Lbl_Permissions" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+
+  <!-- ═══ STATUTS ═══ -->
+  <data name="Status_Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="Status_Submitted" xml:space="preserve">
+    <value>Submitted</value>
+  </data>
+  <data name="Status_Approved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="Status_Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Status_Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="Status_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Status_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Status_Completed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Status_InProgress" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+
+  <!-- ═══ ACTIONS HISTORIQUE ═══ -->
+  <data name="Action_Created" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="Action_Submitted" xml:space="preserve">
+    <value>Submitted</value>
+  </data>
+  <data name="Action_Approved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="Action_Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Action_Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="Action_Modified" xml:space="preserve">
+    <value>Modified</value>
+  </data>
+  <data name="Action_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Action_QRCode" xml:space="preserve">
+    <value>QR Code</value>
+  </data>
+  <data name="Action_Scanned" xml:space="preserve">
+    <value>Scanned</value>
+  </data>
+
+  <!-- ═══ WORKFLOW ═══ -->
+  <data name="Wf_ApprovalWorkflow" xml:space="preserve">
+    <value>Approval Workflow</value>
+  </data>
+  <data name="Wf_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Wf_WaitingFor" xml:space="preserve">
+    <value>Waiting for</value>
+  </data>
+  <data name="Wf_OneOf" xml:space="preserve">
+    <value>one of:</value>
+  </data>
+  <data name="Wf_ApprovedBy" xml:space="preserve">
+    <value>Approved by</value>
+  </data>
+  <data name="Wf_RejectedBy" xml:space="preserve">
+    <value>Rejected by</value>
+  </data>
+  <data name="Wf_ReturnedBy" xml:space="preserve">
+    <value>Returned by</value>
+  </data>
+  <data name="Wf_SpecialApprovers" xml:space="preserve">
+    <value>Special Approvers</value>
+  </data>
+  <data name="Wf_NoApproverConfigured" xml:space="preserve">
+    <value>No approver configured</value>
+  </data>
+  <data name="Wf_Step" xml:space="preserve">
+    <value>Step</value>
+  </data>
+  <data name="Wf_Decision" xml:space="preserve">
+    <value>Decision</value>
+  </data>
+  <data name="Wf_DecisionDate" xml:space="preserve">
+    <value>Decision date</value>
+  </data>
+  <data name="Wf_Justification" xml:space="preserve">
+    <value>Justification</value>
+  </data>
+
+  <!-- ═══ BON D'ENTRÉE (BEM) ═══ -->
+  <data name="Bem_Title" xml:space="preserve">
+    <value>Material Entry Voucher</value>
+  </data>
+  <data name="Bem_New" xml:space="preserve">
+    <value>New Entry Voucher</value>
+  </data>
+  <data name="Bem_List" xml:space="preserve">
+    <value>Entry Vouchers</value>
+  </data>
+  <data name="Bem_EntryDate" xml:space="preserve">
+    <value>Entry date</value>
+  </data>
+  <data name="Bem_ReasonEntry" xml:space="preserve">
+    <value>Entry reason</value>
+  </data>
+  <data name="Bem_MaterialsList" xml:space="preserve">
+    <value>Materials list</value>
+  </data>
+
+  <!-- ═══ BON DE SORTIE (BSM) ═══ -->
+  <data name="Bsm_Title" xml:space="preserve">
+    <value>Material Exit Voucher</value>
+  </data>
+  <data name="Bsm_New" xml:space="preserve">
+    <value>New Exit Voucher</value>
+  </data>
+  <data name="Bsm_List" xml:space="preserve">
+    <value>Exit Vouchers</value>
+  </data>
+  <data name="Bsm_ExitDate" xml:space="preserve">
+    <value>Exit date</value>
+  </data>
+  <data name="Bsm_ReasonExit" xml:space="preserve">
+    <value>Exit reason</value>
+  </data>
+
+  <!-- ═══ ADMINISTRATION ═══ -->
+  <data name="Adm_Title" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="Adm_Users" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="Adm_Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="Adm_Workflow" xml:space="preserve">
+    <value>Workflow</value>
+  </data>
+  <data name="Adm_Parameters" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
+  <data name="Adm_SpecialApprovers" xml:space="preserve">
+    <value>Special Approvers</value>
+  </data>
+  <data name="Adm_Sites" xml:space="preserve">
+    <value>Sites</value>
+  </data>
+  <data name="Adm_Contracts" xml:space="preserve">
+    <value>Contracts</value>
+  </data>
+  <data name="Adm_AuditLog" xml:space="preserve">
+    <value>Audit Log</value>
+  </data>
+
+  <!-- ═══ MESSAGES ═══ -->
+  <data name="Msg_ConfirmDelete" xml:space="preserve">
+    <value>Are you sure you want to delete this item?</value>
+  </data>
+  <data name="Msg_DeleteSuccess" xml:space="preserve">
+    <value>Deleted successfully.</value>
+  </data>
+  <data name="Msg_SaveSuccess" xml:space="preserve">
+    <value>Saved successfully.</value>
+  </data>
+  <data name="Msg_ErrorOccurred" xml:space="preserve">
+    <value>An error occurred.</value>
+  </data>
+  <data name="Msg_AccessDenied" xml:space="preserve">
+    <value>Access denied. You are not authorized to access this page.</value>
+  </data>
+  <data name="Msg_PageLoadError" xml:space="preserve">
+    <value>The page could not load correctly. Please try again.</value>
+  </data>
+  <data name="Msg_Required" xml:space="preserve">
+    <value>This field is required.</value>
+  </data>
+  <data name="Msg_Confirmation" xml:space="preserve">
+    <value>Confirmation</value>
+  </data>
+  <data name="Msg_NoDataFound" xml:space="preserve">
+    <value>No results found.</value>
+  </data>
+  <data name="Msg_SubmitConfirm" xml:space="preserve">
+    <value>Are you sure you want to submit this voucher for approval?</value>
+  </data>
+  <data name="Msg_ApproveConfirm" xml:space="preserve">
+    <value>Are you sure you want to approve this voucher?</value>
+  </data>
+  <data name="Msg_RejectConfirm" xml:space="preserve">
+    <value>Are you sure you want to reject this voucher?</value>
+  </data>
+  <data name="Msg_ReturnConfirm" xml:space="preserve">
+    <value>Are you sure you want to return this voucher?</value>
+  </data>
+  <data name="Msg_CancelConfirm" xml:space="preserve">
+    <value>Are you sure you want to cancel this voucher?</value>
+  </data>
+
+  <!-- ═══ IMPERSONATION ═══ -->
+  <data name="Imp_Active" xml:space="preserve">
+    <value>Impersonation active</value>
+  </data>
+  <data name="Imp_Simulating" xml:space="preserve">
+    <value>is simulating</value>
+  </data>
+  <data name="Imp_Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+
+  <!-- ═══ ERREUR ═══ -->
+  <data name="Err_Title" xml:space="preserve">
+    <value>An error occurred</value>
+  </data>
+  <data name="Err_Message" xml:space="preserve">
+    <value>The page could not load correctly. Please try again.</value>
+  </data>
+
+  <!-- ═══ SÉCURITÉ ═══ -->
+  <data name="Sec_Title" xml:space="preserve">
+    <value>Security</value>
+  </data>
+  <data name="Sec_Scanner" xml:space="preserve">
+    <value>QR Scanner</value>
+  </data>
+  <data name="Sec_Anomalies" xml:space="preserve">
+    <value>Anomalies</value>
+  </data>
+  <data name="Sec_History" xml:space="preserve">
+    <value>Scan history</value>
+  </data>
+
+  <!-- ═══ LANGUE ═══ -->
+  <data name="Lang_French" xml:space="preserve">
+    <value>FR</value>
+  </data>
+  <data name="Lang_English" xml:space="preserve">
+    <value>EN</value>
+  </data>
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <data name="Dash_Title" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Dash_Subtitle" xml:space="preserve">
+    <value>Real-time overview of material entry and exit vouchers.</value>
+  </data>
+  <data name="Dash_NewBEM" xml:space="preserve">
+    <value>New BEM</value>
+  </data>
+  <data name="Dash_NewBSM" xml:space="preserve">
+    <value>New BSM</value>
+  </data>
+  <data name="Dash_VolumeTotal" xml:space="preserve">
+    <value>Total volume</value>
+  </data>
+  <data name="Dash_Operations" xml:space="preserve">
+    <value>operations</value>
+  </data>
+  <data name="Dash_EntryVouchers" xml:space="preserve">
+    <value>Entry Vouchers</value>
+  </data>
+  <data name="Dash_TotalEntries" xml:space="preserve">
+    <value>Total entries</value>
+  </data>
+  <data name="Dash_ExitVouchers" xml:space="preserve">
+    <value>Exit Vouchers</value>
+  </data>
+  <data name="Dash_TotalExits" xml:space="preserve">
+    <value>Total exits</value>
+  </data>
+  <data name="Dash_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Dash_ToProcess" xml:space="preserve">
+    <value>To process</value>
+  </data>
+  <data name="Dash_MyRequests" xml:space="preserve">
+    <value>My requests</value>
+  </data>
+  <data name="Dash_Approved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="Dash_ThisMonth" xml:space="preserve">
+    <value>This month</value>
+  </data>
+  <data name="Dash_Rejections" xml:space="preserve">
+    <value>Rejections</value>
+  </data>
+  <data name="Dash_Unread" xml:space="preserve">
+    <value>unread</value>
+  </data>
+  <data name="Dash_AllRead" xml:space="preserve">
+    <value>All read</value>
+  </data>
+  <data name="Dash_Loans" xml:space="preserve">
+    <value>Loans</value>
+  </data>
+  <data name="Dash_Overdue" xml:space="preserve">
+    <value>overdue</value>
+  </data>
+  <data name="Dash_NoOverdue" xml:space="preserve">
+    <value>No overdue</value>
+  </data>
+  <data name="Dash_LiveIndicators" xml:space="preserve">
+    <value>Indicators updated in real time</value>
+  </data>
+  <data name="Dash_GoodMorning" xml:space="preserve">
+    <value>Good morning</value>
+  </data>
+  <data name="Dash_GoodAfternoon" xml:space="preserve">
+    <value>Good afternoon</value>
+  </data>
+  <data name="Dash_GoodEvening" xml:space="preserve">
+    <value>Good evening</value>
+  </data>
+  <data name="Dash_WaitingApprover" xml:space="preserve">
+    <value>Waiting: Approver</value>
+  </data>
+  <data name="Dash_WaitingGM" xml:space="preserve">
+    <value>Waiting: GM</value>
+  </data>
+  <data name="Dash_WaitingOPJ" xml:space="preserve">
+    <value>Waiting: OPJ</value>
+  </data>
+  <data name="Dash_WaitingID" xml:space="preserve">
+    <value>Waiting: Identification</value>
+  </data>
+  <data name="Dash_WaitingIT" xml:space="preserve">
+    <value>Waiting: IT</value>
+  </data>
+  <data name="Dash_WaitingEnv" xml:space="preserve">
+    <value>Waiting: Environment</value>
+  </data>
+
+  <!-- ═══ SUIVI BONS ═══ -->
+  <data name="SuiviBons_Title" xml:space="preserve">
+    <value>My Vouchers Tracking</value>
+  </data>
+  <data name="SuiviBons_Subtitle" xml:space="preserve">
+    <value>Track the progress of your pending approval requests</value>
+  </data>
+  <data name="SuiviBons_NoPending" xml:space="preserve">
+    <value>You have no vouchers pending approval</value>
+  </data>
+  <data name="SuiviBons_PendingBEM" xml:space="preserve">
+    <value>Pending Entry Vouchers</value>
+  </data>
+  <data name="SuiviBons_PendingBSM" xml:space="preserve">
+    <value>Pending Exit Vouchers</value>
+  </data>
+
+  <!-- ═══ LISTE BONS ═══ -->
+  <data name="ListeBons_Title" xml:space="preserve">
+    <value>Voucher Management</value>
+  </data>
+  <data name="ListeBons_Subtitle" xml:space="preserve">
+    <value>Complete traceability of material vouchers</value>
+  </data>
+  <data name="ListeBons_ExportExcel" xml:space="preserve">
+    <value>Export Excel</value>
+  </data>
+  <data name="ListeBons_NewEntry" xml:space="preserve">
+    <value>New entry voucher</value>
+  </data>
+  <data name="ListeBons_NewExit" xml:space="preserve">
+    <value>New exit voucher</value>
+  </data>
+  <data name="ListeBons_DateFrom" xml:space="preserve">
+    <value>Start date</value>
+  </data>
+  <data name="ListeBons_DateTo" xml:space="preserve">
+    <value>End date</value>
+  </data>
+  <data name="ListeBons_NoEntries" xml:space="preserve">
+    <value>No entry voucher found</value>
+  </data>
+  <data name="ListeBons_NoExits" xml:space="preserve">
+    <value>No exit voucher found</value>
+  </data>
+  <data name="ListeBons_NoLoans" xml:space="preserve">
+    <value>No loan found</value>
+  </data>
+  <data name="ListeBons_Entries" xml:space="preserve">
+    <value>Entries</value>
+  </data>
+  <data name="ListeBons_Exits" xml:space="preserve">
+    <value>Exits</value>
+  </data>
+  <data name="ListeBons_LastAction" xml:space="preserve">
+    <value>Last action</value>
+  </data>
+  <data name="ListeBons_ViewDetails" xml:space="preserve">
+    <value>View details</value>
+  </data>
+  <data name="ListeBons_ReturnDate" xml:space="preserve">
+    <value>Expected return</value>
+  </data>
+  <data name="ListeBons_Deadline" xml:space="preserve">
+    <value>Deadline</value>
+  </data>
+  <data name="ListeBons_Extension" xml:space="preserve">
+    <value>Extension</value>
+  </data>
+  <data name="ListeBons_LoanReturn" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="ListeBons_Destination" xml:space="preserve">
+    <value>Recipient</value>
+  </data>
+  <data name="ListeBons_DateSortie" xml:space="preserve">
+    <value>Exit date</value>
+  </data>
+  <data name="ListeBons_SearchPlaceholder" xml:space="preserve">
+    <value>Reference, company, requester...</value>
+  </data>
+
+  <!-- ═══ BEM FORM (NEW / EDIT) ═══ -->
+  <data name="BemF_PageTitleNew" xml:space="preserve">
+    <value>New Entry Voucher - KCC Material Flow</value>
+  </data>
+  <data name="BemF_PageTitleEdit" xml:space="preserve">
+    <value>Edit Entry Voucher - KCC Material Flow</value>
+  </data>
+  <data name="BemF_FormTitle" xml:space="preserve">
+    <value>Material Entry Voucher</value>
+  </data>
+  <data name="BemF_FormSubtitle" xml:space="preserve">
+    <value>SEC-FM-141(B) — Company Information</value>
+  </data>
+  <data name="BemF_Expires" xml:space="preserve">
+    <value>Expires:</value>
+  </data>
+  <data name="BemF_CompanyInfo" xml:space="preserve">
+    <value>Company Information</value>
+  </data>
+  <data name="BemF_CompanyName" xml:space="preserve">
+    <value>Company Name</value>
+  </data>
+  <data name="BemF_ContractNumber" xml:space="preserve">
+    <value>Contract Number (PO)</value>
+  </data>
+  <data name="BemF_SelectCompany" xml:space="preserve">
+    <value>Select a company</value>
+  </data>
+  <data name="BemF_SelectContract" xml:space="preserve">
+    <value>Select a contract</value>
+  </data>
+  <data name="BemF_ContractorEmail" xml:space="preserve">
+    <value>Contractor Email Address</value>
+  </data>
+  <data name="BemF_SiteManager" xml:space="preserve">
+    <value>Site Manager (Contractor)</value>
+  </data>
+  <data name="BemF_HostDept" xml:space="preserve">
+    <value>Host Department</value>
+  </data>
+  <data name="BemF_SelectDept" xml:space="preserve">
+    <value>-- Select host department --</value>
+  </data>
+  <data name="BemF_KccSite" xml:space="preserve">
+    <value>KCC Site</value>
+  </data>
+  <data name="BemF_SelectSite" xml:space="preserve">
+    <value>-- Select KCC site --</value>
+  </data>
+  <data name="BemF_EntryReason" xml:space="preserve">
+    <value>Entry reason</value>
+  </data>
+  <data name="BemF_EntryReasonPlaceholder" xml:space="preserve">
+    <value>Describe the entry reason...</value>
+  </data>
+  <data name="BemF_EscortDetails" xml:space="preserve">
+    <value>Escort Details</value>
+  </data>
+  <data name="BemF_EscortName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="BemF_EscortFunction" xml:space="preserve">
+    <value>Function</value>
+  </data>
+  <data name="BemF_Route" xml:space="preserve">
+    <value>Route</value>
+  </data>
+  <data name="BemF_From" xml:space="preserve">
+    <value>From (Origin)</value>
+  </data>
+  <data name="BemF_SelectFrom" xml:space="preserve">
+    <value>-- Select origin --</value>
+  </data>
+  <data name="BemF_To" xml:space="preserve">
+    <value>To (Destination)</value>
+  </data>
+  <data name="BemF_SelectTo" xml:space="preserve">
+    <value>-- Select destination --</value>
+  </data>
+  <data name="BemF_Materials" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="BemF_ProductCode" xml:space="preserve">
+    <value>Product Code / Serial No.</value>
+  </data>
+  <data name="BemF_Designation" xml:space="preserve">
+    <value>Designation</value>
+  </data>
+  <data name="BemF_Qty" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="BemF_Article" xml:space="preserve">
+    <value>item</value>
+  </data>
+  <data name="BemF_Articles" xml:space="preserve">
+    <value>items</value>
+  </data>
+  <data name="BemF_Total" xml:space="preserve">
+    <value>Total:</value>
+  </data>
+  <data name="BemF_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="BemF_Reserves" xml:space="preserve">
+    <value>Possible Reserves</value>
+  </data>
+  <data name="BemF_ReservesPlaceholder" xml:space="preserve">
+    <value>Observations, reserves or comments...</value>
+  </data>
+  <data name="BemF_Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="BemF_Submit" xml:space="preserve">
+    <value>Submit</value>
+  </data>
+  <data name="BemF_Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="BemF_ReviewCompany" xml:space="preserve">
+    <value>Company</value>
+  </data>
+  <data name="BemF_ReviewDept" xml:space="preserve">
+    <value>Host Department</value>
+  </data>
+  <data name="BemF_ReviewReason" xml:space="preserve">
+    <value>Entry Reason</value>
+  </data>
+  <data name="BemF_ReviewRoute" xml:space="preserve">
+    <value>Route</value>
+  </data>
+  <data name="BemF_ReviewMaterials" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="BemF_ReviewEscort" xml:space="preserve">
+    <value>Escort</value>
+  </data>
+  <data name="BemF_ReviewValidity" xml:space="preserve">
+    <value>Validity</value>
+  </data>
+  <data name="BemF_NoCompany" xml:space="preserve">
+    <value>No company selected</value>
+  </data>
+  <data name="BemF_NoDept" xml:space="preserve">
+    <value>Not defined</value>
+  </data>
+  <data name="BemF_NoReason" xml:space="preserve">
+    <value>No reason</value>
+  </data>
+  <data name="BemF_NoMaterial" xml:space="preserve">
+    <value>No material entered</value>
+  </data>
+  <data name="BemF_NoEscort" xml:space="preserve">
+    <value>Not filled in</value>
+  </data>
+  <data name="BemF_NoDesig" xml:space="preserve">
+    <value>(No designation)</value>
+  </data>
+  <data name="BemF_MoreItems" xml:space="preserve">
+    <value>more...</value>
+  </data>
+  <data name="BemF_TotalEntries" xml:space="preserve">
+    <value>Total: {0} items</value>
+  </data>
+  <data name="BemF_ValidUntil" xml:space="preserve">
+    <value>Expires on:</value>
+  </data>
+  <data name="BemF_LoadingError" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="BemF_NotFound" xml:space="preserve">
+    <value>Entry voucher not found</value>
+  </data>
+  <data name="BemF_CannotEdit" xml:space="preserve">
+    <value>This voucher can no longer be edited</value>
+  </data>
+  <data name="BemF_CannotEditMsg" xml:space="preserve">
+    <value>Only draft vouchers can be edited.</value>
+  </data>
+  <data name="BemF_CreatedOn" xml:space="preserve">
+    <value>Created on:</value>
+  </data>
+  <data name="BemF_SaveChanges" xml:space="preserve">
+    <value>Save changes</value>
+  </data>
+  <data name="BemF_Saving" xml:space="preserve">
+    <value>Saving...</value>
+  </data>
+  <data name="BemF_AdditionalDesc" xml:space="preserve">
+    <value>Additional description</value>
+  </data>
+  <data name="BemF_AddInfoPlaceholder" xml:space="preserve">
+    <value>Additional information...</value>
+  </data>
+  <data name="BemF_NoMaterialAdded" xml:space="preserve">
+    <value>No material added</value>
+  </data>
+  <data name="BemF_SiteManagerPlaceholder" xml:space="preserve">
+    <value>Name of site manager</value>
+  </data>
+  <data name="BemF_HostDeptPlaceholder" xml:space="preserve">
+    <value>Enter host department</value>
+  </data>
+  <data name="BemF_ReasonSitePlaceholder" xml:space="preserve">
+    <value>Reason for visit</value>
+  </data>
+  <!-- ═══ BEM VIEW ═══ -->
+  <data name="BemV_EntryPermit" xml:space="preserve">
+    <value>MATERIAL ENTRY VOUCHER</value>
+  </data>
+  <data name="BemV_PropertyEntry" xml:space="preserve">
+    <value>Property Entry Permit</value>
+  </data>
+  <data name="BemV_TypeEntry" xml:space="preserve">
+    <value>Entry</value>
+  </data>
+  <data name="BemV_Loading" xml:space="preserve">
+    <value>Loading voucher...</value>
+  </data>
+  <data name="BemV_AccessDenied" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="BemV_AccessDeniedMsg" xml:space="preserve">
+    <value>You are not authorized to view this voucher.</value>
+  </data>
+  <data name="BemV_NotFound" xml:space="preserve">
+    <value>Voucher not found</value>
+  </data>
+  <data name="BemV_CreatedAt" xml:space="preserve">
+    <value>Created on</value>
+  </data>
+  <data name="BemV_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="BemV_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="BemV_Submit" xml:space="preserve">
+    <value>Submit</value>
+  </data>
+  <data name="BemV_Approve" xml:space="preserve">
+    <value>Approve</value>
+  </data>
+  <data name="BemV_Reject" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="BemV_CreateBSE" xml:space="preserve">
+    <value>Create BSE</value>
+  </data>
+  <data name="BemV_Print" xml:space="preserve">
+    <value>Print</value>
+  </data>
+  <data name="BemV_DownloadPDF" xml:space="preserve">
+    <value>Download PDF</value>
+  </data>
+  <data name="BemV_VisitorInfo" xml:space="preserve">
+    <value>Visitor information</value>
+  </data>
+  <data name="BemV_Materiels" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="BemV_Workflow" xml:space="preserve">
+    <value>Approval Workflow</value>
+  </data>
+  <data name="BemV_AssocBSE" xml:space="preserve">
+    <value>Associated Exit Voucher:</value>
+  </data>
+  <data name="BemV_Qty" xml:space="preserve">
+    <value>QTY</value>
+  </data>
+  <data name="BemV_Desc" xml:space="preserve">
+    <value>DESCRIPTION</value>
+  </data>
+  <data name="BemV_Serial" xml:space="preserve">
+    <value>SERIAL NO.</value>
+  </data>
+  <data name="BemV_QtySortie" xml:space="preserve">
+    <value>EXIT QTY</value>
+  </data>
+  <data name="BemV_Solde" xml:space="preserve">
+    <value>BALANCE</value>
+  </data>
+  <data name="BemV_Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="BemV_Partial" xml:space="preserve">
+    <value>Partial</value>
+  </data>
+  <data name="BemV_Exhausted" xml:space="preserve">
+    <value>Exhausted</value>
+  </data>
+  <data name="BemV_TotalEntry" xml:space="preserve">
+    <value>Total entry:</value>
+  </data>
+  <data name="BemV_TotalExit" xml:space="preserve">
+    <value>Total exit:</value>
+  </data>
+  <data name="BemV_Balance" xml:space="preserve">
+    <value>Balance:</value>
+  </data>
+  <data name="BemV_ReturnModif" xml:space="preserve">
+    <value>Returned for modification —</value>
+  </data>
+  <data name="BemV_AtPending" xml:space="preserve">
+    <value>At {0}</value>
+  </data>
+  <data name="BemV_RejectDetails" xml:space="preserve">
+    <value>View rejection details</value>
+  </data>
+  <data name="BemV_PreMigration" xml:space="preserve">
+    <value>Pre-migration workflow</value>
+  </data>
+  <data name="BemV_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="BemV_OneOf" xml:space="preserve">
+    <value>one of:</value>
+  </data>
+  <!-- ═══ APPROBATION DIALOG ═══ -->
+  <data name="Dlg_ApproveDesc" xml:space="preserve">
+    <value>You are about to approve this entry voucher.</value>
+  </data>
+  <data name="Dlg_ReturnDesc" xml:space="preserve">
+    <value>This voucher will be returned to the requester for modification. Please indicate the necessary corrections.</value>
+  </data>
+  <data name="Dlg_RejectDesc" xml:space="preserve">
+    <value>This voucher will be permanently rejected. This action is irreversible.</value>
+  </data>
+  <data name="Dlg_RejectLabel" xml:space="preserve">
+    <value>Rejection reason *</value>
+  </data>
+  <data name="Dlg_ReturnLabel" xml:space="preserve">
+    <value>Reason for return</value>
+  </data>
+  <data name="Dlg_ApproveLabel" xml:space="preserve">
+    <value>Comment (optional)</value>
+  </data>
+  <data name="Dlg_RejectPlaceholder" xml:space="preserve">
+    <value>Explain the rejection reason...</value>
+  </data>
+  <data name="Dlg_ReturnPlaceholder" xml:space="preserve">
+    <value>Indicate the necessary corrections...</value>
+  </data>
+  <data name="Dlg_ApprovePlaceholder" xml:space="preserve">
+    <value>Add a comment (optional)...</value>
+  </data>
+  <data name="Dlg_RejectRequired" xml:space="preserve">
+    <value>The rejection reason is mandatory.</value>
+  </data>
+  <data name="Dlg_Approve" xml:space="preserve">
+    <value>Approve</value>
+  </data>
+  <data name="Dlg_Return" xml:space="preserve">
+    <value>Return</value>
+  </data>
+  <data name="Dlg_Reject" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="Dlg_Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <!-- ═══ MES APPROBATIONS ═══ -->
+  <data name="Appro_Title" xml:space="preserve">
+    <value>My Approvals</value>
+  </data>
+  <data name="Appro_Subtitle" xml:space="preserve">
+    <value>Vouchers pending your validation</value>
+  </data>
+  <data name="Appro_EntryVouchers" xml:space="preserve">
+    <value>Entry Vouchers</value>
+  </data>
+  <data name="Appro_ExitVouchers" xml:space="preserve">
+    <value>Exit Vouchers</value>
+  </data>
+  <data name="Appro_TotalPending" xml:space="preserve">
+    <value>Total pending</value>
+  </data>
+  <data name="Appro_ActiveFilter" xml:space="preserve">
+    <value>Active filter:</value>
+  </data>
+  <data name="Appro_LoadingApprovals" xml:space="preserve">
+    <value>Loading approvals...</value>
+  </data>
+  <data name="Appro_NoPending" xml:space="preserve">
+    <value>No pending approvals</value>
+  </data>
+  <data name="Appro_NoPendingDesc" xml:space="preserve">
+    <value>You have no vouchers to validate at the moment.</value>
+  </data>
+  <data name="Appro_SearchPlaceholder" xml:space="preserve">
+    <value>Search by reference, requester, destination...</value>
+  </data>
+  <data name="Appro_ClearSearch" xml:space="preserve">
+    <value>Clear search</value>
+  </data>
+  <data name="Appro_Materials" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="Appro_EntryType" xml:space="preserve">
+    <value>Entry</value>
+  </data>
+  <data name="Appro_ExitType" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="Appro_ApprovedReprint" xml:space="preserve">
+    <value>Approved vouchers — Reprint</value>
+  </data>
+  <data name="Appro_ApprovedReprintDesc" xml:space="preserve">
+    <value>These vouchers were approved at your level. You can reprint them at any time.</value>
+  </data>
+  <data name="Appro_Reprint" xml:space="preserve">
+    <value>Reprint</value>
+  </data>
+
+  <!-- ═══ LISTE REJETS ═══ -->
+  <data name="Rejets_Title" xml:space="preserve">
+    <value>Rejections List</value>
+  </data>
+  <data name="Rejets_Subtitle" xml:space="preserve">
+    <value>View rejected vouchers and their reasons</value>
+  </data>
+  <data name="Rejets_MarkAllRead" xml:space="preserve">
+    <value>Mark all as read</value>
+  </data>
+  <data name="Rejets_Unread" xml:space="preserve">
+    <value>Unread</value>
+  </data>
+  <data name="Rejets_Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Rejets_Loading" xml:space="preserve">
+    <value>Loading rejections...</value>
+  </data>
+  <data name="Rejets_None" xml:space="preserve">
+    <value>No rejections</value>
+  </data>
+  <data name="Rejets_NoneDesc" xml:space="preserve">
+    <value>No rejected voucher matches the criteria.</value>
+  </data>
+  <data name="Rejets_SearchPlaceholder" xml:space="preserve">
+    <value>Search by reference, approver, reason...</value>
+  </data>
+  <data name="Rejets_RejectedBy" xml:space="preserve">
+    <value>Rejected by</value>
+  </data>
+  <data name="Rejets_Step" xml:space="preserve">
+    <value>Step</value>
+  </data>
+  <data name="Rejets_Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Rejets_New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="Rejets_Detail" xml:space="preserve">
+    <value>Detail</value>
+  </data>
+  <data name="Rejets_RejectionDetails" xml:space="preserve">
+    <value>Rejection details</value>
+  </data>
+  <data name="Rejets_FullReason" xml:space="preserve">
+    <value>Full reason:</value>
+  </data>
+
+  <!-- ═══ ACCÈS REFUSÉ ═══ -->
+  <data name="AccDen_Code" xml:space="preserve">
+    <value>ERROR 403</value>
+  </data>
+  <data name="AccDen_Title" xml:space="preserve">
+    <value>Access Denied</value>
+  </data>
+  <data name="AccDen_Message" xml:space="preserve">
+    <value>Your account does not have the necessary permissions to access KCC Material Flow. To request access, please submit a request via the ServiceNow portal.</value>
+  </data>
+  <data name="AccDen_Step1_Title" xml:space="preserve">
+    <value>Open ServiceNow</value>
+  </data>
+  <data name="AccDen_Step1_Desc" xml:space="preserve">
+    <value>KCC Portal.</value>
+  </data>
+  <data name="AccDen_Step2_Title" xml:space="preserve">
+    <value>Submit request</value>
+  </data>
+  <data name="AccDen_Step2_Desc" xml:space="preserve">
+    <value>App. KCC Material Flow.</value>
+  </data>
+  <data name="AccDen_Step3_Title" xml:space="preserve">
+    <value>Wait for approval</value>
+  </data>
+  <data name="AccDen_Step3_Desc" xml:space="preserve">
+    <value>Email notification.</value>
+  </data>
+  <data name="AccDen_RequestAccess" xml:space="preserve">
+    <value>Request access</value>
+  </data>
+  <data name="AccDen_Help" xml:space="preserve">
+    <value>Need help? Contact your IT administrator —</value>
+  </data>
+
+  <!-- ═══ FORMULAIRE BEM ═══ -->
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <data name="BemF_SelectHostDept" xml:space="preserve">
+    <value>-- Select host department --</value>
+  </data>
+  <data name="BemF_SelectKccSite" xml:space="preserve">
+    <value>-- Select KCC site --</value>
+  </data>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  <!-- ═══ FORMULAIRE BSM ═══ -->
+  <data name="BsmF_RequesterInfo" xml:space="preserve">
+    <value>Requester Information</value>
+  </data>
+  <data name="BsmF_FullName" xml:space="preserve">
+    <value>Name / Full name</value>
+  </data>
+  <data name="BsmF_Function" xml:space="preserve">
+    <value>Function / Fonction</value>
+  </data>
+  <data name="BsmF_Department" xml:space="preserve">
+    <value>Department / Département</value>
+  </data>
+  <data name="BsmF_KccSiteAndFor" xml:space="preserve">
+    <value>KCC Site &amp; Request for</value>
+  </data>
+  <data name="BsmF_RequestFor" xml:space="preserve">
+    <value>Request for (employee)</value>
+  </data>
+  <data name="BsmF_ExitType" xml:space="preserve">
+    <value>Exit Voucher Type</value>
+  </data>
+  <data name="BsmF_Internal" xml:space="preserve">
+    <value>INTERNAL</value>
+  </data>
+  <data name="BsmF_External" xml:space="preserve">
+    <value>EXTERNAL</value>
+  </data>
+  <data name="BsmF_SelectTypeFirst" xml:space="preserve">
+    <value>Select exit voucher type to continue.</value>
+  </data>
+  <data name="BsmF_SourceBEM" xml:space="preserve">
+    <value>Source Entry Voucher (BEM)</value>
+  </data>
+  <data name="BsmF_SearchBEM" xml:space="preserve">
+    <value>Search for an approved BEM *</value>
+  </data>
+  <data name="BsmF_NoApprovedBEM" xml:space="preserve">
+    <value>No approved entry voucher available.</value>
+  </data>
+  <data name="BsmF_ExitReason" xml:space="preserve">
+    <value>Exit Reason</value>
+  </data>
+  <data name="BsmF_ReturnDate" xml:space="preserve">
+    <value>Expected return date *</value>
+  </data>
+  <data name="BsmF_LoanModeInfo" xml:space="preserve">
+    <value>Loan of KCC materials — no entry permit (BEM) required.</value>
+  </data>
+  <data name="BsmF_SelectReturnDate" xml:space="preserve">
+    <value>Select return date</value>
+  </data>
+  <data name="BsmF_OriginDest" xml:space="preserve">
+    <value>Origin / Destination</value>
+  </data>
+  <data name="BsmF_OriginFromBEM" xml:space="preserve">
+    <value>Origin is defined by the source BEM.</value>
+  </data>
+  <data name="BsmF_Qty" xml:space="preserve">
+    <value>Qty</value>
+  </data>
+  <data name="BsmF_CodeSerial" xml:space="preserve">
+    <value>Code / Serial No.</value>
+  </data>
+  <data name="BsmF_Dept" xml:space="preserve">
+    <value>Dept:</value>
+  </data>
+  <data name="BsmF_SiteManager" xml:space="preserve">
+    <value>Site Manager:</value>
+  </data>
+
+  <!-- ═══ VUE BEM/BSM ═══ -->
+  <data name="View_Loading" xml:space="preserve">
+    <value>Loading voucher...</value>
+  </data>
+  <data name="View_AccessDenied" xml:space="preserve">
+    <value>Access denied</value>
+  </data>
+  <data name="View_NotAllowed" xml:space="preserve">
+    <value>You are not authorized to view this voucher.</value>
+  </data>
+  <data name="View_NotFound" xml:space="preserve">
+    <value>Voucher not found</value>
+  </data>
+  <data name="View_DownloadPDF" xml:space="preserve">
+    <value>Download PDF</value>
+  </data>
+  <data name="View_CreateBSE" xml:space="preserve">
+    <value>Create BSE</value>
+  </data>
+  <data name="View_LoanReturn" xml:space="preserve">
+    <value>Loan Return</value>
+  </data>
+  <data name="View_BEMHeader" xml:space="preserve">
+    <value>MATERIAL ENTRY VOUCHER</value>
+  </data>
+  <data name="View_BSMHeader" xml:space="preserve">
+    <value>MATERIAL EXIT VOUCHER</value>
+  </data>
+  <data name="View_PropertyEntry" xml:space="preserve">
+    <value>Property Entry Permit</value>
+  </data>
+  <data name="View_PropertyRemoval" xml:space="preserve">
+    <value>Property Removal Permit</value>
+  </data>
+  <data name="View_ReturnedFor" xml:space="preserve">
+    <value>Returned for modification —</value>
+  </data>
+  <data name="View_RequesterInfo" xml:space="preserve">
+    <value>Requester Information</value>
+  </data>
+  <data name="View_LoanExpiry" xml:space="preserve">
+    <value>Loan — Expected return:</value>
+  </data>
+  <data name="View_ReturnedOn" xml:space="preserve">
+    <value>Returned on</value>
+  </data>
+  <data name="View_Overdue" xml:space="preserve">
+    <value>Overdue by</value>
+  </data>
+  <data name="View_Days" xml:space="preserve">
+    <value>day(s)</value>
+  </data>
+  <data name="View_N_Number" xml:space="preserve">
+    <value>N°:</value>
+  </data>
+  <data name="View_Expires" xml:space="preserve">
+    <value>Expires:</value>
+  </data>
+
+  <!-- ═══ ADMIN PAGES ═══ -->
+  <data name="Adm_NewUser" xml:space="preserve">
+    <value>New user</value>
+  </data>
+  <data name="Adm_SearchPlaceholder" xml:space="preserve">
+    <value>Staff ID, name, login… (min. 1 char.)</value>
+  </data>
+  <data name="Adm_AllDepts" xml:space="preserve">
+    <value>All departments</value>
+  </data>
+  <data name="Adm_FullName" xml:space="preserve">
+    <value>Full name</value>
+  </data>
+  <data name="Adm_WindowsLogin" xml:space="preserve">
+    <value>Windows Login</value>
+  </data>
+  <data name="Adm_AdminLevel" xml:space="preserve">
+    <value>Admin Level</value>
+  </data>
+  <data name="Adm_Approver" xml:space="preserve">
+    <value>Approver</value>
+  </data>
+  <data name="Adm_DeleteStandalone" xml:space="preserve">
+    <value>Delete standalone user</value>
+  </data>
+  <data name="Adm_WorkflowTitle" xml:space="preserve">
+    <value>Approval Workflow</value>
+  </data>
+  <data name="Adm_WorkflowDesc" xml:space="preserve">
+    <value>Configure the approval chain by department. A specific workflow overrides the generic one.</value>
+  </data>
+  <data name="Adm_SpecificWorkflow" xml:space="preserve">
+    <value>Specific</value>
+  </data>
+  <data name="Adm_OwnDeptConfig" xml:space="preserve">
+    <value>Department's own configuration</value>
+  </data>
+  <data name="Adm_Inherited" xml:space="preserve">
+    <value>Inherited</value>
+  </data>
+  <data name="Adm_UsesGeneric" xml:space="preserve">
+    <value>Uses the generic workflow</value>
+  </data>
+  <data name="Adm_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Adm_DefaultWorkflowDesc" xml:space="preserve">
+    <value>Coded workflow (SUPERINTENDENT → GM → OPJ → IDENTIFICATION)</value>
+  </data>
+  <data name="Adm_ResetWorkflow" xml:space="preserve">
+    <value>Reset workflow</value>
+  </data>
+  <data name="Adm_SpecialApproversTitle" xml:space="preserve">
+    <value>Special Approvers</value>
+  </data>
+  <data name="Adm_SpecialApproversDesc" xml:space="preserve">
+    <value>Defines the Superintendent / OPJ / Identification employees used at the end of the approval chain.</value>
+  </data>
+  <data name="Adm_NoSpecialApprovers" xml:space="preserve">
+    <value>No special approver defined. Click Add to get started.</value>
+  </data>
+  <data name="Adm_AddSpecialApprover" xml:space="preserve">
+    <value>Add a special approver</value>
+  </data>
+  <data name="Adm_AuditTitle" xml:space="preserve">
+    <value>Audit Log</value>
+  </data>
+  <data name="Adm_AuditDesc" xml:space="preserve">
+    <value>Traceability of actions performed in the system</value>
+  </data>
+  <data name="Adm_ActionType" xml:space="preserve">
+    <value>Action type</value>
+  </data>
+  <data name="Adm_CategoryFilter" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Adm_NoLogs" xml:space="preserve">
+    <value>No logs found</value>
+  </data>
+  <data name="Adm_ViewChanges" xml:space="preserve">
+    <value>View changes</value>
+  </data>
+  <data name="Adm_ParametersTitle" xml:space="preserve">
+    <value>System Parameters</value>
+  </data>
+  <data name="Adm_ParametersDesc" xml:space="preserve">
+    <value>System parameter configuration organized by category</value>
+  </data>
+  <data name="Adm_NewParam" xml:space="preserve">
+    <value>New parameter</value>
+  </data>
+  <data name="Adm_SearchParams" xml:space="preserve">
+    <value>Search (key, description)...</value>
+  </data>
+  <data name="Adm_AllCategories" xml:space="preserve">
+    <value>All categories</value>
+  </data>
+  <data name="Adm_NoParams" xml:space="preserve">
+    <value>No parameter</value>
+  </data>
+  <data name="Adm_RolesTitle" xml:space="preserve">
+    <value>Roles &amp; Access</value>
+  </data>
+  <data name="Adm_RolesDesc" xml:space="preserve">
+    <value>Overview of access levels and users with administrative rights.</value>
+  </data>
+  <data name="Adm_ManageUsers" xml:space="preserve">
+    <value>Manage users</value>
+  </data>
+  <data name="Adm_RolesDefinition" xml:space="preserve">
+    <value>Role definitions</value>
+  </data>
+  <data name="Adm_TypesTitle" xml:space="preserve">
+    <value>Material Type Management</value>
+  </data>
+  <data name="Adm_NewType" xml:space="preserve">
+    <value>New type</value>
+  </data>
+  <data name="Adm_ApprovalLevels" xml:space="preserve">
+    <value>Approval levels</value>
+  </data>
+
+  <!-- ═══ ADMIN NAV ═══ -->
+  <data name="AdmNav_Users" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="AdmNav_Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="AdmNav_Workflows" xml:space="preserve">
+    <value>Workflows</value>
+  </data>
+  <data name="AdmNav_SpecialApprovers" xml:space="preserve">
+    <value>Special Approvers</value>
+  </data>
+  <data name="AdmNav_Parameters" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
+  <data name="AdmNav_Impersonation" xml:space="preserve">
+    <value>Impersonation</value>
+  </data>
+
+  <!-- ═══ SÉCURITÉ - SCANNER ═══ -->
+  <data name="Scan_Title" xml:space="preserve">
+    <value>QR Code Scanner</value>
+  </data>
+  <data name="Scan_Subtitle" xml:space="preserve">
+    <value>Scan the material voucher QR code to validate the passage</value>
+  </data>
+  <data name="Scan_ActiveBarriere" xml:space="preserve">
+    <value>Active Checkpoint</value>
+  </data>
+  <data name="Scan_SelectBarriere" xml:space="preserve">
+    <value>Select your checkpoint...</value>
+  </data>
+  <data name="Scan_Camera" xml:space="preserve">
+    <value>Camera</value>
+  </data>
+  <data name="Scan_ManualEntry" xml:space="preserve">
+    <value>Manual Entry</value>
+  </data>
+  <data name="Scan_CameraInactive" xml:space="preserve">
+    <value>Camera inactive</value>
+  </data>
+  <data name="Scan_ActivateCamera" xml:space="preserve">
+    <value>Activate camera</value>
+  </data>
+  <data name="Scan_Prompt" xml:space="preserve">
+    <value>Enter the QR code or the voucher reference number:</value>
+  </data>
+  <data name="Scan_CodePlaceholder" xml:space="preserve">
+    <value>QR code or reference number...</value>
+  </data>
+  <data name="Scan_ValidateCode" xml:space="preserve">
+    <value>Validate Code</value>
+  </data>
+  <data name="Scan_AccessGranted" xml:space="preserve">
+    <value>ACCESS GRANTED</value>
+  </data>
+  <data name="Scan_AccessDenied" xml:space="preserve">
+    <value>ACCESS DENIED</value>
+  </data>
+  <data name="Scan_Origin" xml:space="preserve">
+    <value>Origin (FROM)</value>
+  </data>
+  <data name="Scan_MaterialCount" xml:space="preserve">
+    <value>Number of Materials</value>
+  </data>
+  <data name="Scan_ConfirmPassage" xml:space="preserve">
+    <value>Confirm Passage</value>
+  </data>
+  <data name="Scan_ReportAnomaly" xml:space="preserve">
+    <value>Report Anomaly</value>
+  </data>
+  <data name="Scan_ReportToSupervisor" xml:space="preserve">
+    <value>Report to Supervisor</value>
+  </data>
+  <data name="Scan_ObservationsPlaceholder" xml:space="preserve">
+    <value>Add observations...</value>
+  </data>
+  <data name="Scan_StartMsg" xml:space="preserve">
+    <value>Please select your checkpoint to start scanning</value>
+  </data>
+  <data name="Scan_NewScan" xml:space="preserve">
+    <value>New Scan</value>
+  </data>
+  <data name="Scan_DocumentAnormal" xml:space="preserve">
+    <value>Abnormal Document - Access Impossible</value>
+  </data>
+  <data name="Scan_DocumentExpired" xml:space="preserve">
+    <value>Expired Document - Access Denied</value>
+  </data>
+  <data name="Scan_DocumentUsed" xml:space="preserve">
+    <value>Document Already Used at This Checkpoint</value>
+  </data>
+  <data name="Scan_DocumentNotFound" xml:space="preserve">
+    <value>Document Not Found - Access Impossible</value>
+  </data>
+  <data name="Scan_UnauthorizedCheckpoint" xml:space="preserve">
+    <value>Unauthorized Checkpoint for this Document</value>
+  </data>
+  <data name="Scan_PassageProof" xml:space="preserve">
+    <value>Passage Proof</value>
+  </data>
+  <data name="Scan_SignalAnomaly" xml:space="preserve">
+    <value>Report an Anomaly</value>
+  </data>
+
+  <!-- ═══ ANOMALIES ═══ -->
+  <data name="Anomalies_Title" xml:space="preserve">
+    <value>Anomaly Management</value>
+  </data>
+  <data name="Anomalies_Subtitle" xml:space="preserve">
+    <value>Tracking and processing of reported anomalies</value>
+  </data>
+  <data name="Anomalies_CriticalSeverity" xml:space="preserve">
+    <value>Critical Severity</value>
+  </data>
+  <data name="Anomalies_HighSeverity" xml:space="preserve">
+    <value>High Severity</value>
+  </data>
+  <data name="Anomalies_AllTypes" xml:space="preserve">
+    <value>All types</value>
+  </data>
+  <data name="Anomalies_AllStatuses" xml:space="preserve">
+    <value>All statuses</value>
+  </data>
+  <data name="Anomalies_From" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="Anomalies_To" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="Anomalies_Checkpoint" xml:space="preserve">
+    <value>Checkpoint</value>
+  </data>
+  <data name="Anomalies_Document" xml:space="preserve">
+    <value>Document</value>
+  </data>
+  <data name="Anomalies_Treated" xml:space="preserve">
+    <value>Treated</value>
+  </data>
+  <data name="Anomalies_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Anomalies_Process" xml:space="preserve">
+    <value>Process</value>
+  </data>
+  <data name="Anomalies_ActiveFilter" xml:space="preserve">
+    <value>Active filter:</value>
+  </data>
+
+  <!-- ═══ HISTORIQUE SCANS ═══ -->
+  <data name="History_Title" xml:space="preserve">
+    <value>Scan History</value>
+  </data>
+  <data name="History_Subtitle" xml:space="preserve">
+    <value>Complete list of material movements</value>
+  </data>
+  <data name="History_AllCheckpoints" xml:space="preserve">
+    <value>All checkpoints</value>
+  </data>
+  <data name="History_Movement" xml:space="preserve">
+    <value>Movement</value>
+  </data>
+  <data name="History_Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="History_Anomaly" xml:space="preserve">
+    <value>Anomaly</value>
+  </data>
+
+  <!-- ═══ DIALOGUES ═══ -->
+  <data name="Dlg_ApproveTitle" xml:space="preserve">
+    <value>Confirm approval</value>
+  </data>
+  <data name="Dlg_RejectTitle" xml:space="preserve">
+    <value>Confirm rejection</value>
+  </data>
+  <data name="Dlg_ApproveComment" xml:space="preserve">
+    <value>Comment / Observations *</value>
+  </data>
+  <data name="Dlg_RejectReason" xml:space="preserve">
+    <value>Rejection reason *</value>
+  </data>
+  <data name="Dlg_ApproveCommentPlaceholder" xml:space="preserve">
+    <value>Enter your observations or comments...</value>
+  </data>
+  <data name="Dlg_RejectReasonPlaceholder" xml:space="preserve">
+    <value>Please indicate the rejection reason...</value>
+  </data>
+  <data name="Dlg_ApproveCommentRequired" xml:space="preserve">
+    <value>A comment is required</value>
+  </data>
+  <data name="Dlg_RejectReasonRequired" xml:space="preserve">
+    <value>Rejection reason is mandatory</value>
+  </data>
+  
+  
+  
+  <data name="Dlg_ReturnReason" xml:space="preserve">
+    <value>Return reason</value>
+  </data>
+  <data name="Dlg_OptionalComment" xml:space="preserve">
+    <value>Comment (optional)</value>
+  </data>
+  <data name="Dlg_ExplainRejection" xml:space="preserve">
+    <value>Explain the rejection reason...</value>
+  </data>
+  <data name="Dlg_IndicateCorrections" xml:space="preserve">
+    <value>Indicate the necessary corrections...</value>
+  </data>
+  <data name="Dlg_AddComment" xml:space="preserve">
+    <value>Add a comment...</value>
+  </data>
+  <data name="Dlg_ExplainReason" xml:space="preserve">
+    <value>Explain the reason...</value>
+  </data>
+  <data name="Dlg_RejectReasonMandatory" xml:space="preserve">
+    <value>The rejection reason is mandatory.</value>
+  </data>
+  <data name="Dlg_IndicateReason" xml:space="preserve">
+    <value>Please indicate the reason.</value>
+  </data>
+  <data name="Dlg_ConfirmApproval" xml:space="preserve">
+    <value>Confirm approval.</value>
+  </data>
+
+  <!-- ═══ DATA GRID ═══ -->
+  <data name="Grid_Loading" xml:space="preserve">
+    <value>Loading data...</value>
+  </data>
+  <data name="Grid_Paging" xml:space="preserve">
+    <value>Page {0} of {1} ({2} items)</value>
+  </data>
+  <data name="Grid_Empty" xml:space="preserve">
+    <value>No items found.</value>
+  </data>
+
+  <!-- ═══ UTILISATEURS ═══ -->
+  <data name="Users_HrSource" xml:space="preserve">
+    <value>Source = HR database. Only employees with a Windows account can access the application.</value>
+  </data>
+  <data name="Users_ActiveDesc" xml:space="preserve">
+    <value>Active = Windows account present.</value>
+  </data>
+  <data name="Users_InactiveDesc" xml:space="preserve">
+    <value>Inactive = no Windows account.</value>
+  </data>
+  <data name="Users_Shown" xml:space="preserve">
+    <value>displayed — search to see more</value>
+  </data>
+  <data name="Users_NoEmployee" xml:space="preserve">
+    <value>No employee.</value>
+  </data>
+  <data name="Users_Manager" xml:space="preserve">
+    <value>Manager (HOD)</value>
+  </data>
+  <data name="Users_RevokeAccess" xml:space="preserve">
+    <value>Revoke application access</value>
+  </data>
+  <data name="Users_GrantAccess" xml:space="preserve">
+    <value>Grant application access</value>
+  </data>
+
+  <!-- ═══ RÔLES ═══ -->
+  <data name="Roles_StandardUser" xml:space="preserve">
+    <value>Standard user</value>
+  </data>
+  <data name="Roles_StandardUserDesc" xml:space="preserve">
+    <value>Can create and submit material entry and exit vouchers. Receives follow-up notifications on their vouchers.</value>
+  </data>
+
+  <!-- ═══ WORKFLOWS ═══ -->
+  <data name="Wf_BSM" xml:space="preserve">
+    <value>BSM — Material Exit Voucher</value>
+  </data>
+  <data name="Wf_BEM" xml:space="preserve">
+    <value>BEM — Material Entry Voucher</value>
+  </data>
+  <data name="Wf_Updated" xml:space="preserve">
+    <value>Workflow updated successfully.</value>
+  </data>
+
+  <!-- ═══ TYPES MATÉRIELS ═══ -->
+  <data name="Types_Level" xml:space="preserve">
+    <value>level(s)</value>
+  </data>
+  <data name="Types_Dept" xml:space="preserve">
+    <value>Dept</value>
+  </data>
+
+  <!-- ═══ COMMON — ACTIONS ═══ -->
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <data name="Btn_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Btn_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  
+  
+  <data name="Btn_NewBEM" xml:space="preserve">
+    <value>New Entry Voucher</value>
+  </data>
+  <data name="Btn_NewBSM" xml:space="preserve">
+    <value>New Exit Voucher</value>
+  </data>
+  <data name="Btn_AddMaterial" xml:space="preserve">
+    <value>Add Material</value>
+  </data>
+
+  <!-- ═══ COMMON — COLUMNS ═══ -->
+  <data name="Col_Reference" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="Col_Company" xml:space="preserve">
+    <value>Company</value>
+  </data>
+  <data name="Col_Requester" xml:space="preserve">
+    <value>Requester</value>
+  </data>
+  <data name="Col_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Col_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Col_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Col_Materials" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="Col_Quantity" xml:space="preserve">
+    <value>Qty</value>
+  </data>
+  <data name="Col_Designation" xml:space="preserve">
+    <value>Designation</value>
+  </data>
+  <data name="Col_Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Col_LastStep" xml:space="preserve">
+    <value>Approval Steps</value>
+  </data>
+  <data name="Col_Category" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Col_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Col_Site" xml:space="preserve">
+    <value>Site</value>
+  </data>
+  <data name="Col_Department" xml:space="preserve">
+    <value>Department</value>
+  </data>
+  <data name="Col_Level" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="Col_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Col_Key" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="Col_Value" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="Col_User" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="Col_Approver" xml:space="preserve">
+    <value>Approver</value>
+  </data>
+  <data name="Col_Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+
+  <!-- ═══ COMMON — LABELS ═══ -->
+  <data name="Lbl_Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  
+  
+  
+  
+  
+  
+  
+  
+  <data name="Lbl_Required" xml:space="preserve">
+    <value>required</value>
+  </data>
+  <data name="Lbl_Optional" xml:space="preserve">
+    <value>optional</value>
+  </data>
+  <data name="Lbl_At" xml:space="preserve">
+    <value>at</value>
+  </data>
+  <data name="Lbl_By" xml:space="preserve">
+    <value>by</value>
+  </data>
+  <data name="Lbl_From" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="Lbl_To" xml:space="preserve">
+    <value>To</value>
+  </data>
+  
+  
+  
+  <data name="Lbl_Comment" xml:space="preserve">
+    <value>Comment</value>
+  </data>
+  
+  <data name="Lbl_Step" xml:space="preserve">
+    <value>Step</value>
+  </data>
+  <data name="Lbl_Filter" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Lbl_ActiveFilter" xml:space="preserve">
+    <value>Active filter:</value>
+  </data>
+  
+  <data name="Lbl_Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="Lbl_Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Lbl_Approved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="Lbl_Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Lbl_Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="Lbl_Completed" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Lbl_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Msg_Success" xml:space="preserve">
+    <value>Operation completed successfully.</value>
+  </data>
+  <data name="Msg_Error" xml:space="preserve">
+    <value>An error occurred.</value>
+  </data>
+  <data name="Msg_Confirm" xml:space="preserve">
+    <value>Are you sure?</value>
+  </data>
+  <data name="Msg_Saved" xml:space="preserve">
+    <value>Saved successfully.</value>
+  </data>
+  <data name="Msg_Deleted" xml:space="preserve">
+    <value>Deleted successfully.</value>
+  </data>
+  <data name="Msg_Submitted" xml:space="preserve">
+    <value>Entry permit submitted for approval.</value>
+  </data>
+  <data name="Msg_Approved" xml:space="preserve">
+    <value>Approved successfully.</value>
+  </data>
+  <data name="Msg_Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Msg_BonRejected" xml:space="preserve">
+    <value>The entry permit has been rejected.</value>
+  </data>
+  <data name="Msg_Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="Msg_BonReturned" xml:space="preserve">
+    <value>The entry permit has been returned to the requester.</value>
+  </data>
+  <data name="Msg_UnexpectedError" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
+
+  <!-- ===== BSM FORM (BsmF_*) ===== -->
+  <data name="BsmF_PageTitleNew" xml:space="preserve">
+    <value>New Exit Permit - KCC Material Flow</value>
+  </data>
+  <data name="BsmF_PageTitleEdit" xml:space="preserve">
+    <value>Edit Exit Permit - KCC Material Flow</value>
+  </data>
+  <data name="BsmF_FormTitle" xml:space="preserve">
+    <value>Exit Material Permit</value>
+  </data>
+  <data name="BsmF_FormSubtitle" xml:space="preserve">
+    <value>Property Removal Permit</value>
+  </data>
+  
+  <data name="BsmF_NameLabel" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="BsmF_NamePlaceholder" xml:space="preserve">
+    <value>Full name</value>
+  </data>
+  <data name="BsmF_FunctionLabel" xml:space="preserve">
+    <value>Function</value>
+  </data>
+  <data name="BsmF_FunctionPlaceholder" xml:space="preserve">
+    <value>Function</value>
+  </data>
+  <data name="BsmF_DeptLabel" xml:space="preserve">
+    <value>Department</value>
+  </data>
+  <data name="BsmF_DeptPlaceholder" xml:space="preserve">
+    <value>Department</value>
+  </data>
+  <data name="BsmF_SiteSection" xml:space="preserve">
+    <value>KCC Site &amp; Request For</value>
+  </data>
+  
+  <data name="BsmF_SearchEmployee" xml:space="preserve">
+    <value>Search by name, code or login...</value>
+  </data>
+  <data name="BsmF_DeptAbbr" xml:space="preserve">
+    <value>Dept.</value>
+  </data>
+  
+  <data name="BsmF_SelectTypeContinue" xml:space="preserve">
+    <value>Select the exit permit type to continue.</value>
+  </data>
+  <data name="BsmF_BemSource" xml:space="preserve">
+    <value>Source Entry Permit (BEM)</value>
+  </data>
+  <data name="BsmF_SearchApprovedBem" xml:space="preserve">
+    <value>Search an approved entry permit</value>
+  </data>
+  <data name="BsmF_SearchBemPlaceholder" xml:space="preserve">
+    <value>Search by number, company or department...</value>
+  </data>
+  <data name="BsmF_NoBemAvailable" xml:space="preserve">
+    <value>No approved entry permits available.</value>
+  </data>
+  <data name="BsmF_Linked" xml:space="preserve">
+    <value>Linked</value>
+  </data>
+  <data name="BsmF_Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="BsmF_ReasonPlaceholder" xml:space="preserve">
+    <value>Describe the reason for exit...</value>
+  </data>
+  
+  
+  
+  <data name="BsmF_SelectOrigin" xml:space="preserve">
+    <value>-- Select origin --</value>
+  </data>
+  <data name="BsmF_SelectDest" xml:space="preserve">
+    <value>-- Select destination --</value>
+  </data>
+  <data name="BsmF_SourceFromBem" xml:space="preserve">
+    <value>Origin is defined by the source BEM.</value>
+  </data>
+  <data name="BsmF_ExternalReason" xml:space="preserve">
+    <value>Reason - EXTERNAL</value>
+  </data>
+  <data name="BsmF_Checkpoints" xml:space="preserve">
+    <value>Checkpoints</value>
+  </data>
+  <data name="BsmF_InProgress" xml:space="preserve">
+    <value>In progress...</value>
+  </data>
+  <data name="BsmF_SelectBemMaterials" xml:space="preserve">
+    <value>Select materials from source BEM</value>
+  </data>
+  <data name="BsmF_SerialColTitle" xml:space="preserve">
+    <value>Product Code / Serial N°</value>
+  </data>
+  <data name="BsmF_AddMaterialsBelow" xml:space="preserve">
+    <value>Add materials below</value>
+  </data>
+  <data name="BsmF_ModalTitle" xml:space="preserve">
+    <value>Material Selection</value>
+  </data>
+  <data name="BsmF_NbSelected" xml:space="preserve">
+    <value>selected</value>
+  </data>
+  <data name="BsmF_NoMaterialAvail" xml:space="preserve">
+    <value>No material available.</value>
+  </data>
+  <data name="BsmF_ReviewDemandeur" xml:space="preserve">
+    <value>Requester</value>
+  </data>
+  <data name="BsmF_ReviewNotFilled" xml:space="preserve">
+    <value>Not filled</value>
+  </data>
+  <data name="BsmF_ReviewType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="BsmF_ReviewNotSelected" xml:space="preserve">
+    <value>Not selected</value>
+  </data>
+  <data name="BsmF_ReviewNoReason" xml:space="preserve">
+    <value>No reason selected</value>
+  </data>
+  <data name="BsmF_ReviewReturn" xml:space="preserve">
+    <value>Return:</value>
+  </data>
+  <data name="BsmF_ReviewNoDesig" xml:space="preserve">
+    <value>(No designation)</value>
+  </data>
+  <data name="BsmF_ReviewMore" xml:space="preserve">
+    <value>more...</value>
+  </data>
+  <data name="BsmF_ReviewNoCheckpoint" xml:space="preserve">
+    <value>No checkpoint</value>
+  </data>
+  <data name="BsmF_ReadyToSubmit" xml:space="preserve">
+    <value>Ready to submit</value>
+  </data>
+  <data name="BsmF_FillForm" xml:space="preserve">
+    <value>Complete the form</value>
+  </data>
+  <data name="BsmF_NotFound" xml:space="preserve">
+    <value>Exit permit not found</value>
+  </data>
+  <data name="BsmF_CannotEdit" xml:space="preserve">
+    <value>This permit can no longer be modified</value>
+  </data>
+  <data name="BsmF_CurrentStatus" xml:space="preserve">
+    <value>Current status:</value>
+  </data>
+  <data name="BsmF_CreatedOn" xml:space="preserve">
+    <value>Created on:</value>
+  </data>
+  <data name="BsmF_StatusLabel" xml:space="preserve">
+    <value>Status:</value>
+  </data>
+  <data name="BsmF_Requester" xml:space="preserve">
+    <value>Requester</value>
+  </data>
+  <data name="BsmF_ExitReasonSection" xml:space="preserve">
+    <value>Exit Reason</value>
+  </data>
+  <data name="BsmF_MaterialDesc" xml:space="preserve">
+    <value>Material Description</value>
+  </data>
+  <data name="BsmF_MaterialDescPlaceholder" xml:space="preserve">
+    <value>Describe the type...</value>
+  </data>
+  <data name="BsmF_RouteSection" xml:space="preserve">
+    <value>Route &amp; Destination</value>
+  </data>
+  <data name="BsmF_Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="BsmF_DescPlaceholder" xml:space="preserve">
+    <value>Optional description...</value>
+  </data>
+  <data name="BsmF_RecipientName" xml:space="preserve">
+    <value>Recipient Name</value>
+  </data>
+  <data name="BsmF_RecipientAddress" xml:space="preserve">
+    <value>Destination Address</value>
+  </data>
+  <data name="BsmF_VehicleSection" xml:space="preserve">
+    <value>Vehicle &amp; Driver</value>
+  </data>
+  <data name="BsmF_VehicleNumber" xml:space="preserve">
+    <value>Vehicle Number</value>
+  </data>
+  <data name="BsmF_VehiclePlaceholder" xml:space="preserve">
+    <value>Ex: ABC-123</value>
+  </data>
+  <data name="BsmF_DriverName" xml:space="preserve">
+    <value>Driver Name</value>
+  </data>
+  <data name="BsmF_DriverPhone" xml:space="preserve">
+    <value>Driver Phone</value>
+  </data>
+  <data name="BsmF_PhonePlaceholder" xml:space="preserve">
+    <value>+243...</value>
+  </data>
+  <data name="BsmF_ReturnDateSection" xml:space="preserve">
+    <value>Expected Return Date</value>
+  </data>
+  <data name="BsmF_ReturnDateLabel" xml:space="preserve">
+    <value>Return Date</value>
+  </data>
+  <data name="BsmF_ExpiryDateLabel" xml:space="preserve">
+    <value>Expiry Date</value>
+  </data>
+  <data name="BsmF_ExitReasonLabel" xml:space="preserve">
+    <value>Reason *</value>
+  </data>
+  <data name="BsmF_ExitReasonPlaceholder" xml:space="preserve">
+    <value>Describe the reason for this exit...</value>
+  </data>
+  <data name="BsmF_DesignationLabel" xml:space="preserve">
+    <value>Designation</value>
+  </data>
+  <data name="BsmF_DesignationPlaceholder" xml:space="preserve">
+    <value>Designation...</value>
+  </data>
+  <data name="BsmF_SerialLabel" xml:space="preserve">
+    <value>Serial N° / Code</value>
+  </data>
+  <data name="BsmF_SerialPlaceholder" xml:space="preserve">
+    <value>Serial N°...</value>
+  </data>
+  <data name="BsmF_AddMaterial" xml:space="preserve">
+    <value>Add a material</value>
+  </data>
+
+  <!-- ===== BSM VIEW (BsmV_*) ===== -->
+  <data name="BsmV_PageTitle" xml:space="preserve">
+    <value>Exit Permit</value>
+  </data>
+  <data name="BsmV_PropertyRemoval" xml:space="preserve">
+    <value>Property Removal Permit</value>
+  </data>
+  <data name="BsmV_Loading" xml:space="preserve">
+    <value>Loading permit...</value>
+  </data>
+  <data name="BsmV_NotFound" xml:space="preserve">
+    <value>Permit not found</value>
+  </data>
+  <data name="BsmV_RequesterInfo" xml:space="preserve">
+    <value>Requester Information</value>
+  </data>
+  <data name="BsmV_Materials" xml:space="preserve">
+    <value>Materials</value>
+  </data>
+  <data name="BsmV_ColSerial" xml:space="preserve">
+    <value>Code / Serial N°</value>
+  </data>
+  <data name="BsmV_ColDesc" xml:space="preserve">
+    <value>Designation</value>
+  </data>
+  <data name="BsmV_ColQty" xml:space="preserve">
+    <value>Qty</value>
+  </data>
+  <data name="BsmV_Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="BsmV_ExitReason" xml:space="preserve">
+    <value>Exit Reason</value>
+  </data>
+  <data name="BsmV_AssocBem" xml:space="preserve">
+    <value>Associated BEM</value>
+  </data>
+  <data name="BsmV_LoanReturn" xml:space="preserve">
+    <value>Loan Return</value>
+  </data>
+  <data name="BsmV_PretTitle" xml:space="preserve">
+    <value>Loan — Expected Return:</value>
+  </data>
+  <data name="BsmV_ReturnedOn" xml:space="preserve">
+    <value>Returned on</value>
+  </data>
+  <data name="BsmV_Overdue" xml:space="preserve">
+    <value>Overdue by</value>
+  </data>
+  <data name="BsmV_Days" xml:space="preserve">
+    <value>day(s)</value>
+  </data>
+
+  <!-- === PRET COUNTDOWN === -->
+  <data name="PCountdown_RetourPrevu" xml:space="preserve">
+    <value>Expected return:</value>
+  </data>
+  <data name="PCountdown_Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="PCountdown_Today" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="PCountdown_Tomorrow" xml:space="preserve">
+    <value>Tomorrow</value>
+  </data>
+  <data name="PCountdown_LoanClosed" xml:space="preserve">
+    <value>Loan closed</value>
+  </data>
+  <data name="PCountdown_OverdueBadge" xml:space="preserve">
+    <value>⚠️ OVERDUE</value>
+  </data>
+  <data name="PCountdown_ReturnTodayBadge" xml:space="preserve">
+    <value>🔔 RETURN TODAY</value>
+  </data>
+  <data name="PCountdown_SoonBadge" xml:space="preserve">
+    <value>⏰ Soon</value>
+  </data>
+  <data name="PCountdown_Remaining" xml:space="preserve">
+    <value>Remaining</value>
+  </data>
+  <data name="PCountdown_OverdueLabel" xml:space="preserve">
+    <value>overdue</value>
+  </data>
+  <!-- === WORKFLOW INDICATOR === -->
+  <data name="WF_Title" xml:space="preserve">
+    <value>Approval Workflow</value>
+  </data>
+  <data name="WF_StepCreated" xml:space="preserve">
+    <value>Creation</value>
+  </data>
+  <data name="WF_StepIdentification" xml:space="preserve">
+    <value>Identification Approval</value>
+  </data>
+  <!-- === BON ENTREE SEARCHER === -->
+  <data name="Bem_InvalidId" xml:space="preserve">
+    <value>Please enter a valid numeric ID</value>
+  </data>
+  <data name="Bem_NotAvailable" xml:space="preserve">
+    <value>BEM not found or unavailable</value>
+  </data>
+  <!-- === DESCRIPTION MATERIEL TEXTBOX === -->
+  <data name="Dmt_Placeholder" xml:space="preserve">
+    <value>Describe the type/purpose...</value>
+  </data>
+  <!-- === ACCESS DENIED === -->
+  <data name="Ad_PageTitle" xml:space="preserve">
+    <value>Access Denied — KCC Material Flow</value>
+  </data>
+  <data name="Ad_ErrorCode" xml:space="preserve">
+    <value>ERROR 403</value>
+  </data>
+  <data name="Ad_Title" xml:space="preserve">
+    <value>Access Denied</value>
+  </data>
+  <data name="Ad_Subtitle" xml:space="preserve">
+    <value>Your account does not have the necessary permissions to access KCC Material Flow. To request access, please submit a request via the ServiceNow portal.</value>
+  </data>
+  <data name="Ad_Step1Title" xml:space="preserve">
+    <value>Open ServiceNow</value>
+  </data>
+  <data name="Ad_Step1Desc" xml:space="preserve">
+    <value>KCC Portal.</value>
+  </data>
+  <data name="Ad_Step2Title" xml:space="preserve">
+    <value>Submit request</value>
+  </data>
+  <data name="Ad_Step2Desc" xml:space="preserve">
+    <value>App. KCC Material Flow.</value>
+  </data>
+  <data name="Ad_Step3Title" xml:space="preserve">
+    <value>Await approval</value>
+  </data>
+  <data name="Ad_Step3Desc" xml:space="preserve">
+    <value>Email notification.</value>
+  </data>
+  <data name="Ad_RequestAccess" xml:space="preserve">
+    <value>Request access</value>
+  </data>
+  <data name="Ad_Help" xml:space="preserve">
+    <value>Need help? Contact your IT administrator —</value>
+  </data>
+  <!-- === SECURITE PAGES === -->
+  <!-- Anomalie types -->
+  <data name="Ano_BarriereNonAutorisee" xml:space="preserve"><value>Unauthorized barrier</value></data>
+  <data name="Ano_DocumentExpire" xml:space="preserve"><value>Expired document</value></data>
+  <data name="Ano_DocumentInexistant" xml:space="preserve"><value>Missing document</value></data>
+  <data name="Ano_ScanDuplique" xml:space="preserve"><value>Duplicate scan</value></data>
+  <data name="Ano_QRCodeInvalide" xml:space="preserve"><value>Invalid QR Code</value></data>
+  <data name="Ano_ItineraireNonRespectee" xml:space="preserve"><value>Route not followed</value></data>
+  <data name="Ano_SignalementManuel" xml:space="preserve"><value>Manual report</value></data>
+  <!-- Gravité -->
+  <data name="Grav_Faible" xml:space="preserve"><value>Low</value></data>
+  <data name="Grav_Moyen" xml:space="preserve"><value>Medium</value></data>
+  <data name="Grav_Eleve" xml:space="preserve"><value>High</value></data>
+  <data name="Grav_Critique" xml:space="preserve"><value>Critical</value></data>
+  <!-- Scan statuts -->
+  <data name="Scan_Statut_Valid" xml:space="preserve"><value>Valid Scan</value></data>
+  <data name="Scan_Statut_Invalid" xml:space="preserve"><value>Invalid Document</value></data>
+  <data name="Scan_Statut_Anomaly" xml:space="preserve"><value>Anomaly</value></data>
+  <data name="Scan_Statut_Expired" xml:space="preserve"><value>Expired Document</value></data>
+  <data name="Scan_Statut_AlreadyUsed" xml:space="preserve"><value>Already Scanned</value></data>
+  <data name="Scan_Statut_NotFound" xml:space="preserve"><value>Document Not Found</value></data>
+  <data name="Scan_Statut_Unknown" xml:space="preserve"><value>Unknown Status</value></data>
+  <!-- AnomaliesList -->
+  <data name="Anl_Title" xml:space="preserve"><value>Anomaly Management</value></data>
+  <data name="Anl_Subtitle" xml:space="preserve"><value>Tracking and processing of reported anomalies</value></data>
+  <data name="Anl_Btn_Dashboard" xml:space="preserve"><value>Dashboard</value></data>
+  <data name="Anl_Btn_Export" xml:space="preserve"><value>Export</value></data>
+  <data name="Anl_FilterActive" xml:space="preserve"><value>Active filter:</value></data>
+  <data name="Anl_GravCritique" xml:space="preserve"><value>Critical Severity</value></data>
+  <data name="Anl_GravElevee" xml:space="preserve"><value>High Severity</value></data>
+  <data name="Anl_SearchPlaceholder" xml:space="preserve"><value>Search by reference, description...</value></data>
+  <data name="Anl_PlaceholderType" xml:space="preserve"><value>All types</value></data>
+  <data name="Anl_PlaceholderStatut" xml:space="preserve"><value>All statuses</value></data>
+  <data name="Anl_Col_Severity" xml:space="preserve"><value>Severity</value></data>
+  <data name="Anl_Col_Date" xml:space="preserve"><value>Date</value></data>
+  <data name="Anl_Col_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Anl_Col_Document" xml:space="preserve"><value>Document</value></data>
+  <data name="Anl_Col_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Anl_Col_Statut" xml:space="preserve"><value>Status</value></data>
+  <data name="Anl_Statut_Traitee" xml:space="preserve"><value>Resolved</value></data>
+  <data name="Anl_Statut_EnAttente" xml:space="preserve"><value>Pending</value></data>
+  <data name="Anl_Btn_ViewDetail" xml:space="preserve"><value>View</value></data>
+  <data name="Anl_Btn_Process" xml:space="preserve"><value>Process</value></data>
+  <data name="Anl_Lbl_Date" xml:space="preserve"><value>Date:</value></data>
+  <data name="Anl_Lbl_Barrier" xml:space="preserve"><value>Barrier:</value></data>
+  <data name="Anl_Lbl_Document" xml:space="preserve"><value>Document:</value></data>
+  <data name="Anl_Lbl_Description" xml:space="preserve"><value>Description:</value></data>
+  <!-- HistoriqueScans -->
+  <data name="Hsc_Title" xml:space="preserve"><value>Scan History</value></data>
+  <data name="Hsc_Subtitle" xml:space="preserve"><value>Full list of material movements</value></data>
+  <data name="Hsc_Btn_Scan" xml:space="preserve"><value>Scan QR</value></data>
+  <data name="Hsc_SearchPlaceholder" xml:space="preserve"><value>Search by reference, agent...</value></data>
+  <data name="Hsc_PlaceholderBarriere" xml:space="preserve"><value>All barriers</value></data>
+  <data name="Hsc_Col_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Hsc_Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Hsc_Col_Movement" xml:space="preserve"><value>Movement</value></data>
+  <data name="Hsc_Col_Barrier" xml:space="preserve"><value>Barrier</value></data>
+  <data name="Hsc_Col_Agent" xml:space="preserve"><value>Agent</value></data>
+  <data name="Hsc_Col_Anomaly" xml:space="preserve"><value>Anomaly</value></data>
+  <data name="Hsc_Filter_Valid" xml:space="preserve"><value>Valid scans</value></data>
+  <data name="Hsc_Filter_Invalid" xml:space="preserve"><value>Invalid scans</value></data>
+  <data name="Hsc_Filter_Anomaly" xml:space="preserve"><value>With anomalies</value></data>
+  <!-- ScanQRCode -->
+  <data name="Sqr_Title" xml:space="preserve"><value>Scan QR Code</value></data>
+  <data name="Sqr_Subtitle" xml:space="preserve"><value>Scan the material document QR code to validate the passage</value></data>
+  <data name="Sqr_BarriereTitle" xml:space="preserve"><value>Active Barrier</value></data>
+  <data name="Sqr_BarrierePlaceholder" xml:space="preserve"><value>Select your barrier...</value></data>
+  <data name="Sqr_Btn_Camera" xml:space="preserve"><value>Camera</value></data>
+  <data name="Sqr_Btn_Manual" xml:space="preserve"><value>Manual Entry</value></data>
+  <data name="Sqr_CameraOff" xml:space="preserve"><value>Camera inactive</value></data>
+  <data name="Sqr_Btn_StartCamera" xml:space="preserve"><value>Activate camera</value></data>
+  <data name="Sqr_Btn_StopCamera" xml:space="preserve"><value>Stop</value></data>
+  <data name="Sqr_ManualHint" xml:space="preserve"><value>Enter the QR code or document reference number:</value></data>
+  <data name="Sqr_ManualPlaceholder" xml:space="preserve"><value>QR code or reference number...</value></data>
+  <data name="Sqr_Btn_ValidateCode" xml:space="preserve"><value>Validate Code</value></data>
+  <data name="Sqr_AccessGranted" xml:space="preserve"><value>ACCESS GRANTED</value></data>
+  <data name="Sqr_AccessDenied" xml:space="preserve"><value>ACCESS DENIED</value></data>
+  <data name="Sqr_Col_Reference" xml:space="preserve"><value>Reference</value></data>
+  <data name="Sqr_Col_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Sqr_Col_From" xml:space="preserve"><value>Origin (FROM)</value></data>
+  <data name="Sqr_Col_To" xml:space="preserve"><value>Destination (TO)</value></data>
+  <data name="Sqr_Col_Materials" xml:space="preserve"><value>Number of Materials</value></data>
+  <data name="Sqr_Col_Expiry" xml:space="preserve"><value>Expiry</value></data>
+  <data name="Sqr_Btn_ConfirmPassage" xml:space="preserve"><value>Confirm Passage</value></data>
+  <data name="Sqr_Btn_SignalAnomaly" xml:space="preserve"><value>Report Anomaly</value></data>
+  <data name="Sqr_Reason" xml:space="preserve"><value>Reason:</value></data>
+  <data name="Sqr_AnomaliesDetected" xml:space="preserve"><value>Detected anomalies:</value></data>
+  <data name="Sqr_Btn_NewScan" xml:space="preserve"><value>New Scan</value></data>
+  <data name="Sqr_Btn_ReportSupervisor" xml:space="preserve"><value>Report to Supervisor</value></data>
+  <data name="Sqr_ObsLabel" xml:space="preserve"><value>Observations (optional)</value></data>
+  <data name="Sqr_ObsPlaceholder" xml:space="preserve"><value>Add observations...</value></data>
+  <data name="Sqr_SelectBarriere" xml:space="preserve"><value>Please select your barrier to start scanning</value></data>
+  <!-- ScanDetailsDialog -->
+  <data name="Sdd_AnomalyBadge" xml:space="preserve"><value>Anomaly</value></data>
+  <data name="Sdd_RefDocument" xml:space="preserve"><value>Document Reference</value></data>
+  <data name="Sdd_TypeDocument" xml:space="preserve"><value>Document Type</value></data>
+  <data name="Sdd_TypeMouvement" xml:space="preserve"><value>Movement Type</value></data>
+  <data name="Sdd_Barrier" xml:space="preserve"><value>Barrier</value></data>
+  <data name="Sdd_Agent" xml:space="preserve"><value>Security Agent</value></data>
+  <data name="Sdd_ProofNumber" xml:space="preserve"><value>Proof Number</value></data>
+  <data name="Sdd_PlannedRoute" xml:space="preserve"><value>PLANNED ROUTE</value></data>
+  <data name="Sdd_Origin" xml:space="preserve"><value>Origin</value></data>
+  <data name="Sdd_Destination" xml:space="preserve"><value>Destination</value></data>
+  <data name="Sdd_AnomalyReported" xml:space="preserve"><value>Reported Anomaly</value></data>
+  <data name="Sdd_AnomalyType" xml:space="preserve"><value>Type:</value></data>
+  <data name="Sdd_AnomalyGravity" xml:space="preserve"><value>Severity:</value></data>
+  <data name="Sdd_Btn_Reprint" xml:space="preserve"><value>Reprint Proof</value></data>
+  <data name="Sdd_Btn_ViewBon" xml:space="preserve"><value>View Document</value></data>
+  <data name="Sdd_Btn_Close" xml:space="preserve"><value>Close</value></data>
+  <!-- PreuvePassageDialog -->
+  <data name="Ppd_Confirmed" xml:space="preserve"><value>PASSAGE CONFIRMED</value></data>
+  <data name="Ppd_ProofNumber" xml:space="preserve"><value>Proof Number</value></data>
+  <data name="Ppd_DateTime" xml:space="preserve"><value>Date &amp; Time</value></data>
+  <data name="Ppd_Barrier" xml:space="preserve"><value>Barrier</value></data>
+  <data name="Ppd_BonRef" xml:space="preserve"><value>Document Reference</value></data>
+  <data name="Ppd_Agent" xml:space="preserve"><value>Agent</value></data>
+  <data name="Ppd_From" xml:space="preserve"><value>Origin (FROM)</value></data>
+  <data name="Ppd_To" xml:space="preserve"><value>Destination (TO)</value></data>
+  <data name="Ppd_Materials" xml:space="preserve"><value>Number of Materials</value></data>
+  <data name="Ppd_Observations" xml:space="preserve"><value>Observations</value></data>
+  <data name="Ppd_QrCode" xml:space="preserve"><value>Verification QR Code</value></data>
+  <data name="Ppd_Btn_Print" xml:space="preserve"><value>Print</value></data>
+  <data name="Ppd_Btn_Close" xml:space="preserve"><value>Close</value></data>
+  <!-- TraiterAnomalieDialog -->
+  <data name="Tad_Document" xml:space="preserve"><value>Document:</value></data>
+  <data name="Tad_ResolutionLabel" xml:space="preserve"><value>Resolution</value></data>
+  <data name="Tad_ResolutionPlaceholder" xml:space="preserve"><value>Describe how the anomaly was resolved...</value></data>
+  <data name="Tad_CorrectiveLabel" xml:space="preserve"><value>Corrective Actions</value></data>
+  <data name="Tad_CorrectivePlaceholder" xml:space="preserve"><value>Actions taken to prevent recurrence (optional)...</value></data>
+  <data name="Tad_Btn_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Tad_Btn_MarkResolved" xml:space="preserve"><value>Mark as resolved</value></data>
+  <!-- SignalerAnomalieDialog -->
+  <data name="Sad_Title" xml:space="preserve"><value>Report an Anomaly</value></data>
+  <data name="Msg_AnomalyCreated" xml:space="preserve"><value>Anomaly #{0} created successfully</value></data>
+  <data name="Sad_BonConcerne" xml:space="preserve"><value>Related Document</value></data>
+  <data name="Sad_TypeLabel" xml:space="preserve"><value>Anomaly Type *</value></data>
+  <data name="Sad_TypePlaceholder" xml:space="preserve"><value>Select type...</value></data>
+  <data name="Sad_GravityLabel" xml:space="preserve"><value>Severity Level *</value></data>
+  <data name="Sad_DescLabel" xml:space="preserve"><value>Description *</value></data>
+  <data name="Sad_DescPlaceholder" xml:space="preserve"><value>Describe the observed anomaly...</value></data>
+  <data name="Sad_Btn_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Sad_Btn_Report" xml:space="preserve"><value>Report</value></data>
+  <!-- ReouvririAnomalieDialog -->
+  <data name="Rad_Prompt" xml:space="preserve"><value>Please indicate the reason for reopening this anomaly.</value></data>
+  <data name="Rad_MotifLabel" xml:space="preserve"><value>Reason</value></data>
+  <data name="Rad_MotifPlaceholder" xml:space="preserve"><value>Why reopen this anomaly...</value></data>
+  <data name="Rad_Btn_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Rad_Btn_Reopen" xml:space="preserve"><value>Reopen</value></data>
+  <!-- AnomaliesDashboard -->
+  <data name="Adb_Title" xml:space="preserve"><value>Anomalies Dashboard</value></data>
+  <data name="Adb_LastUpdate" xml:space="preserve"><value>Overview of anomalies - Last update:</value></data>
+  <data name="Adb_Btn_ViewAll" xml:space="preserve"><value>View All</value></data>
+  <data name="Adb_Card_Unresolved" xml:space="preserve"><value>Unresolved</value></data>
+  <data name="Adb_Card_Critical" xml:space="preserve"><value>Critical</value></data>
+  <data name="Adb_Card_Resolution" xml:space="preserve"><value>Resolution Rate</value></data>
+  <data name="Adb_Card_AvgDelay" xml:space="preserve"><value>Average Delay</value></data>
+  <data name="Adb_Chart_ByType" xml:space="preserve"><value>Distribution by Type</value></data>
+  <data name="Adb_Chart_ByGravity" xml:space="preserve"><value>Distribution by Severity</value></data>
+  <data name="Adb_Chart_Count" xml:space="preserve"><value>Count</value></data>
+  <data name="Adb_NoData" xml:space="preserve"><value>No data available</value></data>
+  <data name="Adb_Recent" xml:space="preserve"><value>Recent Anomalies (24h)</value></data>
+  <data name="Adb_NoRecent" xml:space="preserve"><value>No anomalies in the last 24h</value></data>
+  <data name="Adb_Alert_CriticalPending" xml:space="preserve"><value>Warning: critical anomaly(ies) pending!</value></data>
+  <data name="Adb_Alert_CriticalMsg" xml:space="preserve"><value>These anomalies require immediate attention from the Investigation team.</value></data>
+  <data name="Adb_Btn_Process" xml:space="preserve"><value>Process</value></data>
+  <!-- AnomalieDetail -->
+  <data name="Adl_Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Adl_NotFound" xml:space="preserve"><value>Anomaly not found</value></data>
+  <data name="Adl_Btn_Back" xml:space="preserve"><value>Back to list</value></data>
+  <data name="Adl_Btn_Process" xml:space="preserve"><value>Process</value></data>
+  <data name="Adl_Btn_Reopen" xml:space="preserve"><value>Reopen</value></data>
+  <data name="Adl_GravityLabel" xml:space="preserve"><value>SEVERITY LEVEL</value></data>
+  <data name="Adl_StatusLabel" xml:space="preserve"><value>STATUS</value></data>
+  <data name="Adl_Statut_Traitee" xml:space="preserve"><value>Resolved</value></data>
+  <data name="Adl_Statut_EnAttente" xml:space="preserve"><value>Pending</value></data>
+  <data name="Adl_Sec_Details" xml:space="preserve"><value>Anomaly Details</value></data>
+  <data name="Adl_AnomalyType" xml:space="preserve"><value>Anomaly Type</value></data>
+  <data name="Adl_DocConcerned" xml:space="preserve"><value>Related Document</value></data>
+  <data name="Adl_Barrier" xml:space="preserve"><value>Barrier</value></data>
+  <data name="Adl_Description" xml:space="preserve"><value>Description</value></data>
+  <data name="Adl_Sec_AssocDoc" xml:space="preserve"><value>Associated Document</value></data>
+  <data name="Adl_BemLabel" xml:space="preserve"><value>Entry Document</value></data>
+  <data name="Adl_BsmLabel" xml:space="preserve"><value>Exit Document</value></data>
+  <data name="Adl_DocTriggered" xml:space="preserve"><value>This document triggered the anomaly during a security check.</value></data>
+  <data name="Adl_Btn_ViewFullDoc" xml:space="preserve"><value>View Full Document</value></data>
+  <data name="Adl_Sec_AssocScan" xml:space="preserve"><value>Associated Scan</value></data>
+  <data name="Adl_Scan_DateTime" xml:space="preserve"><value>Date/Time</value></data>
+  <data name="Adl_Scan_Barrier" xml:space="preserve"><value>Barrier</value></data>
+  <data name="Adl_Scan_Agent" xml:space="preserve"><value>Agent</value></data>
+  <data name="Adl_Scan_Status" xml:space="preserve"><value>Scan Status</value></data>
+  <data name="Adl_Sec_Resolution" xml:space="preserve"><value>Resolution</value></data>
+  <data name="Adl_CorrectiveActions" xml:space="preserve"><value>Corrective Actions</value></data>
+  <!-- === COMMON BUTTONS === -->
+  
+  
+  <data name="BsPrint_AccessMsg" xml:space="preserve">
+    <value>Only the last approver (Identification) can print this permit.</value>
+  </data>
+  
+  <data name="Btn_Detail" xml:space="preserve">
+    <value>Detail</value>
+  </data>
+
+  <!-- === COMMON MESSAGES === -->
+  <data name="Dlg_CommentLabel" xml:space="preserve">
+    <value>Comment (optional)</value>
+  </data>
+  <data name="Dlg_CommentPlaceholder" xml:space="preserve">
+    <value>Add a comment...</value>
+  </data>
+  <data name="Msg_LoadFailed" xml:space="preserve">
+    <value>Load failed:</value>
+  </data>
+  <data name="Msg_FillRequired" xml:space="preserve">
+    <value>Please fill in all required fields.</value>
+  </data>
+
+  <!-- === BSL: BON SORTIE LIST === -->
+  <data name="Bsl_PageTitle" xml:space="preserve">
+    <value>Exit Permits - KCC Material Flow</value>
+  </data>
+  <data name="Bsl_Title" xml:space="preserve">
+    <value>Exit Permits</value>
+  </data>
+  <data name="Bsl_Subtitle" xml:space="preserve">
+    <value>Manage material exits</value>
+  </data>
+  <data name="Bsl_New" xml:space="preserve">
+    <value>New Exit Permit</value>
+  </data>
+  <data name="Bsl_ActiveFilter" xml:space="preserve">
+    <value>Active filter:</value>
+  </data>
+  <data name="Bsl_FilterPending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="Bsl_FilterApproved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="Bsl_SearchPlaceholder" xml:space="preserve">
+    <value>Search by reference, requester, destination...</value>
+  </data>
+  <data name="Bsl_AllTypes" xml:space="preserve">
+    <value>All types</value>
+  </data>
+  <data name="Bsl_Loading" xml:space="preserve">
+    <value>Loading exit permits...</value>
+  </data>
+  <data name="Bsl_Empty" xml:space="preserve">
+    <value>No exit permits</value>
+  </data>
+  <data name="Bsl_NoResults" xml:space="preserve">
+    <value>No results match the criteria.</value>
+  </data>
+  <data name="Bsl_ColType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Bsl_ColReference" xml:space="preserve">
+    <value>Reference</value>
+  </data>
+  <data name="Bsl_ColDestination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Bsl_TypeExterne" xml:space="preserve">
+    <value>External</value>
+  </data>
+  <data name="Bsl_TypeInterne" xml:space="preserve">
+    <value>Internal</value>
+  </data>
+  <data name="Bsl_TypePret" xml:space="preserve">
+    <value>Loan</value>
+  </data>
+  <data name="Bsl_TypeSortie" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+
+  <!-- === STATUTS === -->
+  <data name="Statut_Draft" xml:space="preserve">
+    <value>Draft</value>
+  </data>
+  <data name="Statut_Approved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="Statut_Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Statut_Returned" xml:space="preserve">
+    <value>Returned</value>
+  </data>
+  <data name="Statut_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Statut_PendingIT" xml:space="preserve">
+    <value>Pending IT</value>
+  </data>
+  <data name="Statut_PendingEnv" xml:space="preserve">
+    <value>Pending ENV</value>
+  </data>
+  <data name="Statut_PendingId" xml:space="preserve">
+    <value>Pending ID</value>
+  </data>
+
+  <!-- === PEXT: PRET EXTENSION === -->
+  <data name="PExt_Note" xml:space="preserve">
+    <value>Note: The extension of the return date is reserved for the Identification department.</value>
+  </data>
+  <data name="PExt_CurrentDate" xml:space="preserve">
+    <value>Current Return Date</value>
+  </data>
+  <data name="PExt_NewDate" xml:space="preserve">
+    <value>New Return Date *</value>
+  </data>
+  <data name="PExt_NewDatePlaceholder" xml:space="preserve">
+    <value>Select a date...</value>
+  </data>
+  <data name="PExt_Reason" xml:space="preserve">
+    <value>Extension Reason *</value>
+  </data>
+  <data name="PExt_SelectReason" xml:space="preserve">
+    <value>Select a reason...</value>
+  </data>
+  <data name="PExt_OtherReason" xml:space="preserve">
+    <value>Specify reason *</value>
+  </data>
+  <data name="PExt_OtherPlaceholder" xml:space="preserve">
+    <value>Explain the reason...</value>
+  </data>
+  <data name="PExt_Duration" xml:space="preserve">
+    <value>Extension duration:</value>
+  </data>
+  <data name="PExt_Confirm" xml:space="preserve">
+    <value>Confirm Extension</value>
+  </data>
+  <data name="PExt_ExtendFailed" xml:space="preserve">
+    <value>Unable to extend</value>
+  </data>
+
+  <!-- === PRET RETOUR === -->
+  <data name="PRet_PageTitle" xml:space="preserve">
+    <value>Loan Return - KCC Material Flow</value>
+  </data>
+  <data name="PRet_NotFound" xml:space="preserve">
+    <value>Loan not found or inaccessible.</value>
+  </data>
+  <data name="PRet_AlreadyReturned" xml:space="preserve">
+    <value>This loan was already returned on</value>
+  </data>
+  <data name="PRet_Title" xml:space="preserve">
+    <value>Return Confirmation</value>
+  </data>
+  <data name="PRet_Subtitle" xml:space="preserve">
+    <value>LOAN RETURN CONFIRMATION</value>
+  </data>
+  <data name="PRet_LoanInfo" xml:space="preserve">
+    <value>Loan Information</value>
+  </data>
+  <data name="PRet_ExitDate" xml:space="preserve">
+    <value>Exit Date</value>
+  </data>
+  <data name="PRet_Materials" xml:space="preserve">
+    <value>Materials to Return</value>
+  </data>
+  <data name="PRet_RecordReturn" xml:space="preserve">
+    <value>Record Return</value>
+  </data>
+  <data name="PRet_EffectiveDate" xml:space="preserve">
+    <value>Actual Return Date *</value>
+  </data>
+  <data name="PRet_ReceivedBy" xml:space="preserve">
+    <value>Received by</value>
+  </data>
+  <data name="PRet_AgentPlaceholder" xml:space="preserve">
+    <value>Agent name</value>
+  </data>
+  <data name="PRet_MaterialState" xml:space="preserve">
+    <value>Overall Material Condition *</value>
+  </data>
+  <data name="PRet_StateGood" xml:space="preserve">
+    <value>Good condition</value>
+  </data>
+  <data name="PRet_StateWorn" xml:space="preserve">
+    <value>Worn</value>
+  </data>
+  <data name="PRet_StateDamaged" xml:space="preserve">
+    <value>Damaged</value>
+  </data>
+  <data name="PRet_StateIncomplete" xml:space="preserve">
+    <value>Incomplete</value>
+  </data>
+  <data name="PRet_DamageAlert" xml:space="preserve">
+    <value>Please describe the damage or missing items.</value>
+  </data>
+  <data name="PRet_Observations" xml:space="preserve">
+    <value>Observations</value>
+  </data>
+  <data name="PRet_ObsPlaceholder" xml:space="preserve">
+    <value>Describe the condition of the material...</value>
+  </data>
+  <data name="PRet_Confirm" xml:space="preserve">
+    <value>Confirm Return</value>
+  </data>
+  <data name="PRet_DescDamage" xml:space="preserve">
+    <value>Describe the damage/missing items</value>
+  </data>
+
+  <!-- === RETURN LOAN DIALOG === -->
+  <data name="Rtl_Desc" xml:space="preserve">
+    <value>Record the loan return information.</value>
+  </data>
+  <data name="Rtl_StateLabel" xml:space="preserve">
+    <value>Material Condition at Return</value>
+  </data>
+  <data name="Rtl_ObsPlaceholder" xml:space="preserve">
+    <value>Observations...</value>
+  </data>
+  <data name="Rtl_Confirm" xml:space="preserve">
+    <value>Confirm Return</value>
+  </data>
+  <data name="Adif_OldValue" xml:space="preserve">
+    <value>Old value</value>
+  </data>
+  <data name="Adif_NewValue" xml:space="preserve">
+    <value>New value</value>
+  </data>
+  <data name="Adif_Empty" xml:space="preserve">
+    <value>(empty)</value>
+  </data>
+  <data name="Adif_Date" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Adif_User" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="Adif_Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="Adif_Entity" xml:space="preserve">
+    <value>Entity</value>
+  </data>
+  <data name="Adif_IP" xml:space="preserve">
+    <value>IP Address</value>
+  </data>
+  <data name="Ped_LblCle" xml:space="preserve">
+    <value>Key *</value>
+  </data>
+  <data name="Ped_LblCategorie" xml:space="preserve">
+    <value>Category *</value>
+  </data>
+  <data name="Ped_PlaceholderCategorie" xml:space="preserve">
+    <value>Select...</value>
+  </data>
+  <data name="Ped_LblLibelle" xml:space="preserve">
+    <value>Label *</value>
+  </data>
+  <data name="Ped_LblDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Ped_LblTypeDonnee" xml:space="preserve">
+    <value>Data type *</value>
+  </data>
+  <data name="Ped_LblValeur" xml:space="preserve">
+    <value>Value *</value>
+  </data>
+  <data name="Ped_LblValeurMin" xml:space="preserve">
+    <value>Minimum value</value>
+  </data>
+  <data name="Ped_LblValeurMax" xml:space="preserve">
+    <value>Maximum value</value>
+  </data>
+  <data name="Ped_LblOrdre" xml:space="preserve">
+    <value>Display order</value>
+  </data>
+  <data name="Ped_ChkModifiable" xml:space="preserve">
+    <value>Editable via UI</value>
+  </data>
+  <data name="Ped_ChkVisible" xml:space="preserve">
+    <value>Visible</value>
+  </data>
+  <data name="Sed_LblCode" xml:space="preserve">
+    <value>Code *</value>
+  </data>
+  <data name="Sed_LblLibelle" xml:space="preserve">
+    <value>Label *</value>
+  </data>
+  <data name="Sed_LblTypeBon" xml:space="preserve">
+    <value>Slip type *</value>
+  </data>
+  <data name="Sed_LblCouleurFond" xml:space="preserve">
+    <value>Background color</value>
+  </data>
+  <data name="Sed_LblCouleurTexte" xml:space="preserve">
+    <value>Text color</value>
+  </data>
+  <data name="Sed_LblIcone" xml:space="preserve">
+    <value>Icon</value>
+  </data>
+  <data name="Sed_PlaceholderIcone" xml:space="preserve">
+    <value>bi-check-circle</value>
+  </data>
+  <data name="Sed_Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="Sed_ChkFinal" xml:space="preserve">
+    <value>Final status</value>
+  </data>
+  <data name="Sed_ChkRequiertAction" xml:space="preserve">
+    <value>Requires action</value>
+  </data>
+  <data name="Sed_ChkActif" xml:space="preserve">
+    <value>Active status</value>
+  </data>
+  <data name="Tme_LblCode" xml:space="preserve">
+    <value>Code *</value>
+  </data>
+  <data name="Tme_LblNom" xml:space="preserve">
+    <value>Name *</value>
+  </data>
+  <data name="Tme_LblCategorie" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Tme_PlaceholderCategorie" xml:space="preserve">
+    <value>Ex: Rolling equipment</value>
+  </data>
+  <data name="Tme_PlaceholderIcone" xml:space="preserve">
+    <value>bi-truck</value>
+  </data>
+  <data name="Tme_FieldsetWorkflow" xml:space="preserve">
+    <value>Approval workflow</value>
+  </data>
+  <data name="Tme_LblNiveauxApprobation" xml:space="preserve">
+    <value>Approval levels</value>
+  </data>
+  <data name="Tme_ChkApprobDept" xml:space="preserve">
+    <value>Department approval</value>
+  </data>
+  <data name="Tme_ChkApprobDir" xml:space="preserve">
+    <value>Direction approval</value>
+  </data>
+  <data name="Tme_FieldsetDurees" xml:space="preserve">
+    <value>Validity durations</value>
+  </data>
+  <data name="Tme_LblDureeDefaut" xml:space="preserve">
+    <value>Default duration (days)</value>
+  </data>
+  <data name="Tme_LblDureeMax" xml:space="preserve">
+    <value>Maximum duration (days)</value>
+  </data>
+  <data name="Tme_ChkNumeroSerie" xml:space="preserve">
+    <value>Serial no. required</value>
+  </data>
+  <data name="Tme_ChkPhoto" xml:space="preserve">
+    <value>Photo required</value>
+  </data>
+  <data name="Tme_ChkActif" xml:space="preserve">
+    <value>Active type</value>
+  </data>
+  <data name="Wed_DeptCodeLabel" xml:space="preserve">
+    <value>Department code:</value>
+  </data>
+  <data name="Wed_GenericWorkflow" xml:space="preserve">
+    <value>This workflow applies to all departments without specific configuration.</value>
+  </data>
+  <data name="Wed_StepsTitle" xml:space="preserve">
+    <value>Approval steps</value>
+  </data>
+  <data name="Wed_Btn_AddStep" xml:space="preserve">
+    <value>Add a step</value>
+  </data>
+  <data name="Wed_PlaceholderEtape" xml:space="preserve">
+    <value>Step name…</value>
+  </data>
+  <data name="Wed_AutoTooltip" xml:space="preserve">
+    <value>Approver automatically resolved from hierarchy</value>
+  </data>
+  <data name="Wed_ChainPreview" xml:space="preserve">
+    <value>Chain preview:</value>
+  </data>
+  <data name="Aul_Title" xml:space="preserve">
+    <value>Audit Log</value>
+  </data>
+  <data name="Aul_Subtitle" xml:space="preserve">
+    <value>Traceability of system actions</value>
+  </data>
+  <data name="Aul_FilterUser" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="Aul_FilterUserPh" xml:space="preserve">
+    <value>Login...</value>
+  </data>
+  <data name="Aul_FilterActionType" xml:space="preserve">
+    <value>Action type</value>
+  </data>
+  <data name="Aul_FilterAllActions" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Aul_FilterCategory" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Aul_FilterAllCategories" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Aul_BtnSearch" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Aul_BtnReset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="Aul_Empty" xml:space="preserve">
+    <value>No log found</value>
+  </data>
+  <data name="Aul_LblDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Aul_LblEntity" xml:space="preserve">
+    <value>Entity:</value>
+  </data>
+  <data name="Aul_LblContext" xml:space="preserve">
+    <value>Context</value>
+  </data>
+  <data name="Aul_LblIP" xml:space="preserve">
+    <value>IP:</value>
+  </data>
+  <data name="Aul_BtnViewChanges" xml:space="preserve">
+    <value>View changes</value>
+  </data>
+  <data name="Aul_ColDate" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="Aul_ColUser" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="Aul_ColAction" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="Aul_ColCategory" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Aul_ColDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Aul_ColLevel" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="Tt_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Tt_Disable" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="Tt_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Tt_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  
+  <data name="Sta_Title" xml:space="preserve">
+    <value>Status Management</value>
+  </data>
+  <data name="Sta_Count" xml:space="preserve">
+    <value>status(es) out of</value>
+  </data>
+  <data name="Sta_BtnNew" xml:space="preserve">
+    <value>New status</value>
+  </data>
+  <data name="Sta_FilterActifs" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Sta_FilterSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Sta_FilterFinal" xml:space="preserve">
+    <value>Final</value>
+  </data>
+  <data name="Sta_SearchPh" xml:space="preserve">
+    <value>Search by code, label, description...</value>
+  </data>
+  <data name="Sta_FilterAllTypes" xml:space="preserve">
+    <value>All slip types</value>
+  </data>
+  <data name="Sta_Empty" xml:space="preserve">
+    <value>No status found</value>
+  </data>
+  <data name="Sta_ColNum" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="Sta_ColStatut" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Sta_ColTypeBon" xml:space="preserve">
+    <value>Slip type</value>
+  </data>
+  <data name="Sta_ColDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Sta_ColProprietes" xml:space="preserve">
+    <value>Properties</value>
+  </data>
+  <data name="Sta_BadgeSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Sta_BadgeFinal" xml:space="preserve">
+    <value>Final</value>
+  </data>
+  <data name="Sta_BadgeActionReq" xml:space="preserve">
+    <value>Action req.</value>
+  </data>
+  <data name="Sta_BadgeActif" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Sta_BadgeInactif" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Tma_Title" xml:space="preserve">
+    <value>Material Type Management</value>
+  </data>
+  <data name="Tma_Count" xml:space="preserve">
+    <value>type(s) out of</value>
+  </data>
+  <data name="Tma_BtnNew" xml:space="preserve">
+    <value>New type</value>
+  </data>
+  <data name="Tma_FilterActive" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Tma_FilterInactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Tma_SearchPh" xml:space="preserve">
+    <value>Code, name, category...</value>
+  </data>
+  <data name="Tma_FilterAllCategories" xml:space="preserve">
+    <value>All categories</value>
+  </data>
+  <data name="Tma_Empty" xml:space="preserve">
+    <value>No type found</value>
+  </data>
+  <data name="Tma_ColNum" xml:space="preserve">
+    <value>#</value>
+  </data>
+  <data name="Tma_ColType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Tma_ColCategory" xml:space="preserve">
+    <value>Category</value>
+  </data>
+  <data name="Tma_ColApprovals" xml:space="preserve">
+    <value>Approvals</value>
+  </data>
+  <data name="Tma_ColValidity" xml:space="preserve">
+    <value>Validity</value>
+  </data>
+  <data name="Tma_ColRequired" xml:space="preserve">
+    <value>Required</value>
+  </data>
+  <data name="Tma_Levels" xml:space="preserve">
+    <value>level(s)</value>
+  </data>
+  <data name="Tma_DaysMax" xml:space="preserve">
+    <value>d / max</value>
+  </data>
+  <data name="Tma_DaysUnit" xml:space="preserve">
+    <value>d</value>
+  </data>
+  <data name="Tma_BadgeDept" xml:space="preserve">
+    <value>Dept</value>
+  </data>
+  <data name="Tma_BadgeDir" xml:space="preserve">
+    <value>Dir</value>
+  </data>
+  <data name="Tma_BadgeSerial" xml:space="preserve">
+    <value>Serial no.</value>
+  </data>
+  <data name="Tma_BadgePhoto" xml:space="preserve">
+    <value>Photo</value>
+  </data>
+  <data name="Tma_BadgeActive" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Tma_BadgeInactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Par_Title" xml:space="preserve">
+    <value>System Parameters</value>
+  </data>
+  <data name="Par_Subtitle" xml:space="preserve">
+    <value>System parameters organized by category</value>
+  </data>
+  <data name="Par_BtnNew" xml:space="preserve">
+    <value>New parameter</value>
+  </data>
+  <data name="Par_SearchPh" xml:space="preserve">
+    <value>Search (key, description)...</value>
+  </data>
+  <data name="Par_FilterAllCategories" xml:space="preserve">
+    <value>All categories</value>
+  </data>
+  <data name="Par_Empty" xml:space="preserve">
+    <value>No parameter found</value>
+  </data>
+  <data name="Par_LblDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Par_LblMetadata" xml:space="preserve">
+    <value>Metadata</value>
+  </data>
+  <data name="Par_LblType" xml:space="preserve">
+    <value>Type:</value>
+  </data>
+  <data name="Par_LblConstraints" xml:space="preserve">
+    <value>Constraints:</value>
+  </data>
+  <data name="Par_LblEditable" xml:space="preserve">
+    <value>Editable:</value>
+  </data>
+  <data name="Par_LblSystem" xml:space="preserve">
+    <value>System:</value>
+  </data>
+  <data name="Par_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Par_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Par_ColKey" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="Par_ColDescription" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Par_ColValue" xml:space="preserve">
+    <value>Value</value>
+  </data>
+  <data name="Par_BadgeSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Rol_Title" xml:space="preserve">
+    <value>Roles &amp; Access</value>
+  </data>
+  <data name="Rol_Subtitle" xml:space="preserve">
+    <value>Overview of access levels and users with administrative rights.</value>
+  </data>
+  <data name="Rol_BtnManageUsers" xml:space="preserve">
+    <value>Manage users</value>
+  </data>
+  <data name="Rol_SecRoleDef" xml:space="preserve">
+    <value>Role definitions</value>
+  </data>
+  <data name="Rol_BadgeNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Rol_SubStandard" xml:space="preserve">
+    <value>Standard user</value>
+  </data>
+  <data name="Rol_DescStandard" xml:space="preserve">
+    <value>Can create and submit material entry and exit slips. Receives tracking notifications.</value>
+  </data>
+  <data name="Rol_SubAdmin" xml:space="preserve">
+    <value>Administrator</value>
+  </data>
+  <data name="Rol_DescAdmin" xml:space="preserve">
+    <value>Access to Admin space. Can manage users, configure workflows and system parameters. Cannot modify SuperAdmins.</value>
+  </data>
+  <data name="Rol_SubSuperAdmin" xml:space="preserve">
+    <value>Super Administrator</value>
+  </data>
+  <data name="Rol_DescSuperAdmin" xml:space="preserve">
+    <value>Full unrestricted access. Manages Admin and SuperAdmin, uses impersonation and accesses full audit logs.</value>
+  </data>
+  <data name="Rol_BadgeApprover" xml:space="preserve">
+    <value>Approver</value>
+  </data>
+  <data name="Rol_StatUsers" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="Rol_StatAdmins" xml:space="preserve">
+    <value>Administrators</value>
+  </data>
+  <data name="Rol_StatSuperAdmins" xml:space="preserve">
+    <value>Super Admins</value>
+  </data>
+  <data name="Rol_StatUsersDesc" xml:space="preserve">
+    <value>Standard level — business access only.</value>
+  </data>
+  <data name="Rol_StatAdminsDesc" xml:space="preserve">
+    <value>Admin space access and configuration.</value>
+  </data>
+  <data name="Rol_StatSuperAdminsDesc" xml:space="preserve">
+    <value>Full system access.</value>
+  </data>
+  <data name="Wfa_Title" xml:space="preserve">
+    <value>Special Approvers</value>
+  </data>
+  <data name="Wfa_Subtitle" xml:space="preserve">
+    <value>Defines Superintendent / OPJ / Identification employees used at the end of the approval chain.</value>
+  </data>
+  <data name="Wfa_BtnAdd" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Wfa_ActiveCount" xml:space="preserve">
+    <value>active(s) out of</value>
+  </data>
+  <data name="Wfa_AllSites" xml:space="preserve">
+    <value>All sites</value>
+  </data>
+  <data name="Wfa_ActiveBadge" xml:space="preserve">
+    <value>active(s)</value>
+  </data>
+  <data name="Wfa_Order" xml:space="preserve">
+    <value>• Order</value>
+  </data>
+  <data name="Wfa_Inactive" xml:space="preserve">
+    <value>• Inactive</value>
+  </data>
+  <data name="Imp_Title" xml:space="preserve">
+    <value>Impersonation</value>
+  </data>
+  <data name="Imp_Subtitle" xml:space="preserve">
+    <value>Simulate another employee's session to check what they see. Reserved for real SuperAdmin.</value>
+  </data>
+  <data name="Imp_ActiveSession" xml:space="preserve">
+    <value>Active session:</value>
+  </data>
+  <data name="Imp_LoggedAs" xml:space="preserve">
+    <value>you are logged in as</value>
+  </data>
+  <data name="Imp_RealAccount" xml:space="preserve">
+    <value>real account</value>
+  </data>
+  <data name="Imp_BtnStop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Imp_SearchTitle" xml:space="preserve">
+    <value>Search for an employee</value>
+  </data>
+  <data name="Imp_SearchPh" xml:space="preserve">
+    <value>Employee code, name or department… (min. 2 characters)</value>
+  </data>
+  <data name="Imp_TypeMin2" xml:space="preserve">
+    <value>Type at least 2 characters to search.</value>
+  </data>
+  <data name="Imp_NoEmployee" xml:space="preserve">
+    <value>No employee found for</value>
+  </data>
+  <data name="Imp_Results" xml:space="preserve">
+    <value>result(s)</value>
+  </data>
+  <data name="Imp_EmptyGrid" xml:space="preserve">
+    <value>No employee.</value>
+  </data>
+  <data name="Imp_ColMatricule" xml:space="preserve">
+    <value>Employee code</value>
+  </data>
+  <data name="Imp_ColName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Imp_ColDept" xml:space="preserve">
+    <value>Department</value>
+  </data>
+  <data name="Imp_ColLogin" xml:space="preserve">
+    <value>Windows login</value>
+  </data>
+  <data name="Imp_BtnBecome" xml:space="preserve">
+    <value>Become</value>
+  </data>
+  <data name="Imd_Title" xml:space="preserve">
+    <value>Reference Data Import</value>
+  </data>
+  <data name="Imd_Subtitle" xml:space="preserve">
+    <value>Load DATA.xlsx → staging (Companies / Contracts) + direct employee upsert with ReportTo resolution</value>
+  </data>
+  <data name="Imd_Step1Title" xml:space="preserve">
+    <value>Step 1 — Load xlsx file to staging</value>
+  </data>
+  <data name="Imd_Step1Hint" xml:space="preserve">
+    <value>The file must contain 3 sheets: Company, Contract, Sheet3 (employees).</value>
+  </data>
+  <data name="Imd_Reading" xml:space="preserve">
+    <value>Reading in progress…</value>
+  </data>
+  <data name="Imd_ImportSuccess" xml:space="preserve">
+    <value>Staging import successful</value>
+  </data>
+  <data name="Imd_Step2Title" xml:space="preserve">
+    <value>Step 2 — Import batches</value>
+  </data>
+  <data name="Imd_NoBatch" xml:space="preserve">
+    <value>No pending import batch. Load a file above.</value>
+  </data>
+  <data name="Imd_ColBatch" xml:space="preserve">
+    <value>Batch (UTC)</value>
+  </data>
+  <data name="Imd_ColCompanies" xml:space="preserve">
+    <value>Companies</value>
+  </data>
+  <data name="Imd_ColContracts" xml:space="preserve">
+    <value>Contracts</value>
+  </data>
+  <data name="Imd_BtnMerge" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Imd_BtnPurge" xml:space="preserve">
+    <value>Purge</value>
+  </data>
+  <data name="Imd_MergeSuccess" xml:space="preserve">
+    <value>Merge complete</value>
+  </data>
+  <data name="Imd_Warnings" xml:space="preserve">
+    <value>warning(s)</value>
+  </data>
+  <data name="Usr_Title" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="Usr_BtnNew" xml:space="preserve">
+    <value>New user</value>
+  </data>
+  <data name="Usr_SearchPh" xml:space="preserve">
+    <value>Employee code, name, login… (min. 1 char.)</value>
+  </data>
+  <data name="Usr_FilterAllDepts" xml:space="preserve">
+    <value>All departments</value>
+  </data>
+  <data name="Usr_FilterPh" xml:space="preserve">
+    <value>Filter</value>
+  </data>
+  <data name="Usr_Hint" xml:space="preserve">
+    <value>Source = HR directory. Only employees with a Windows account can access the application. Active = Windows account present. Inactive = no Windows account.</value>
+  </data>
+  <data name="Usr_Shown" xml:space="preserve">
+    <value>shown — search to see more</value>
+  </data>
+  <data name="Usr_Loading" xml:space="preserve">
+    <value>Loading…</value>
+  </data>
+  <data name="Usr_Empty" xml:space="preserve">
+    <value>No employee.</value>
+  </data>
+  <data name="Usr_ColManager" xml:space="preserve">
+    <value>Manager (HOD)</value>
+  </data>
+  <data name="Usr_ColAdminLevel" xml:space="preserve">
+    <value>Admin level</value>
+  </data>
+  <data name="Usr_TitleRevoke" xml:space="preserve">
+    <value>Revoke application access</value>
+  </data>
+  <data name="Usr_TitleGrant" xml:space="preserve">
+    <value>Grant application access</value>
+  </data>
+  <data name="Usr_TitleDelete" xml:space="preserve">
+    <value>Delete this standalone user</value>
+  </data>
+  <data name="Wfl_Title" xml:space="preserve">
+    <value>Approval Workflow</value>
+  </data>
+  <data name="Wfl_Subtitle" xml:space="preserve">
+    <value>Configure the approval chain per department. A specific workflow takes priority over the generic one.</value>
+  </data>
+  <data name="Wfl_BadgeSpecific" xml:space="preserve">
+    <value>Specific</value>
+  </data>
+  <data name="Wfl_LegendSpecific" xml:space="preserve">
+    <value>Department-specific config</value>
+  </data>
+  <data name="Wfl_BadgeInherited" xml:space="preserve">
+    <value>Inherited</value>
+  </data>
+  <data name="Wfl_LegendInherited" xml:space="preserve">
+    <value>Uses the generic workflow</value>
+  </data>
+  <data name="Wfl_BadgeDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Wfl_LegendDefault" xml:space="preserve">
+    <value>Hardcoded workflow (SUPERINTENDENT → GM → OPJ → IDENTIFICATION)</value>
+  </data>
+  <data name="Wdg_SearchPh" xml:space="preserve">
+    <value>Department name or identifier…</value>
+  </data>
+  <data name="Wdg_ColDept" xml:space="preserve">
+    <value>Department</value>
+  </data>
+  <data name="Wdg_ColEmployees" xml:space="preserve">
+    <value>Employees</value>
+  </data>
+  <data name="Wdg_ColConfig" xml:space="preserve">
+    <value>Config</value>
+  </data>
+  <data name="Wdg_ColChain" xml:space="preserve">
+    <value>Approval chain</value>
+  </data>
+  <data name="Wdg_NoSteps" xml:space="preserve">
+    <value>No steps</value>
+  </data>
+  <data name="Wdg_BtnConfigure" xml:space="preserve">
+    <value>Configure</value>
+  </data>
+  <data name="Wdg_TitleReset" xml:space="preserve">
+    <value>Delete specific config (inherits generic)</value>
+  </data>
+  
+  
+
+  <!-- === NEW KEYS EN === -->
+  <data name="Nav_NewBEM" xml:space="preserve">
+    <value>New BEM</value>
+  </data>
+  <data name="Nav_NewBSM" xml:space="preserve">
+    <value>New BSM</value>
+  </data>
+  <data name="Nav_DeptMotifs" xml:space="preserve">
+    <value>Dept / Reasons</value>
+  </data>
+  <data name="Btn_BackHome" xml:space="preserve">
+    <value>Back to home</value>
+  </data>
+  <data name="Btn_CreateAccount" xml:space="preserve">
+    <value>Create account</value>
+  </data>
+  <data name="Btn_SubmitForApproval" xml:space="preserve">
+    <value>Submit for approval</value>
+  </data>
+  <data name="Btn_Manage" xml:space="preserve">
+    <value>Manage</value>
+  </data>
+  <data name="Btn_Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Tpb_MyProfile" xml:space="preserve">
+    <value>My profile</value>
+  </data>
+  <data name="Tpb_Preferences" xml:space="preserve">
+    <value>Preferences</value>
+  </data>
+  <data name="Tpb_Logout" xml:space="preserve">
+    <value>Logout</value>
+  </data>
+  <data name="Rol_AdminListTitle" xml:space="preserve">
+    <value>Accounts with administrative rights</value>
+  </data>
+  <data name="Rol_FilterPh" xml:space="preserve">
+    <value>Filter by name, employee ID...</value>
+  </data>
+  <data name="Rol_NoAdminFound" xml:space="preserve">
+    <value>No account with administrative rights found. Assign an Admin level from the page</value>
+  </data>
+  <data name="Rol_ColMatricule" xml:space="preserve">
+    <value>Employee ID</value>
+  </data>
+  <data name="Rol_ColFullName" xml:space="preserve">
+    <value>Full name</value>
+  </data>
+  <data name="Rol_ColDept" xml:space="preserve">
+    <value>Department</value>
+  </data>
+  <data name="Rol_ColWinLogin" xml:space="preserve">
+    <value>Windows Login</value>
+  </data>
+  <data name="Rol_ColLevel" xml:space="preserve">
+    <value>Level</value>
+  </data>
+  <data name="Rol_ColActive" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Sec_BtnNewAssign" xml:space="preserve">
+    <value>New Assignment</value>
+  </data>
+  <data name="Sec_BtnNewBarriere" xml:space="preserve">
+    <value>New Barrier</value>
+  </data>
+  <data name="Sec_BtnNewItinerary" xml:space="preserve">
+    <value>New Itinerary</value>
+  </data>
+  <data name="Sec_ColAgent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Sec_ColBarriere" xml:space="preserve">
+    <value>Barrier</value>
+  </data>
+  <data name="Sec_ColVacation" xml:space="preserve">
+    <value>Shift</value>
+  </data>
+  <data name="Sec_ColStart" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Sec_ColStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Sec_ColCode" xml:space="preserve">
+    <value>Code</value>
+  </data>
+  <data name="Sec_ColHours" xml:space="preserve">
+    <value>Hours</value>
+  </data>
+  <data name="Sec_ColProvenance" xml:space="preserve">
+    <value>Origin</value>
+  </data>
+  <data name="Sec_ColDestination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Sec_ColAutorisees" xml:space="preserve">
+    <value>Authorized barriers</value>
+  </data>
+  <data name="Sec_BadgePermanent" xml:space="preserve">
+    <value>Permanent</value>
+  </data>
+  <data name="Sec_BadgeOnDuty" xml:space="preserve">
+    <value>On duty</value>
+  </data>
+  <data name="Sec_BadgeScheduled" xml:space="preserve">
+    <value>Scheduled</value>
+  </data>
+  <data name="Sec_BadgeInactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Sec_BadgeInactiveF" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Sec_BadgeActive" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Sec_BadgeActif" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Sec_PlSearchAgent" xml:space="preserve">
+    <value>Search name, employee ID...</value>
+  </data>
+  <data name="Sec_PlAllBarrieres" xml:space="preserve">
+    <value>All barriers</value>
+  </data>
+  <data name="Sec_PlAllVacations" xml:space="preserve">
+    <value>All shifts</value>
+  </data>
+  <data name="Sec_PlSearchItinerary" xml:space="preserve">
+    <value>Search origin, destination, barrier...</value>
+  </data>
+  <data name="Sec_PlAllProvenances" xml:space="preserve">
+    <value>All origins</value>
+  </data>
+  <data name="Sec_PlAllDestinations" xml:space="preserve">
+    <value>All destinations</value>
+  </data>
+  <data name="Sec_PlBarriereName" xml:space="preserve">
+    <value>Main Barrier</value>
+  </data>
+  <data name="Sec_PlLocation" xml:space="preserve">
+    <value>Main entrance - Building A</value>
+  </data>
+  <data name="Sec_PlPhone" xml:space="preserve">
+    <value>+243 XXX XXX XXX</value>
+  </data>
+  <data name="Sec_PlDescription" xml:space="preserve">
+    <value>Detailed description of the barrier...</value>
+  </data>
+  <data name="Sec_PlAgentLogin" xml:space="preserve">
+    <value>jdupont</value>
+  </data>
+  <data name="Sec_PlAgentName" xml:space="preserve">
+    <value>John Doe</value>
+  </data>
+  <data name="Sec_PlSelectBarriere" xml:space="preserve">
+    <value>Select a barrier</value>
+  </data>
+  <data name="Sec_PlSearchBarriere" xml:space="preserve">
+    <value>Search by code, name, location...</value>
+  </data>
+  <data name="Sec_PlAllTypes" xml:space="preserve">
+    <value>All types</value>
+  </data>
+  <data name="Sec_PlSelectOrType" xml:space="preserve">
+    <value>Select or type...</value>
+  </data>
+  <data name="Sec_PlSelectBarrieres" xml:space="preserve">
+    <value>Select barriers...</value>
+  </data>
+  <data name="Lbl_FilterActive" xml:space="preserve">
+    <value>Active filter:</value>
+  </data>
+  <data name="Lbl_Actifs" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Lbl_Inactifs" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Lbl_Systeme" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Lbl_Finaux" xml:space="preserve">
+    <value>Final</value>
+  </data>
+  <data name="Lbl_LoadingData" xml:space="preserve">
+    <value>Loading data...</value>
+  </data>
+  <data name="Wkf_TabBSM" xml:space="preserve">
+    <value>BSM — Material Exit Voucher</value>
+  </data>
+  <data name="Wkf_TabBEM" xml:space="preserve">
+    <value>BEM — Material Entry Voucher</value>
+  </data>
+  <data name="Dlg_PlOptComment" xml:space="preserve">
+    <value>Comment (optional for approval — required for rejection)...</value>
+  </data>
+  <data name="Dlg_BadgeMotif" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Rej_FieldLabel" xml:space="preserve">
+    <value>Rejection reason *</value>
+  </data>
+  <data name="Rej_PlMotif" xml:space="preserve">
+    <value>Explain the rejection reason...</value>
+  </data>
+  <data name="Ttl_RejectionReason" xml:space="preserve">
+    <value>Rejection reason</value>
+  </data>
+  <data name="BonEnt_PlSearchBEM" xml:space="preserve">
+    <value>BEM ID...</value>
+  </data>
+  <data name="BonSrt_PlSelectSite" xml:space="preserve">
+    <value>-- Select KCC site --</value>
+  </data>
+  <data name="BonSrt_BadgeExterne" xml:space="preserve">
+    <value>EXTERNAL</value>
+  </data>
+  <data name="BonSrt_BadgeInterne" xml:space="preserve">
+    <value>INTERNAL</value>
+  </data>
+  <data name="BonVue_ColFrom" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="BonVue_ColTo" xml:space="preserve">
+    <value>To</value>
+  </data>
+  <data name="BemF_PlSelectKccSite" xml:space="preserve">
+    <value>-- Select KCC site --</value>
+  </data>
+  <data name="BsmF_PlCommentOptional" xml:space="preserve">
+    <value>Optional comment (shown in parentheses when printed)</value>
+  </data>
+  <data name="Usr_PlMatricule" xml:space="preserve">
+    <value>E.g. K26561 (optional)</value>
+  </data>
+  <data name="Usr_PlPrenom" xml:space="preserve">
+    <value>John</value>
+  </data>
+  <data name="Usr_PlNom" xml:space="preserve">
+    <value>Smith</value>
+  </data>
+  <data name="Usr_PlLogin" xml:space="preserve">
+    <value>DOMAIN\john.smith</value>
+  </data>
+  <data name="Usr_PlEmail" xml:space="preserve">
+    <value>john.smith@company.com</value>
+  </data>
+  <data name="Usr_PlDisplayName" xml:space="preserve">
+    <value>First Last</value>
+  </data>
+  <data name="Usr_PlLoginWindows" xml:space="preserve">
+    <value>DOMAIN\username</value>
+  </data>
+  <data name="Usr_PlEmail2" xml:space="preserve">
+    <value>firstname.lastname@company.com</value>
+  </data>
+  <data name="Usr_PlTypeToSearch" xml:space="preserve">
+    <value>Type to search...</value>
+  </data>
+  <data name="Tt_ViewDoc" xml:space="preserve">
+    <value>View document</value>
+  </data>
+  <data name="Tt_AnomalieReported" xml:space="preserve">
+    <value>Anomaly reported</value>
+  </data>
+  <data name="FileList_Download" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="FileList_Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="FileList_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="UnifiedSearch_Placeholder" xml:space="preserve">
+    <value>Search a voucher (reference no., company, requester...)</value>
+  </data>
+  <data name="RejetDetail_CloseTitle" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Err_Unauthorized" xml:space="preserve">
+    <value>Access Denied</value>
+  </data>
+  <data name="Err_UnauthorizedDesc" xml:space="preserve">
+    <value>You do not have the necessary permissions to access this page.</value>
+  </data>
+  <data name="Err_404" xml:space="preserve">
+    <value>404 - Page Not Found</value>
+  </data>
+  <data name="Err_404Desc" xml:space="preserve">
+    <value>The page you are looking for does not exist.</value>
+  </data>
+  <data name="ComingSoon_Soon" xml:space="preserve">
+    <value>Coming soon</value>
+  </data>
+  <data name="ComingSoon_Desc" xml:space="preserve">
+    <value>This feature is under development and will be available in a future update.</value>
+  </data>
+  <data name="Btn_BackDashboard" xml:space="preserve">
+    <value>Back to dashboard</value>
+  </data>
+  <!-- BusyText -->
+  <data name="BusyText_Processing" xml:space="preserve"><value>Processing...</value></data>
+  <data name="BusyText_Saving" xml:space="preserve"><value>Saving...</value></data>
+  <!-- Étiquettes form utilisateur -->
+  <data name="Lbl_Characters" xml:space="preserve"><value>characters</value></data>
+  <data name="Lbl_FirstName" xml:space="preserve"><value>First Name</value></data>
+  <data name="Lbl_LastName" xml:space="preserve"><value>Last Name</value></data>
+  <data name="Lbl_Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Lbl_LoginWindows" xml:space="preserve"><value>Windows Login</value></data>
+  <data name="Lbl_AccessLevel" xml:space="preserve"><value>Access Level</value></data>
+  <data name="Lbl_GeneralManager" xml:space="preserve"><value>General Manager (final approver)</value></data>
+  <data name="Lbl_FullName" xml:space="preserve"><value>Display Name</value></data>
+  <data name="Lbl_InitialAccessLevel" xml:space="preserve"><value>Initial Access Level</value></data>
+  <data name="Lbl_UserNoAdmin" xml:space="preserve"><value>User (no admin rights)</value></data>
+  <!-- Erreurs validation -->
+  <data name="Err_CommentRequired" xml:space="preserve"><value>Comment is required.</value></data>
+  <data name="Err_NameRequired" xml:space="preserve"><value>Name is required.</value></data>
+  <data name="Err_LoginRequired" xml:space="preserve"><value>Windows login is required.</value></data>
+  <data name="Err_LoginExists" xml:space="preserve"><value>A user with login « {0} » already exists.</value></data>
+  <data name="Err_FullNameRequired" xml:space="preserve"><value>Full name is required.</value></data>
+  <data name="Err_MatriculeExists" xml:space="preserve"><value>An account already exists for this employee ID.</value></data>
+  <!-- Hints dialog utilisateur -->
+  <data name="Usr_SelectDeptForGM" xml:space="preserve"><value>Select a department to automatically see the GM.</value></data>
+  <data name="Usr_LoginWindowsHint" xml:space="preserve"><value>Windows identifier that will allow the employee to log in.</value></data>
+  <!-- RejetDetailDialog -->
+  <data name="RejetDetail_Title" xml:space="preserve"><value>Rejection — </value></data>
+  <data name="RejetDetail_BadgeNew" xml:space="preserve"><value>New</value></data>
+  <data name="RejetDetail_NotSpecified" xml:space="preserve"><value>Not specified</value></data>
+  <data name="RejetDetail_Demandeur" xml:space="preserve"><value>Requester</value></data>
+  <data name="RejetDetail_InfoHead" xml:space="preserve"><value>Information</value></data>
+  <data name="RejetDetail_BonType" xml:space="preserve"><value>Voucher Type</value></data>
+  <data name="RejetDetail_NumRef" xml:space="preserve"><value>Reference No.</value></data>
+  <data name="RejetDetail_EtapeRejet" xml:space="preserve"><value>Rejection Step</value></data>
+  <data name="RejetDetail_DateRejet" xml:space="preserve"><value>Rejection Date</value></data>
+  <data name="RejetDetail_RejectedBy" xml:space="preserve"><value>Rejected by</value></data>
+  <data name="RejetDetail_MotifRejet" xml:space="preserve"><value>Rejection Reason</value></data>
+  <data name="RejetDetail_ReadOn" xml:space="preserve"><value>Read on </value></data>
+  <data name="RejetDetail_Unread" xml:space="preserve"><value>Unread</value></data>
+  <data name="RejetDetail_MarkRead" xml:space="preserve"><value>Mark as read</value></data>
+  <data name="RejetDetail_NotFound" xml:space="preserve"><value>Notification not found</value></data>
+<data name="Dash_LivePortal" xml:space="preserve"><value>Live Portal</value></data><data name="ListeBons_TabFallback" xml:space="preserve"><value>Vouchers</value></data><data name="Wfl_GenericTitle" xml:space="preserve"><value>Generic workflow</value></data><data name="Wfl_NotifSavedTitle" xml:space="preserve"><value>Saved</value></data><data name="Wfl_NotifSavedMsg" xml:space="preserve"><value>Workflow updated successfully.</value></data><data name="Wfl_NotifResetTitle" xml:space="preserve"><value>Reset</value></data><data name="Wfl_NotifResetMsg" xml:space="preserve"><value>Workflow for {0} removed.</value></data><data name="Wfl_ConfirmResetTitle" xml:space="preserve"><value>Reset workflow</value></data><data name="Wfl_ConfirmResetMsg" xml:space="preserve"><value>Remove the specific configuration for &lt;strong&gt;{0}&lt;/strong&gt;? The department will inherit the generic workflow.</value></data>
+  <data name="Lbl_Success" xml:space="preserve"><value>Success</value></data>
+  <data name="Sec_FilterActives" xml:space="preserve"><value>Active</value></data>
+  <data name="Sec_FilterInactives" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Sec_FilterActifs" xml:space="preserve"><value>Active</value></data>
+  <data name="Sec_FilterInactifs" xml:space="preserve"><value>Inactive</value></data>
+  <data name="Sec_FilterOnDuty" xml:space="preserve"><value>Agents on duty</value></data>
+  <data name="Sec_AnomalieTooltip" xml:space="preserve"><value>Anomaly reported</value></data>
+  <data name="Sec_NotifBarriereCreated" xml:space="preserve"><value>Barrier created successfully</value></data>
+  <data name="Sec_NotifBarriereUpdated" xml:space="preserve"><value>Barrier updated successfully</value></data>
+  <data name="Sec_NotifBarriereActivated" xml:space="preserve"><value>Barrier activated</value></data>
+  <data name="Sec_NotifBarriereDeactivated" xml:space="preserve"><value>Barrier deactivated</value></data>
+  <data name="Sec_NotifLoadFailed" xml:space="preserve"><value>Load failed: {0}</value></data>
+  <data name="Sec_DlgNewBarriere" xml:space="preserve"><value>New Barrier</value></data>
+  <data name="Sec_DlgEditBarriere" xml:space="preserve"><value>Edit Barrier</value></data>
+  <data name="Sec_NotifAssignCreated" xml:space="preserve"><value>Assignment created successfully</value></data>
+  <data name="Sec_NotifAssignUpdated" xml:space="preserve"><value>Assignment updated successfully</value></data>
+  <data name="Sec_NotifAssignDeleted" xml:space="preserve"><value>Assignment deleted</value></data>
+  <data name="Sec_DlgNewAssignment" xml:space="preserve"><value>New Assignment</value></data>
+  <data name="Sec_DlgEditAssignment" xml:space="preserve"><value>Edit Assignment</value></data>
+  <data name="Sec_NotifItineraireCreated" xml:space="preserve"><value>Route created successfully</value></data>
+  <data name="Sec_NotifItineraireUpdated" xml:space="preserve"><value>Route updated successfully</value></data>
+  <data name="Sec_NotifItineraireDeleted" xml:space="preserve"><value>Route deleted</value></data>
+  <data name="Notif_ChangesSaved" xml:space="preserve"><value>Changes saved successfully</value></data>
+  <data name="Notif_SaveError" xml:space="preserve"><value>Error saving changes</value></data>
+  <data name="Notif_ApprovalError" xml:space="preserve"><value>Error during approval.</value></data>
+  <data name="Notif_RejectionError" xml:space="preserve"><value>Error during rejection.</value></data>
+  <data name="Notif_ReturnError" xml:space="preserve"><value>Error during return.</value></data>
+  <data name="Notif_DeleteDraftConfirm" xml:space="preserve"><value>Are you sure you want to delete draft {0}?</value></data>
+  <data name="Notif_Deleted" xml:space="preserve"><value>Deleted</value></data>
+  <data name="Notif_DeleteSuccess" xml:space="preserve"><value>Draft deleted successfully.</value></data>
+  <data name="Notif_DeleteError" xml:space="preserve"><value>Error during deletion.</value></data>
+  <data name="Scan_NotifValid" xml:space="preserve"><value>Valid Scan</value></data>
+  <data name="Scan_NotifValidDetail" xml:space="preserve"><value>Document verified successfully</value></data>
+  <data name="Scan_NotifError" xml:space="preserve"><value>Scan Error</value></data>
+  <data name="Scan_NotifCameraError" xml:space="preserve"><value>Camera Error</value></data>
+  <data name="Scan_NotifCameraFail" xml:space="preserve"><value>Unable to access camera: {0}</value></data>
+  <data name="Scan_NotifBarriereFail" xml:space="preserve"><value>Unable to load barriers: {0}</value></data>
+  <data name="Anl_NotifExport" xml:space="preserve"><value>Export</value></data>
+  <data name="Anl_NotifExportDev" xml:space="preserve"><value>Feature under development</value></data>
+  <data name="Wfl_BadgeAuto" xml:space="preserve"><value>Auto</value></data>
+  <data name="Wfl_NoStepsAlert" xml:space="preserve"><value>No steps configured. Click {0} below.</value></data>
+  <data name="Bsm_BadgeExterne" xml:space="preserve"><value>EXTERNAL</value></data>
+  <data name="Bsm_BadgeInterne" xml:space="preserve"><value>INTERNAL</value></data>
+  <data name="Bsm_NotifBonSubmitted" xml:space="preserve"><value>Bon {0} created and submitted for approval</value></data>
+  <data name="Bsm_NotifBonDraft" xml:space="preserve"><value>Bon {0} saved as draft</value></data>
+  <data name="Bsm_ErrorOccurred" xml:space="preserve"><value>An error occurred</value></data>
+  <data name="Adm_HintPermanentDate" xml:space="preserve"><value>Leave the end date empty for a permanent assignment</value></data>
+  <data name="Rej_WarningIrreversible" xml:space="preserve"><value>Warning: This action is irreversible. The bon will be permanently rejected.</value></data>
+  <data name="Sec_ColFin" xml:space="preserve"><value>End</value></data>
+</root>

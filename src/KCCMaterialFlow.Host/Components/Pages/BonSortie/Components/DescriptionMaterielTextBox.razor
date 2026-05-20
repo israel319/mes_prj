@@ -1,0 +1,29 @@
+@* BSM-066: TextBox pour description libre du matériel (TypeMateriel enum supprimé) *@
+@inject IStringLocalizer<SharedResource> L
+
+<div class="description-materiel-textbox">
+    <RadzenLabel Text="@Label" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+    <RadzenTextBox @bind-Value="@Value" Placeholder="@L["Dmt_Placeholder"].Value" 
+        Style="width: 100%; max-width: 400px;" Disabled="@Disabled"
+        Change="@OnValueChanged" />
+    
+    @if (!string.IsNullOrEmpty(HelpText))
+    {
+        <RadzenText TextStyle="TextStyle.Caption" Style="color: #6c757d; margin-top: 0.25rem;">
+            @HelpText
+        </RadzenText>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public string Label { get; set; } = "Description du Matériel";
+    [Parameter] public string? HelpText { get; set; }
+    [Parameter] public bool Disabled { get; set; } = false;
+
+    private async Task OnValueChanged(string? args)
+    {
+        await ValueChanged.InvokeAsync(args);
+    }
+}

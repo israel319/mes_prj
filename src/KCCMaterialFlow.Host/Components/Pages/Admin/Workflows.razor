@@ -1,386 +1,2019 @@
 @page "/admin/workflows"
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.AspNetCore.Authorization
-@inject IWorkflowConfigService WorkflowConfigService
-@inject IRoleService RoleService
+@using KCCMaterialFlow.Application.Common.Interfaces
+@using KCCMaterialFlow.Domain.Entities
+@inject IWorkflowConfigService WorkflowService
 @inject ICurrentUserService CurrentUserService
+@inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Administration - Workflows</PageTitle>
+<PageTitle>@L["Wfl_Title"] - @L["Nav_Admin"] - KCC Material Flow</PageTitle>
 
-<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
-    <AdminNav />
-
-    @* ── En-tête ── *@
-    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
-        <RadzenStack Gap="0.25rem">
-            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
-                Configuration des étapes d'approbation
-            </RadzenText>
-            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin-top: 0.25rem;">
-                Chaque motif peut avoir son propre workflow ou hériter du workflow générique.
-            </RadzenText>
-        </RadzenStack>
-    </RadzenStack>
-
-    @* ── Sélecteur de type de bon ── *@
-    <RadzenCard>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Wrap="FlexWrap.Wrap" Gap="1rem" Style="padding: 0.5rem 0;">
-            <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Type de bon</RadzenText>
-                <RadzenDropDown TValue="string" Data="@bonTypes" @bind-Value="@selectedBonType"
-                                Style="min-width: 160px;" Change="@OnBonTypeChanged" />
-            </RadzenStack>
-            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); padding-bottom: 0.15rem;">
-                @(selectedBonType == "BSM"
-                    ? "Bon de Sortie Matériel – chaque motif de sortie peut avoir un circuit d'approbation personnalisé."
-                    : "Bon d'Entrée Matériel – circuit unique : Superviseur → General Manager → OPJ → Identification.")
-            </RadzenText>
-        </RadzenStack>
-    </RadzenCard>
-
-    @if (isLoading)
-    {
-        <RadzenCard>
-            <RadzenStack AlignItems="AlignItems.Center" Style="padding: 2rem;">
-                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
-                <RadzenText>Chargement des workflows&hellip;</RadzenText>
-            </RadzenStack>
-        </RadzenCard>
-    }
-    else
-    {
-        <RadzenRow Gap="1rem">
-            @* ── Panneau gauche : liste des contextes ── *@
-            <RadzenColumn Size="12" SizeMD="4">
-                <RadzenCard Style="height:100%;">
-                    <RadzenStack Gap="0.5rem">
-                        <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight:700;">
-                            <RadzenIcon Icon="list" Style="vertical-align:middle; margin-right:0.3rem;" />
-                            Motifs (@summary.Count)
-                        </RadzenText>
-                        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light);">
-                            Cliquez sur un motif pour voir ou modifier son workflow.
-                        </RadzenText>
-                        <hr style="margin: 0.25rem 0;" />
-
-                        @foreach (var ctx in summary)
-                        {
-                            var isSelected = ctx.RaisonSortieCode == selectedRaisonCode;
-                            <div @onclick="@(() => SelectContext(ctx))"
-                                 style="cursor:pointer; padding:0.6rem 0.75rem;
-                                        background:@(isSelected ? "var(--kcc-primary-light, #e8f5e9)" : "transparent");
-                                        border: 1px solid @(isSelected ? "var(--kcc-primary)" : "transparent");
-                                        transition: background 0.15s;">
-                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Gap="0.4rem">
-                                    <RadzenStack Gap="0.1rem">
-                                        <RadzenText TextStyle="TextStyle.Body1"
-                                                    Style="@($"font-weight:{(isSelected ? "700" : "500")}; font-size:0.85rem; margin:0;")">
-                                            @(ctx.RaisonSortieCode == null ? "(Défaut)" : ctx.RaisonSortieNom)
-                                        </RadzenText>
-                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light); margin:0;">
-                                            @ctx.NombreEtapesResolu étape(s) · @ctx.Source
-                                        </RadzenText>
-                                    </RadzenStack>
-                                    @if (ctx.EstPersonnalise)
-                                    {
-                                        <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(5,150,105,0.1); color: #059669;">Personnalisé</span>
-                                    }
-                                    else
-                                    {
-                                        <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: #f3f4f6; color: #374151;">Hérité</span>
-                                    }
-                                </RadzenStack>
-                            </div>
-                        }
-                    </RadzenStack>
-                </RadzenCard>
-            </RadzenColumn>
-
-            @* ── Panneau droit : éditeur ── *@
-            <RadzenColumn Size="12" SizeMD="8">
-                @if (selectedContext == null)
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["Wfl_Title"]</h1>
+                <p class="kcp-subtitle">@L["Wfl_Subtitle"]</p>
+            </div>
+            <div class="kcp-hero-actions">
+                @if (_phase == 1)
                 {
-                    <RadzenCard>
-                        <RadzenStack AlignItems="AlignItems.Center" Style="padding: 3rem 1rem; color: var(--kcc-text-light);">
-                            <RadzenIcon Icon="touch_app" Style="font-size:2.5rem; opacity:0.4;" />
-                            <RadzenText>Sélectionnez un motif dans la liste pour voir son workflow.</RadzenText>
-                        </RadzenStack>
-                    </RadzenCard>
+                    <button class="kcp-btn" type="button" @onclick="LoadAsync" disabled="@_loading">
+                        <RadzenIcon Icon="refresh" Style="font-size:1rem;" />
+                        @L["Btn_Refresh"]
+                    </button>
                 }
                 else
                 {
-                    <RadzenCard>
-                        <RadzenStack Gap="0.75rem">
-                            @* Titre du contexte sélectionné *@
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center"
-                                         JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="0.5rem">
-                                <RadzenStack Gap="0.1rem">
-                                    <RadzenText TextStyle="TextStyle.Subtitle1" Style="font-weight:700; margin:0;">
-                                        @(selectedContext.RaisonSortieCode == null ? "Workflow par défaut" : selectedContext.RaisonSortieNom)
-                                    </RadzenText>
-                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-light);">
-                                        Source chargée : <strong>@sourceLabel</strong>
-                                    </RadzenText>
-                                </RadzenStack>
-                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" Wrap="FlexWrap.Wrap">
-                                    @if (selectedContext.EstPersonnalise)
-                                    {
-                                        <RadzenButton Text="Réinitialiser (hériter)" Icon="undo" ButtonStyle="ButtonStyle.Warning"
-                                                      Variant="Variant.Outlined" Click="@ResetToInheritedAsync"
-                                                      Disabled="@isSaving" />
-                                    }
-                                    else
-                                    {
-                                        <RadzenButton Text="Personnaliser ce motif" Icon="edit" ButtonStyle="ButtonStyle.Success"
-                                                      Variant="Variant.Outlined" Click="@PersonnaliserAsync"
-                                                      Disabled="@isSaving" />
-                                    }
-                                    <RadzenButton Text="Enregistrer" Icon="save" ButtonStyle="ButtonStyle.Primary"
-                                                  Click="@SaveAsync" Disabled="@isSaving" IsBusy="@isSaving" />
-                                </RadzenStack>
-                            </RadzenStack>
+                    <button class="kcp-btn" type="button" @onclick="BackToSelector">
+                        <RadzenIcon Icon="arrow_back" Style="font-size:1rem;" />
+                        Retour
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
 
-                            @if (!selectedContext.EstPersonnalise)
+    <main class="kcp-main">
+
+    @if (_phase == 1)
+    {
+        @* ══════════════════════════════════════════════════════
+           PHASE 1 — Sélecteur : type de bon + cartes par type de matériel
+           ══════════════════════════════════════════════════════ *@
+
+        @* Toggle BSM / BEM *@
+        <div class="wfl-type-toggle">
+            <button type="button" class="wfl-type-btn @(_bonType == "BSM" ? "wfl-type-btn--active" : "")"
+                    @onclick="@(() => SetBonTypeAsync("BSM"))">
+                <RadzenIcon Icon="output" />
+                BSM — Bons de sortie
+            </button>
+            <button type="button" class="wfl-type-btn @(_bonType == "BEM" ? "wfl-type-btn--active" : "")"
+                    @onclick="@(() => SetBonTypeAsync("BEM"))">
+                <RadzenIcon Icon="input" />
+                BEM — Bons d'entrée
+            </button>
+        </div>
+
+        @* Légende *@
+        <div class="wfl-legend">
+            <span class="wfl-legend-item">
+                <RadzenBadge Text="Spécifique" BadgeStyle="BadgeStyle.Primary" />
+                <span>Workflow configuré spécifiquement pour ce type</span>
+            </span>
+            <span class="wfl-legend-item">
+                <RadzenBadge Text="Hérité" BadgeStyle="BadgeStyle.Info" />
+                <span>Hérite du workflow générique</span>
+            </span>
+            <span class="wfl-legend-item">
+                <RadzenBadge Text="Défaut" BadgeStyle="BadgeStyle.Secondary" />
+                <span>Workflow par défaut du système</span>
+            </span>
+        </div>
+
+        @if (_loading)
+        {
+            <div style="text-align:center; padding:4rem;">
+                <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+            </div>
+        }
+        else if (_summary is not null)
+        {
+            @* Grille de cartes par type de matériel (raison de sortie) *@
+            <div class="wfl-dept-grid">
+                @foreach (var ctx in _summary)
+                {
+                    var item = ctx;
+                    var (srcStyle, _) = SourceBadge(item.Source);
+                    var raison = _raisons.FirstOrDefault(r => r.Code == item.RaisonSortieCode);
+                    var icone = item.RaisonSortieCode == null ? "all_inclusive" : (raison?.Icone ?? "category");
+                    var couleur = raison?.Couleur;
+
+                    <div class="wfl-dept-card @(item.EstPersonnalise ? "wfl-dept-card--specific" : "")"
+                         @onclick="@(() => SelectRaisonAsync(item))">
+
+                        @* Icône type de matériel *@
+                        <div class="wfl-mat-icon" style="@(couleur != null ? $"background:{couleur}22; color:{couleur};" : "")">
+                            <RadzenIcon Icon="@icone" />
+                        </div>
+
+                        @* En-tête *@
+                        <div class="wfl-dept-card__header">
+                            <div class="wfl-dept-card__name">
+                                <span>@item.RaisonSortieNom</span>
+                                @if (item.RaisonSortieCode != null)
+                                {
+                                    <span class="wfl-dept-card__code">@item.RaisonSortieCode</span>
+                                }
+                            </div>
+                            <RadzenBadge Text="@SourceShort(item.Source)" BadgeStyle="@srcStyle" Style="font-size:0.65rem;" />
+                        </div>
+
+                        @* Nombre d'étapes *@
+                        <div class="wfl-dept-card__meta">
+                            <RadzenIcon Icon="account_tree" />
+                            @item.NombreEtapesResolu étape(s) d'approbation
+                        </div>
+
+                        @* Indicateur de personnalisation *@
+                        <div class="wfl-dept-card__chain">
+                            @if (item.EstPersonnalise)
                             {
-                                <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" Style="margin:0;">
-                                    Ce motif hérite du workflow <strong>@sourceLabel</strong>. 
-                                    Cliquez <strong>Personnaliser</strong> pour créer une configuration indépendante, 
-                                    ou modifiez directement et enregistrez.
-                                </RadzenAlert>
+                                <span class="wfl-role-chip" style="background:#6366f1;">Personnalisé</span>
                             }
-
-                            <hr style="margin: 0.25rem 0;" />
-
-                            @* En-tête colonnes *@
-                            <RadzenRow Gap="0.5rem">
-                                <RadzenColumn Size="1"><RadzenText TextStyle="TextStyle.Caption" Style="font-weight:600; color:var(--kcc-text-light);">N°</RadzenText></RadzenColumn>
-                                <RadzenColumn Size="5"><RadzenText TextStyle="TextStyle.Caption" Style="font-weight:600; color:var(--kcc-text-light);">Rôle approbateur</RadzenText></RadzenColumn>
-                                <RadzenColumn Size="5"><RadzenText TextStyle="TextStyle.Caption" Style="font-weight:600; color:var(--kcc-text-light);">Libellé de l'étape</RadzenText></RadzenColumn>
-                                <RadzenColumn Size="1"></RadzenColumn>
-                            </RadzenRow>
-
-                            @if (!steps.Any())
+                            else if (item.RaisonSortieCode != null)
                             {
-                                <RadzenAlert AlertStyle="AlertStyle.Info" Shade="Shade.Lighter">
-                                    Aucune étape. Cliquez <strong>+ Ajouter</strong> ou <strong>Personnaliser</strong>.
-                                </RadzenAlert>
+                                <span class="wfl-dept-card__no-steps">Hérite du workflow générique</span>
                             }
                             else
                             {
-                                @for (var i = 0; i < steps.Count; i++)
-                                {
-                                    var rowIdx  = i;
-                                    var stepNum = i + 1;
-                                    var step    = steps[i];
-                                    <RadzenRow Gap="0.5rem" AlignItems="AlignItems.Center"
-                                               Style="border-bottom: 1px solid var(--rz-base-200, #f0f0f0); padding-bottom: 0.35rem;">
-                                        <RadzenColumn Size="1">
-                                            <RadzenText TextStyle="TextStyle.Body2" Style="font-weight:700; color: var(--kcc-primary);">@stepNum</RadzenText>
-                                        </RadzenColumn>
-                                        <RadzenColumn Size="5">
-                                            <RadzenDropDown TValue="string" Data="@roles" @bind-Value="@step.RoleCode"
-                                                            TextProperty="NomRole" ValueProperty="CodeRole"
-                                                            Placeholder="Rôle…" Style="width:100%;"
-                                                            Change="@(() => OnRoleSelected(step))" />
-                                        </RadzenColumn>
-                                        <RadzenColumn Size="5">
-                                            <RadzenTextBox @bind-Value="@step.NomEtape" Placeholder="Nom de l'étape…" Style="width:100%;" />
-                                        </RadzenColumn>
-                                        <RadzenColumn Size="1">
-                                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text"
-                                                          Click="@(() => RemoveStep(rowIdx))" Style="padding:0.3rem;" />
-                                        </RadzenColumn>
-                                    </RadzenRow>
-                                }
+                                <span class="wfl-dept-card__no-steps">
+                                    @(item.Source == "Défaut métier" ? "Workflow système par défaut" : "Workflow de base configuré")
+                                </span>
                             }
+                        </div>
 
-                            <RadzenButton Text="+ Ajouter une étape" Icon="add" ButtonStyle="ButtonStyle.Info"
-                                          Variant="Variant.Outlined" Click="@AddStep" Style="align-self: flex-start;" />
-                        </RadzenStack>
-                    </RadzenCard>
+                        @* CTA *@
+                        <div class="wfl-dept-card__cta">
+                            <RadzenIcon Icon="tune" Style="font-size:0.85rem;" />
+                            Configurer le workflow
+                        </div>
+                    </div>
                 }
-            </RadzenColumn>
-        </RadzenRow>
+            </div>
+        }
     }
-</RadzenStack>
-
-@code {
-    private sealed class StepVm
+    else
     {
-        public string RoleCode { get; set; } = string.Empty;
-        public string NomEtape { get; set; } = string.Empty;
-    }
+        @* ══════════════════════════════════════════════════════
+           PHASE 2 — Éditeur visuel du workflow
+           ══════════════════════════════════════════════════════ *@
 
-    private bool isLoading = true;
-    private bool isSaving;
+        @* Bandeau contexte *@
+        <div class="wfl-context-banner">
+            <div class="wfl-mat-icon wfl-mat-icon--lg"
+                 style="@(_bannerRaison?.Couleur != null ? $"background:{_bannerRaison.Couleur}22; color:{_bannerRaison.Couleur};" : "background:var(--kcc-primary-light,#e6faf7); color:var(--kcc-primary,#00b193);")">
+                <RadzenIcon Icon="@_bannerIcon" />
+            </div>
+            <div class="wfl-context-banner__info">
+                <div class="wfl-context-banner__title">@_selectedRaison?.RaisonSortieNom</div>
+                <div class="wfl-context-banner__sub">
+                    @if (_selectedRaison?.RaisonSortieCode != null)
+                    {
+                        <span>Code : @_selectedRaison.RaisonSortieCode · </span>
+                    }
+                    Workflow @_bonType · @_etapes.Count étape(s)
+                </div>
+            </div>
+            <div class="wfl-context-banner__badges">
+                <RadzenBadge Text="@_bonType"
+                             BadgeStyle="@(_bonType == "BSM" ? BadgeStyle.Warning : BadgeStyle.Info)" />
+                <RadzenBadge Text="@SourceShort(_selectedRaison?.Source ?? "")" BadgeStyle="@(SourceBadge(_selectedRaison?.Source ?? "").style)" />
+            </div>
+        </div>
 
-    private string selectedBonType = "BSM";
-    private string? selectedRaisonCode = null;
-
-    private WorkflowContextSummary? selectedContext;
-    private string sourceLabel = string.Empty;
-
-    private readonly List<string> bonTypes = ["BSM", "BEM"];
-    private List<WorkflowContextSummary> summary = [];
-    private List<Role> roles = [];
-    private List<StepVm> steps = [];
-
-    // ──────────────────────────────────────────────────────────────
-    protected override async Task OnInitializedAsync()
-    {
-        roles = (await RoleService.GetAllAsync()).OrderByDescending(r => r.NiveauPriorite).ToList();
-        await RefreshSummaryAsync();
-    }
-
-    private async Task OnBonTypeChanged(object? _)
-    {
-        selectedContext = null;
-        selectedRaisonCode = null;
-        steps = [];
-        await RefreshSummaryAsync();
-    }
-
-    private async Task RefreshSummaryAsync()
-    {
-        isLoading = true;
-        StateHasChanged();
-        summary = (await WorkflowConfigService.GetWorkflowSummaryAsync(selectedBonType)).ToList();
-        isLoading = false;
-    }
-
-    private async Task SelectContext(WorkflowContextSummary ctx)
-    {
-        selectedContext = ctx;
-        selectedRaisonCode = ctx.RaisonSortieCode;
-        await LoadStepsAsync();
-    }
-
-    private async Task LoadStepsAsync()
-    {
-        if (selectedContext == null) return;
-
-        IReadOnlyList<WorkflowEtapeConfig> etapes;
-
-        if (selectedContext.EstPersonnalise)
+        @* ─── Vue simple (pas d'exception) ou Vue divisée (exceptions) ─── *@
+        @if (_deptOverrides.Count == 0)
         {
-            // Chargement direct depuis BD (config spécifique)
-            etapes = await WorkflowConfigService.GetWorkflowEtapesForAdminAsync(selectedBonType, selectedRaisonCode);
-            sourceLabel = selectedContext.Source; // "BD spécifique" ou "BD générique"
+        @* ══ Vue simple ══ *@
+        <div class="wfl-ctx-bar">
+            <span class="wfl-ctx-bar__label">Contexte agent :</span>
+            <button type="button" class="wfl-ctx-tab wfl-ctx-tab--active">
+                <RadzenIcon Icon="groups" />
+                Tous les agents
+            </button>
+            <div class="wfl-ctx-add">
+                <button type="button" class="wfl-ctx-add-btn"
+                        @onclick="AddUniversalBranchAsync">
+                    <RadzenIcon Icon="call_split" />
+                    Branche spécifique
+                </button>
+            </div>
+        </div>
+
+        <div class="wfl-editor">
+            <div class="wfl-editor__label"><span>Chaîne d'approbation — Tous les agents</span></div>
+            <div class="wfl-chain-scroll">
+                <div class="wfl-chain">
+                    <div class="wfl-terminus">
+                        <div class="wfl-terminus__circle wfl-terminus__circle--start"><RadzenIcon Icon="play_arrow" /></div>
+                        <span class="wfl-terminus__label">DÉBUT</span>
+                    </div>
+                    @for (int i = 0; i < _etapes.Count; i++)
+                    {
+                        var idx = i;
+                        var etape = _etapes[idx];
+                        var roleInfo = WorkflowRoleDisponible.TousLesRoles.FirstOrDefault(r => r.RoleCode == etape.RoleCode);
+                        var isEditing = _editingIdx == idx;
+                        var nodeColor = roleInfo?.Couleur ?? "#6b7280";
+                        <div class="wfl-connector">
+                            <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                            <button type="button" class="wfl-insert-btn" @onclick="@(() => InsertStepAt(idx))" title="Insérer une étape ici">+</button>
+                        </div>
+                        <div class="wfl-node @(isEditing ? "wfl-node--editing" : "") @(_dragList=="exc" && _dragOverIdx==idx ? "wfl-node--drag-over" : "")"
+                             draggable="true"
+                             @ondragstart="@(() => DragStartExc(idx))"
+                             @ondragover:preventDefault
+                             @ondragenter="@(() => DragOverExc(idx))"
+                             @ondrop="@(() => DropExc(idx))"
+                             @ondragend="DragEnd">
+                            <div class="wfl-node__box"
+                                 style="border-color:@(isEditing ? nodeColor : "var(--gray-200,#e5e7eb)"); background:@(isEditing ? nodeColor : "#fff");"
+                                 @onclick="@(() => ToggleEdit(idx))">
+                                <span class="wfl-node__drag material-icons">drag_indicator</span>
+                                <div class="wfl-node__num" style="background:@(isEditing ? "rgba(255,255,255,0.25)" : nodeColor);">@(idx + 1)</div>
+                                <div class="wfl-node__name" style="color:@(isEditing ? "#fff" : "#1e2a2a");">
+                                    @(string.IsNullOrWhiteSpace(etape.NomEtape) ? (roleInfo?.Nom ?? etape.RoleCode) : etape.NomEtape)
+                                </div>
+                                @if (roleInfo?.EstAutoResolu == true)
+                                {
+                                    <div class="wfl-node__auto" style="color:@(isEditing ? "rgba(255,255,255,0.75)" : "var(--gray-400)");">⚡ Auto</div>
+                                }
+                            </div>
+                            <span class="wfl-node__role-label" style="color:@nodeColor;">@(roleInfo?.Nom ?? etape.RoleCode)</span>
+                            @if (isEditing)
+                            {
+                                <div class="wfl-edit-panel" style="border-color:@nodeColor;" @onclick:stopPropagation>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Rôle</label>
+                                        <RadzenDropDown TValue="string" Data="@_rolesDisponibles" TextProperty="Nom" ValueProperty="RoleCode"
+                                                        @bind-Value="etape.RoleCode" Style="width:100%;" Change="@(() => OnRoleChanged(etape))" />
+                                    </div>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Nom affiché</label>
+                                        <RadzenTextBox @bind-Value="etape.NomEtape" Placeholder="Nom de l'étape…" Style="width:100%;" />
+                                    </div>
+                                    <div class="wfl-edit-panel__actions">
+                                        <RadzenButton Icon="delete" Size="ButtonSize.ExtraSmall" Variant="Variant.Text" ButtonStyle="ButtonStyle.Danger"
+                                                      Click="@(() => RemoveStep(idx))" title="Supprimer" />
+                                        <RadzenButton Icon="check_circle" Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text"
+                                                      Click="@(() => _editingIdx = -1)" title="Fermer" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="wfl-connector">
+                        <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                        <button type="button" class="wfl-insert-btn" @onclick="AppendStep" title="Ajouter une étape">+</button>
+                    </div>
+                    <div class="wfl-terminus">
+                        <div class="wfl-terminus__circle wfl-terminus__circle--end"><RadzenIcon Icon="flag" /></div>
+                        <span class="wfl-terminus__label">APPROUVÉ</span>
+                    </div>
+                </div>
+            </div>
+            @if (_etapes.Count == 0)
+            {
+                <div class="wfl-empty-hint"><RadzenIcon Icon="info" /> Aucune étape définie — cliquez sur <strong>+</strong> pour en ajouter une.</div>
+            }
+        </div>
+
+        <div class="wfl-actions-bar">
+            <RadzenButton Text="@L["Btn_Save"]" Icon="save" ButtonStyle="ButtonStyle.Primary" Click="@SaveAsync" IsBusy="@_saving" />
+            <span class="wfl-actions-bar__count">@_etapes.Count étape(s) configurée(s)</span>
+        </div>
         }
         else
         {
-            // Résolution (générique ou défaut métier) – lecture seule, pas d'écriture BD
-            etapes = await WorkflowConfigService.GetResolvedWorkflowEtapesAsync(selectedBonType, selectedRaisonCode);
-            sourceLabel = selectedContext.Source;
-        }
+        @* ══ Vue bifurquée : Tronc commun → Branches verticales ══ *@
+        <div class="wfl-fork-wrap">
+            @{ var trunkN = ForkTrunkLength; }
 
-        steps = etapes
-            .OrderBy(x => x.OrdreEtape)
-            .Select(x => new StepVm { RoleCode = x.RoleCode, NomEtape = x.NomEtape })
-            .ToList();
+            @* ─── Tronc commun ─── *@
+            <div class="wfl-fork-trunk">
+                <div class="wfl-terminus">
+                    <div class="wfl-terminus__circle wfl-terminus__circle--start"><RadzenIcon Icon="play_arrow" /></div>
+                    <span class="wfl-terminus__label">DÉBUT</span>
+                </div>
+                @for (int i = 0; i < trunkN; i++)
+                {
+                    var idx = i;
+                    var etape = _standardEtapes[idx];
+                    var roleInfo = WorkflowRoleDisponible.TousLesRoles.FirstOrDefault(r => r.RoleCode == etape.RoleCode);
+                    var isEditing = _editingIdxStd == idx;
+                    var nodeColor = roleInfo?.Couleur ?? "#6b7280";
+                    <div class="wfl-connector">
+                        <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                        <button type="button" class="wfl-insert-btn" @onclick="@(() => InsertStepAtStd(idx))" title="Insérer">+</button>
+                    </div>
+                    <div class="wfl-node @(isEditing ? "wfl-node--editing" : "") @(_dragList=="std" && _dragOverIdx==idx ? "wfl-node--drag-over" : "")"
+                         draggable="true"
+                         @ondragstart="@(() => DragStartStd(idx))"
+                         @ondragover:preventDefault
+                         @ondragenter="@(() => DragOverStd(idx))"
+                         @ondrop="@(() => DropStd(idx))"
+                         @ondragend="DragEnd">
+                        <div class="wfl-node__box"
+                             style="border-color:@(isEditing ? nodeColor : "var(--gray-200,#e5e7eb)"); background:@(isEditing ? nodeColor : "#fff");"
+                             @onclick="@(() => ToggleEditStd(idx))">
+                            <span class="wfl-node__drag material-icons">drag_indicator</span>
+                            <div class="wfl-node__num" style="background:@(isEditing ? "rgba(255,255,255,0.25)" : nodeColor);">@(idx + 1)</div>
+                            <div class="wfl-node__name" style="color:@(isEditing ? "#fff" : "#1e2a2a");">
+                                @(string.IsNullOrWhiteSpace(etape.NomEtape) ? (roleInfo?.Nom ?? etape.RoleCode) : etape.NomEtape)
+                            </div>
+                            @if (roleInfo?.EstAutoResolu == true)
+                            {
+                                <div class="wfl-node__auto" style="color:@(isEditing ? "rgba(255,255,255,0.75)" : "var(--gray-400)");">⚡ Auto</div>
+                            }
+                        </div>
+                        <span class="wfl-node__role-label" style="color:@nodeColor;">@(roleInfo?.Nom ?? etape.RoleCode)</span>
+                        @if (isEditing)
+                        {
+                            <div class="wfl-edit-panel" style="border-color:@nodeColor;" @onclick:stopPropagation>
+                                <div class="wfl-edit-panel__field">
+                                    <label class="wfl-edit-panel__label">Rôle</label>
+                                    <RadzenDropDown TValue="string" Data="@_rolesDisponibles" TextProperty="Nom" ValueProperty="RoleCode"
+                                                    @bind-Value="etape.RoleCode" Style="width:100%;" Change="@(() => OnRoleChangedStd(etape))" />
+                                </div>
+                                <div class="wfl-edit-panel__field">
+                                    <label class="wfl-edit-panel__label">Nom affiché</label>
+                                    <RadzenTextBox @bind-Value="etape.NomEtape" Placeholder="Nom de l'étape…" Style="width:100%;" />
+                                </div>
+                                <div class="wfl-edit-panel__actions">
+                                    <RadzenButton Icon="delete" Size="ButtonSize.ExtraSmall" Variant="Variant.Text" ButtonStyle="ButtonStyle.Danger"
+                                                  Click="@(() => RemoveStepStd(idx))" />
+                                    <RadzenButton Icon="check_circle" Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text"
+                                                  Click="@(() => _editingIdxStd = -1)" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                <div class="wfl-connector">
+                    <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                </div>
+            </div>
+
+            @* ─── Losange de décision ─── *@
+            <div class="wfl-fork-gate">
+                <div class="wfl-fork-diamond">
+                    <span>Département<br/>spécifique ?</span>
+                </div>
+            </div>
+
+            @* ─── Branches ─── *@
+            <div class="wfl-fork-branches">
+
+                @* Branche exception — haut *@
+                <div class="wfl-fork-branch wfl-fork-branch--exc @(!_showExcBranch ? "wfl-fork-branch--collapsed" : "")">
+                    <button type="button" class="wfl-fork-branch__toggle"
+                            @onclick="@(() => _showExcBranch = !_showExcBranch)">
+                        <div class="wfl-connector"><div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div></div>
+                        <span class="wfl-fork-branch__badge wfl-fork-branch__badge--yes">Oui</span>
+                        <span class="wfl-fork-branch__name">Spécifique</span>
+                        <span class="material-icons wfl-fork-branch__chevron">@(_showExcBranch ? "keyboard_arrow_down" : "keyboard_arrow_right")</span>
+                    </button>
+                    @if (_showExcBranch)
+                    {
+                    <div class="wfl-terminus">
+                        <div class="wfl-terminus__circle wfl-terminus__circle--start"><RadzenIcon Icon="play_arrow" /></div>
+                        <span class="wfl-terminus__label">DÉBUT</span>
+                    </div>
+                    @for (int t = 0; t < trunkN; t++)
+                    {
+                        var idx = t;
+                        var etape = _etapes[idx];
+                        var roleInfo = WorkflowRoleDisponible.TousLesRoles.FirstOrDefault(r => r.RoleCode == etape.RoleCode);
+                        var isEditing = _editingIdx == idx;
+                        var nodeColor = roleInfo?.Couleur ?? "#6b7280";
+                        <div class="wfl-connector">
+                            <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                            <button type="button" class="wfl-insert-btn" @onclick="@(() => InsertStepAt(idx))" title="Insérer">+</button>
+                        </div>
+                        <div class="wfl-node @(isEditing ? "wfl-node--editing" : "") @(_dragList=="exc" && _dragOverIdx==idx ? "wfl-node--drag-over" : "")"
+                             draggable="true"
+                             @ondragstart="@(() => DragStartExc(idx))"
+                             @ondragover:preventDefault
+                             @ondragenter="@(() => DragOverExc(idx))"
+                             @ondrop="@(() => DropExc(idx))"
+                             @ondragend="DragEnd">
+                            <div class="wfl-node__box"
+                                 style="border-color:@(isEditing ? nodeColor : "#93c5fd"); background:@(isEditing ? nodeColor : "#eff6ff");"
+                                 @onclick="@(() => ToggleEdit(idx))">
+                                <span class="wfl-node__drag material-icons">drag_indicator</span>
+                                <div class="wfl-node__num" style="background:@(isEditing ? "rgba(255,255,255,0.25)" : nodeColor);">@(idx + 1)</div>
+                                <div class="wfl-node__name" style="color:@(isEditing ? "#fff" : "#1e40af");">
+                                    @(string.IsNullOrWhiteSpace(etape.NomEtape) ? (roleInfo?.Nom ?? etape.RoleCode) : etape.NomEtape)
+                                </div>
+                                @if (roleInfo?.EstAutoResolu == true)
+                                {
+                                    <div class="wfl-node__auto" style="color:@(isEditing ? "rgba(255,255,255,0.75)" : "var(--gray-400)")">⚡ Auto</div>
+                                }
+                            </div>
+                            <span class="wfl-node__role-label" style="color:@nodeColor;">@(roleInfo?.Nom ?? etape.RoleCode)</span>
+                            @if (isEditing)
+                            {
+                                <div class="wfl-edit-panel" style="border-color:@nodeColor;" @onclick:stopPropagation>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Rôle</label>
+                                        <RadzenDropDown TValue="string" Data="@_rolesDisponibles" TextProperty="Nom" ValueProperty="RoleCode"
+                                                        @bind-Value="etape.RoleCode" Style="width:100%;" Change="@(() => OnRoleChanged(etape))" />
+                                    </div>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Nom affiché</label>
+                                        <RadzenTextBox @bind-Value="etape.NomEtape" Placeholder="Nom de l'étape…" Style="width:100%;" />
+                                    </div>
+                                    <div class="wfl-edit-panel__actions">
+                                        <RadzenButton Icon="delete" Size="ButtonSize.ExtraSmall" Variant="Variant.Text" ButtonStyle="ButtonStyle.Danger"
+                                                      Click="@(() => RemoveStep(idx))" />
+                                        <RadzenButton Icon="check_circle" Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text"
+                                                      Click="@(() => _editingIdx = -1)" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="wfl-branch-sep">
+                        <span class="material-icons">call_split</span>
+                        <span>Étapes spécifiques au département</span>
+                    </div>
+                    @for (int i = trunkN; i < _etapes.Count; i++)
+                    {
+                        var idx = i;
+                        var etape = _etapes[idx];
+                        var roleInfo = WorkflowRoleDisponible.TousLesRoles.FirstOrDefault(r => r.RoleCode == etape.RoleCode);
+                        var isEditing = _editingIdx == idx;
+                        var nodeColor = roleInfo?.Couleur ?? "#6b7280";
+                        <div class="wfl-connector">
+                            <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                            <button type="button" class="wfl-insert-btn" @onclick="@(() => InsertStepAt(idx))" title="Insérer">+</button>
+                        </div>
+                        <div class="wfl-node @(isEditing ? "wfl-node--editing" : "") @(_dragList=="exc" && _dragOverIdx==idx ? "wfl-node--drag-over" : "")"
+                             draggable="true"
+                             @ondragstart="@(() => DragStartExc(idx))"
+                             @ondragover:preventDefault
+                             @ondragenter="@(() => DragOverExc(idx))"
+                             @ondrop="@(() => DropExc(idx))"
+                             @ondragend="DragEnd">
+                            <div class="wfl-node__box"
+                                 style="border-color:@(isEditing ? nodeColor : "#93c5fd"); background:@(isEditing ? nodeColor : "#eff6ff");"
+                                 @onclick="@(() => ToggleEdit(idx))">
+                                <span class="wfl-node__drag material-icons">drag_indicator</span>
+                                <div class="wfl-node__num" style="background:@(isEditing ? "rgba(255,255,255,0.25)" : nodeColor);">@(idx + 1)</div>
+                                <div class="wfl-node__name" style="color:@(isEditing ? "#fff" : "#1e40af");">
+                                    @(string.IsNullOrWhiteSpace(etape.NomEtape) ? (roleInfo?.Nom ?? etape.RoleCode) : etape.NomEtape)
+                                </div>
+                                @if (roleInfo?.EstAutoResolu == true)
+                                {
+                                    <div class="wfl-node__auto" style="color:@(isEditing ? "rgba(255,255,255,0.75)" : "var(--gray-400)");">⚡ Auto</div>
+                                }
+                            </div>
+                            <span class="wfl-node__role-label" style="color:@nodeColor;">@(roleInfo?.Nom ?? etape.RoleCode)</span>
+                            @if (isEditing)
+                            {
+                                <div class="wfl-edit-panel" style="border-color:@nodeColor;" @onclick:stopPropagation>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Rôle</label>
+                                        <RadzenDropDown TValue="string" Data="@_rolesDisponibles" TextProperty="Nom" ValueProperty="RoleCode"
+                                                        @bind-Value="etape.RoleCode" Style="width:100%;" Change="@(() => OnRoleChanged(etape))" />
+                                    </div>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Nom affiché</label>
+                                        <RadzenTextBox @bind-Value="etape.NomEtape" Placeholder="Nom de l'étape…" Style="width:100%;" />
+                                    </div>
+                                    <div class="wfl-edit-panel__actions">
+                                        <RadzenButton Icon="delete" Size="ButtonSize.ExtraSmall" Variant="Variant.Text" ButtonStyle="ButtonStyle.Danger"
+                                                      Click="@(() => RemoveStep(idx))" />
+                                        <RadzenButton Icon="check_circle" Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text"
+                                                      Click="@(() => _editingIdx = -1)" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="wfl-connector">
+                        <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                        <button type="button" class="wfl-insert-btn" @onclick="AppendStep" title="Ajouter">+</button>
+                    </div>
+                    <div class="wfl-terminus">
+                        <div class="wfl-terminus__circle wfl-terminus__circle--end"><RadzenIcon Icon="flag" /></div>
+                        <span class="wfl-terminus__label">APPROUVÉ</span>
+                    </div>
+                    }
+                </div>
+
+                @* Branche standard — bas *@
+                <div class="wfl-fork-branch wfl-fork-branch--std @(!_showStdBranch ? "wfl-fork-branch--collapsed" : "")">
+                    <button type="button" class="wfl-fork-branch__toggle"
+                            @onclick="@(() => _showStdBranch = !_showStdBranch)">
+                        <div class="wfl-connector"><div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div></div>
+                        <span class="wfl-fork-branch__badge wfl-fork-branch__badge--no">Non</span>
+                        <span class="wfl-fork-branch__name">Standard</span>
+                        <span class="material-icons wfl-fork-branch__chevron">@(_showStdBranch ? "keyboard_arrow_down" : "keyboard_arrow_right")</span>
+                    </button>
+                    @if (_showStdBranch)
+                    {
+                    <div class="wfl-terminus">
+                        <div class="wfl-terminus__circle wfl-terminus__circle--start"><RadzenIcon Icon="play_arrow" /></div>
+                        <span class="wfl-terminus__label">DÉBUT</span>
+                    </div>
+                    @for (int t = 0; t < trunkN; t++)
+                    {
+                        var idx = t;
+                        var etape = _standardEtapes[idx];
+                        var roleInfo = WorkflowRoleDisponible.TousLesRoles.FirstOrDefault(r => r.RoleCode == etape.RoleCode);
+                        var isEditing = _editingIdxStd == idx;
+                        var nodeColor = roleInfo?.Couleur ?? "#6b7280";
+                        <div class="wfl-connector">
+                            <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                            <button type="button" class="wfl-insert-btn" @onclick="@(() => InsertStepAtStd(idx))" title="Insérer">+</button>
+                        </div>
+                        <div class="wfl-node @(isEditing ? "wfl-node--editing" : "") @(_dragList=="std" && _dragOverIdx==idx ? "wfl-node--drag-over" : "")"
+                             draggable="true"
+                             @ondragstart="@(() => DragStartStd(idx))"
+                             @ondragover:preventDefault
+                             @ondragenter="@(() => DragOverStd(idx))"
+                             @ondrop="@(() => DropStd(idx))"
+                             @ondragend="DragEnd">
+                            <div class="wfl-node__box"
+                                 style="border-color:@(isEditing ? nodeColor : "var(--gray-200,#e5e7eb)"); background:@(isEditing ? nodeColor : "#fff");"
+                                 @onclick="@(() => ToggleEditStd(idx))">
+                                <span class="wfl-node__drag material-icons">drag_indicator</span>
+                                <div class="wfl-node__num" style="background:@(isEditing ? "rgba(255,255,255,0.25)" : nodeColor);">@(idx + 1)</div>
+                                <div class="wfl-node__name" style="color:@(isEditing ? "#fff" : "#1e2a2a");">
+                                    @(string.IsNullOrWhiteSpace(etape.NomEtape) ? (roleInfo?.Nom ?? etape.RoleCode) : etape.NomEtape)
+                                </div>
+                                @if (roleInfo?.EstAutoResolu == true)
+                                {
+                                    <div class="wfl-node__auto" style="color:@(isEditing ? "rgba(255,255,255,0.75)" : "var(--gray-400)")">⚡ Auto</div>
+                                }
+                            </div>
+                            <span class="wfl-node__role-label" style="color:@nodeColor;">@(roleInfo?.Nom ?? etape.RoleCode)</span>
+                            @if (isEditing)
+                            {
+                                <div class="wfl-edit-panel" style="border-color:@nodeColor;" @onclick:stopPropagation>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Rôle</label>
+                                        <RadzenDropDown TValue="string" Data="@_rolesDisponibles" TextProperty="Nom" ValueProperty="RoleCode"
+                                                        @bind-Value="etape.RoleCode" Style="width:100%;" Change="@(() => OnRoleChangedStd(etape))" />
+                                    </div>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Nom affiché</label>
+                                        <RadzenTextBox @bind-Value="etape.NomEtape" Placeholder="Nom de l'étape…" Style="width:100%;" />
+                                    </div>
+                                    <div class="wfl-edit-panel__actions">
+                                        <RadzenButton Icon="delete" Size="ButtonSize.ExtraSmall" Variant="Variant.Text" ButtonStyle="ButtonStyle.Danger"
+                                                      Click="@(() => RemoveStepStd(idx))" />
+                                        <RadzenButton Icon="check_circle" Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text"
+                                                      Click="@(() => _editingIdxStd = -1)" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="wfl-branch-sep">
+                        <span class="material-icons">linear_scale</span>
+                        <span>Étapes standard</span>
+                    </div>
+                    @for (int i = trunkN; i < _standardEtapes.Count; i++)
+                    {
+                        var idx = i;
+                        var etape = _standardEtapes[idx];
+                        var roleInfo = WorkflowRoleDisponible.TousLesRoles.FirstOrDefault(r => r.RoleCode == etape.RoleCode);
+                        var isEditing = _editingIdxStd == idx;
+                        var nodeColor = roleInfo?.Couleur ?? "#6b7280";
+                        <div class="wfl-connector">
+                            <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                            <button type="button" class="wfl-insert-btn" @onclick="@(() => InsertStepAtStd(idx))" title="Insérer">+</button>
+                        </div>
+                        <div class="wfl-node @(isEditing ? "wfl-node--editing" : "") @(_dragList=="std" && _dragOverIdx==idx ? "wfl-node--drag-over" : "")"
+                             draggable="true"
+                             @ondragstart="@(() => DragStartStd(idx))"
+                             @ondragover:preventDefault
+                             @ondragenter="@(() => DragOverStd(idx))"
+                             @ondrop="@(() => DropStd(idx))"
+                             @ondragend="DragEnd">
+                            <div class="wfl-node__box"
+                                 style="border-color:@(isEditing ? nodeColor : "var(--gray-200,#e5e7eb)"); background:@(isEditing ? nodeColor : "#fff");"
+                                 @onclick="@(() => ToggleEditStd(idx))">
+                                <span class="wfl-node__drag material-icons">drag_indicator</span>
+                                <div class="wfl-node__num" style="background:@(isEditing ? "rgba(255,255,255,0.25)" : nodeColor);">@(idx + 1)</div>
+                                <div class="wfl-node__name" style="color:@(isEditing ? "#fff" : "#1e2a2a");">
+                                    @(string.IsNullOrWhiteSpace(etape.NomEtape) ? (roleInfo?.Nom ?? etape.RoleCode) : etape.NomEtape)
+                                </div>
+                                @if (roleInfo?.EstAutoResolu == true)
+                                {
+                                    <div class="wfl-node__auto" style="color:@(isEditing ? "rgba(255,255,255,0.75)" : "var(--gray-400)");">⚡ Auto</div>
+                                }
+                            </div>
+                            <span class="wfl-node__role-label" style="color:@nodeColor;">@(roleInfo?.Nom ?? etape.RoleCode)</span>
+                            @if (isEditing)
+                            {
+                                <div class="wfl-edit-panel" style="border-color:@nodeColor;" @onclick:stopPropagation>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Rôle</label>
+                                        <RadzenDropDown TValue="string" Data="@_rolesDisponibles" TextProperty="Nom" ValueProperty="RoleCode"
+                                                        @bind-Value="etape.RoleCode" Style="width:100%;" Change="@(() => OnRoleChangedStd(etape))" />
+                                    </div>
+                                    <div class="wfl-edit-panel__field">
+                                        <label class="wfl-edit-panel__label">Nom affiché</label>
+                                        <RadzenTextBox @bind-Value="etape.NomEtape" Placeholder="Nom de l'étape…" Style="width:100%;" />
+                                    </div>
+                                    <div class="wfl-edit-panel__actions">
+                                        <RadzenButton Icon="delete" Size="ButtonSize.ExtraSmall" Variant="Variant.Text" ButtonStyle="ButtonStyle.Danger"
+                                                      Click="@(() => RemoveStepStd(idx))" />
+                                        <RadzenButton Icon="check_circle" Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text"
+                                                      Click="@(() => _editingIdxStd = -1)" />
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="wfl-connector">
+                        <div class="wfl-connector__line"><span class="wfl-connector__arrow">›</span></div>
+                        <button type="button" class="wfl-insert-btn" @onclick="AppendStepStd" title="Ajouter">+</button>
+                    </div>
+                    <div class="wfl-terminus">
+                        <div class="wfl-terminus__circle wfl-terminus__circle--end"><RadzenIcon Icon="flag" /></div>
+                        <span class="wfl-terminus__label">APPROUVÉ</span>
+                    </div>
+                    }
+                </div>
+
+            </div>
+        </div>
+
+        @* ─── Barres d'actions ─── *@
+        <div class="wfl-fork-actions">
+            <div class="wfl-actions-bar">
+                <RadzenButton Text="Sauvegarder standard" Icon="save"
+                              ButtonStyle="ButtonStyle.Success" Variant="Variant.Outlined"
+                              Click="@SaveStandardAsync" IsBusy="@_savingStd" />
+                <span class="wfl-actions-bar__count">@_standardEtapes.Count étape(s) standard</span>
+            </div>
+            <div class="wfl-actions-bar">
+                <RadzenButton Text="Sauvegarder exception" Icon="save"
+                              ButtonStyle="ButtonStyle.Primary"
+                              Click="@SaveAsync" IsBusy="@_saving" />
+                <RadzenButton Text="Supprimer cette exception" Icon="restart_alt"
+                              ButtonStyle="ButtonStyle.Warning" Variant="Variant.Outlined"
+                              Click="@ResetAsync" />
+                <span class="wfl-actions-bar__count">@_etapes.Count étape(s) exception</span>
+            </div>
+        </div>
+        }
     }
 
-    // ── Personnaliser : crée une config BD indépendante pour ce motif ─────
-    private async Task PersonnaliserAsync()
-    {
-        if (selectedContext == null || isSaving) return;
+    </main>
+</div>
 
-        // Les étapes actuellement affichées (résolues) deviennent la base de la personnalisation
-        if (!steps.Any())
-        {
-            NotificationService.Notify(NotificationSeverity.Warning, "Personnaliser",
-                "Aucune étape à sauvegarder. Ajoutez au moins une étape.");
-            return;
-        }
-
-        await InternalSaveAsync();
+<style>
+    /* ── Icône type de matériel ─────────────────────────────── */
+    .wfl-mat-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--kcc-primary-light, #e6faf7);
+        color: var(--kcc-primary, #00b193);
+        font-size: 1.25rem;
+        flex-shrink: 0;
+        margin-bottom: 0.6rem;
+    }
+    .wfl-mat-icon--lg {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        font-size: 1.5rem;
+        margin-bottom: 0;
     }
 
-    // ── Réinitialiser : supprime la config BD et revient à l'héritage ─────
-    private async Task ResetToInheritedAsync()
+    /* ── Toggle BSM/BEM ─────────────────────────────────────── */
+    .wfl-type-toggle {
+        display: flex;
+        gap: 0;
+        border: 1.5px solid var(--gray-200, #e5e7eb);
+        border-radius: 7px;
+        overflow: hidden;
+        width: fit-content;
+        margin-bottom: 1.25rem;
+    }
+    .wfl-type-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.55rem 1.4rem;
+        font-size: 0.84rem;
+        font-weight: 700;
+        border: none;
+        background: #fff;
+        color: var(--gray-500, #6b7280);
+        cursor: pointer;
+        transition: background .15s, color .15s;
+    }
+    .wfl-type-btn + .wfl-type-btn {
+        border-left: 1.5px solid var(--gray-200, #e5e7eb);
+    }
+    .wfl-type-btn--active {
+        background: var(--kcc-primary, #00b193);
+        color: #fff;
+    }
+
+    /* ── Légende ────────────────────────────────────────────── */
+    .wfl-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.78rem;
+        color: var(--gray-500, #6b7280);
+    }
+    .wfl-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    /* ── Grille département ─────────────────────────────────── */
+    .wfl-dept-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+        gap: 1rem;
+    }
+    .wfl-dept-card {
+        background: #fff;
+        border: 1.5px solid var(--gray-200, #e5e7eb);
+        border-radius: 8px;
+        padding: 1rem 1.1rem 0.85rem;
+        cursor: pointer;
+        transition: box-shadow .15s, border-color .15s, transform .1s;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .wfl-dept-card:hover {
+        border-color: var(--kcc-primary, #00b193);
+        box-shadow: 0 4px 16px rgba(0,177,147,.13);
+        transform: translateY(-1px);
+    }
+    .wfl-dept-card--specific {
+        border-color: color-mix(in srgb, var(--kcc-primary,#00b193) 40%, transparent);
+    }
+    .wfl-dept-card__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    .wfl-dept-card__name {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-weight: 700;
+        font-size: 0.88rem;
+    }
+    .wfl-dept-card__code {
+        font-size: 0.7rem;
+        color: var(--gray-400, #9ca3af);
+        font-weight: 400;
+    }
+    .wfl-dept-card__meta {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.72rem;
+        color: var(--gray-400, #9ca3af);
+        margin-bottom: 0.55rem;
+    }
+    .wfl-dept-card__chain {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.2rem;
+        min-height: 1.8rem;
+        margin-bottom: 0.65rem;
+    }
+    .wfl-dept-card__no-steps {
+        font-size: 0.73rem;
+        color: var(--gray-300, #d1d5db);
+        font-style: italic;
+    }
+    .wfl-dept-card__arrow {
+        color: var(--gray-300, #d1d5db);
+        font-size: 0.8rem;
+    }
+    .wfl-dept-card__cta {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--kcc-primary, #00b193);
+        justify-content: flex-end;
+    }
+    .wfl-role-chip {
+        display: inline-flex;
+        align-items: center;
+        color: #fff;
+        border-radius: 4px;
+        padding: 0.12rem 0.4rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+    }
+
+    /* ── Bandeau contexte (phase 2) ─────────────────────────── */
+    .wfl-context-banner {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.4rem;
+        background: linear-gradient(135deg,#fff 60%,#f0fdf9 100%);
+        border: 1.5px solid #a7f3d0;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 12px rgba(0,177,147,.08);
+    }
+    .wfl-context-banner__info { flex: 1; min-width: 0; }
+    .wfl-context-banner__title { font-weight: 800; font-size: 1.05rem; color: #1a202c; }
+    .wfl-context-banner__sub { font-size: 0.75rem; color: var(--gray-400, #9ca3af); margin-top: 0.15rem; }
+    .wfl-context-banner__badges { display: flex; gap: 0.4rem; align-items: center; margin-left: auto; }
+
+    /* ── Éditeur visuel ─────────────────────────────────────── */
+    .wfl-editor {
+        background: #fff;
+        border: 1.5px solid var(--gray-200, #e5e7eb);
+        border-radius: 12px;
+        padding: 2rem 2.5rem 2.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    }
+    .wfl-editor__label {
+        text-align: center;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--gray-400, #9ca3af);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        margin-bottom: 2.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    .wfl-editor__label::before,
+    .wfl-editor__label::after {
+        content: '';
+        flex: 1;
+        max-width: 60px;
+        height: 1px;
+        background: var(--gray-200, #e5e7eb);
+    }
+
+    /* ── Chaîne graphique ───────────────────────────────────── */
+    .wfl-chain-scroll { overflow: visible; padding-bottom: 0; }
+    .wfl-chain {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        min-width: unset;
+        width: 100%;
+        max-width: 360px;
+        padding: 0.75rem 1rem 1.5rem;
+        margin: 0 auto;
+    }
+
+    /* ── Nœuds terminaux (DÉBUT / FIN) ──────────────────────── */
+    .wfl-terminus {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .wfl-terminus__circle {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    }
+    .wfl-terminus__circle--start {
+        background: linear-gradient(135deg,#d1fae5,#a7f3d0);
+        border: 2px solid #6ee7b7;
+        color: #065f46;
+    }
+    .wfl-terminus__circle--end {
+        background: linear-gradient(135deg,#d1fae5,#a7f3d0);
+        border: 2px solid #34d399;
+        color: #065f46;
+    }
+    .wfl-terminus__label {
+        font-size: 0.6rem;
+        color: #9ca3af;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    /* ── Connecteur flèche + bouton insérer ─────────────────── */
+    .wfl-connector {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 0;
+        gap: 4px;
+    }
+    .wfl-connector__line {
+        width: 2px;
+        height: 24px;
+        background: linear-gradient(to bottom, #d1fae5, #a7f3d0);
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+    }
+    .wfl-connector__arrow {
+        color: #6ee7b7;
+        font-size: 1.1rem;
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        right: auto;
+        top: auto;
+        transform: translateX(-50%) rotate(90deg);
+        line-height: 1;
+    }
+    .wfl-insert-btn {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 1.5px dashed var(--kcc-primary, #00b193);
+        background: white;
+        color: var(--kcc-primary, #00b193);
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0;
+        transition: background .12s, color .12s;
+    }
+    .wfl-insert-btn:hover {
+        background: var(--kcc-primary, #00b193);
+        color: #fff;
+    }
+
+    /* ── Nœud étape ─────────────────────────────────────────── */
+    .wfl-node {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        position: relative;
+        width: 100%;
+        max-width: 320px;
+    }
+    .wfl-node__box {
+        min-width: 220px;
+        max-width: 100%;
+        width: 100%;
+        border: 2px solid var(--gray-200, #e5e7eb);
+        border-radius: 10px;
+        background: #fff;
+        padding: 0.65rem 0.85rem 0.65rem 2.1rem;
+        cursor: pointer;
+        text-align: center;
+        position: relative;
+        transition: border-color .15s, background .15s, box-shadow .15s, transform .1s;
+        box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+    .wfl-node__box:hover {
+        box-shadow: 0 5px 18px rgba(0,0,0,.12);
+        transform: translateY(-1px);
+    }
+    .wfl-node__num {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.35rem;
+        transition: background .15s;
+        box-shadow: 0 1px 4px rgba(0,0,0,.15);
+    }
+    .wfl-node__name {
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1.35;
+        word-break: break-word;
+        transition: color .15s;
+    }
+    .wfl-node__auto {
+        font-size: 0.62rem;
+        margin-top: 0.2rem;
+        transition: color .15s;
+    }
+    .wfl-node__role-label {
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.85;
+    }
+
+    /* ── Panneau d'édition inline ───────────────────────────── */
+    .wfl-edit-panel {
+        position: relative;
+        top: auto;
+        left: auto;
+        margin-top: 0.4rem;
+        z-index: 10;
+        background: #fff;
+        border: 1.5px solid var(--gray-200,#e5e7eb);
+        border-radius: 10px;
+        padding: 0.85rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,.10);
+        width: 100%;
+        animation: slideDown 0.12s ease;
+    }
+    @@keyframes slideDown {
+        from { opacity: 0; transform: translateY(-4px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .wfl-edit-panel__field {
+        margin-bottom: 0.55rem;
+    }
+    .wfl-edit-panel__label {
+        display: block;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--gray-500, #6b7280);
+        margin-bottom: 0.2rem;
+    }
+    .wfl-edit-panel__actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.25rem;
+        margin-top: 0.25rem;
+        border-top: 1px solid var(--gray-100, #f3f4f6);
+        padding-top: 0.4rem;
+    }
+    /* ── Poignée de drag ─────────────────────────────────────── */
+    .wfl-node__drag {
+        position: absolute;
+        left: 0.35rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.1rem;
+        color: var(--gray-300, #d1d5db);
+        cursor: grab;
+        user-select: none;
+        transition: color 0.12s;
+        line-height: 1;
+    }
+    .wfl-node:hover .wfl-node__drag {
+        color: var(--gray-400, #9ca3af);
+    }
+    .wfl-node--drag-over .wfl-node__box {
+        border-color: var(--kcc-primary, #00b193) !important;
+        box-shadow: 0 0 0 3px rgba(0,177,147,.18) !important;
+        background: #f0fdf9 !important;
+    }
+
+    /* ── Message vide ───────────────────────────────────────── */
+    .wfl-empty-hint {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        justify-content: center;
+        padding: 1.5rem 0 0.5rem;
+        font-size: 0.82rem;
+        color: var(--gray-400, #9ca3af);
+    }
+
+    /* ── Barre d'actions ────────────────────────────────────── */
+    .wfl-actions-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .wfl-actions-bar__count {
+        font-size: 0.73rem;
+        font-weight: 600;
+        color: var(--gray-400, #9ca3af);
+        margin-left: auto;
+        letter-spacing: 0.01em;
+    }
+
+    /* ── Barre de contexte agent (phase 2) ──────────────────── */
+    .wfl-ctx-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+        padding: 0.5rem 0.75rem;
+        background: #f9fafb;
+        border: 1px solid var(--gray-200, #e5e7eb);
+        border-radius: 8px;
+    }
+    .wfl-ctx-bar__label {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--gray-400, #9ca3af);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-right: 0.15rem;
+    }
+    .wfl-ctx-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.32rem 0.7rem;
+        border-radius: 6px;
+        border: 1.5px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--gray-500, #6b7280);
+        transition: all .13s;
+        white-space: nowrap;
+    }
+    .wfl-ctx-tab:hover {
+        background: #fff;
+        border-color: var(--gray-200, #e5e7eb);
+        color: var(--gray-700, #374151);
+    }
+    .wfl-ctx-tab--active {
+        background: #fff;
+        border-color: var(--kcc-primary, #00b193);
+        color: var(--kcc-primary, #00b193);
+        box-shadow: 0 1px 4px rgba(0,177,147,.12);
+    }
+    .wfl-ctx-tab__badge {
+        font-size: 0.6rem;
+        background: #6366f1;
+        color: #fff;
+        border-radius: 3px;
+        padding: 0.05rem 0.3rem;
+        font-weight: 700;
+    }
+    .wfl-ctx-add {
+        margin-left: auto;
+        position: relative;
+    }
+    .wfl-ctx-add-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.32rem 0.7rem;
+        border-radius: 6px;
+        border: 1.5px dashed var(--kcc-primary, #00b193);
+        background: transparent;
+        color: var(--kcc-primary, #00b193);
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .12s;
+    }
+    .wfl-ctx-add-btn:hover { background: var(--kcc-primary-light, #e6faf7); }
+    .wfl-ctx-picker {
+        position: absolute;
+        top: calc(100% + 0.4rem);
+        right: 0;
+        background: #fff;
+        border: 1px solid var(--gray-200, #e5e7eb);
+        border-radius: 8px;
+        box-shadow: 0 6px 24px rgba(0,0,0,.12);
+        z-index: 60;
+        min-width: 220px;
+        overflow: hidden;
+    }
+    .wfl-ctx-picker__item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        width: 100%;
+        text-align: left;
+        padding: 0.6rem 0.9rem;
+        font-size: 0.78rem;
+        color: var(--gray-700, #374151);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: background .1s;
+    }
+    .wfl-ctx-picker__item:hover { background: var(--kcc-primary-light, #e6faf7); }
+    .wfl-ctx-picker__empty {
+        padding: 0.75rem 0.9rem;
+        font-size: 0.75rem;
+        color: var(--gray-400, #9ca3af);
+        font-style: italic;
+    }
+    .wfl-ctx-warning {
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 0.65rem 1rem;
+        font-size: 0.78rem;
+        color: #92400e;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    /* ── Vue divisée (split view) ────────────────────────────── */
+    .wfl-split {
+        display: flex;
+        gap: 0;
+        align-items: flex-start;
+    }
+    .wfl-split__pane {
+        flex: 1;
+        min-width: 0;
+    }
+    .wfl-split__pane .wfl-editor {
+        border-radius: 0 0 10px 10px;
+        border-top: none;
+    }
+    .wfl-split__header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 1rem;
+        border-radius: 10px 10px 0 0;
+        font-weight: 700;
+        font-size: 0.82rem;
+        border: 1px solid transparent;
+    }
+    .wfl-split__header em { font-weight: 400; font-style: italic; font-size: 0.72rem; }
+    .wfl-split__header--std { background: #f0fdf4; color: #16a34a; border-color: #86efac; }
+    .wfl-split__header--exc { background: #eff6ff; color: #2563eb; border-color: #93c5fd; }
+    .wfl-split__divider {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 2.5rem;
+        gap: 0.4rem;
+        flex-shrink: 0;
+        width: 56px;
+        color: var(--gray-500, #6b7280);
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-align: center;
+    }
+    .wfl-split__divider__line { width: 1px; flex: 1; min-height: 30px; background: var(--gray-200, #e5e7eb); }
+    .wfl-split__divider__badge {
+        width: 32px; height: 32px; border-radius: 50%;
+        background: var(--kcc-primary-light, #e6faf7);
+        color: var(--kcc-primary, #00b193);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem; flex-shrink: 0;
+    }
+    .wfl-split__divider__label { max-width: 52px; line-height: 1.35; color: var(--gray-400, #9ca3af); }
+
+    /* ── Diagramme fork (bifurcation verticale) ────────────── */
+    .wfl-fork-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-x: auto;
+        padding: 2rem 1.5rem;
+        background: #f9fafb;
+        border: 1.5px solid var(--gray-200, #e5e7eb);
+        border-radius: 14px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,.04);
+    }
+    .wfl-fork-trunk {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 380px;
+    }
+    .wfl-fork-gate {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        padding: 0.25rem 0;
+    }
+    .wfl-fork-diamond {
+        width: 96px;
+        height: 96px;
+        transform: rotate(45deg);
+        border: 2.5px solid #374151;
+        background: linear-gradient(135deg,#fff 60%,#f8fafc);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 16px rgba(0,0,0,.10);
+    }
+    .wfl-fork-diamond > span {
+        transform: rotate(-45deg);
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-align: center;
+        color: #1f2937;
+        line-height: 1.4;
+        letter-spacing: 0.01em;
+    }
+    .wfl-fork-branches {
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 1.5rem;
+        border-top: 2.5px solid #d1d5db;
+        margin-top: 0.5rem;
+        padding-top: 0.25rem;
+    }
+    .wfl-fork-branch {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        min-width: 270px;
+        max-width: 400px;
+        padding: 0 0.5rem;
+        background: #fff;
+        border-radius: 10px;
+        border: 1.5px solid var(--gray-200,#e5e7eb);
+        padding-bottom: 1rem;
+        box-shadow: 0 1px 6px rgba(0,0,0,.05);
+    }
+    .wfl-fork-branch + .wfl-fork-branch {
+        border-left: none;
+    }
+    .wfl-fork-branch--exc {
+        border-color: #bfdbfe;
+        background: linear-gradient(180deg,#eff6ff 0%,#fff 60px);
+    }
+    .wfl-fork-branch--std {
+        border-color: #d1d5db;
+        background: #fff;
+    }
+    .wfl-fork-branch__badge {
+        font-size: 0.68rem;
+        font-weight: 800;
+        padding: 0.2rem 0.55rem;
+        border-radius: 4px;
+        letter-spacing: 0.03em;
+    }
+    .wfl-fork-branch__badge--yes { background: #dbeafe; color: #1e40af; }
+    .wfl-fork-branch__badge--no  { background: #f3f4f6; color: #374151; }
+    .wfl-fork-branch__name {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--gray-600, #4b5563);
+        white-space: nowrap;
+    }
+    .wfl-fork-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0;
+        flex-wrap: wrap;
+    }
+    .wfl-fork-actions .wfl-actions-bar {
+        flex: 1;
+        min-width: 0;
+        background: #fff;
+        border: 1.5px solid var(--gray-200,#e5e7eb);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    }
+
+    .wfl-fork-branch__toggle {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+        background: none;
+        border: none;
+        border-bottom: 1.5px solid var(--gray-100,#f3f4f6);
+        padding: 0.75rem 0.5rem 0.65rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        width: 100%;
+        transition: background .12s;
+    }
+    .wfl-fork-branch__toggle:hover { background: rgba(0,0,0,.02); }
+    .wfl-fork-branch__toggle:hover .wfl-fork-branch__badge { opacity: 0.85; }
+    .wfl-fork-branch--exc .wfl-fork-branch__toggle { border-bottom-color: #bfdbfe; }
+    .wfl-fork-branch__chevron {
+        font-size: 1rem;
+        color: var(--gray-400, #9ca3af);
+        transition: transform 0.15s;
+        flex-shrink: 0;
+    }
+    .wfl-fork-branch--collapsed .wfl-fork-branch__chevron { transform: rotate(-90deg); }
+    .wfl-fork-branch--collapsed { opacity: 0.55; }
+
+    /* ── Séparateur tronc / branche ───────────────────────────── */
+    .wfl-branch-sep {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        width: 100%;
+        padding: 0.4rem 0.5rem;
+        margin: 0.35rem 0;
+        color: var(--kcc-primary, #00b193);
+        font-size: 0.6rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        justify-content: center;
+        background: rgba(0,177,147,.04);
+        border-top: 1px dashed rgba(0,177,147,.3);
+        border-bottom: 1px dashed rgba(0,177,147,.3);
+        border-radius: 4px;
+    }
+    .wfl-branch-sep .material-icons {
+        font-size: 0.95rem;
+        color: var(--kcc-primary, #00b193);
+    }
+</style>
+
+@code {
+    // ── État de navigation ──────────────────────────────────────────────────
+    private int _phase = 1;
+    private string _bonType = "BSM";
+
+    // ── Données phase 1 ─────────────────────────────────────────────────────
+    private List<WorkflowContextSummary>? _summary;
+    private List<RaisonSortie> _raisons = new();
+    private bool _loading = true;
+
+    // ── Données phase 2 ─────────────────────────────────────────────────────
+    private WorkflowContextSummary? _selectedRaison;
+    private List<WorkflowEtapeConfig> _etapes = new();
+    private int _editingIdx = -1;
+    private bool _saving;
+
+    private IReadOnlyList<WorkflowRoleDisponible> _rolesDisponibles = WorkflowRoleDisponible.TousLesRoles;
+
+    // ── Contexte cross-département ──────────────────────────────────────────
+    /// <summary>null = workflow standard (tous agents), sinon code dept de l'agent demandeur.</summary>
+    private string? _selectedDeptContext;
+    private List<DepartementInfo> _deptOverrides = new();
+    private List<DepartementInfo> _allDepts = new();
+    private bool _showExcBranch  = true;
+    private bool _showStdBranch  = true;
+
+    // ── Vue divisée (split view) ─────────────────────────────────────────────
+    private List<WorkflowEtapeConfig> _standardEtapes = new();
+    private int _editingIdxStd = -1;
+    private bool _savingStd;
+
+    // ── Drag & drop reorder ─────────────────────────────────────────────────
+    private string? _dragList;   // "exc" = _etapes  |  "std" = _standardEtapes
+    private int _dragSrcIdx = -1;
+    private int _dragOverIdx = -1;
+
+    // ── Initialisation ──────────────────────────────────────────────────────
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
     {
-        if (selectedContext == null || isSaving) return;
-        isSaving = true;
+        _loading = true;
+        StateHasChanged();
         try
         {
-            await WorkflowConfigService.DeleteWorkflowEtapesAsync(
-                selectedBonType, selectedRaisonCode, CurrentUserService.GetUserLogin());
+            var summary = await WorkflowService.GetWorkflowSummaryAsync(_bonType);
+            _summary = summary.ToList();
 
-            NotificationService.Notify(NotificationSeverity.Success, "Réinitialisé",
-                $"Le motif « {selectedContext.RaisonSortieNom} » hérite désormais du workflow générique.");
-
-            await RefreshSummaryAsync();
-            // Mettre à jour la ligne sélectionnée
-            selectedContext = summary.FirstOrDefault(s => s.RaisonSortieCode == selectedRaisonCode);
-            if (selectedContext != null) await LoadStepsAsync();
+            if (_raisons.Count == 0)
+                _raisons = (await WorkflowService.GetRaisonsSortieAsync()).ToList();
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"], ex.Message);
         }
-        finally { isSaving = false; }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 
-    // ── Enregistrer ───────────────────────────────────────────────────────
+    private async Task SetBonTypeAsync(string type)
+    {
+        _bonType = type;
+        await LoadAsync();
+    }
+
+    // ── Navigation phase 1 → 2 ─────────────────────────────────────────────
+    private async Task SelectRaisonAsync(WorkflowContextSummary raison)
+    {
+        _selectedRaison = raison;
+        _editingIdx = -1;
+        _editingIdxStd = -1;
+        _selectedDeptContext = null;
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            var stdRaw = await WorkflowService.GetWorkflowEtapesForAdminAsync(_bonType, raison.RaisonSortieCode);
+            var stdList = stdRaw.Select(e => new WorkflowEtapeConfig
+            {
+                RoleCode   = e.RoleCode,
+                NomEtape   = e.NomEtape,
+                OrdreEtape = e.OrdreEtape,
+                EstActif   = e.EstActif,
+            }).ToList();
+
+            // Charger les exceptions départements + la liste complète
+            _deptOverrides = (await WorkflowService.GetDepartementOverridesForRaisonAsync(_bonType, raison.RaisonSortieCode)).ToList();
+            if (_allDepts.Count == 0)
+                _allDepts = (await WorkflowService.GetDepartementsAsync()).ToList();
+
+            if (_deptOverrides.Count > 0)
+            {
+                // Split view : standard à gauche, première exception à droite
+                _standardEtapes = stdList;
+                _selectedDeptContext = _deptOverrides[0].Code;
+                var excRaw = await WorkflowService.GetWorkflowEtapesCrossAsync(
+                    _bonType, raison.RaisonSortieCode, _deptOverrides[0].Code);
+                _etapes = excRaw.Count > 0
+                    ? excRaw.Select(e => new WorkflowEtapeConfig
+                      { RoleCode = e.RoleCode, NomEtape = e.NomEtape, OrdreEtape = e.OrdreEtape, EstActif = e.EstActif }).ToList()
+                    : stdList.Select(e => new WorkflowEtapeConfig
+                      { RoleCode = e.RoleCode, NomEtape = e.NomEtape, OrdreEtape = e.OrdreEtape, EstActif = e.EstActif }).ToList();
+            }
+            else
+            {
+                // Vue simple : pas d'exception
+                _etapes = stdList;
+                _standardEtapes = new();
+            }
+
+            _phase = 2;
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"], ex.Message);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void BackToSelector()
+    {
+        _phase = 1;
+        _selectedRaison = null;
+        _etapes.Clear();
+        _standardEtapes = new();
+        _editingIdx = -1;
+        _editingIdxStd = -1;
+        _selectedDeptContext = null;
+        _deptOverrides.Clear();
+    }
+
+    // ── Commutation du contexte département ─────────────────────────────────
+    private async Task SwitchDeptContextAsync(string? deptCode)
+    {
+        if (_selectedDeptContext == deptCode) return;
+        _selectedDeptContext = deptCode;
+        _editingIdx = -1;
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            // Toujours (re)charger le workflow standard
+            var stdRaw = await WorkflowService.GetWorkflowEtapesForAdminAsync(_bonType, _selectedRaison?.RaisonSortieCode);
+            _standardEtapes = stdRaw.Select(e => new WorkflowEtapeConfig
+            {
+                RoleCode   = e.RoleCode,
+                NomEtape   = e.NomEtape,
+                OrdreEtape = e.OrdreEtape,
+                EstActif   = e.EstActif,
+            }).ToList();
+
+            IReadOnlyList<WorkflowEtapeConfig> etapes = deptCode == null
+                ? stdRaw
+                : await WorkflowService.GetWorkflowEtapesCrossAsync(_bonType, _selectedRaison?.RaisonSortieCode, deptCode);
+
+            if (deptCode != null && etapes.Count == 0)
+            {
+                // Nouvelle exception : pré-remplir avec 1 étape du département demandeur
+                // suivie des étapes du workflow standard de ce matériel
+                var deptRoleCode = GuessRoleForDept(deptCode);
+                var deptRole = _rolesDisponibles.FirstOrDefault(r => r.RoleCode == deptRoleCode)
+                               ?? _rolesDisponibles[0];
+                var standard = await WorkflowService.GetWorkflowEtapesForAdminAsync(
+                    _bonType, _selectedRaison?.RaisonSortieCode);
+
+                var pre = new List<WorkflowEtapeConfig>
+                {
+                    new WorkflowEtapeConfig
+                    {
+                        RoleCode   = deptRole.RoleCode,
+                        NomEtape   = $"Approbation {deptRole.Nom}",
+                        OrdreEtape = 1,
+                        EstActif   = true,
+                    }
+                };
+                int order = 2;
+                foreach (var s in standard)
+                    pre.Add(new WorkflowEtapeConfig
+                    {
+                        RoleCode   = s.RoleCode,
+                        NomEtape   = s.NomEtape,
+                        OrdreEtape = order++,
+                        EstActif   = s.EstActif,
+                    });
+                _etapes = pre;
+            }
+            else
+            {
+                _etapes = etapes.Select(e => new WorkflowEtapeConfig
+                {
+                    RoleCode   = e.RoleCode,
+                    NomEtape   = e.NomEtape,
+                    OrdreEtape = e.OrdreEtape,
+                    EstActif   = e.EstActif,
+                }).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"], ex.Message);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddUniversalBranchAsync()
+    {
+        var universal = new DepartementInfo { Code = "*", Nom = "Tous les départements", NombreEmployes = 0 };
+        if (!_deptOverrides.Any(d => d.Code == "*"))
+            _deptOverrides.Add(universal);
+        await SwitchDeptContextAsync("*");
+    }
+
+    private async Task AddDeptExceptionAsync(DepartementInfo dept)
+    {
+        // On ajoute l'onglet localement avant même d'avoir des étapes
+        if (!_deptOverrides.Any(d => d.Code == dept.Code))
+            _deptOverrides.Add(dept);
+        await SwitchDeptContextAsync(dept.Code);
+    }
+
+    // ── Édition inline ──────────────────────────────────────────────────────
+    private void ToggleEdit(int idx) =>
+        _editingIdx = (_editingIdx == idx) ? -1 : idx;
+
+    private void AppendStep()
+    {
+        var role = _rolesDisponibles.FirstOrDefault(r => !_etapes.Any(e => e.RoleCode == r.RoleCode))
+                   ?? _rolesDisponibles[0];
+        _etapes.Add(new WorkflowEtapeConfig
+        {
+            RoleCode   = role.RoleCode,
+            NomEtape   = role.Nom,
+            OrdreEtape = _etapes.Count + 1,
+            EstActif   = true,
+        });
+        _editingIdx = _etapes.Count - 1;
+    }
+
+    private void InsertStepAt(int beforeIdx)
+    {
+        var role = _rolesDisponibles.FirstOrDefault(r => !_etapes.Any(e => e.RoleCode == r.RoleCode))
+                   ?? _rolesDisponibles[0];
+        _etapes.Insert(beforeIdx, new WorkflowEtapeConfig
+        {
+            RoleCode   = role.RoleCode,
+            NomEtape   = role.Nom,
+            OrdreEtape = beforeIdx + 1,
+            EstActif   = true,
+        });
+        _editingIdx = beforeIdx;
+    }
+
+    private void RemoveStep(int idx)
+    {
+        _etapes.RemoveAt(idx);
+        _editingIdx = -1;
+    }
+
+    private void MoveLeft(int idx)
+    {
+        if (idx <= 0) return;
+        (_etapes[idx], _etapes[idx - 1]) = (_etapes[idx - 1], _etapes[idx]);
+        _editingIdx = idx - 1;
+    }
+
+    private void MoveRight(int idx)
+    {
+        if (idx >= _etapes.Count - 1) return;
+        (_etapes[idx], _etapes[idx + 1]) = (_etapes[idx + 1], _etapes[idx]);
+        _editingIdx = idx + 1;
+    }
+
+    private void OnRoleChanged(WorkflowEtapeConfig etape)
+    {
+        var roleInfo = _rolesDisponibles.FirstOrDefault(r => r.RoleCode == etape.RoleCode);
+        if (roleInfo != null && string.IsNullOrWhiteSpace(etape.NomEtape))
+            etape.NomEtape = roleInfo.Nom;
+    }
+
+    private string ActiveDeptName => _deptOverrides.FirstOrDefault(d => d.Code == _selectedDeptContext)?.Nom ?? _selectedDeptContext ?? "";
+
+    private int ForkTrunkLength
+    {
+        get
+        {
+            var n = 0;
+            while (n < _standardEtapes.Count && n < _etapes.Count
+                   && _standardEtapes[n].RoleCode == _etapes[n].RoleCode)
+                n++;
+            return n;
+        }
+    }
+
+    /// <summary>Devine le rôle d'approbation le plus probable pour un code département.</summary>
+    private string GuessRoleForDept(string deptCode)
+    {
+        var u = deptCode.ToUpperInvariant();
+        if (u.Contains("ENV"))                    return "ENVIRONMENT";
+        if (u.Contains("IT") || u.Contains("INFO")) return "IT";
+        if (u.Contains("OPJ"))                    return "OPJ";
+        if (u.Contains("IDENT"))                  return "IDENTIFICATION";
+        if (u.Contains("SUP"))                    return "SUPERINTENDENT";
+        if (u.Contains("GM"))                     return "GM";
+        return _rolesDisponibles.Any(r => r.RoleCode == u) ? u : _rolesDisponibles[0].RoleCode;
+    }
+
+    // ── Édition inline — chaîne STANDARD (volet gauche du split view) ────────
+    private void ToggleEditStd(int idx) => _editingIdxStd = (_editingIdxStd == idx) ? -1 : idx;
+
+    private void AppendStepStd()
+    {
+        var role = _rolesDisponibles.FirstOrDefault(r => !_standardEtapes.Any(e => e.RoleCode == r.RoleCode))
+                   ?? _rolesDisponibles[0];
+        _standardEtapes.Add(new WorkflowEtapeConfig
+        {
+            RoleCode   = role.RoleCode,
+            NomEtape   = role.Nom,
+            OrdreEtape = _standardEtapes.Count + 1,
+            EstActif   = true,
+        });
+        _editingIdxStd = _standardEtapes.Count - 1;
+    }
+
+    private void InsertStepAtStd(int beforeIdx)
+    {
+        var role = _rolesDisponibles.FirstOrDefault(r => !_standardEtapes.Any(e => e.RoleCode == r.RoleCode))
+                   ?? _rolesDisponibles[0];
+        _standardEtapes.Insert(beforeIdx, new WorkflowEtapeConfig
+        {
+            RoleCode   = role.RoleCode,
+            NomEtape   = role.Nom,
+            OrdreEtape = beforeIdx + 1,
+            EstActif   = true,
+        });
+        _editingIdxStd = beforeIdx;
+    }
+
+    private void RemoveStepStd(int idx) { _standardEtapes.RemoveAt(idx); _editingIdxStd = -1; }
+
+    private void MoveLeftStd(int idx)
+    {
+        if (idx <= 0) return;
+        (_standardEtapes[idx], _standardEtapes[idx - 1]) = (_standardEtapes[idx - 1], _standardEtapes[idx]);
+        _editingIdxStd = idx - 1;
+    }
+
+    private void MoveRightStd(int idx)
+    {
+        if (idx >= _standardEtapes.Count - 1) return;
+        (_standardEtapes[idx], _standardEtapes[idx + 1]) = (_standardEtapes[idx + 1], _standardEtapes[idx]);
+        _editingIdxStd = idx + 1;
+    }
+
+    // ── Glisser-déposer ─────────────────────────────────────────────────────
+    private void DragStartExc(int idx) { _dragList = "exc"; _dragSrcIdx = idx; }
+    private void DragStartStd(int idx) { _dragList = "std"; _dragSrcIdx = idx; }
+    private void DragOverExc(int idx) { if (_dragList == "exc") _dragOverIdx = idx; }
+    private void DragOverStd(int idx) { if (_dragList == "std") _dragOverIdx = idx; }
+    private void DragEnd() { _dragList = null; _dragSrcIdx = -1; _dragOverIdx = -1; }
+
+    private void DropExc(int targetIdx)
+    {
+        if (_dragList == "exc" && _dragSrcIdx >= 0 && _dragSrcIdx != targetIdx)
+        {
+            var item = _etapes[_dragSrcIdx];
+            _etapes.RemoveAt(_dragSrcIdx);
+            _etapes.Insert(targetIdx > _dragSrcIdx ? targetIdx - 1 : targetIdx, item);
+            _editingIdx = -1;
+        }
+        DragEnd();
+    }
+
+    private void DropStd(int targetIdx)
+    {
+        if (_dragList == "std" && _dragSrcIdx >= 0 && _dragSrcIdx != targetIdx)
+        {
+            var item = _standardEtapes[_dragSrcIdx];
+            _standardEtapes.RemoveAt(_dragSrcIdx);
+            _standardEtapes.Insert(targetIdx > _dragSrcIdx ? targetIdx - 1 : targetIdx, item);
+            _editingIdxStd = -1;
+        }
+        DragEnd();
+    }
+
+    private void OnRoleChangedStd(WorkflowEtapeConfig etape)
+    {
+        var roleInfo = _rolesDisponibles.FirstOrDefault(r => r.RoleCode == etape.RoleCode);
+        if (roleInfo != null && string.IsNullOrWhiteSpace(etape.NomEtape))
+            etape.NomEtape = roleInfo.Nom;
+    }
+
+    private async Task SaveStandardAsync()
+    {
+        _savingStd = true;
+        try
+        {
+            for (int i = 0; i < _standardEtapes.Count; i++)
+                _standardEtapes[i].OrdreEtape = i + 1;
+            var login = CurrentUserService.GetUserLogin();
+            await WorkflowService.SaveWorkflowEtapesAsync(
+                _bonType, _selectedRaison?.RaisonSortieCode, _standardEtapes, login);
+            NotificationService.Notify(NotificationSeverity.Success,
+                L["Wfl_NotifSavedTitle"], "Workflow standard sauvegardé.");
+            _editingIdxStd = -1;
+            var updated = await WorkflowService.GetWorkflowSummaryAsync(_bonType);
+            _summary = updated.ToList();
+            _selectedRaison = _summary.FirstOrDefault(s => s.RaisonSortieCode == _selectedRaison?.RaisonSortieCode);
+        }
+        catch (Exception ex) { NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"], ex.Message); }
+        finally { _savingStd = false; StateHasChanged(); }
+    }
+
+    // ── Sauvegarde ──────────────────────────────────────────────────────────
     private async Task SaveAsync()
     {
-        if (selectedContext == null) return;
-        if (!steps.Any())
-        {
-            NotificationService.Notify(NotificationSeverity.Warning, "Workflow", "Ajoutez au moins une étape.");
-            return;
-        }
-        if (steps.Any(s => string.IsNullOrWhiteSpace(s.RoleCode) || string.IsNullOrWhiteSpace(s.NomEtape)))
-        {
-            NotificationService.Notify(NotificationSeverity.Warning, "Workflow", "Chaque étape doit avoir un rôle et un nom.");
-            return;
-        }
-        await InternalSaveAsync();
-    }
-
-    private async Task InternalSaveAsync()
-    {
-        isSaving = true;
+        _saving = true;
         try
         {
-            var payload = steps.Select((s, i) => new WorkflowEtapeConfig
+            for (int i = 0; i < _etapes.Count; i++)
+                _etapes[i].OrdreEtape = i + 1;
+
+            var login = CurrentUserService.GetUserLogin();
+
+            if (_selectedDeptContext == null)
             {
-                OrdreEtape = i + 1, RoleCode = s.RoleCode, NomEtape = s.NomEtape, EstActif = true
-            });
+                await WorkflowService.SaveWorkflowEtapesAsync(
+                    _bonType, _selectedRaison?.RaisonSortieCode, _etapes, login);
+            }
+            else
+            {
+                await WorkflowService.SaveWorkflowEtapesCrossAsync(
+                    _bonType, _selectedRaison?.RaisonSortieCode, _selectedDeptContext, _etapes, login);
+            }
 
-            await WorkflowConfigService.SaveWorkflowEtapesAsync(
-                selectedBonType, selectedRaisonCode, payload, CurrentUserService.GetUserLogin());
+            NotificationService.Notify(NotificationSeverity.Success,
+                L["Wfl_NotifSavedTitle"], L["Wfl_NotifSavedMsg"]);
 
-            NotificationService.Notify(NotificationSeverity.Success, "Enregistré",
-                "Configuration sauvegardée en base de données.");
+            _editingIdx = -1;
 
-            await RefreshSummaryAsync();
-            selectedContext = summary.FirstOrDefault(s => s.RaisonSortieCode == selectedRaisonCode);
-            if (selectedContext != null) await LoadStepsAsync();
+            // Rafraîchir résumé + overrides
+            var updated = await WorkflowService.GetWorkflowSummaryAsync(_bonType);
+            _summary = updated.ToList();
+            _selectedRaison = _summary.FirstOrDefault(s => s.RaisonSortieCode == _selectedRaison?.RaisonSortieCode);
+            _deptOverrides = (await WorkflowService.GetDepartementOverridesForRaisonAsync(_bonType, _selectedRaison?.RaisonSortieCode)).ToList();
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"], ex.Message);
         }
-        finally { isSaving = false; }
-    }
-
-    // ── Étapes ────────────────────────────────────────────────────────────
-    private void AddStep() => steps.Add(new StepVm());
-
-    private void RemoveStep(int index)
-    {
-        if (index >= 0 && index < steps.Count)
-            steps.RemoveAt(index);
-    }
-
-    private void OnRoleSelected(StepVm step)
-    {
-        if (string.IsNullOrWhiteSpace(step.NomEtape))
+        finally
         {
-            var role = roles.FirstOrDefault(r => r.CodeRole == step.RoleCode);
-            if (role is not null) step.NomEtape = role.NomRole;
+            _saving = false;
         }
     }
+
+    // ── Réinitialisation ────────────────────────────────────────────────────
+    private async Task ResetAsync()
+    {
+        if (_selectedRaison is null) return;
+
+        string nomAffiche;
+        string message;
+        if (_selectedDeptContext != null)
+        {
+            var deptName = _deptOverrides.FirstOrDefault(d => d.Code == _selectedDeptContext)?.Nom ?? _selectedDeptContext;
+            nomAffiche = $"«\u00a0{_selectedRaison.RaisonSortieNom}\u00a0» / {deptName}";
+            message = $"Supprimer l'exception workflow pour les agents du département {deptName} qui soumettent une demande «\u00a0{_selectedRaison.RaisonSortieNom}\u00a0» ?";
+        }
+        else
+        {
+            nomAffiche = $"«\u00a0{_selectedRaison.RaisonSortieNom}\u00a0»";
+            message = $"Réinitialiser le workflow {nomAffiche} ? La configuration personnalisée sera supprimée.";
+        }
+
+        var confirm = await DialogService.Confirm(
+            message,
+            _selectedDeptContext != null ? "Supprimer l'exception" : "Réinitialiser le workflow",
+            new ConfirmOptions { OkButtonText = L["Btn_Delete"], CancelButtonText = L["Btn_Cancel"] });
+
+        if (confirm != true) return;
+
+        try
+        {
+            var login = CurrentUserService.GetUserLogin();
+            if (_selectedDeptContext != null)
+            {
+                await WorkflowService.DeleteWorkflowEtapesCrossAsync(
+                    _bonType, _selectedRaison.RaisonSortieCode, _selectedDeptContext, login);
+                NotificationService.Notify(NotificationSeverity.Info,
+                    "Exception supprimée", $"Exception {nomAffiche} supprimée.");
+                var deptToRemove = _selectedDeptContext;
+                _deptOverrides.RemoveAll(d => d.Code == deptToRemove);
+
+                if (_deptOverrides.Count > 0)
+                {
+                    // Encore des exceptions → sélectionner la première restante
+                    _selectedDeptContext = null; // reset pour que SwitchDept ne court-circuite pas
+                    await SwitchDeptContextAsync(_deptOverrides[0].Code);
+                }
+                else
+                {
+                    // Plus d’exception → revenir en vue simple
+                    _selectedDeptContext = null;
+                    _standardEtapes = new();
+                    _editingIdxStd = -1;
+                    var std = await WorkflowService.GetWorkflowEtapesForAdminAsync(
+                        _bonType, _selectedRaison?.RaisonSortieCode);
+                    _etapes = std.Select(e => new WorkflowEtapeConfig
+                    {
+                        RoleCode = e.RoleCode, NomEtape = e.NomEtape,
+                        OrdreEtape = e.OrdreEtape, EstActif = e.EstActif,
+                    }).ToList();
+                    _editingIdx = -1;
+                    StateHasChanged();
+                }
+            }
+            else
+            {
+                await WorkflowService.DeleteWorkflowEtapesAsync(
+                    _bonType, _selectedRaison.RaisonSortieCode, login);
+                NotificationService.Notify(NotificationSeverity.Info,
+                    L["Wfl_NotifResetTitle"],
+                    $"Workflow {nomAffiche} réinitialisé.");
+                BackToSelector();
+                await LoadAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"], ex.Message);
+        }
+    }
+
+    // ── Propriétés calculées (bannière phase 2) ─────────────────────────────
+    private RaisonSortie? _bannerRaison =>
+        _raisons.FirstOrDefault(r => r.Code == _selectedRaison?.RaisonSortieCode);
+
+    private string _bannerIcon =>
+        _selectedRaison?.RaisonSortieCode == null ? "all_inclusive" : (_bannerRaison?.Icone ?? "category");
+
+    // ── Helpers d'affichage ─────────────────────────────────────────────────
+    private static (BadgeStyle style, string icon) SourceBadge(string source) => source switch
+    {
+        "Spécifique raison" => (BadgeStyle.Primary,   "star"),
+        "Base de données"   => (BadgeStyle.Primary,   "storage"),
+        "Hérité générique"  => (BadgeStyle.Info,      "arrow_downward"),
+        "Défaut métier"     => (BadgeStyle.Secondary, "code"),
+        _                   => (BadgeStyle.Light,     "help"),
+    };
+
+    private static string SourceShort(string source) => source switch
+    {
+        "Spécifique raison" => "Spécifique",
+        "Base de données"   => "Configuré",
+        "Hérité générique"  => "Hérité",
+        "Défaut métier"     => "Défaut",
+        _                   => source,
+    };
 }

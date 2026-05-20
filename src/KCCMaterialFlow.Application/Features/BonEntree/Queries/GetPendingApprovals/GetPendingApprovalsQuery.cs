@@ -9,7 +9,9 @@ namespace KCCMaterialFlow.Application.Features.BonEntree.Queries.GetPendingAppro
 
 public sealed record GetPendingApprovalsQuery() : IRequest<Result<IReadOnlyList<BonEntreeListDto>>>;
 
-public sealed class GetPendingApprovalsQueryHandler(IApplicationDbContext dbContext)
+public sealed class GetPendingApprovalsQueryHandler(
+    IApplicationDbContext dbContext,
+    ICurrentUserService currentUserService)
     : IRequestHandler<GetPendingApprovalsQuery, Result<IReadOnlyList<BonEntreeListDto>>>
 {
     private static readonly StatutBonEntree[] PendingStatuses =
@@ -24,9 +26,17 @@ public sealed class GetPendingApprovalsQueryHandler(IApplicationDbContext dbCont
     public async Task<Result<IReadOnlyList<BonEntreeListDto>>> Handle(
         GetPendingApprovalsQuery query, CancellationToken ct)
     {
+        // Récupérer l'utilisateur actuel
+        var currentEmployee = currentUserService.GetCurrentEmployee();
+        if (currentEmployee?.Id == null)
+        {
+            return new List<BonEntreeListDto>();
+        }
+
+        // Afficher les bons où cet utilisateur est le prochain approbateur assigné
         var items = await dbContext.BonsEntree
             .AsNoTracking()
-            .Where(b => PendingStatuses.Contains(b.Statut))
+            .Where(b => PendingStatuses.Contains(b.Statut) && b.ProchainApprobateurId == currentEmployee.Id)
             .OrderByDescending(b => b.DateCreation)
             .Select(b => new BonEntreeListDto
             {

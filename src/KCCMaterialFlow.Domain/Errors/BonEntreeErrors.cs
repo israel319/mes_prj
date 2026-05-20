@@ -49,4 +49,10 @@ public static class BonEntreeErrors
 
     public static Error DejaVerrouille(string bonSortieNumero) =>
         Error.Conflict("BonEntree.DejaVerrouille", $"Déjà verrouillé par le bon de sortie '{bonSortieNumero}'.");
+
+    public static readonly Error NonApprobateurEtape =
+        Error.Validation("BonEntree.NonApprobateurEtape", "Vous n'êtes pas l'approbateur désigné de l'étape en cours.");
+
+    public static readonly Error AdminNonAutorise =
+        Error.Validation("BonEntree.AdminNonAutorise", "Les rôles Admin et SuperAdmin ne sont pas autorisés à approuver ou rejeter un bon.");
 }

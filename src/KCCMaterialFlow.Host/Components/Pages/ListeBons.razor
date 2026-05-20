@@ -1,4 +1,4 @@
-@page "/liste-bons"
+﻿@page "/liste-bons"
 @page "/liste-bons/{TabName?}"
 @page "/mes-bons"
 @attribute [Authorize]
@@ -19,60 +19,65 @@
 @inject NotificationService NotificationService
 @inject DialogService DialogService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Gestion des Bons - KCC Material Flow</PageTitle>
+<PageTitle>@L["ListeBons_Title"] — KCC Material Flow</PageTitle>
 
-<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
-    @* === PAGE HEADER === *@
-    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
-        <RadzenStack Gap="0.25rem">
-            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
-                @(selectedTabIndex switch { 0 => "Bons d'entrée", 1 => "Bons de sortie", 2 => "Prêts", _ => "Bons" })
-            </RadzenText>
-            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin-top: 0.25rem;">
-                Traçabilité complète des bons de matériel • @CurrentUserService.GetUserDisplayName()
-            </RadzenText>
-        </RadzenStack>
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
-            @if (CanExport)
-            {
-                <RadzenButton Text="Exporter Excel" Icon="download"
-                              ButtonStyle="ButtonStyle.Success" Variant="Variant.Outlined"
-                              Click="@ExportExcel" />
-            }
-            <RadzenButton Icon="refresh" Text="Actualiser" Variant="Variant.Outlined"
-                          ButtonStyle="ButtonStyle.Secondary" Click="@LoadDataAsync" />
-            <RadzenButton Text="@(selectedTabIndex == 0 ? "Nouveau bon d'entrée" : "Nouveau bon de sortie")"
-                          Icon="add_circle" ButtonStyle="ButtonStyle.Primary"
-                          Click="@(() => NavigateTo(selectedTabIndex == 0 ? "/bon-entree/nouveau" : "/bon-sortie/nouveau"))" />
-        </RadzenStack>
-    </RadzenStack>
-
-    @* === FILTRES === *@
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">
+                    @(selectedTabIndex switch { 0 => L["ListeBons_Entries"].Value, 1 => L["ListeBons_Exits"].Value, 2 => L["Dash_Loans"].Value, _ => L["ListeBons_TabFallback"].Value })
+                </h1>
+                <p class="kcp-subtitle">@L["ListeBons_Subtitle"] • @CurrentUserService.GetUserDisplayName()</p>
+            </div>
+            <div class="kcp-hero-actions">
+                @if (CanExport)
+                {
+                    <button class="kcp-btn" type="button" @onclick="ExportExcel">
+                        <RadzenIcon Icon="download" Style="font-size:1rem;" />
+                        @L["ListeBons_ExportExcel"]
+                    </button>
+                }
+                <button class="kcp-btn" type="button" @onclick="LoadDataAsync">
+                    <RadzenIcon Icon="refresh" Style="font-size:1rem;" />
+                    @L["Btn_Refresh"]
+                </button>
+                <button class="kcp-btn kcp-btn-primary" type="button"
+                        @onclick="@(() => NavigateTo(selectedTabIndex == 0 ? "/bon-entree/nouveau" : "/bon-sortie/nouveau"))">
+                    <RadzenIcon Icon="add_circle" Style="font-size:1rem;" />
+                    @(selectedTabIndex == 0 ? L["Btn_NewBEM"].Value : L["Btn_NewBSM"].Value)
+                </button>
+            </div>
+        </div>
+    </div>
+    <main class="kcp-main">
+        @* === FILTRES === *@
     <RadzenCard>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Wrap="FlexWrap.Wrap" Gap="1rem" Style="padding: 0.5rem 0;">
             <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Rechercher</RadzenText>
-                <RadzenTextBox @bind-Value="@searchTerm" Placeholder="Référence, compagnie, demandeur..."
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">@L["Lbl_Search"]</RadzenText>
+                <RadzenTextBox @bind-Value="@searchTerm" Placeholder="@L["ListeBons_SearchPlaceholder"]"
                                Style="min-width: 250px;" />
             </RadzenStack>
             <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Statut</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">@L["Lbl_Status"]</RadzenText>
                 <RadzenDropDown @bind-Value="@selectedStatut" Data="@statutOptions"
                                 TextProperty="Text" ValueProperty="Value"
-                                Placeholder="Tous" AllowClear="true"
+                                Placeholder="@L["Lbl_All"]" AllowClear="true"
                                 Style="min-width: 150px;" />
             </RadzenStack>
             <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Date début</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">@L["ListeBons_DateFrom"]</RadzenText>
                 <RadzenDatePicker @bind-Value="@dateDebut" DateFormat="dd/MM/yyyy" Style="min-width: 140px;" />
             </RadzenStack>
             <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Date fin</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">@L["ListeBons_DateTo"]</RadzenText>
                 <RadzenDatePicker @bind-Value="@dateFin" DateFormat="dd/MM/yyyy" Style="min-width: 140px;" />
             </RadzenStack>
-            <RadzenButton Icon="search" Text="Filtrer" Click="@ApplyFilter" ButtonStyle="ButtonStyle.Primary" />
-            <RadzenButton Icon="clear" Text="Effacer" Click="@ResetFilter"
+            <RadzenButton Icon="search" Text="@L["Btn_Filter"]" Click="@ApplyFilter" ButtonStyle="ButtonStyle.Primary" />
+            <RadzenButton Icon="clear" Text="@L["Btn_Clear"]" Click="@ResetFilter"
                           ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" class="kcc-btn-clear" />
         </RadzenStack>
     </RadzenCard>
@@ -82,87 +87,58 @@
         <RadzenTabs @bind-SelectedIndex="@selectedTabIndex" Change="@OnTabChange">
             <Tabs>
                 @* === TAB BEM === *@
-                <RadzenTabsItem Text="@($"Entrées ({filteredBEMSummary.Count})")">
+                <RadzenTabsItem Text="@(L["ListeBons_Entries"].Value + " (" + filteredBEMSummary.Count + ")")">
                     <RadzenDataGrid Data="@filteredBEMSummary" TItem="BonSummary"
-                                    AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                                    AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
                                     AllowSorting="true" AllowColumnResize="true"
                                     Style="margin-top: 0.5rem;"
-                                    EmptyText="Aucun bon d'entrée trouvé"
-                                    Density="Density.Compact">
-                        <Template Context="bon">
-                            <div style="padding: 0.5rem 1rem; background: var(--rz-base-100, #f8f9fa);">
-                                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                                    <thead>
-                                        <tr style="border-bottom: 1px solid #dee2e6; color: #6c757d; font-size: 0.78rem;">
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600; width: 130px;">Date</th>
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600; width: 110px;">Action</th>
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600;">Par</th>
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600;">Commentaire</th>
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600; width: 150px;">Résultat</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (bon.Details.Any())
-                                        {
-                                            @foreach (var detail in bon.Details)
-                                            {
-                                                <tr style="border-bottom: 1px solid #f0f0f0;">
-                                                    <td style="padding: 0.3rem 0.5rem; color: #6c757d; white-space: nowrap;">@detail.DateAction.ToString("dd/MM/yyyy HH:mm")</td>
-                                                    <td style="padding: 0.3rem 0.5rem;">
-                                                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; @GetTimelineDotStyle(detail.Action)"></span>
-                                                        <span style="font-weight: 500;">@GetActionLabel(detail.Action)</span>
-                                                    </td>
-                                                    <td style="padding: 0.3rem 0.5rem;">@detail.ActionPar</td>
-                                                    <td style="padding: 0.3rem 0.5rem; color: #6c757d; font-style: italic;">@(string.IsNullOrEmpty(detail.Commentaire) ? "—" : detail.Commentaire)</td>
-                                                    <td style="padding: 0.3rem 0.5rem;">
-                                                        <span style="font-size: 0.8rem; color: @GetActionResultColor(detail.Action); font-weight: 500;">@GetActionResultText(detail.Action)</span>
-                                                        @if (!string.IsNullOrEmpty(detail.StatutApres))
-                                                        {
-                                                            <span style="font-size: 0.75rem; color: #6c757d; margin-left: 0.25rem;">→ @GetStatutLabel(detail.StatutApres)</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <tr><td colspan="5" style="padding: 0.5rem; color: #999; font-style: italic;">Aucun historique enregistré.</td></tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Template>
+                                    EmptyText="@L["ListeBons_NoEntries"]"
+                                    Density="Density.Compact"
+                                    GridLines="DataGridGridLines.Horizontal">
                         <Columns>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="NumeroReference" Title="Référence" Width="160px">
+                            <RadzenDataGridColumn TItem="BonSummary" Property="NumeroReference" Title="@L["Col_Reference"]" Width="170px">
                                 <Template Context="bon">
-                                    <a href="@($"/bon-entree/{bon.BonId}")" style="font-weight: 600; text-decoration: none; color: var(--kcc-primary);">
-                                        @bon.NumeroReference
-                                    </a>
+                                    <RadzenStack Gap="0">
+                                        <a href="@($"/bon-entree/{bon.BonId}")" style="font-weight: 600; text-decoration: none; color: var(--kcc-primary);">
+                                            @bon.NumeroReference
+                                        </a>
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); margin: 0;">
+                                            @bon.DateDerniereAction.ToString("dd/MM/yyyy")
+                                        </RadzenText>
+                                    </RadzenStack>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="NomCompagnie" Title="Compagnie" />
-                            <RadzenDataGridColumn TItem="BonSummary" Property="NomDemandeur" Title="Demandeur" Width="160px" />
-                            <RadzenDataGridColumn TItem="BonSummary" Property="StatutActuel" Title="Statut" Width="160px">
+                            <RadzenDataGridColumn TItem="BonSummary" Property="NomCompagnie" Title="@L["Col_Company"]" />
+                            <RadzenDataGridColumn TItem="BonSummary" Property="NomDemandeur" Title="@L["Col_Requester"]" Width="180px" />
+                            <RadzenDataGridColumn TItem="BonSummary" Property="StatutActuel" Title="@L["Col_Status"]" Width="170px">
                                 <Template Context="bon">
-                                    <span style="font-weight: 500; color: @GetStatutColor(bon.StatutActuel);">@GetStatutLabel(bon.StatutActuel)</span>
+                                    <RadzenStack Gap="0.15rem">
+                                        <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" BadgeStyle="@GetStatutBadgeStyle(bon.StatutActuel)" />
+                                        @if (!string.IsNullOrWhiteSpace(bon.CurrentApproverName))
+                                        {
+                                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-600); margin: 0;">@L["Lbl_At"] @bon.CurrentApproverName</RadzenText>
+                                        }
+                                    </RadzenStack>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="DerniereAction" Title="Dernière action" Width="200px">
+                            <RadzenDataGridColumn TItem="BonSummary" Property="DerniereAction" Title="@L["ListeBons_LastAction"]" Width="220px">
                                 <Template Context="bon">
                                     <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; @GetTimelineDotStyle(bon.DerniereAction)"></span>
                                     <span style="font-weight: 500;">@GetActionLabel(bon.DerniereAction)</span>
-                                    <span style="margin-left: 0.25rem; font-size: 0.83rem; color: #6c757d;">par @bon.DernierActionPar</span>
+                                    <span style="margin-left: 0.25rem; font-size: 0.83rem; color: #6c757d;">@L["Lbl_By"] @bon.DernierActionPar</span>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="DateDerniereAction" Title="Date" Width="145px"
+                            <RadzenDataGridColumn TItem="BonSummary" Property="DateDerniereAction" Title="@L["Col_Date"]" Width="150px"
                                                   SortOrder="SortOrder.Descending">
                                 <Template Context="bon">
                                     @bon.DateDerniereAction.ToString("dd/MM/yyyy HH:mm")
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="NbActions" Title="Actions" Width="80px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="BonSummary" Title="@L["Col_Actions"]" Width="130px" TextAlign="TextAlign.Right" Sortable="false">
                                 <Template Context="bon">
-                                    <RadzenBadge Text="@bon.NbActions.ToString()" BadgeStyle="BadgeStyle.Light" />
+                                    <RadzenButton Icon="visibility" Text="@L["Rejets_Detail"]" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                                  ButtonStyle="ButtonStyle.Primary"
+                                                  Click="@(() => NavigateTo($"/bon-entree/{bon.BonId}"))" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -170,91 +146,62 @@
                 </RadzenTabsItem>
 
                 @* === TAB BSM === *@
-                <RadzenTabsItem Text="@($"Sorties ({filteredBSMSummary.Count})")">
+                <RadzenTabsItem Text="@(L["ListeBons_Exits"].Value + " (" + filteredBSMSummary.Count + ")")">
                     <RadzenDataGrid Data="@filteredBSMSummary" TItem="BonSummary"
-                                    AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                                    AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
                                     AllowSorting="true" AllowColumnResize="true"
                                     Style="margin-top: 0.5rem;"
-                                    EmptyText="Aucun bon de sortie trouvé"
-                                    Density="Density.Compact">
-                        <Template Context="bon">
-                            <div style="padding: 0.5rem 1rem; background: var(--rz-base-100, #f8f9fa);">
-                                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                                    <thead>
-                                        <tr style="border-bottom: 1px solid #dee2e6; color: #6c757d; font-size: 0.78rem;">
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600; width: 130px;">Date</th>
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600; width: 110px;">Action</th>
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600;">Par</th>
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600;">Commentaire</th>
-                                            <th style="padding: 0.35rem 0.5rem; font-weight: 600; width: 150px;">Résultat</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @if (bon.Details.Any())
-                                        {
-                                            @foreach (var detail in bon.Details)
-                                            {
-                                                <tr style="border-bottom: 1px solid #f0f0f0;">
-                                                    <td style="padding: 0.3rem 0.5rem; color: #6c757d; white-space: nowrap;">@detail.DateAction.ToString("dd/MM/yyyy HH:mm")</td>
-                                                    <td style="padding: 0.3rem 0.5rem;">
-                                                        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; @GetTimelineDotStyle(detail.Action)"></span>
-                                                        <span style="font-weight: 500;">@GetActionLabel(detail.Action)</span>
-                                                    </td>
-                                                    <td style="padding: 0.3rem 0.5rem;">@detail.ActionPar</td>
-                                                    <td style="padding: 0.3rem 0.5rem; color: #6c757d; font-style: italic;">@(string.IsNullOrEmpty(detail.Commentaire) ? "—" : detail.Commentaire)</td>
-                                                    <td style="padding: 0.3rem 0.5rem;">
-                                                        <span style="font-size: 0.8rem; color: @GetActionResultColor(detail.Action); font-weight: 500;">@GetActionResultText(detail.Action)</span>
-                                                        @if (!string.IsNullOrEmpty(detail.StatutApres))
-                                                        {
-                                                            <span style="font-size: 0.75rem; color: #6c757d; margin-left: 0.25rem;">→ @GetStatutLabel(detail.StatutApres)</span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <tr><td colspan="5" style="padding: 0.5rem; color: #999; font-style: italic;">Aucun historique enregistré.</td></tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Template>
+                                    EmptyText="@L["ListeBons_NoExits"]"
+                                    Density="Density.Compact"
+                                    GridLines="DataGridGridLines.Horizontal">
                         <Columns>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="NumeroReference" Title="Référence" Width="160px">
+                            <RadzenDataGridColumn TItem="BonSummary" Property="NumeroReference" Title="@L["Col_Reference"]" Width="170px">
                                 <Template Context="bon">
-                                    <a href="@($"/bon-sortie/{bon.BonId}")" style="font-weight: 600; text-decoration: none; color: var(--kcc-primary);">
-                                        @bon.NumeroReference
-                                    </a>
+                                    <RadzenStack Gap="0">
+                                        <a href="@($"/bon-sortie/{bon.BonId}")" style="font-weight: 600; text-decoration: none; color: var(--kcc-primary);">
+                                            @bon.NumeroReference
+                                        </a>
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); margin: 0;">
+                                            @bon.DateDerniereAction.ToString("dd/MM/yyyy")
+                                        </RadzenText>
+                                    </RadzenStack>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="TypeBon" Title="Type" Width="100px">
+                            <RadzenDataGridColumn TItem="BonSummary" Property="TypeBon" Title="@L["Col_Type"]" Width="110px">
                                 <Template Context="bon">
                                     <RadzenBadge Text="@bon.TypeBon" BadgeStyle="BadgeStyle.Secondary" />
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="NomDemandeur" Title="Demandeur" Width="150px" />
-                            <RadzenDataGridColumn TItem="BonSummary" Property="StatutActuel" Title="Statut" Width="160px">
+                            <RadzenDataGridColumn TItem="BonSummary" Property="NomDemandeur" Title="@L["Col_Requester"]" Width="160px" />
+                            <RadzenDataGridColumn TItem="BonSummary" Property="StatutActuel" Title="@L["Col_Status"]" Width="170px">
                                 <Template Context="bon">
-                                    <span style="font-weight: 500; color: @GetStatutColor(bon.StatutActuel);">@GetStatutLabel(bon.StatutActuel)</span>
+                                    <RadzenStack Gap="0.15rem">
+                                        <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" BadgeStyle="@GetStatutBadgeStyle(bon.StatutActuel)" />
+                                        @if (!string.IsNullOrWhiteSpace(bon.CurrentApproverName))
+                                        {
+                                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-600); margin: 0;">@L["Lbl_At"] @bon.CurrentApproverName</RadzenText>
+                                        }
+                                    </RadzenStack>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="DerniereAction" Title="Dernière action" Width="200px">
+                            <RadzenDataGridColumn TItem="BonSummary" Property="DerniereAction" Title="@L["ListeBons_LastAction"]" Width="220px">
                                 <Template Context="bon">
                                     <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; @GetTimelineDotStyle(bon.DerniereAction)"></span>
                                     <span style="font-weight: 500;">@GetActionLabel(bon.DerniereAction)</span>
-                                    <span style="margin-left: 0.25rem; font-size: 0.83rem; color: #6c757d;">par @bon.DernierActionPar</span>
+                                    <span style="margin-left: 0.25rem; font-size: 0.83rem; color: #6c757d;">@L["Lbl_By"] @bon.DernierActionPar</span>
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="DateDerniereAction" Title="Date" Width="145px"
+                            <RadzenDataGridColumn TItem="BonSummary" Property="DateDerniereAction" Title="@L["Col_Date"]" Width="150px"
                                                   SortOrder="SortOrder.Descending">
                                 <Template Context="bon">
                                     @bon.DateDerniereAction.ToString("dd/MM/yyyy HH:mm")
                                 </Template>
                             </RadzenDataGridColumn>
-                            <RadzenDataGridColumn TItem="BonSummary" Property="NbActions" Title="Actions" Width="80px" TextAlign="TextAlign.Center">
+                            <RadzenDataGridColumn TItem="BonSummary" Title="@L["Col_Actions"]" Width="130px" TextAlign="TextAlign.Right" Sortable="false">
                                 <Template Context="bon">
-                                    <RadzenBadge Text="@bon.NbActions.ToString()" BadgeStyle="BadgeStyle.Light" />
+                                    <RadzenButton Icon="visibility" Text="@L["Rejets_Detail"]" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                                  ButtonStyle="ButtonStyle.Primary"
+                                                  Click="@(() => NavigateTo($"/bon-sortie/{bon.BonId}"))" />
                                 </Template>
                             </RadzenDataGridColumn>
                         </Columns>
@@ -262,13 +209,14 @@
                 </RadzenTabsItem>
 
                 @* === TAB PRÊTS === *@
-                <RadzenTabsItem Text="@($"Prêts ({filteredPretsSummary.Count})")">
+                <RadzenTabsItem Text="@(L["Dash_Loans"].Value + " (" + filteredPretsSummary.Count + ")")">
                     <RadzenDataGrid Data="@filteredPretsSummary" TItem="PretSummary"
-                                    AllowPaging="true" PageSize="15" PagerHorizontalAlign="HorizontalAlign.Center"
+                                    AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
                                     AllowSorting="true" AllowColumnResize="true"
                                     Style="margin-top: 0.5rem;"
-                                    EmptyText="Aucun prêt trouvé"
-                                    Density="Density.Compact">
+                                    EmptyText="@L["ListeBons_NoLoans"]"
+                                    Density="Density.Compact"
+                                    GridLines="DataGridGridLines.Horizontal">
                         <Columns>
                             @* Indicateur échéance *@
                             <RadzenDataGridColumn TItem="PretSummary" Width="50px" Sortable="false" Filterable="false">
@@ -282,7 +230,7 @@
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="PretSummary" Property="NumeroReference" Title="Référence" Width="160px">
+                            <RadzenDataGridColumn TItem="PretSummary" Property="NumeroReference" Title="@L["Col_Reference"]" Width="160px">
                                 <Template Context="pret">
                                     <a href="@($"/bon-sortie/{pret.BonId}")" style="font-weight: 600; text-decoration: none; color: var(--kcc-primary);">
                                         @pret.NumeroReference
@@ -290,20 +238,20 @@
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="PretSummary" Property="NomDemandeur" Title="Demandeur" Width="160px" />
-                            <RadzenDataGridColumn TItem="PretSummary" Property="NomDestinataire" Title="Destinataire" Width="140px" />
+                            <RadzenDataGridColumn TItem="PretSummary" Property="NomDemandeur" Title="@L["Col_Requester"]" Width="160px" />
+                            <RadzenDataGridColumn TItem="PretSummary" Property="NomDestinataire" Title="@L["ListeBons_Destination"]" Width="140px" />
 
-                            <RadzenDataGridColumn TItem="PretSummary" Property="DateCreation" Title="Date sortie" Width="110px">
+                            <RadzenDataGridColumn TItem="PretSummary" Property="DateCreation" Title="@L["ListeBons_DateSortie"]" Width="110px">
                                 <Template Context="pret">@pret.DateCreation.ToString("dd/MM/yyyy")</Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="PretSummary" Property="DateRetourPrevue" Title="Retour prévu" Width="120px" SortOrder="SortOrder.Ascending">
+                            <RadzenDataGridColumn TItem="PretSummary" Property="DateRetourPrevue" Title="@L["ListeBons_ReturnDate"]" Width="120px" SortOrder="SortOrder.Ascending">
                                 <Template Context="pret">
                                     <span style="@GetDateRetourStyle(pret)">@pret.DateRetourPrevue.ToString("dd/MM/yyyy")</span>
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="PretSummary" Title="Échéance" Width="120px" Sortable="false">
+                            <RadzenDataGridColumn TItem="PretSummary" Title="@L["ListeBons_Deadline"]" Width="120px" Sortable="false">
                                 <Template Context="pret">
                                     @{
                                         var (badgeStyle, text) = GetEcheanceBadge(pret);
@@ -312,25 +260,25 @@
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="PretSummary" Property="NbMateriels" Title="Mat." Width="60px" TextAlign="TextAlign.Center" />
+                            <RadzenDataGridColumn TItem="PretSummary" Property="NbMateriels" Title="@L["Appro_Materials"]" Width="60px" TextAlign="TextAlign.Center" />
 
-                            <RadzenDataGridColumn TItem="PretSummary" Property="StatutActuel" Title="Statut" Width="120px">
+                            <RadzenDataGridColumn TItem="PretSummary" Property="StatutActuel" Title="@L["Col_Status"]" Width="160px">
                                 <Template Context="pret">
-                                    <span style="font-weight: 500; color: @GetStatutColor(pret.StatutActuel);">@GetStatutLabel(pret.StatutActuel)</span>
+                                    <RadzenBadge Text="@GetStatutLabel(pret.StatutActuel)" BadgeStyle="@GetStatutBadgeStyle(pret.StatutActuel)" />
                                 </Template>
                             </RadzenDataGridColumn>
 
-                            <RadzenDataGridColumn TItem="PretSummary" Title="" Width="140px" TextAlign="TextAlign.Center" Sortable="false">
+                            <RadzenDataGridColumn TItem="PretSummary" Title="@L["Col_Actions"]" Width="140px" TextAlign="TextAlign.Center" Sortable="false">
                                 <Template Context="pret">
                                     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
-                                        <RadzenButton Icon="visibility" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Info"
-                                            Click="@(() => NavigateTo($"/bon-sortie/{pret.BonId}"))" title="Voir" />
+                                        <RadzenButton Icon="visibility" Text="@L["Rejets_Detail"]" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Outlined"
+                                            Click="@(() => NavigateTo($"/bon-sortie/{pret.BonId}"))" />
                                         @if (!pret.EstRetourne && pret.StatutActuel == "Approved")
                                         {
                                             <RadzenButton Icon="assignment_return" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Success"
-                                                Click="@(() => EnregistrerRetourPret(pret))" title="Retour" />
+                                                Click="@(() => EnregistrerRetourPret(pret))" title="@L["ListeBons_LoanReturn"]" />
                                             <RadzenButton Icon="event" Size="ButtonSize.Small" ButtonStyle="ButtonStyle.Warning"
-                                                Click="@(() => DemanderExtensionPret(pret))" title="Extension" />
+                                                Click="@(() => DemanderExtensionPret(pret))" title="@L["ListeBons_Extension"]" />
                                         }
                                     </RadzenStack>
                                 </Template>
@@ -341,7 +289,8 @@
             </Tabs>
         </RadzenTabs>
     </RadzenCard>
-</RadzenStack>
+    </main>
+</div>
 
 @code {
     [Parameter] public string? TabName { get; set; }
@@ -372,6 +321,32 @@
 
     private List<StatutOption> statutOptions = new();
     private List<Statut> allDbStatuts = new();
+
+    // Noms des approbateurs par rôle (chargés depuis la BD), ex. "OPJ" -> "Dan"
+    private Dictionary<string, string> approverNamesByRole = new(StringComparer.OrdinalIgnoreCase);
+
+    // Mapping suffixe statut -> code de rôle en BD
+    private static readonly Dictionary<string, string> PendingSuffixToRoleCode = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["SUP"] = "SUPERVISEUR",
+        ["SUPERVISEUR"] = "SUPERVISEUR",
+        ["GM"] = "GM",
+        ["OPJ"] = "OPJ",
+        ["IDENTIFICATION"] = "IDENTIFICATION",
+        ["IT"] = "IT",
+        ["ENV"] = "ENVIRONNEMENT"
+    };
+
+    // Libellé affiché pour chaque rôle
+    private static readonly Dictionary<string, string> RoleCodeToLabel = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["SUPERVISEUR"] = "Superviseur",
+        ["GM"] = "GM",
+        ["OPJ"] = "OPJ",
+        ["IDENTIFICATION"] = "Identification",
+        ["IT"] = "IT",
+        ["ENVIRONNEMENT"] = "Environnement"
+    };
 
     private static readonly Dictionary<string, string[]> CodeStatutToActuelMap = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -412,10 +387,19 @@
 
         allDbStatuts = (await StatutService.GetAllAsync()).ToList();
         statutOptions = allDbStatuts
-            .Select(s => new StatutOption { Text = s.LibelleStatut, Value = s.CodeStatut })
+            .Select(s => new StatutOption { Text = GetStatutLabelByCode(s.CodeStatut, s.LibelleStatut), Value = s.CodeStatut })
             .ToList();
 
+        await LoadApproverNamesAsync();
+
         await LoadDataAsync();
+    }
+
+    private Task LoadApproverNamesAsync()
+    {
+        // Désactivé : remplace par lookup Employee/Workflow lors de Phase 4.
+        approverNamesByRole.Clear();
+        return Task.CompletedTask;
     }
 
     private void OnTabChange(int index)
@@ -529,6 +513,11 @@
                     NomCompagnie = bon.NomCompagnie,
                     NomDemandeur = bon.NomDemandeur,
                     StatutActuel = bon.StatutActuel,
+                    CurrentApproverName = bon.Approbations
+                        .Where(a => a.Decision == "En attente")
+                        .OrderBy(a => a.OrdreEtape)
+                        .Select(a => a.NomApprobateur)
+                        .FirstOrDefault(),
                     DerniereAction = derniere.Action,
                     DernierActionPar = derniere.ActionPar,
                     DateDerniereAction = derniere.DateAction,
@@ -575,6 +564,11 @@
                     NomCompagnie = GetCompagnieBSM(bon),
                     NomDemandeur = bon.NomDemandeur,
                     StatutActuel = bon.StatutActuel,
+                    CurrentApproverName = bon.Approbations
+                        .Where(a => a.Decision == "En attente")
+                        .OrderBy(a => a.OrdreEtape)
+                        .Select(a => a.NomApprobateur)
+                        .FirstOrDefault(),
                     DerniereAction = derniere.Action,
                     DernierActionPar = derniere.ActionPar,
                     DateDerniereAction = derniere.DateAction,
@@ -784,30 +778,59 @@
         if (string.IsNullOrEmpty(s)) return "-";
         var upper = s.ToUpperInvariant();
 
-        foreach (var dbStatut in allDbStatuts)
+        // Tout statut "Pending*" → libellé localisé
+        if (upper.StartsWith("PENDING")) return L["Status_Pending"].Value;
+
+        // Mapper le code statut interne vers une clé de ressource localisée
+        return upper switch
         {
-            if (CodeStatutToActuelMap.TryGetValue(dbStatut.CodeStatut, out var prefixes))
-            {
-                if (prefixes.Any(p => upper.StartsWith(p.ToUpperInvariant())))
-                {
-                    if (isAdmin && upper.StartsWith("PENDING") && dbStatut.CodeStatut.Equals("EN_ATTENTE_APPROBATION", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return upper switch
-                        {
-                            "PENDINGSUP" or "PENDINGSUPERVISEUR" => "Chez Superviseur",
-                            "PENDINGGM" => "Chez GM",
-                            "PENDINGOPJ" => "Chez OPJ",
-                            "PENDINGIDENTIFICATION" => "Chez Identification",
-                            "PENDINGIT" => "Chez IT",
-                            "PENDINGENV" => "Chez Environnement",
-                            _ => $"Chez {s.Replace("Pending", "")}"
-                        };
-                    }
-                    return dbStatut.LibelleStatut;
-                }
-            }
-        }
-        return s;
+            "DRAFT"         => L["Status_Draft"].Value,
+            "APPROVED"      => L["Status_Approved"].Value,
+            "REJECTED"      => L["Status_Rejected"].Value,
+            "INTRANSIT"     => L["Status_InProgress"].Value,
+            "COMPLETED"     => L["Status_Completed"].Value,
+            "CANCELLED"     => L["Status_Cancelled"].Value,
+            "RETURNED"      => L["Status_Returned"].Value,
+            _               => s
+        };
+    }
+
+    private string GetStatutLabelByCode(string? code, string fallback)
+    {
+        if (string.IsNullOrEmpty(code)) return fallback;
+        return code.ToUpperInvariant() switch
+        {
+            "BROUILLON"              => L["Status_Draft"].Value,
+            "EN_ATTENTE_APPROBATION" => L["Status_Pending"].Value,
+            "APPROUVE"               => L["Status_Approved"].Value,
+            "REJETE"                 => L["Status_Rejected"].Value,
+            "EN_COURS"               => L["Status_InProgress"].Value,
+            "TERMINE"                => L["Status_Completed"].Value,
+            "ANNULE"                 => L["Status_Cancelled"].Value,
+            "RETOURNE"               => L["Status_Returned"].Value,
+            _                        => fallback
+        };
+    }
+
+    private static BadgeStyle GetStatutBadgeStyle(string? s)
+    {
+        if (string.IsNullOrEmpty(s)) return BadgeStyle.Light;
+        var upper = s.ToUpperInvariant();
+        if (upper.StartsWith("PENDING")) return BadgeStyle.Warning;
+        return upper switch
+        {
+            "DRAFT" => BadgeStyle.Light,
+            "APPROVED" => BadgeStyle.Success,
+            "REJECTED" => BadgeStyle.Danger,
+            "INTRANSIT" => BadgeStyle.Info,
+            "COMPLETED" => BadgeStyle.Success,
+            "EXPIRED" => BadgeStyle.Danger,
+            "CANCELLED" => BadgeStyle.Secondary,
+            "RETURNED" => BadgeStyle.Info,
+            "ARCHIVED" => BadgeStyle.Secondary,
+            "INVESTIGATION" => BadgeStyle.Warning,
+            _ => BadgeStyle.Light
+        };
     }
 
     private string GetStatutColor(string? s)
@@ -826,70 +849,85 @@
         return "#6c757d";
     }
 
-    private static string GetActionLabel(string action)
+    // Retourne une clé stable (EN) indépendante de la langue de la DB
+    private static string GetActionKey(string action)
     {
         var lower = action.ToLowerInvariant();
-        if (lower.Contains("créat") || lower.Contains("creat") || lower == "nouveau") return "Nouveau";
-        if (lower.Contains("soumis") || lower.Contains("submit") || lower.Contains("envoyé")) return "Envoyé";
-        if (lower.Contains("appro") || lower.Contains("validé")) return "Validé";
-        if (lower.Contains("rejet") || lower.Contains("reject") || lower.Contains("refus")) return "Refusé";
-        if (lower.Contains("retour") || lower.Contains("renvoyé")) return "Renvoyé";
-        if (lower.Contains("modif")) return "Modifié";
-        if (lower.Contains("annul")) return "Annulé";
-        if (lower.Contains("qr")) return "QR Code";
-        if (lower.Contains("scan")) return "Scanné";
+        if (lower.Contains("créat") || lower.Contains("creat") || lower == "nouveau") return "Created";
+        if (lower.Contains("soumis") || lower.Contains("submit") || lower.Contains("envoyé")) return "Submitted";
+        if (lower.Contains("appro") || lower.Contains("validé")) return "Approved";
+        if (lower.Contains("rejet") || lower.Contains("reject") || lower.Contains("refus")) return "Rejected";
+        if (lower.Contains("retour") || lower.Contains("renvoyé")) return "Returned";
+        if (lower.Contains("modif")) return "Modified";
+        if (lower.Contains("annul")) return "Cancelled";
+        if (lower.Contains("qr")) return "QRCode";
+        if (lower.Contains("scan")) return "Scanned";
         return action;
+    }
+
+    private string GetActionLabel(string action)
+    {
+        return GetActionKey(action) switch
+        {
+            "Created"   => L["Action_Created"].Value,
+            "Submitted" => L["Action_Submitted"].Value,
+            "Approved"  => L["Action_Approved"].Value,
+            "Rejected"  => L["Action_Rejected"].Value,
+            "Returned"  => L["Action_Returned"].Value,
+            "Modified"  => L["Action_Modified"].Value,
+            "Cancelled" => L["Action_Cancelled"].Value,
+            "QRCode"    => L["Action_QRCode"].Value,
+            "Scanned"   => L["Action_Scanned"].Value,
+            var other   => other
+        };
     }
 
     private static string GetTimelineDotStyle(string action)
     {
-        var label = GetActionLabel(action);
-        return label switch
+        return GetActionKey(action) switch
         {
-            "Validé" => "background: #28a745;",
-            "Refusé" => "background: #dc3545;",
-            "Envoyé" => "background: #fd7e14;",
-            "Nouveau" => "background: #6c757d;",
-            "Renvoyé" => "background: #fd7e14;",
-            "QR Code" or "Scanné" => "background: #28a745;",
-            "Annulé" => "background: #dc3545;",
-            "Modifié" => "background: #6c757d;",
-            _ => "background: #adb5bd;"
+            "Approved"           => "background: #28a745;",
+            "Rejected"           => "background: #dc3545;",
+            "Submitted"          => "background: #fd7e14;",
+            "Created"            => "background: #6c757d;",
+            "Returned"           => "background: #fd7e14;",
+            "QRCode" or "Scanned"=> "background: #28a745;",
+            "Cancelled"          => "background: #dc3545;",
+            "Modified"           => "background: #6c757d;",
+            _                    => "background: #adb5bd;"
         };
     }
 
     private static string GetActionResultText(string action)
     {
-        var label = GetActionLabel(action);
-        return label switch
+        return GetActionKey(action) switch
         {
-            "Validé" => "✓ Approuvé",
-            "Refusé" => "✗ Rejeté",
-            "Envoyé" => "→ Transmis",
-            "Nouveau" => "● Créé",
-            "Renvoyé" => "↩ Retourné",
-            "Modifié" => "✎ Mis à jour",
-            "Annulé" => "✗ Annulé",
-            "QR Code" => "✓ QR Généré",
-            "Scanné" => "✓ Scanné",
-            _ => "● Traité"
+            "Approved"  => "✓ Approved",
+            "Rejected"  => "✗ Rejected",
+            "Submitted" => "→ Submitted",
+            "Created"   => "● Created",
+            "Returned"  => "↩ Returned",
+            "Modified"  => "✎ Modified",
+            "Cancelled" => "✗ Cancelled",
+            "QRCode"    => "✓ QR Generated",
+            "Scanned"   => "✓ Scanned",
+            _           => "● Done"
         };
     }
 
     private static string GetActionResultColor(string action)
     {
-        var label = GetActionLabel(action);
-        return label switch
+        return GetActionKey(action) switch
         {
-            "Validé" => "#28a745",
-            "Refusé" => "#dc3545",
-            "Envoyé" => "#fd7e14",
-            "Nouveau" => "#6c757d",
-            "Renvoyé" => "#fd7e14",
-            "Modifié" => "#6c757d",
-            "Annulé" => "#dc3545",
-            "QR Code" or "Scanné" => "#28a745",
-            _ => "#6c757d"
+            "Approved"            => "#28a745",
+            "Rejected"            => "#dc3545",
+            "Submitted"           => "#fd7e14",
+            "Created"             => "#6c757d",
+            "Returned"            => "#fd7e14",
+            "Modified"            => "#6c757d",
+            "Cancelled"           => "#dc3545",
+            "QRCode" or "Scanned" => "#28a745",
+            _                     => "#6c757d"
         };
     }
 
@@ -901,6 +939,7 @@
         public string NomCompagnie { get; set; } = "";
         public string NomDemandeur { get; set; } = "";
         public string StatutActuel { get; set; } = "";
+        public string? CurrentApproverName { get; set; }
         public string DerniereAction { get; set; } = "";
         public string DernierActionPar { get; set; } = "";
         public DateTime DateDerniereAction { get; set; }
@@ -1051,3 +1090,4 @@
         }
     }
 }
+

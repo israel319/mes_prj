@@ -10,8 +10,6 @@ public interface IReferenceDataService
     Task<IEnumerable<Contrat>> GetContratsAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
     Task<IEnumerable<Contrat>> GetContratsByCompagnieAsync(int compagnieId, bool activeOnly = true, CancellationToken cancellationToken = default);
     Task<Contrat?> GetContratByIdAsync(int id, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Departement>> GetDepartementsAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
-    Task<Departement?> GetDepartementByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<IEnumerable<Site>> GetSitesAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
     Task<IEnumerable<Site>> GetSitesInternesAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Site>> GetSitesExternesAsync(CancellationToken cancellationToken = default);
@@ -19,7 +17,6 @@ public interface IReferenceDataService
     Task<IEnumerable<Employee>> GetEmployeesAsync(bool activeOnly = true, CancellationToken cancellationToken = default);
     Task<IEnumerable<Employee>> GetEscorteursAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<Employee>> GetEmployeesByCompagnieAsync(int compagnieId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Employee>> GetEmployeesByDepartementAsync(int departementId, CancellationToken cancellationToken = default);
     Task<Employee?> GetEmployeeByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<Employee?> GetEmployeeByLoginAsync(string login, CancellationToken cancellationToken = default);
     Task<Employee?> GetEmployeeByMatriculeAsync(string matricule, CancellationToken cancellationToken = default);

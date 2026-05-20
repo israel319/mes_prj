@@ -1,6 +1,7 @@
 @inject IAnomalieService AnomalieService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
     @if (Anomalie != null)
@@ -19,7 +20,7 @@
                     @if (!string.IsNullOrEmpty(Anomalie.NumeroReferenceBon))
                     {
                         <RadzenText TextStyle="TextStyle.Caption" Style="font-family: monospace; color: #92400e;">
-                            Document: @Anomalie.NumeroReferenceBon
+                            @L["Tad_Document"] @Anomalie.NumeroReferenceBon
                         </RadzenText>
                     }
                 </RadzenStack>
@@ -30,24 +31,24 @@
         <RadzenStack Gap="1rem">
             <RadzenStack Gap="0.25rem">
                 <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
-                    Résolution <span style="color: #e31b23;">*</span>
+                    @L["Tad_ResolutionLabel"] <span style="color: #e31b23;">*</span>
                 </RadzenText>
-                <RadzenTextArea @bind-Value="@resolution" Rows="3" Placeholder="Décrivez comment l'anomalie a été résolue..." 
+                <RadzenTextArea @bind-Value="@resolution" Rows="3" Placeholder="@L["Tad_ResolutionPlaceholder"].Value" 
                                 Style="width: 100%; border-radius: 6px;" />
             </RadzenStack>
 
             <RadzenStack Gap="0.25rem">
-                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Actions Correctives</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Tad_CorrectiveLabel"]</RadzenText>
                 <RadzenTextArea @bind-Value="@actionsCorrectives" Rows="2" 
-                                Placeholder="Actions prises pour éviter que cela ne se reproduise (optionnel)..." 
+                                Placeholder="@L["Tad_CorrectivePlaceholder"].Value" 
                                 Style="width: 100%; border-radius: 6px;" />
             </RadzenStack>
         </RadzenStack>
 
         @* Actions *@
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
-            <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
-            <RadzenButton Text="Marquer comme traitée" Icon="check_circle" ButtonStyle="ButtonStyle.Success" 
+            <RadzenButton Text="@L["Tad_Btn_Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+            <RadzenButton Text="@L["Tad_Btn_MarkResolved"].Value" Icon="check_circle" ButtonStyle="ButtonStyle.Success" 
                           Click="@Submit" Disabled="@(string.IsNullOrWhiteSpace(resolution))" />
         </RadzenStack>
     }
@@ -77,12 +78,12 @@
             }
             else
             {
-                NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message);
+                NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, result.Message);
             }
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de traiter l'anomalie: {ex.Message}");
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, ex.Message);
         }
     }
 
@@ -93,13 +94,13 @@
 
     private string GetTypeLabel(string type) => type switch
     {
-        "BarriereNonAutorisee" => "Barrière non autorisée",
-        "DocumentExpire" => "Document expiré",
-        "DocumentInexistant" => "Document inexistant",
-        "ScanDuplique" => "Scan dupliqué",
-        "QRCodeInvalide" => "QR Code invalide",
-        "ItineraireNonRespectee" => "Itinéraire non respecté",
-        "SignalementManuel" => "Signalement manuel",
+        "BarriereNonAutorisee" => L["Ano_BarriereNonAutorisee"].Value,
+        "DocumentExpire" => L["Ano_DocumentExpire"].Value,
+        "DocumentInexistant" => L["Ano_DocumentInexistant"].Value,
+        "ScanDuplique" => L["Ano_ScanDuplique"].Value,
+        "QRCodeInvalide" => L["Ano_QRCodeInvalide"].Value,
+        "ItineraireNonRespectee" => L["Ano_ItineraireNonRespectee"].Value,
+        "SignalementManuel" => L["Ano_SignalementManuel"].Value,
         _ => type
     };
 }

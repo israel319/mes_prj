@@ -1,0 +1,495 @@
+/* ==============================================
+   KCC Material Flow – Page Layout Shared Styles
+   Hero sombre + panneau flottant – version unifiée
+   Usage: ajouter .kcp-page sur le div racine
+   ============================================== */
+
+/* ── 1. Full-bleed : efface le padding Radzen ── */
+.rz-body:has(.kcp-page)    { padding: 0 !important; }
+.kcc-content:has(.kcp-page){ max-width: none !important; }
+
+/* ── 2. Root page ── */
+.kcp-page {
+    background: var(--kcc-bg, #f0f2f5);
+    min-height: 100%;
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+/* ── 3. Hero sombre ── */
+.kcp-hero {
+    background: var(--kcc-bg-elevated, #253C45);
+    color: #fff;
+    padding: 2.25rem 0 6rem;
+    min-height: 13.5rem; /* aligne sur la hauteur du dashboard (badge + titre + sous-titre) */
+}
+
+.kcp-hero-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* ── 4. Typographie hero ── */
+.kcp-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    margin: 0;
+    color: #fff;
+}
+
+.kcp-subtitle {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.62);
+    margin: 0.3rem 0 0;
+}
+
+/* ── 5. Boutons hero ── */
+.kcp-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.kcp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+    text-decoration: none;
+    line-height: 1.4;
+}
+
+.kcp-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    text-decoration: none;
+}
+
+.kcp-btn-primary {
+    background: var(--kcc-primary, #00B193);
+    border-color: transparent;
+    color: #fff;
+    font-weight: 600;
+}
+
+.kcp-btn-primary:hover {
+    filter: brightness(1.08);
+    background: var(--kcc-primary, #00B193);
+    color: #fff;
+}
+
+/* Variante succès — Approve (vert plein) */
+.kcp-btn-success {
+    background: #16a34a;
+    border-color: transparent;
+    color: #fff;
+    font-weight: 600;
+}
+
+.kcp-btn-success:hover {
+    background: #15803d;
+    color: #fff;
+}
+
+/* Variante danger — Reject / Delete (rouge outline sur fond sombre) */
+.kcp-btn-danger {
+    background: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+    font-weight: 500;
+}
+
+.kcp-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.65);
+    color: #fecaca;
+}
+
+/* État désactivé homogène (utilisé p.ex. quand un SuperAdmin/Admin
+   n'est pas l'approbateur de l'étape en cours) */
+.kcp-btn:disabled,
+.kcp-btn[disabled],
+.kcp-btn.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+    filter: grayscale(0.2);
+}
+
+/* ── 6. Panneau principal flottant ── */
+.kcp-main {
+    position: relative;
+    z-index: 10;
+    max-width: 1400px;
+    margin: -4rem auto 0;
+    padding: 0 1.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* ── 7. Cards dans le panneau ── */
+.kcp-card {
+    background: var(--kcc-bg-card, #ffffff);
+    border: 1px solid var(--kcc-border, rgba(0,0,0,0.08));
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 16px -4px rgba(30,48,56,0.10);
+    padding: 1.25rem 1.5rem;
+}
+
+/* ── 8. Animation changement d'onglet (fade uniquement, aucun déplacement) ── */
+@keyframes kcp-tab-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Cible les RadzenTabsItem panels rendus par Radzen */
+.rz-tabview-panels > div,
+.rz-tab-panel {
+    animation: kcp-tab-in 0.18s ease-out;
+}
+
+/* Empêche tout débordement visuel pendant la transition */
+.rz-tabview-panels {
+    overflow: hidden;
+}
+
+
+/* ── 8b. Onglets approbation dans le hero ── */
+.kcc-appro-tabs-wrap {
+    max-width: 1400px;
+    margin: 1.25rem auto 0;
+    padding: 0 1.5rem;
+}
+
+.kcc-appro-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.kcc-appro-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.1rem;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.kcc-appro-tab:hover {
+    color: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.kcc-appro-tab.active {
+    color: #fff;
+    border-bottom-color: var(--tab-color, var(--kcc-primary));
+    font-weight: 600;
+}
+
+.kcc-appro-tab__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.3rem;
+    height: 1.3rem;
+    padding: 0 0.35rem;
+    background: var(--tab-color, var(--kcc-primary));
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* ── 9. AdminNav sur fond sombre (hero) ── */
+.kcp-hero .kcc-admin-nav {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.12);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+    margin-bottom: 0;
+    margin-top: 0.75rem;
+}
+
+.kcp-hero .kcc-admin-nav__item {
+    color: rgba(255, 255, 255, 0.60) !important;
+    border-bottom-color: transparent !important;
+}
+
+.kcp-hero .kcc-admin-nav__item:hover {
+    color: rgba(255, 255, 255, 0.90) !important;
+}
+
+.kcp-hero .kcc-admin-nav__item.active {
+    color: var(--kcc-primary, #00B193) !important;
+    border-bottom-color: var(--kcc-primary, #00B193) !important;
+    font-weight: 600;
+}
+
+/* ── 9b. Barre AdminNav persistante dans la topbar (MainLayout) ── */
+.kcc-topbar-adminbar {
+    background: var(--kcc-bg-elevated, #253C45);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.kcc-topbar-adminbar__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 0.5rem;
+}
+
+.kcc-topbar-adminbar .kcc-admin-nav {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+    margin: 0;
+}
+
+.kcc-topbar-adminbar .kcc-admin-nav__item {
+    color: rgba(255, 255, 255, 0.60) !important;
+    border-bottom-color: transparent !important;
+    padding: 0.6rem 1rem;
+}
+
+/* ══════════════════════════════════════════════════════
+   WIM — Formulaire de Préoccupation (PreoccupationNew)
+   Styles natifs HTML dans le cadre bon-form-layout
+   ══════════════════════════════════════════════════════ */
+
+/* ── Confidentiality banner ── */
+.wim-conf-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: #fdf6e8;
+    border: 1.5px solid #e8c878;
+    border-radius: 8px;
+    padding: 0.65rem 0.9rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.78rem;
+    color: #6b5000;
+    line-height: 1.5;
+}
+.wim-conf-banner svg { flex-shrink: 0; margin-top: 2px; color: #c9973a; }
+
+/* ── Section number badge ── */
+.wim-section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--kcc-primary, #00B193);
+    color: #fff;
+    font-size: 0.69rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* ── Field groups (native) ── */
+.wim-field-group { margin-bottom: 0.9rem; }
+.wim-field-group:last-child { margin-bottom: 0; }
+
+.wim-field-hint {
+    font-size: 0.72rem;
+    color: var(--kcc-text-muted, #6b7f7f);
+    margin-top: 0.25rem;
+    line-height: 1.45;
+}
+
+/* ── Native select ── */
+.bon-form-layout .bon-form select.wim-select {
+    width: 100%;
+    padding: 0.47rem 0.75rem;
+    border: 1px solid #d0dede;
+    border-radius: 2px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: #1e2a2a;
+    height: 34px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7f7f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.6rem center;
+    padding-right: 2rem;
+    cursor: pointer;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+.bon-form-layout .bon-form select.wim-select:focus {
+    outline: none;
+    border-color: var(--kcc-primary, #00B193);
+    box-shadow: 0 0 0 3px rgba(0,177,147,.15);
+}
+
+/* ── Native textarea ── */
+.bon-form-layout .bon-form textarea.wim-textarea {
+    width: 100%;
+    padding: 0.47rem 0.75rem;
+    border: 1px solid #d0dede;
+    border-radius: 2px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: #1e2a2a;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+.bon-form-layout .bon-form textarea.wim-textarea:focus {
+    outline: none;
+    border-color: var(--kcc-primary, #00B193);
+    box-shadow: 0 0 0 3px rgba(0,177,147,.15);
+}
+
+/* ── Radio & Checkbox options ── */
+.wim-radio-group,
+.wim-check-group { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.1rem; }
+
+.wim-radio-group.inline { flex-direction: row; flex-wrap: wrap; gap: 0.4rem; }
+
+.wim-radio-opt,
+.wim-check-opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    cursor: pointer;
+    padding: 0.38rem 0.65rem;
+    border: 1px solid #d0dede;
+    border-radius: 4px;
+    transition: border-color 0.18s, background 0.18s;
+    font-size: 0.83rem;
+    color: #1e2a2a;
+    line-height: 1.35;
+}
+.wim-radio-opt:hover,
+.wim-check-opt:hover { border-color: var(--kcc-primary, #00B193); background: #e6f7f4; }
+
+.wim-radio-opt:has(input:checked),
+.wim-check-opt:has(input:checked) {
+    border-color: var(--kcc-primary, #00B193);
+    background: #e6f7f4;
+}
+
+.wim-radio-opt input[type="radio"],
+.wim-check-opt input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--kcc-primary, #00B193);
+    cursor: pointer;
+}
+
+.wim-opt-label small {
+    display: block;
+    font-size: 0.7rem;
+    color: #6b7f7f;
+    margin-top: 0.05rem;
+}
+
+/* ── Conditional field ── */
+.wim-conditional {
+    display: none;
+    margin-top: 0.5rem;
+}
+.wim-conditional.visible { display: block; }
+
+/* ── File drop ── */
+.wim-file-drop {
+    border: 2px dashed #d0dede;
+    border-radius: 6px;
+    padding: 1rem;
+    text-align: center;
+    background: #fafcfc;
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s;
+    position: relative;
+}
+.wim-file-drop:hover { border-color: var(--kcc-primary, #00B193); background: #f0fbf9; }
+.wim-file-drop input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.wim-file-drop-label { font-size: 0.8rem; color: #6b7f7f; pointer-events: none; }
+.wim-file-drop-label strong { color: var(--kcc-primary, #00B193); }
+.wim-file-name { font-size: 0.73rem; color: var(--kcc-primary, #00B193); margin-top: 0.2rem; display: block; min-height: 1em; }
+
+/* ── Success alert ── */
+.wim-success-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: #eafaf3;
+    border: 1.5px solid #1a7a4a;
+    border-radius: 8px;
+    padding: 1rem 1.1rem;
+    margin-bottom: 1.1rem;
+    font-size: 0.83rem;
+    color: #1a5a37;
+}
+.wim-success-box svg { flex-shrink: 0; margin-top: 2px; color: #1a7a4a; }
+
+.kcc-topbar-adminbar .kcc-admin-nav__item:hover {
+    color: rgba(255, 255, 255, 0.90) !important;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.kcc-topbar-adminbar .kcc-admin-nav__item.active {
+    color: var(--kcc-primary, #00B193) !important;
+    border-bottom-color: var(--kcc-primary, #00B193) !important;
+    font-weight: 600;
+}
+
+/* ── 10. Variante large (1700px) pour Utilisateurs ──
+   Seul le panneau de données est élargi.
+   Le hero inner reste toujours à 1400px (= même alignement que la topbar). ── */
+.kcp-main--wide {
+    max-width: 1700px;
+}
+/* .kcp-hero--wide .kcp-hero-inner : intentionnellement absent →
+   le hero utilise le max-width standard (1400px), aligné sur la topbar. */
+
+/* ── 11. Colonne-hero pour admin (title-row + nav stacked) ── */
+.kcp-hero-inner--col {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+}
+
+.kcp-hero-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+}

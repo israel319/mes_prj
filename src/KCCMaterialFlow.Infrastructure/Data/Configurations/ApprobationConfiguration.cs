@@ -29,6 +29,33 @@ public class ApprobationConfiguration : IEntityTypeConfiguration<Approbation>
             .HasColumnName("OrdreEtape")
             .IsRequired();
 
+        builder.Property(a => a.NomEtape)
+            .HasColumnName("NomEtape")
+            .HasMaxLength(100);
+
+        builder.Property(a => a.CodeEtape)
+            .HasColumnName("CodeEtape")
+            .HasMaxLength(30);
+
+        builder.Property(a => a.ApprobateurId)
+            .HasColumnName("ApprobateurId");
+
+        builder.Property(a => a.ApprobateurMatricule)
+            .HasColumnName("ApprobateurMatricule")
+            .HasMaxLength(50);
+
+        builder.Property(a => a.ApprobateurLogin)
+            .HasColumnName("ApprobateurLogin")
+            .HasMaxLength(100);
+
+        builder.Property(a => a.NomApprobateur)
+            .HasColumnName("NomApprobateur")
+            .HasMaxLength(200);
+
+        builder.Property(a => a.RoleApprobateur)
+            .HasColumnName("RoleApprobateur")
+            .HasMaxLength(50);
+
         builder.Property(a => a.Decision)
             .HasColumnName("Decision")
             .HasMaxLength(50)
@@ -56,5 +83,9 @@ public class ApprobationConfiguration : IEntityTypeConfiguration<Approbation>
         builder.HasIndex(a => new { a.BonId, a.OrdreEtape })
             .IsUnique()
             .HasDatabaseName("IX_Approbations_Bon_Etape");
+
+        // Index clé : "bons en attente pour cet approbateur"
+        builder.HasIndex(a => new { a.ApprobateurId, a.Decision })
+            .HasDatabaseName("IX_Approbations_Approbateur_Decision");
     }
 }

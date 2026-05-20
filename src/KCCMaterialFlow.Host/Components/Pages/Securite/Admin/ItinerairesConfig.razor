@@ -1,179 +1,182 @@
-@page "/securite/admin/itineraires"
+﻿@page "/securite/admin/itineraires"
 @attribute [Authorize(Roles = "Admin")]
 @inject ICurrentUserService CurrentUserService
-@inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>Configuration Itinéraires - Admin - KCC Material Flow</PageTitle>
 
-<div style="background-color: #f4f7fa; min-height: 100vh; padding: 2rem;">
-    <RadzenStack Gap="1.5rem">
-        
-        @* En-tête *@
-        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-            <RadzenColumn Size="12" SizeMD="8">
-                <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 0.25rem;">
-                    <RadzenIcon Icon="alt_route" Style="vertical-align: middle; margin-right: 0.5rem; color: #4299e1;" />
-                    Configuration des Itinéraires
-                </RadzenText>
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
-                    Définition des barrières autorisées par provenance/destination
-                </RadzenText>
-            </RadzenColumn>
-            <RadzenColumn Size="12" SizeMD="4" class="rz-text-align-right">
-                <RadzenButton Text="Nouvel Itinéraire" Icon="add" ButtonStyle="ButtonStyle.Danger" 
-                              Style="background-color: #e31b23; border-radius: 8px; font-weight: 600;" 
-                              Click="@CreateNew" />
-            </RadzenColumn>
-        </RadzenRow>
+<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
 
-        @* Explication *@
-        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; background: #ebf8ff; border: 1px solid #bee3f8;">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Start" Gap="0.75rem">
-                <RadzenIcon Icon="info" Style="color: #3182ce; font-size: 1.5rem;" />
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText FontWeight="FontWeight.SemiBold" Style="color: #2c5282;">Comment ça fonctionne ?</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: #2b6cb0;">
-                        Chaque itinéraire définit les barrières qu'un bon doit traverser en fonction de sa provenance et destination.
-                        Lors du scan d'un QR code, le système vérifie automatiquement que la barrière fait partie de l'itinéraire autorisé.
-                    </RadzenText>
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
-
-        @* Filtres *@
-        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border: 1px solid #eee;">
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap" AlignItems="AlignItems.End">
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Provenance</RadzenText>
-                    <RadzenDropDown @bind-Value="@filterProvenance" Data="@provenances" 
-                                    Placeholder="Toutes" AllowClear="true" Style="width: 200px; border-radius: 6px;" />
-                </RadzenStack>
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Destination</RadzenText>
-                    <RadzenDropDown @bind-Value="@filterDestination" Data="@destinations" 
-                                    Placeholder="Toutes" AllowClear="true" Style="width: 200px; border-radius: 6px;" />
-                </RadzenStack>
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Statut</RadzenText>
-                    <RadzenDropDown @bind-Value="@filterActive" Data="@statutOptions" TextProperty="Label" ValueProperty="Value"
-                                    Placeholder="Tous" AllowClear="true" Style="width: 130px; border-radius: 6px;" />
-                </RadzenStack>
-                <RadzenButton Text="Filtrer" Icon="search" ButtonStyle="ButtonStyle.Dark" Click="@ApplyFilter" Style="border-radius: 6px;" />
-                <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@ResetFilter" Style="border-radius: 6px;" />
-            </RadzenStack>
-        </RadzenCard>
-
-        @* Table des itinéraires *@
-        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 0; overflow: hidden; border: 1px solid #eee;">
-            <RadzenDataGrid @ref="grid" Data="@filteredItineraires" TItem="ItineraireConfig" IsLoading="@isLoading"
-                            AllowPaging="true" PageSize="10" AllowSorting="true"
-                            Variant="Variant.Flat" GridLines="DataGridGridLines.None">
-                <Columns>
-                    <RadzenDataGridColumn TItem="ItineraireConfig" Property="Provenance" Title="PROVENANCE" Width="180px">
-                        <Template Context="it">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
-                                <RadzenIcon Icon="flight_takeoff" Style="color: #48bb78; font-size: 1.1rem;" />
-                                <RadzenText FontWeight="FontWeight.SemiBold">@it.Provenance</RadzenText>
-                            </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ItineraireConfig" Title="" Width="50px" Sortable="false">
-                        <Template Context="it">
-                            <RadzenIcon Icon="arrow_forward" Style="color: #cbd5e0;" />
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ItineraireConfig" Property="Destination" Title="DESTINATION" Width="180px">
-                        <Template Context="it">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
-                                <RadzenIcon Icon="flight_land" Style="color: #ed8936; font-size: 1.1rem;" />
-                                <RadzenText FontWeight="FontWeight.SemiBold">@it.Destination</RadzenText>
-                            </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ItineraireConfig" Title="BARRIÈRES AUTORISÉES" MinWidth="250px">
-                        <Template Context="it">
-                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" Wrap="FlexWrap.Wrap">
-                                @foreach (var barriere in it.BarrieresAutorisees)
-                                {
-                                    <RadzenBadge Text="@barriere" BadgeStyle="BadgeStyle.Info" Style="font-size: 0.8rem;" />
-                                }
-                            </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ItineraireConfig" Property="EstActif" Title="STATUT" Width="100px">
-                        <Template Context="it">
-                            @if (it.EstActif)
-                            {
-                                <RadzenBadge Text="Actif" BadgeStyle="BadgeStyle.Success" />
-                            }
-                            else
-                            {
-                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Light" />
-                            }
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="ItineraireConfig" Title="ACTIONS" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
-                        <Template Context="it">
-                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
-                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Small"
-                                              Click="@(() => EditItineraire(it))" title="Modifier" />
-                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Small"
-                                              Click="@(() => DeleteItineraire(it))" title="Supprimer" />
-                            </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        </RadzenCard>
-
-        @* Légende *@
-        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border: 1px solid #eee;">
-            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold" Style="margin-bottom: 0.5rem;">Légende des Types</RadzenText>
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" Wrap="FlexWrap.Wrap">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                    <RadzenIcon Icon="flight_takeoff" Style="color: #48bb78;" />
-                    <RadzenText TextStyle="TextStyle.Caption">Provenance (lieu de départ)</RadzenText>
-                </RadzenStack>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                    <RadzenIcon Icon="flight_land" Style="color: #ed8936;" />
-                    <RadzenText TextStyle="TextStyle.Caption">Destination (lieu d'arrivée)</RadzenText>
-                </RadzenStack>
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                    <RadzenBadge Text="BAR-01" BadgeStyle="BadgeStyle.Info" />
-                    <RadzenText TextStyle="TextStyle.Caption">Barrière autorisée dans l'itinéraire</RadzenText>
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
+    @* === EN-TÊTE === *@
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="1rem" class="rz-mb-6">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-grey); margin: 0;">
+                <RadzenIcon Icon="alt_route" Style="vertical-align: middle; margin-right: 0.5rem; color: #4299e1;" />
+                Configuration des Itinéraires
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500); margin: 0;">
+                Définition des barrières autorisées par provenance/destination
+            </RadzenText>
+        </RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+            <RadzenButton Text="@L["Sec_BtnNewItinerary"].Value" Icon="add_circle" ButtonStyle="ButtonStyle.Primary" Click="@CreateNew" />
+            <RadzenButton Icon="refresh" Text="@L["Btn_Refresh"].Value" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Dark" Click="@LoadDataAsync" />
+        </RadzenStack>
     </RadzenStack>
+
+
+    @if (!string.IsNullOrEmpty(activeFilter))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter"
+                     AllowClose="true" Close="@(() => SetFilter(null))" class="rz-mb-4">
+            Filtre actif : <strong>@(activeFilter == "active" ? L["Sec_FilterActifs"].Value : L["Sec_FilterInactifs"].Value)</strong>
+        </RadzenAlert>
+    }
+
+    @* === RECHERCHE === *@
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" class="rz-mb-4">
+        <RadzenIcon Icon="search" Style="color: var(--gray-400);" />
+        <RadzenTextBox @bind-Value="searchTerm" Placeholder="@L["Sec_PlSearchItinerary"].Value"
+                       Style="flex: 1; min-width: 220px;" Change="@(_ => StateHasChanged())" />
+        <RadzenDropDown @bind-Value="filterProvenance" Data="@provenances"
+                        Placeholder="@L["Sec_PlAllProvenances"].Value" AllowClear="true" Style="min-width: 180px;" Change="@(_ => StateHasChanged())" />
+        <RadzenDropDown @bind-Value="filterDestination" Data="@destinations"
+                        Placeholder="@L["Sec_PlAllDestinations"].Value" AllowClear="true" Style="min-width: 180px;" Change="@(_ => StateHasChanged())" />
+        @if (!string.IsNullOrWhiteSpace(searchTerm) || !string.IsNullOrEmpty(filterProvenance) || !string.IsNullOrEmpty(filterDestination))
+        {
+            <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ClearSearch" />
+        }
+    </RadzenStack>
+
+    @* === GRID === *@
+    @if (isLoading)
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 4rem;">
+                <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+            </RadzenStack>
+        </RadzenCard>
+    }
+    else
+    {
+        <RadzenDataGrid @ref="grid" Data="@filteredItineraires" TItem="ItineraireConfig"
+                        AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                        AllowSorting="true" AllowFiltering="false"
+                        Density="Density.Compact"
+                        GridLines="DataGridGridLines.Horizontal"
+                        ExpandMode="DataGridExpandMode.Single">
+            <Template Context="it">
+                <div style="padding: 0.75rem 1rem; background: var(--rz-base-200); border-radius: 8px; margin: 0.25rem 0;">
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" Wrap="FlexWrap.Wrap" Style="margin-bottom: 0.5rem;">
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Provenance :</strong> @it.Provenance</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Destination :</strong> @it.Destination</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Barrières :</strong> @string.Join(", ", it.BarrieresAutorisees)</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Statut :</strong> @(it.EstActif ? "Actif" : "Inactif")</span>
+                    </RadzenStack>
+                </div>
+            </Template>
+            <Columns>
+                <RadzenDataGridColumn TItem="ItineraireConfig" Property="Provenance" Title="@L["Sec_ColProvenance"]" Width="200px" Sortable="true">
+                    <Template Context="it">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.4rem">
+                            <RadzenIcon Icon="flight_takeoff" Style="color: #48bb78;" />
+                            <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600; margin: 0;">@it.Provenance</RadzenText>
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ItineraireConfig" Title="" Width="40px" Sortable="false">
+                    <Template>
+                        <RadzenIcon Icon="arrow_forward" Style="color: var(--gray-400);" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ItineraireConfig" Property="Destination" Title="@L["Sec_ColDestination"]" Width="200px" Sortable="true">
+                    <Template Context="it">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.4rem">
+                            <RadzenIcon Icon="flight_land" Style="color: #ed8936;" />
+                            <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600; margin: 0;">@it.Destination</RadzenText>
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ItineraireConfig" Title="@L["Sec_ColAutorisees"]" MinWidth="220px" Sortable="false">
+                    <Template Context="it">
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" Wrap="FlexWrap.Wrap">
+                            @foreach (var b in it.BarrieresAutorisees)
+                            {
+                                <RadzenBadge Text="@b" BadgeStyle="BadgeStyle.Info" />
+                            }
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ItineraireConfig" Property="EstActif" Title="@L["Sec_ColStatus"]" Width="110px" Sortable="true">
+                    <Template Context="it">
+                        @if (it.EstActif)
+                        {
+                            <RadzenBadge Text="@L["Sec_BadgeActif"].Value" BadgeStyle="BadgeStyle.Success" />
+                        }
+                        else
+                        {
+                            <RadzenBadge Text="@L["Sec_BadgeInactive"].Value" BadgeStyle="BadgeStyle.Light" />
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="ItineraireConfig" Title="@L["Col_Actions"]" Width="170px" TextAlign="TextAlign.Right" Sortable="false">
+                    <Template Context="it">
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                            <RadzenButton Icon="edit" Text="@L["Btn_Edit"].Value" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                          ButtonStyle="ButtonStyle.Dark" Click="@(() => EditItineraire(it))" />
+                            <RadzenButton Icon="delete" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                          ButtonStyle="ButtonStyle.Danger" Click="@(() => DeleteItineraire(it))" title="@L["Tt_Delete"].Value" />
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
 </div>
 
 @code {
     private RadzenDataGrid<ItineraireConfig>? grid;
     private List<ItineraireConfig> allItineraires = new();
-    private IEnumerable<ItineraireConfig> filteredItineraires = Enumerable.Empty<ItineraireConfig>();
     private bool isLoading = true;
+    private string? searchTerm;
     private string? filterProvenance;
     private string? filterDestination;
-    private bool? filterActive;
+    private string? activeFilter; // null | "active" | "inactive"
 
     private List<string> provenances = new();
     private List<string> destinations = new();
-    private readonly List<StatutOption> statutOptions = new()
+
+    private IEnumerable<ItineraireConfig> filteredItineraires
     {
-        new StatutOption { Label = "Actif", Value = true },
-        new StatutOption { Label = "Inactif", Value = false }
-    };
+        get
+        {
+            IEnumerable<ItineraireConfig> q = allItineraires;
+            if (activeFilter == "active") q = q.Where(i => i.EstActif);
+            else if (activeFilter == "inactive") q = q.Where(i => !i.EstActif);
+            if (!string.IsNullOrEmpty(filterProvenance)) q = q.Where(i => i.Provenance == filterProvenance);
+            if (!string.IsNullOrEmpty(filterDestination)) q = q.Where(i => i.Destination == filterDestination);
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var s = searchTerm.Trim();
+                q = q.Where(i =>
+                    i.Provenance.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    i.Destination.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    i.BarrieresAutorisees.Any(b => b.Contains(s, StringComparison.OrdinalIgnoreCase)));
+            }
+            return q;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         if (!CurrentUserService.HasActivite("SEC_GERER_ITINERAIRES"))
         {
-            Navigation.NavigateTo("/", replace: true);
+            NavigationManager.NavigateTo("/", replace: true);
             return;
         }
-
         await LoadDataAsync();
     }
 
@@ -182,20 +185,17 @@
         isLoading = true;
         try
         {
-            // Données exemple - à remplacer par un service réel
             allItineraires = new List<ItineraireConfig>
             {
-                new() { Id = 1, Provenance = "Magasin Central", Destination = "Usine A", BarrieresAutorisees = ["BAR-01", "BAR-02"], EstActif = true },
-                new() { Id = 2, Provenance = "Usine A", Destination = "Expédition", BarrieresAutorisees = ["BAR-02", "BAR-03"], EstActif = true },
-                new() { Id = 3, Provenance = "Réception", Destination = "Magasin Central", BarrieresAutorisees = ["BAR-01"], EstActif = true },
-                new() { Id = 4, Provenance = "Fournisseur Externe", Destination = "Réception", BarrieresAutorisees = ["BAR-MAIN"], EstActif = true },
-                new() { Id = 5, Provenance = "Usine B", Destination = "Usine A", BarrieresAutorisees = ["BAR-02"], EstActif = false }
+                new() { Id = 1, Provenance = "Magasin Central", Destination = "Usine A", BarrieresAutorisees = new() { "BAR-01", "BAR-02" }, EstActif = true },
+                new() { Id = 2, Provenance = "Usine A", Destination = "Expédition", BarrieresAutorisees = new() { "BAR-02", "BAR-03" }, EstActif = true },
+                new() { Id = 3, Provenance = "Réception", Destination = "Magasin Central", BarrieresAutorisees = new() { "BAR-01" }, EstActif = true },
+                new() { Id = 4, Provenance = "Fournisseur Externe", Destination = "Réception", BarrieresAutorisees = new() { "BAR-MAIN" }, EstActif = true },
+                new() { Id = 5, Provenance = "Usine B", Destination = "Usine A", BarrieresAutorisees = new() { "BAR-02" }, EstActif = false }
             };
 
             provenances = allItineraires.Select(i => i.Provenance).Distinct().OrderBy(x => x).ToList();
             destinations = allItineraires.Select(i => i.Destination).Distinct().OrderBy(x => x).ToList();
-
-            ApplyFilter();
         }
         finally
         {
@@ -204,52 +204,29 @@
         await Task.CompletedTask;
     }
 
-    private void ApplyFilter()
-    {
-        var result = allItineraires.AsEnumerable();
-
-        if (!string.IsNullOrWhiteSpace(filterProvenance))
-            result = result.Where(i => i.Provenance == filterProvenance);
-
-        if (!string.IsNullOrWhiteSpace(filterDestination))
-            result = result.Where(i => i.Destination == filterDestination);
-
-        if (filterActive.HasValue)
-            result = result.Where(i => i.EstActif == filterActive.Value);
-
-        filteredItineraires = result.ToList();
-    }
-
-    private void ResetFilter()
-    {
-        filterProvenance = null;
-        filterDestination = null;
-        filterActive = null;
-        ApplyFilter();
-    }
+    private void SetFilter(string? f) { activeFilter = f; StateHasChanged(); }
+    private void ClearSearch() { searchTerm = null; filterProvenance = null; filterDestination = null; StateHasChanged(); }
 
     private async Task CreateNew()
     {
-        var result = await DialogService.OpenAsync<ItineraireEditDialog>("Nouvel Itinéraire",
+        var result = await DialogService.OpenAsync<ItineraireEditDialog>(L["Sec_DlgNewAssignment"].Value,
             new Dictionary<string, object> { { "Itineraire", null! } },
             new DialogOptions { Width = "650px" });
-
         if (result is ItineraireConfig)
         {
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Itinéraire créé avec succès");
+            NotificationService.Notify(NotificationSeverity.Success, L["Lbl_Success"].Value, L["Sec_NotifItineraireCreated"].Value);
             await LoadDataAsync();
         }
     }
 
     private async Task EditItineraire(ItineraireConfig itineraire)
     {
-        var result = await DialogService.OpenAsync<ItineraireEditDialog>("Modifier l'Itinéraire",
+        var result = await DialogService.OpenAsync<ItineraireEditDialog>(L["Sec_DlgEditAssignment"].Value,
             new Dictionary<string, object> { { "Itineraire", itineraire } },
             new DialogOptions { Width = "650px" });
-
         if (result is ItineraireConfig)
         {
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Itinéraire mis à jour avec succès");
+            NotificationService.Notify(NotificationSeverity.Success, L["Lbl_Success"].Value, L["Sec_NotifItineraireUpdated"].Value);
             await LoadDataAsync();
         }
     }
@@ -264,8 +241,8 @@
         if (confirm == true)
         {
             allItineraires.Remove(itineraire);
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Itinéraire supprimé");
-            ApplyFilter();
+            NotificationService.Notify(NotificationSeverity.Success, L["Lbl_Success"].Value, L["Sec_NotifItineraireDeleted"].Value);
+            StateHasChanged();
         }
     }
 
@@ -276,11 +253,5 @@
         public string Destination { get; set; } = "";
         public List<string> BarrieresAutorisees { get; set; } = new();
         public bool EstActif { get; set; } = true;
-    }
-
-    private class StatutOption
-    {
-        public string Label { get; set; } = "";
-        public bool Value { get; set; }
     }
 }

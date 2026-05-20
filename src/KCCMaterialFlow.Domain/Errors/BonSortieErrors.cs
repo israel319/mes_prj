@@ -69,4 +69,10 @@ public static class BonSortieErrors
 
     public static Error DejaRetourne() =>
         Error.Conflict("BonSortie.DejaRetourne", "Ce prêt a déjà été retourné.");
+
+    public static readonly Error NonApprobateurEtape =
+        Error.Validation("BonSortie.NonApprobateurEtape", "Vous n'êtes pas l'approbateur désigné de l'étape en cours.");
+
+    public static readonly Error AdminNonAutorise =
+        Error.Validation("BonSortie.AdminNonAutorise", "Les rôles Admin et SuperAdmin ne sont pas autorisés à approuver ou rejeter un bon.");
 }

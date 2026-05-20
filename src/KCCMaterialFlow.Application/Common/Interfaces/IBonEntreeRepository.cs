@@ -38,6 +38,18 @@ public interface IBonEntreeRepository
     /// <param name="userRoles">Les rôles de l'utilisateur (Superviseur, GM, OPJ, Admin)</param>
     Task<IReadOnlyList<BonEntree>> GetPendingApprovalsAsync(IEnumerable<string> userRoles, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// v2 — Bons en attente où l'étape COURANTE est assignée à l'employé donné.
+    /// Si <paramref name="isAdmin"/>, retourne tous les bons en attente quelle que soit l'étape.
+    /// </summary>
+    Task<IReadOnlyList<BonEntree>> GetPendingApprovalsByEmployeeAsync(int employeeId, bool isAdmin, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retourne les bons approuvés (StatutActuel == "Approved") avec leurs approbations incluses.
+    /// Le filtrage par approbateur courant est fait dans la couche service.
+    /// </summary>
+    Task<IReadOnlyList<BonEntree>> GetApprovedBonsWithApprobationsAsync(CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Statistics

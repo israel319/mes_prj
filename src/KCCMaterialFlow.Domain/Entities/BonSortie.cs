@@ -46,6 +46,34 @@ public abstract class BonSortie : BaseAuditableEntity
     [MaxLength(100)]
     public string CreatedByLogin { get; set; } = string.Empty;
 
+    // ── Site et RequestedFor (v2 — chaîne d'approbation par site/département) ──
+    /// <summary>Site sur lequel porte la demande (filtre les approbateurs spéciaux).</summary>
+    public int? SiteId { get; set; }
+    public Site? Site { get; set; }
+
+    /// <summary>
+    /// Type de matériel (parmi les types "Workflow Sortie") — détermine le chemin d'approbation.
+    /// Standard, IT, ou Environnement.
+    /// </summary>
+    public int? TypeMaterielSortieId { get; set; }
+    public TypeMaterielEntity? TypeMaterielSortie { get; set; }
+
+    /// <summary>Code Glencore de l'employé pour qui la demande est faite (peut différer du créateur).</summary>
+    [MaxLength(50)]
+    public string? RequestedForEmployeeCode { get; set; }
+
+    /// <summary>Nom affichable de l'employé pour qui la demande est faite.</summary>
+    [MaxLength(200)]
+    public string? RequestedForDisplay { get; set; }
+
+    /// <summary>Département de l'employé pour qui la demande est faite (auto-rempli depuis Glencore).</summary>
+    [MaxLength(200)]
+    public string? RequestedForDepartement { get; set; }
+
+    /// <summary>Site Manager auto-déduit depuis ManagerHodEmployeeCode du RequestedFor.</summary>
+    [MaxLength(200)]
+    public string? SiteManager { get; set; }
+
     [MaxLength(1000)]
     public string MotifSortie { get; set; } = string.Empty;
 

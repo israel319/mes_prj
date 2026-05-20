@@ -12,17 +12,11 @@ public sealed class Compagnie : BaseEntity
     [MaxLength(200)]
     public string Nom { get; set; } = string.Empty;
 
-    [MaxLength(20)]
+    [MaxLength(100)]
     public string? Code { get; set; }
-
-    [MaxLength(200)]
-    public string? Email { get; set; }
 
     [MaxLength(50)]
     public string? Telephone { get; set; }
-
-    [MaxLength(200)]
-    public string? SiteManager { get; set; }
 
     public bool EstActif { get; set; } = true;
     public DateTime DateCreation { get; set; } = DateTime.Now;

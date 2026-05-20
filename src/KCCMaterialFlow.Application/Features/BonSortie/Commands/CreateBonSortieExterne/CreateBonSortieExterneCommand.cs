@@ -26,7 +26,7 @@ public sealed record CreateBonSortieExterneCommand(
     string Destination,
     DateTime DateExpiration,
     string NomDestinataire,
-    TypeMateriel TypeMateriel,
+    string? DescriptionMateriel,
     int? BonEntreeAssocieId = null,
     string? RaisonSortieCode = null,
     string? Description = null,
@@ -63,7 +63,7 @@ internal sealed class CreateBonSortieExterneCommandHandler(
         var result = BonSortieExterne.Create(
             request.NomDemandeur, request.FonctionDemandeur, request.DepartementDemandeur,
             currentUser.GetUserLogin(), request.MotifSortie, request.Provenance, request.Destination,
-            request.DateExpiration, request.NomDestinataire, request.TypeMateriel,
+            request.DateExpiration, request.NomDestinataire, request.DescriptionMateriel,
             request.BonEntreeAssocieId, request.RaisonSortieCode, request.Description,
             request.AdresseDestination, request.NumeroVehicule, request.NomChauffeur,
             request.TelephoneChauffeur);

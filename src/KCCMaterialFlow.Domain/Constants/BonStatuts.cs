@@ -21,7 +21,7 @@ public static class BonStatuts
     public static string GetLabel(string statut) => statut switch
     {
         Draft => "Brouillon",
-        PendingSup => "Att. Superviseur",
+        PendingSup => "Chez le Manager",
         PendingGM => "Att. GM",
         PendingOPJ => "Att. OPJ",
         Approved => "Approuvé",

@@ -32,8 +32,6 @@ public sealed class RaisonSortie : BaseEntity
 
     public bool RequiertDetails { get; set; }
 
-    public TypeMateriel? TypeMaterielDefaut { get; set; }
-
     public bool EstActif { get; set; } = true;
     public int OrdreAffichage { get; set; }
 
@@ -44,6 +42,5 @@ public sealed class RaisonSortie : BaseEntity
     public string? Couleur { get; set; }
 
     public CategorieSortie? Categorie { get; set; }
-    public ICollection<DepartementRaisonSortie> DepartementsAutorises { get; set; } = new List<DepartementRaisonSortie>();
     public ICollection<RaisonEntreeRaisonSortie> RaisonsEntreeAutorisees { get; set; } = new List<RaisonEntreeRaisonSortie>();
 }

@@ -64,13 +64,8 @@ public static class DependencyInjection
         services.AddScoped<IReferenceDataService, ReferenceDataService>();
         services.AddScoped<IQRCodeService, QRCodeService>();
 
-        // ── Services Shared (12) ─────────────────────────────────────────
-        services.AddScoped<IUtilisateurService, UtilisateurService>();
-        services.AddScoped<IDepartementService, DepartementService>();
+        // ── Services Shared ─────────────────────────────────────────────
         services.AddScoped<IBarriereService, BarriereService>();
-        services.AddScoped<IRoleService, RoleService>();
-        services.AddScoped<IPermissionService, PermissionService>();
-        services.AddScoped<IActiviteService, ActiviteService>();
         services.AddScoped<IStatutService, StatutService>();
         services.AddScoped<ITypeMaterielService, TypeMaterielService>();
         services.AddScoped<IParametreSystemeService, ParametreSystemeService>();
@@ -78,6 +73,12 @@ public static class DependencyInjection
         services.AddScoped<ICategorieSortieService, CategorieSortieService>();
         services.AddScoped<IRaisonEntreeService, RaisonEntreeService>();
         services.AddScoped<IWorkflowConfigService, WorkflowConfigService>();
+        services.AddScoped<IDataImportService, Services.Shared.DataImportService>();
+        services.AddScoped<IAllEmployeeImportService, Services.Shared.AllEmployeeImportService>();
+        services.AddScoped<IWorkflowApprobateurSpecialService, WorkflowApprobateurSpecialService>();
+        services.AddScoped<IChaineApprobationService, ChaineApprobationService>();
+        services.AddScoped<IAllEmployeeSearchService, Services.Shared.AllEmployeeSearchService>();
+        services.AddScoped<IMaterielCatalogService, Services.Shared.MaterielCatalogService>();
 
         // ── Services BonEntree ───────────────────────────────────────────
         services.AddScoped<IBonEntreeService, InfraBonEntree.BonEntreeService>();

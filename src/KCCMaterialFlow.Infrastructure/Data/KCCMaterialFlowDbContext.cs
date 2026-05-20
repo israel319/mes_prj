@@ -1,25 +1,26 @@
-using KCCMaterialFlow.Application.Common.Interfaces;
+﻿using KCCMaterialFlow.Application.Common.Interfaces;
 using KCCMaterialFlow.Domain.Common;
 using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Domain.Entities.Staging;
 using Microsoft.EntityFrameworkCore;
 
 namespace KCCMaterialFlow.Infrastructure.Data;
 
 /// <summary>
-/// DbContext principal de l'application — implémente IApplicationDbContext (Clean Architecture).
+/// DbContext principal de l'application â€” implÃ©mente IApplicationDbContext (Clean Architecture).
 /// Toutes les configurations EF sont dans Infrastructure/Data/Configurations/.
 /// </summary>
 public class KCCMaterialFlowDbContext : DbContext, IApplicationDbContext
 {
 
-    // ── BonEntree Aggregate ─────────────────────────────────────────
+    // â”€â”€ BonEntree Aggregate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public DbSet<BonEntree> BonsEntree => Set<BonEntree>();
     public DbSet<Materiel> Materiels => Set<Materiel>();
     public DbSet<Approbation> Approbations => Set<Approbation>();
     public DbSet<ItinerairePrevu> ItinerairesPrevu => Set<ItinerairePrevu>();
     public DbSet<BonEntreeHistory> BonEntreeHistoriques => Set<BonEntreeHistory>();
 
-    // ── BonSortie Aggregate ─────────────────────────────────────────
+    // â”€â”€ BonSortie Aggregate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public DbSet<BonSortie> BonsSortie => Set<BonSortie>();
     public DbSet<BonSortieExterne> BonsSortieExterne => Set<BonSortieExterne>();
     public DbSet<BonSortieInterne> BonsSortieInterne => Set<BonSortieInterne>();
@@ -29,26 +30,26 @@ public class KCCMaterialFlowDbContext : DbContext, IApplicationDbContext
     public DbSet<ItineraireSortie> ItinerairesSortie => Set<ItineraireSortie>();
     public DbSet<BonSortieHistory> BonSortieHistoriques => Set<BonSortieHistory>();
 
-    // ── Securite ────────────────────────────────────────────────────
+    // â”€â”€ Securite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public DbSet<ScanEvenement> ScansEvenement => Set<ScanEvenement>();
     public DbSet<Anomalie> Anomalies => Set<Anomalie>();
     public DbSet<HistoriqueScan> HistoriqueScans => Set<HistoriqueScan>();
 
-    // ── Référence / Admin ───────────────────────────────────────────
+    // â”€â”€ RÃ©fÃ©rence / Admin â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Barriere> Barrieres => Set<Barriere>();
     public DbSet<ParametreSysteme> ParametresSysteme => Set<ParametreSysteme>();
-    public DbSet<Utilisateur> Utilisateurs => Set<Utilisateur>();
-    public DbSet<Role> Roles => Set<Role>();
-    public DbSet<UtilisateurRole> UtilisateurRoles => Set<UtilisateurRole>();
-    public DbSet<Departement> Departements => Set<Departement>();
-    public DbSet<DepartementRaisonSortie> DepartementRaisonsSortie => Set<DepartementRaisonSortie>();
     public DbSet<WorkflowEtapeConfig> WorkflowEtapeConfigs => Set<WorkflowEtapeConfig>();
-    public DbSet<Activite> Activites => Set<Activite>();
-    public DbSet<UtilisateurActivite> UtilisateurActivites => Set<UtilisateurActivite>();
     public DbSet<Compagnie> Compagnies => Set<Compagnie>();
     public DbSet<Contrat> Contrats => Set<Contrat>();
     public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<AllEmployee> AllEmployees => Set<AllEmployee>();
+    public DbSet<AppUser> AppUsers => Set<AppUser>();
+    public DbSet<WorkflowApprobateurSpecial> WorkflowApprobateursSpeciaux => Set<WorkflowApprobateurSpecial>();
+
+    // â”€â”€ Tables tampons (import DATA.xlsx) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public DbSet<StagingCompany> StagingCompanies => Set<StagingCompany>();
+    public DbSet<StagingContract> StagingContracts => Set<StagingContract>();
     public DbSet<CategorieSortie> CategoriesSortie => Set<CategorieSortie>();
     public DbSet<RaisonSortie> RaisonsSortie => Set<RaisonSortie>();
     public DbSet<RaisonEntree> RaisonsEntree => Set<RaisonEntree>();
@@ -58,8 +59,6 @@ public class KCCMaterialFlowDbContext : DbContext, IApplicationDbContext
     public DbSet<SoldeMateriel> SoldeMateriels => Set<SoldeMateriel>();
     public DbSet<Checkpoint> Checkpoints => Set<Checkpoint>();
     public DbSet<PassageCheckpoint> PassagesCheckpoint => Set<PassageCheckpoint>();
-    public DbSet<Permission> Permissions => Set<Permission>();
-    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<Statut> Statuts => Set<Statut>();
     public DbSet<TypeMaterielEntity> TypesMateriels => Set<TypeMaterielEntity>();
 
@@ -75,16 +74,16 @@ public class KCCMaterialFlowDbContext : DbContext, IApplicationDbContext
         // Toutes les configurations sont dans Infrastructure/Data/Configurations/
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(KCCMaterialFlowDbContext).Assembly);
 
-        // Configuration globale par défaut
+        // Configuration globale par dÃ©faut
         ConfigureConventions(modelBuilder);
     }
 
     /// <summary>
-    /// Conventions globales pour toutes les entités
+    /// Conventions globales pour toutes les entitÃ©s
     /// </summary>
     private static void ConfigureConventions(ModelBuilder modelBuilder)
     {
-        // Toutes les propriétés string ont une longueur max par défaut
+        // Toutes les propriÃ©tÃ©s string ont une longueur max par dÃ©faut
         foreach (var entity in modelBuilder.Model.GetEntityTypes())
         {
             foreach (var property in entity.GetProperties()
@@ -117,7 +116,7 @@ public class KCCMaterialFlowDbContext : DbContext, IApplicationDbContext
     }
 
     /// <summary>
-    /// Met à jour automatiquement les champs d'audit (CreatedAt, UpdatedAt)
+    /// Met Ã  jour automatiquement les champs d'audit (CreatedAt, UpdatedAt)
     /// </summary>
     private void UpdateAuditFields()
     {

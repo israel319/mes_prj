@@ -1,0 +1,29 @@
+﻿=== Sheet: Sheet1 (rows: 6410, cols: 15) ===
+R1: [1]'EmployeeCode' | [2]'FirstName' | [3]'LastName' | [4]'DepartementCode' | [5]'Departement' | [6]'UserName' | [7]'Mail' | [8]'ReportsToEmployeeCode' | [9]'ReportsToEmployeeDisplay' | [10]'SuperIntendentEmployeeCode' | [11]'SuperIntendentEmployeeDisplay' | [12]'ManagerHodEmployeeCode' | [13]'ManagerHodEmployeeDisplay' | [14]'GmEmployeeCode' | [15]'GmEmployeeDisplay'
+R2: [1]'DAN001IC' | [2]'Roger' | [3]'Dancause' | [4]'1200' | [5]'HS - Operations Processing & Support Services' | [6]'NULL' | [7]'' | [8]'KCC872' | [9]'KCC872 - Nontobeko Makola' | [10]'NULL' | [11]'NULL' | [12]'KCC872' | [13]'KCC872 - Nontobeko Makola' | [14]'KCC872' | [15]'KCC872 - Nontobeko Makola'
+R3: [1]'DOS001IC' | [2]'Samy' | [3]'Doss' | [4]'1966' | [5]'NULL' | [6]'NULL' | [7]'Samy.Doss@glencore.com' | [8]'K24171' | [9]'K24171 - MR D MAVUNGU MAYELA' | [10]'NULL' | [11]'NULL' | [12]'K24171' | [13]'K24171 - Didier MAVUNGU MAYELA' | [14]'K24171' | [15]'K24171 - Didier MAVUNGU MAYELA'
+R4: [1]'HOU001IC' | [2]'Gerhardus' | [3]'Hough' | [4]'1028' | [5]'Asset Protection - Loss Prevention & Investigations' | [6]'NULL' | [7]'Gerhard.Hough@glencore.co.za' | [8]'KCC1141' | [9]'KCC1141 - MR Adriaan Vermeulen' | [10]'NULL' | [11]'NULL' | [12]'KCC1141' | [13]'KCC1141 - Adriaan Vermeulen' | [14]'NULL' | [15]'NULL'
+R5: [1]'ISOS001' | [2]'Nobert' | [3]'Heyraud' | [4]'1075' | [5]'Medical' | [6]'NULL' | [7]'nheyraud@wwetu.com' | [8]'KCC1066' | [9]'KCC1066 - John MUAMBA NTOMBOLO' | [10]'NULL' | [11]'NULL' | [12]'KCC1066' | [13]'KCC1066 - John MUAMBA NTOMBOLO' | [14]'KCC1066' | [15]'KCC1066 - John MUAMBA NTOMBOLO'
+R6: [1]'ISOS002' | [2]'Nour' | [3]'Naili' | [4]'1075' | [5]'Medical' | [6]'NULL' | [7]'nnour@wwetu.com' | [8]'KCC1066' | [9]'KCC1066 - John MUAMBA NTOMBOLO' | [10]'NULL' | [11]'NULL' | [12]'KCC1066' | [13]'KCC1066 - John MUAMBA NTOMBOLO' | [14]'KCC1066' | [15]'KCC1066 - John MUAMBA NTOMBOLO'
+R7: [1]'ISOS003' | [2]'Patrick' | [3]'Michaudel' | [4]'1075' | [5]'Medical' | [6]'NULL' | [7]'' | [8]'KCC1066' | [9]'KCC1066 - John MUAMBA NTOMBOLO' | [10]'NULL' | [11]'NULL' | [12]'KCC1066' | [13]'KCC1066 - John MUAMBA NTOMBOLO' | [14]'KCC1066' | [15]'KCC1066 - John MUAMBA NTOMBOLO'
+R8: [1]'K00001' | [2]'Benoit' | [3]'KAMOSI' | [4]'1171' | [5]'Operations - WOL, Roasters & Cobalt' | [6]'ANYACCESS\bkamosi' | [7]'benoit.kamosi@kamotocopper.com' | [8]'K00603' | [9]'K00603 - David LUBUTWE KALUNGU' | [10]'K23085' | [11]'K23085 - Herve MULEMBA LUMBALA' | [12]'K21183' | [13]'K21183 - Felicien Dede LUMBALA MADIKA' | [14]'K24438' | [15]'K24438 - Lydie MAZOLA EYA MALAIKA'
+R9: [1]'K00006' | [2]'Noglhy' | [3]'MBUY KABELA' | [4]'1762' | [5]'Chief Operating Officer' | [6]'ANYACCESS\nmbuy' | [7]'noglhy.mbuy@kamotocopper.com' | [8]'K21330' | [9]'K21330 - Delphin KAYOMBO KAJI' | [10]'NULL' | [11]'NULL' | [12]'KCC1139' | [13]'KCC1139 - Bongani Manyathi' | [14]'KCC1108' | [15]'KCC1108 - Lawrence HLATSHWAYO'
+R10: [1]'K00094' | [2]'Guy' | [3]'KIPANGA SHABANZA' | [4]'1368' | [5]'Production & Development - UG Mining' | [6]'ANYACCESS\gkipanga' | [7]'guy.kipanga@kamotocopper.com' | [8]'K22437' | [9]'K22437 - MR F KALABO YUMBA' | [10]'K20333' | [11]'K20333 - John LUMUNA KYANYA' | [12]'K01937' | [13]'K01937 - Alain NKULU NKOKWA' | [14]'KCC1124' | [15]'KCC1124 - Angus Simpson'
+R11: [1]'K00195' | [2]'Maurice' | [3]'MUTOMBO KALENGA' | [4]'1376' | [5]'Fixed Plant Maintenance - UG Mining' | [6]'NULL' | [7]'' | [8]'K23862' | [9]'K23862 - Mao NGOIE MWEPU MAOMBE' | [10]'K25055' | [11]'K25055 - Patrick KAYO MULALO' | [12]'K20012' | [13]'K20012 - Ben Bella BANZE KITOBO' | [14]'K24438' | [15]'K24438 - Lydie MAZOLA EYA MALAIKA'
+R12: [1]'K00256' | [2]'Damas' | [3]'MUFWEJI MUTANANA' | [4]'1109' | [5]'Exports' | [6]'ANYACCESS\dmufweji' | [7]'damas.mufweji@kamotocopper.com' | [8]'K03055' | [9]'K03055 - MR J KYABUNTU UMBA' | [10]'K03055' | [11]'K03055 - John-Daniel KYABUNTU UMBA' | [12]'K22674' | [13]'K22674 - Premices KALUNGA KITUNGWA' | [14]'KCC929' | [15]'NULL'
+
+COL 1 'EmployeeCode' uniques=6409
+COL 2 'FirstName' uniques=1850
+COL 3 'LastName' uniques=6127
+COL 4 'DepartementCode' uniques=140
+COL 5 'Departement' uniques=115
+COL 6 'UserName' uniques=3327
+COL 7 'Mail' uniques=3434
+COL 8 'ReportsToEmployeeCode' uniques=868
+COL 9 'ReportsToEmployeeDisplay' uniques=955
+COL 10 'SuperIntendentEmployeeCode' uniques=200
+COL 11 'SuperIntendentEmployeeDisplay' uniques=200
+COL 12 'ManagerHodEmployeeCode' uniques=117
+COL 13 'ManagerHodEmployeeDisplay' uniques=117
+COL 14 'GmEmployeeCode' uniques=27 => KCC872 | K24171 | NULL | KCC1066 | K24438 | KCC1108 | KCC1124 | KCC929 | K20809 | K20595 | K24435 | K24027 | K24577 | KCC1122 | KCC1004 | KCC1116 | KCC940 | KCC1129 | KCC1155 | K01610 | KCC1132 | KCC1065 | KCC1113 | KCC1105 | KCC1103 | K26674 | WW0300
+COL 15 'GmEmployeeDisplay' uniques=26 => KCC872 - Nontobeko Makola | K24171 - Didier MAVUNGU MAYELA | NULL | KCC1066 - John MUAMBA NTOMBOLO | K24438 - Lydie MAZOLA EYA MALAIKA | KCC1108 - Lawrence HLATSHWAYO | KCC1124 - Angus Simpson | K20809 - Guillaume KALENGA MAMBWE | K20595 - Laurent NSANGWA KALELE | K24435 - Patient KABWIKA ILUNGA | K24027 - Faustin SANKI NGOY | K24577 - Antoine MBALA NSONSA | KCC1122 - Nicolaas Mare | KCC1004 - Wayne Williams | KCC1116 - Grahame Smith | KCC940 - Mambwe Kasangula | KCC1129 - Grant Wise | KCC1155 - Douglas ROSS | K01610 - Lievin TSHAKWANDA MAFUTA | KCC1132 - Osmario DELLARETTI NETO | KCC1065 - Christian BALEMBA NGABOZ'EKA KASHWANTALE | KCC1113 - Victor Ditle | KCC1105 - Nevushoma MATEKO | KCC1103 - Judith ADDO - BUMBA | K26674 - Godefroy SELEMANI MWANA YILE | WW0300 - Hubert KANONGE KABEYA

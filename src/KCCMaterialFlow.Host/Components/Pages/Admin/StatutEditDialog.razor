@@ -1,16 +1,15 @@
 @inject IStatutService StatutService
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1rem">
     <RadzenRow Gap="1rem">
         <RadzenColumn Size="12" SizeMD="4">
-            <RadzenFormField Text="Code *" Style="width: 100%;">
-                <RadzenTextBox @bind-Value="@model.CodeStatut" Style="width: 100%;" 
-                               Placeholder="EN_ATTENTE" MaxLength="50" Disabled="@isSysteme" />
+            <RadzenFormField Text="@L["Sed_LblCode"].Value" Style="width: 100%;">
             </RadzenFormField>
         </RadzenColumn>
         <RadzenColumn Size="12" SizeMD="8">
-            <RadzenFormField Text="Libellé *" Style="width: 100%;">
+            <RadzenFormField Text="@L["Sed_LblLibelle"].Value" Style="width: 100%;">
                 <RadzenTextBox @bind-Value="@model.LibelleStatut" Style="width: 100%;" />
             </RadzenFormField>
         </RadzenColumn>
@@ -18,41 +17,39 @@
     
     <RadzenRow Gap="1rem">
         <RadzenColumn Size="12">
-            <RadzenFormField Text="Description" Style="width: 100%;">
-                <RadzenTextArea @bind-Value="@model.Description" Style="width: 100%;" Rows="2" />
+            <RadzenFormField Text="@L["Ped_LblDescription"].Value" Style="width: 100%;">
             </RadzenFormField>
         </RadzenColumn>
     </RadzenRow>
     
     <RadzenRow Gap="1rem">
         <RadzenColumn Size="12" SizeMD="6">
-            <RadzenFormField Text="Type de bon *" Style="width: 100%;">
+            <RadzenFormField Text="@L["Sed_LblTypeBon"].Value" Style="width: 100%;">
                 <RadzenDropDown TValue="string" Data="@typesBon" @bind-Value="@model.TypeBon"
                                 Style="width: 100%;" Disabled="@isSysteme" />
             </RadzenFormField>
         </RadzenColumn>
         <RadzenColumn Size="12" SizeMD="6">
-            <RadzenFormField Text="Ordre d'affichage" Style="width: 100%;">
-                <RadzenNumeric @bind-Value="@model.Ordre" Style="width: 100%;" Min="0" Max="100" Disabled="@isSysteme" />
+            <RadzenFormField Text="@L["Ped_LblOrdre"].Value" Style="width: 100%;">
             </RadzenFormField>
         </RadzenColumn>
     </RadzenRow>
     
     <RadzenRow Gap="1rem">
         <RadzenColumn Size="12" SizeMD="4">
-            <RadzenFormField Text="Couleur de fond" Style="width: 100%;">
+            <RadzenFormField Text="@L["Sed_LblCouleurFond"].Value" Style="width: 100%;">
                 <RadzenColorPicker @bind-Value="@model.CouleurFond" Style="width: 100%;" ShowHSV="true" ShowRGBA="false" />
             </RadzenFormField>
         </RadzenColumn>
         <RadzenColumn Size="12" SizeMD="4">
-            <RadzenFormField Text="Couleur du texte" Style="width: 100%;">
+            <RadzenFormField Text="@L["Sed_LblCouleurTexte"].Value" Style="width: 100%;">
                 <RadzenColorPicker @bind-Value="@model.CouleurTexte" Style="width: 100%;" ShowHSV="true" ShowRGBA="false" />
             </RadzenFormField>
         </RadzenColumn>
         <RadzenColumn Size="12" SizeMD="4">
-            <RadzenFormField Text="Icône" Style="width: 100%;">
+            <RadzenFormField Text="@L["Sed_LblIcone"].Value" Style="width: 100%;">
                 <RadzenTextBox @bind-Value="@model.Icone" Style="width: 100%;" 
-                               Placeholder="bi-check-circle" />
+                               Placeholder="@L["Sed_PlaceholderIcone"].Value" />
             </RadzenFormField>
         </RadzenColumn>
     </RadzenRow>
@@ -65,7 +62,7 @@
                 {
                     <i class="@model.Icone" style="margin-right: 0.25rem;"></i>
                 }
-                @(string.IsNullOrEmpty(model.LibelleStatut) ? "Aperçu" : model.LibelleStatut)
+                @(string.IsNullOrEmpty(model.LibelleStatut) ? L["Sed_Preview"].Value : model.LibelleStatut)
             </div>
         </RadzenColumn>
     </RadzenRow>
@@ -74,26 +71,26 @@
         <RadzenColumn Size="12" SizeMD="4">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
                 <RadzenCheckBox @bind-Value="@model.EstFinal" TValue="bool" Disabled="@isSysteme" />
-                <RadzenLabel Text="Statut final" Style="margin-left: 0.5rem;" />
+                <RadzenLabel Text="@L["Sed_ChkFinal"].Value" Style="margin-left: 0.5rem;" />
             </RadzenStack>
         </RadzenColumn>
         <RadzenColumn Size="12" SizeMD="4">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
                 <RadzenCheckBox @bind-Value="@model.RequiertAction" TValue="bool" Disabled="@isSysteme" />
-                <RadzenLabel Text="Requiert une action" Style="margin-left: 0.5rem;" />
+                <RadzenLabel Text="@L["Sed_ChkRequiertAction"].Value" Style="margin-left: 0.5rem;" />
             </RadzenStack>
         </RadzenColumn>
         <RadzenColumn Size="12" SizeMD="4">
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center">
                 <RadzenCheckBox @bind-Value="@model.EstActif" TValue="bool" />
-                <RadzenLabel Text="Statut actif" Style="margin-left: 0.5rem;" />
+                <RadzenLabel Text="@L["Sed_ChkActif"].Value" Style="margin-left: 0.5rem;" />
             </RadzenStack>
         </RadzenColumn>
     </RadzenRow>
     
     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" class="rz-mt-4">
-        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
-        <RadzenButton Text="@(isEditMode ? "Enregistrer" : "Créer")" ButtonStyle="ButtonStyle.Primary" 
+        <RadzenButton Text="@L["Btn_Cancel"].Value" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@(isEditMode ? L["Btn_Save"].Value : L["Btn_Create"].Value)" ButtonStyle="ButtonStyle.Primary" 
                       Click="@Save" Disabled="@(!IsValid)" />
     </RadzenStack>
 </RadzenStack>

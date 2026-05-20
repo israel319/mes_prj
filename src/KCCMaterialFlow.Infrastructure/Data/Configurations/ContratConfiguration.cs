@@ -20,10 +20,16 @@ public class ContratConfiguration : IEntityTypeConfiguration<Contrat>
 
         builder.Property(c => c.PoNumber)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(100);
 
         builder.Property(c => c.ContratDescription)
             .HasMaxLength(500);
+
+        builder.Property(c => c.Email)
+            .HasMaxLength(200);
+
+        builder.Property(c => c.SiteManager)
+            .HasMaxLength(200);
 
         builder.Property(c => c.CompagnieId)
             .IsRequired();

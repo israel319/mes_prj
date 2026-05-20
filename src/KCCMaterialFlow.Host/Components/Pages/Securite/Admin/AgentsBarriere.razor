@@ -1,241 +1,203 @@
-@page "/securite/admin/agents"
+﻿@page "/securite/admin/agents"
 @attribute [Authorize(Roles = "Admin,Security")]
 @inject IBarriereService BarriereService
 @inject ICurrentUserService CurrentUserService
-@inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
 @inject NotificationService NotificationService
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>Affectation Agents aux Barrières - Admin - KCC Material Flow</PageTitle>
 
-<div style="background-color: #f4f7fa; min-height: 100vh; padding: 2rem;">
-    <RadzenStack Gap="1.5rem">
-        
-        @* En-tête *@
-        <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-            <RadzenColumn Size="12" SizeMD="8">
-                <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 0.25rem;">
-                    <RadzenIcon Icon="badge" Style="vertical-align: middle; margin-right: 0.5rem; color: #805ad5;" />
-                    Affectation des Agents aux Barrières
-                </RadzenText>
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
-                    Gestion des plannings et affectations des agents de sécurité
-                </RadzenText>
-            </RadzenColumn>
-            <RadzenColumn Size="12" SizeMD="4" class="rz-text-align-right">
-                <RadzenButton Text="Nouvelle Affectation" Icon="person_add" ButtonStyle="ButtonStyle.Danger" 
-                              Style="background-color: #e31b23; border-radius: 8px; font-weight: 600;" 
-                              Click="@CreateNew" />
-            </RadzenColumn>
-        </RadzenRow>
+<div style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
 
-        @* Statistiques *@
-        <RadzenRow Gap="1rem">
-            <RadzenColumn Size="12" SizeMD="3">
-                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #48bb78;">
-                    <RadzenStack Gap="0.25rem">
-                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Agents en Service</RadzenText>
-                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #48bb78;">@stats.AgentsEnService</RadzenText>
-                    </RadzenStack>
-                </RadzenCard>
-            </RadzenColumn>
-            <RadzenColumn Size="12" SizeMD="3">
-                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #4299e1;">
-                    <RadzenStack Gap="0.25rem">
-                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Barrières Couvertes</RadzenText>
-                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #4299e1;">@stats.BarrieresCouvertes / @stats.TotalBarrieres</RadzenText>
-                    </RadzenStack>
-                </RadzenCard>
-            </RadzenColumn>
-            <RadzenColumn Size="12" SizeMD="3">
-                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #ed8936;">
-                    <RadzenStack Gap="0.25rem">
-                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Affectations Actives</RadzenText>
-                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #ed8936;">@stats.AffectationsActives</RadzenText>
-                    </RadzenStack>
-                </RadzenCard>
-            </RadzenColumn>
-            <RadzenColumn Size="12" SizeMD="3">
-                <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border-left: 4px solid #805ad5;">
-                    <RadzenStack Gap="0.25rem">
-                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">Total Agents</RadzenText>
-                        <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #805ad5;">@stats.TotalAgents</RadzenText>
-                    </RadzenStack>
-                </RadzenCard>
-            </RadzenColumn>
-        </RadzenRow>
+    @* === EN-TÊTE === *@
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="1rem" class="rz-mb-6">
+        <RadzenStack Gap="0.25rem">
+            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-grey); margin: 0;">
+                <RadzenIcon Icon="badge" Style="vertical-align: middle; margin-right: 0.5rem; color: #805ad5;" />
+                Affectation des Agents aux Barrières
+            </RadzenText>
+            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500); margin: 0;">
+                Gestion des plannings et affectations des agents de sécurité
+            </RadzenText>
+        </RadzenStack>
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
+            <RadzenButton Text="@L["Sec_BtnNewAssign"].Value" Icon="person_add" ButtonStyle="ButtonStyle.Primary" Click="@CreateNew" />
+            <RadzenButton Icon="refresh" Text="@L["Btn_Refresh"].Value" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Dark" Click="@LoadDataAsync" />
+        </RadzenStack>
+    </RadzenStack>
 
-        @* Filtres *@
-        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; border: 1px solid #eee;">
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" Wrap="FlexWrap.Wrap" AlignItems="AlignItems.End">
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Rechercher Agent</RadzenText>
-                    <RadzenTextBox @bind-Value="@searchTerm" Placeholder="Nom, matricule..." Style="width: 200px; border-radius: 6px;" />
-                </RadzenStack>
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Barrière</RadzenText>
-                    <RadzenDropDown @bind-Value="@filterBarriereId" Data="@barrieres" TextProperty="NomBarriere" ValueProperty="Id"
-                                    Placeholder="Toutes" AllowClear="true" Style="width: 180px; border-radius: 6px;" />
-                </RadzenStack>
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Vacation</RadzenText>
-                    <RadzenDropDown @bind-Value="@filterVacation" Data="@vacationOptions" 
-                                    Placeholder="Toutes" AllowClear="true" Style="width: 130px; border-radius: 6px;" />
-                </RadzenStack>
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">Date</RadzenText>
-                    <RadzenDatePicker @bind-Value="@filterDate" DateFormat="dd/MM/yyyy" Style="width: 140px; border-radius: 6px;" />
-                </RadzenStack>
-                <RadzenButton Text="Filtrer" Icon="search" ButtonStyle="ButtonStyle.Dark" Click="@ApplyFilter" Style="border-radius: 6px;" />
-                <RadzenButton Icon="refresh" ButtonStyle="ButtonStyle.Light" Click="@ResetFilter" Style="border-radius: 6px;" />
+
+    @if (!string.IsNullOrEmpty(activeFilter))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter"
+                     AllowClose="true" Close="@(() => SetFilter(null))" class="rz-mb-4">
+            Filtre actif : <strong>@L["Sec_FilterOnDuty"]</strong>
+        </RadzenAlert>
+    }
+
+    @* === RECHERCHE === *@
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" class="rz-mb-4">
+        <RadzenIcon Icon="search" Style="color: var(--gray-400);" />
+        <RadzenTextBox @bind-Value="searchTerm" Placeholder="@L["Sec_PlSearchAgent"].Value"
+                       Style="flex: 1; min-width: 200px;" Change="@(_ => StateHasChanged())" />
+        <RadzenDropDown @bind-Value="filterBarriereId" Data="@barrieres" TextProperty="NomBarriere" ValueProperty="Id"
+                        Placeholder="@L["Sec_PlAllBarrieres"].Value" AllowClear="true" Style="min-width: 180px;" Change="@(_ => StateHasChanged())" />
+        <RadzenDropDown @bind-Value="filterVacation" Data="@vacationOptions"
+                        Placeholder="@L["Sec_PlAllVacations"].Value" AllowClear="true" Style="min-width: 150px;" Change="@(_ => StateHasChanged())" />
+        <RadzenDatePicker @bind-Value="filterDate" DateFormat="dd/MM/yyyy" Placeholder="@L["Lbl_Date"].Value"
+                          ShowTime="false" Style="min-width: 140px;" Change="@(_ => StateHasChanged())" />
+        @if (HasAnyFilter)
+        {
+            <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ClearSearch" />
+        }
+    </RadzenStack>
+
+    @* === GRID === *@
+    @if (isLoading)
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 4rem;">
+                <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
             </RadzenStack>
         </RadzenCard>
-
-        @* Table *@
-        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 0; overflow: hidden; border: 1px solid #eee;">
-            <RadzenDataGrid @ref="grid" Data="@filteredAffectations" TItem="AgentAffectation" IsLoading="@isLoading"
-                            AllowPaging="true" PageSize="10" AllowSorting="true"
-                            Variant="Variant.Flat" GridLines="DataGridGridLines.None">
-                <Columns>
-                    <RadzenDataGridColumn TItem="AgentAffectation" Property="AgentNom" Title="AGENT" Width="200px">
-                        <Template Context="a">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                <div style="background: #805ad5; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
-                                    <RadzenIcon Icon="person" Style="color: white; font-size: 1.2rem;" />
-                                </div>
-                                <RadzenStack Gap="0">
-                                    <RadzenText FontWeight="FontWeight.SemiBold">@a.AgentNom</RadzenText>
-                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-family: monospace;">@a.AgentMatricule</RadzenText>
-                                </RadzenStack>
+    }
+    else
+    {
+        <RadzenDataGrid @ref="grid" Data="@filteredAffectations" TItem="AgentAffectation"
+                        AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                        AllowSorting="true" AllowFiltering="false"
+                        Density="Density.Compact"
+                        GridLines="DataGridGridLines.Horizontal"
+                        ExpandMode="DataGridExpandMode.Single">
+            <Template Context="a">
+                <div style="padding: 0.75rem 1rem; background: var(--rz-base-200); border-radius: 8px; margin: 0.25rem 0;">
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" Wrap="FlexWrap.Wrap">
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Login :</strong> @a.AgentLogin</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Matricule :</strong> @a.AgentMatricule</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Barrière :</strong> @a.BarriereNom</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Vacation :</strong> @a.Vacation</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Du :</strong> @a.DateDebut.ToString("dd/MM/yyyy")</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">Au :</strong> @(a.DateFin?.ToString("dd/MM/yyyy") ?? "Permanent")</span>
+                    </RadzenStack>
+                </div>
+            </Template>
+            <Columns>
+                <RadzenDataGridColumn TItem="AgentAffectation" Property="AgentNom" Title="@L["Sec_ColAgent"]" Sortable="true">
+                    <Template Context="a">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                            <div style="background: #805ad5; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                                <RadzenIcon Icon="person" Style="color: white; font-size: 1rem;" />
+                            </div>
+                            <RadzenStack Gap="0">
+                                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600; margin: 0;">@a.AgentNom</RadzenText>
+                                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); font-family: monospace; margin: 0;">@a.AgentMatricule</RadzenText>
                             </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AgentAffectation" Property="BarriereNom" Title="BARRIÈRE" Width="180px">
-                        <Template Context="a">
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
-                                <RadzenIcon Icon="security" Style="color: #e31b23; font-size: 1rem;" />
-                                <span>@a.BarriereNom</span>
-                            </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AgentAffectation" Property="Vacation" Title="VACATION" Width="120px">
-                        <Template Context="a">
-                            <RadzenBadge Text="@a.Vacation" BadgeStyle="@GetVacationStyle(a.Vacation)" />
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AgentAffectation" Property="DateDebut" Title="DÉBUT" Width="120px">
-                        <Template Context="a">
-                            <span style="font-size: 0.9rem;">@a.DateDebut.ToString("dd/MM/yyyy")</span>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AgentAffectation" Property="DateFin" Title="FIN" Width="120px">
-                        <Template Context="a">
-                            @if (a.DateFin.HasValue)
-                            {
-                                <span style="font-size: 0.9rem;">@a.DateFin.Value.ToString("dd/MM/yyyy")</span>
-                            }
-                            else
-                            {
-                                <RadzenBadge Text="Permanent" BadgeStyle="BadgeStyle.Light" />
-                            }
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AgentAffectation" Property="EstActif" Title="STATUT" Width="100px">
-                        <Template Context="a">
-                            @if (a.EstActif && IsCurrentlyActive(a))
-                            {
-                                <RadzenBadge Text="En service" BadgeStyle="BadgeStyle.Success" />
-                            }
-                            else if (a.EstActif)
-                            {
-                                <RadzenBadge Text="Planifié" BadgeStyle="BadgeStyle.Info" />
-                            }
-                            else
-                            {
-                                <RadzenBadge Text="Inactif" BadgeStyle="BadgeStyle.Light" />
-                            }
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="AgentAffectation" Title="ACTIONS" Width="120px" TextAlign="TextAlign.Center" Sortable="false">
-                        <Template Context="a">
-                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
-                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Small"
-                                              Click="@(() => EditAffectation(a))" title="Modifier" />
-                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Small"
-                                              Click="@(() => DeleteAffectation(a))" title="Supprimer" />
-                            </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        </RadzenCard>
-
-        @* Vue par Barrière *@
-        <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
-            <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 1rem;">
-                <RadzenIcon Icon="grid_view" Style="vertical-align: middle; margin-right: 0.5rem;" />
-                Vue par Barrière - Agents Actuellement en Service
-            </RadzenText>
-            <RadzenRow Gap="1rem">
-                @foreach (var barriere in barrieres)
-                {
-                    var agentsAtBarriere = GetAgentsAtBarriere(barriere.Id);
-                    <RadzenColumn Size="12" SizeMD="4">
-                        <RadzenCard Variant="Variant.Flat" Style="@($"border-radius: 8px; padding: 1rem; border: 1px solid {(agentsAtBarriere.Any() ? "#48bb78" : "#fed7d7")}; background: {(agentsAtBarriere.Any() ? "#f0fff4" : "#fff5f5")};")">
-                            <RadzenStack Gap="0.5rem">
-                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                                    <RadzenText FontWeight="FontWeight.Bold">@barriere.NomBarriere</RadzenText>
-                                    <RadzenBadge Text="@(agentsAtBarriere.Count.ToString())" 
-                                                 BadgeStyle="@(agentsAtBarriere.Any() ? BadgeStyle.Success : BadgeStyle.Danger)" />
-                                </RadzenStack>
-                                @if (agentsAtBarriere.Any())
-                                {
-                                    @foreach (var agent in agentsAtBarriere)
-                                    {
-                                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                            <RadzenIcon Icon="person" Style="color: #48bb78; font-size: 0.9rem;" />
-                                            <RadzenText TextStyle="TextStyle.Caption">@agent.AgentNom</RadzenText>
-                                        </RadzenStack>
-                                    }
-                                }
-                                else
-                                {
-                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: #c53030;">
-                                        <RadzenIcon Icon="warning" Style="vertical-align: middle; font-size: 0.9rem;" />
-                                        Aucun agent affecté
-                                    </RadzenText>
-                                }
-                            </RadzenStack>
-                        </RadzenCard>
-                    </RadzenColumn>
-                }
-            </RadzenRow>
-        </RadzenCard>
-    </RadzenStack>
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AgentAffectation" Property="BarriereNom" Title="@L["Sec_ColBarriere"]" Width="180px" Sortable="true">
+                    <Template Context="a">
+                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.25rem">
+                            <RadzenIcon Icon="security" Style="color: #e31b23; font-size: 1rem;" />
+                            <span>@a.BarriereNom</span>
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AgentAffectation" Property="Vacation" Title="@L["Sec_ColVacation"]" Width="110px" Sortable="true">
+                    <Template Context="a">
+                        <RadzenBadge Text="@a.Vacation" BadgeStyle="@GetVacationStyle(a.Vacation)" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AgentAffectation" Property="DateDebut" Title="@L["Sec_ColStart"]" Width="110px" Sortable="true" FormatString="{0:dd/MM/yyyy}" />
+                <RadzenDataGridColumn TItem="AgentAffectation" Property="DateFin" Title="@L["Sec_ColFin"]" Width="120px" Sortable="true">
+                    <Template Context="a">
+                        @if (a.DateFin.HasValue)
+                        {
+                            <span style="font-size: 0.9rem;">@a.DateFin.Value.ToString("dd/MM/yyyy")</span>
+                        }
+                        else
+                        {
+                            <RadzenBadge Text="@L["Sec_BadgePermanent"].Value" BadgeStyle="BadgeStyle.Light" />
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AgentAffectation" Property="EstActif" Title="@L["Sec_ColStatus"]" Width="120px" Sortable="true">
+                    <Template Context="a">
+                        @if (a.EstActif && IsCurrentlyActive(a))
+                        {
+                            <RadzenBadge Text="@L["Sec_BadgeOnDuty"].Value" BadgeStyle="BadgeStyle.Success" />
+                        }
+                        else if (a.EstActif)
+                        {
+                            <RadzenBadge Text="@L["Sec_BadgeScheduled"].Value" BadgeStyle="BadgeStyle.Info" />
+                        }
+                        else
+                        {
+                            <RadzenBadge Text="@L["Sec_BadgeInactive"].Value" BadgeStyle="BadgeStyle.Light" />
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="AgentAffectation" Title="@L["Col_Actions"]" Width="170px" TextAlign="TextAlign.Right" Sortable="false">
+                    <Template Context="a">
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                            <RadzenButton Icon="edit" Text="@L["Btn_Edit"].Value" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                          ButtonStyle="ButtonStyle.Dark" Click="@(() => EditAffectation(a))" />
+                            <RadzenButton Icon="delete" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                          ButtonStyle="ButtonStyle.Danger" Click="@(() => DeleteAffectation(a))" title="@L["Tt_Delete"].Value" />
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
 </div>
 
 @code {
     private RadzenDataGrid<AgentAffectation>? grid;
     private List<AgentAffectation> allAffectations = new();
-    private IEnumerable<AgentAffectation> filteredAffectations = Enumerable.Empty<AgentAffectation>();
     private List<Barriere> barrieres = new();
     private bool isLoading = true;
     private string? searchTerm;
     private int? filterBarriereId;
     private string? filterVacation;
     private DateTime? filterDate;
+    private string? activeFilter; // null | "active"
     private StatsData stats = new();
 
     private readonly List<string> vacationOptions = new() { "Jour", "Nuit", "Mixte" };
+
+    private bool HasAnyFilter => !string.IsNullOrWhiteSpace(searchTerm)
+        || filterBarriereId.HasValue || !string.IsNullOrEmpty(filterVacation) || filterDate.HasValue;
+
+    private IEnumerable<AgentAffectation> filteredAffectations
+    {
+        get
+        {
+            IEnumerable<AgentAffectation> q = allAffectations;
+            if (activeFilter == "active") q = q.Where(a => a.EstActif && IsCurrentlyActive(a));
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var s = searchTerm.Trim();
+                q = q.Where(a =>
+                    a.AgentNom.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    a.AgentMatricule.Contains(s, StringComparison.OrdinalIgnoreCase));
+            }
+            if (filterBarriereId.HasValue) q = q.Where(a => a.BarriereId == filterBarriereId.Value);
+            if (!string.IsNullOrEmpty(filterVacation)) q = q.Where(a => a.Vacation == filterVacation);
+            if (filterDate.HasValue) q = q.Where(a => a.DateDebut <= filterDate.Value && (!a.DateFin.HasValue || a.DateFin.Value >= filterDate.Value));
+            return q;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         if (!CurrentUserService.HasActivite("SEC_GERER_AGENTS"))
         {
-            Navigation.NavigateTo("/", replace: true);
+            NavigationManager.NavigateTo("/", replace: true);
             return;
         }
-
         barrieres = (await BarriereService.GetAllAsync()).ToList();
         await LoadDataAsync();
     }
@@ -245,7 +207,6 @@
         isLoading = true;
         try
         {
-            // Données exemple - à remplacer par un service réel
             allAffectations = new List<AgentAffectation>
             {
                 new() { Id = 1, AgentLogin = "jdupont", AgentNom = "Jean Dupont", AgentMatricule = "SEC-001", BarriereId = 1, BarriereNom = "Barrière Principale", Vacation = "Jour", DateDebut = DateTime.Today, EstActif = true },
@@ -254,7 +215,6 @@
                 new() { Id = 4, AgentLogin = "lbernard", AgentNom = "Luc Bernard", AgentMatricule = "SEC-004", BarriereId = 2, BarriereNom = "Entrée Nord", Vacation = "Nuit", DateDebut = DateTime.Today.AddDays(-30), EstActif = true },
             };
 
-            // Mettre à jour les barrières avec les noms réels
             foreach (var aff in allAffectations)
             {
                 var b = barrieres.FirstOrDefault(x => x.Id == aff.BarriereId);
@@ -262,7 +222,6 @@
             }
 
             UpdateStats();
-            ApplyFilter();
         }
         finally
         {
@@ -284,38 +243,8 @@
         };
     }
 
-    private void ApplyFilter()
-    {
-        var result = allAffectations.AsEnumerable();
-
-        if (!string.IsNullOrWhiteSpace(searchTerm))
-        {
-            var term = searchTerm.ToUpperInvariant();
-            result = result.Where(a => 
-                a.AgentNom.ToUpperInvariant().Contains(term) ||
-                a.AgentMatricule.ToUpperInvariant().Contains(term));
-        }
-
-        if (filterBarriereId.HasValue)
-            result = result.Where(a => a.BarriereId == filterBarriereId.Value);
-
-        if (!string.IsNullOrWhiteSpace(filterVacation))
-            result = result.Where(a => a.Vacation == filterVacation);
-
-        if (filterDate.HasValue)
-            result = result.Where(a => a.DateDebut <= filterDate.Value && (!a.DateFin.HasValue || a.DateFin.Value >= filterDate.Value));
-
-        filteredAffectations = result.ToList();
-    }
-
-    private void ResetFilter()
-    {
-        searchTerm = null;
-        filterBarriereId = null;
-        filterVacation = null;
-        filterDate = null;
-        ApplyFilter();
-    }
+    private void SetFilter(string? f) { activeFilter = f; StateHasChanged(); }
+    private void ClearSearch() { searchTerm = null; filterBarriereId = null; filterVacation = null; filterDate = null; StateHasChanged(); }
 
     private bool IsCurrentlyActive(AgentAffectation a)
     {
@@ -323,35 +252,26 @@
         return a.DateDebut <= now && (!a.DateFin.HasValue || a.DateFin.Value >= now);
     }
 
-    private List<AgentAffectation> GetAgentsAtBarriere(int barriereId)
-    {
-        return allAffectations
-            .Where(a => a.BarriereId == barriereId && a.EstActif && IsCurrentlyActive(a))
-            .ToList();
-    }
-
     private async Task CreateNew()
     {
-        var result = await DialogService.OpenAsync<AgentAffectationDialog>("Nouvelle Affectation",
+        var result = await DialogService.OpenAsync<AgentAffectationDialog>(L["Sec_DlgNewAssignment"].Value,
             new Dictionary<string, object> { { "Affectation", null! }, { "Barrieres", barrieres } },
             new DialogOptions { Width = "550px" });
-
         if (result is AgentAffectation)
         {
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Affectation créée avec succès");
+            NotificationService.Notify(NotificationSeverity.Success, L["Lbl_Success"].Value, L["Sec_NotifAssignCreated"].Value);
             await LoadDataAsync();
         }
     }
 
     private async Task EditAffectation(AgentAffectation affectation)
     {
-        var result = await DialogService.OpenAsync<AgentAffectationDialog>("Modifier l'Affectation",
+        var result = await DialogService.OpenAsync<AgentAffectationDialog>(L["Sec_DlgEditAssignment"].Value,
             new Dictionary<string, object> { { "Affectation", affectation }, { "Barrieres", barrieres } },
             new DialogOptions { Width = "550px" });
-
         if (result is AgentAffectation)
         {
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Affectation mise à jour avec succès");
+            NotificationService.Notify(NotificationSeverity.Success, L["Lbl_Success"].Value, L["Sec_NotifAssignUpdated"].Value);
             await LoadDataAsync();
         }
     }
@@ -362,13 +282,12 @@
             $"Voulez-vous vraiment supprimer l'affectation de \"{affectation.AgentNom}\" à \"{affectation.BarriereNom}\" ?",
             "Confirmer la suppression",
             new ConfirmOptions { OkButtonText = "Supprimer", CancelButtonText = "Annuler" });
-
         if (confirm == true)
         {
             allAffectations.Remove(affectation);
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Affectation supprimée");
+            NotificationService.Notify(NotificationSeverity.Success, L["Lbl_Success"].Value, L["Sec_NotifAssignDeleted"].Value);
             UpdateStats();
-            ApplyFilter();
+            StateHasChanged();
         }
     }
 

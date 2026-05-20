@@ -1,6 +1,7 @@
 @inject IBarriereService BarriereService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1.5rem" Style="padding: 0.5rem;">
     <RadzenStack Gap="1rem">
@@ -11,7 +12,7 @@
                 Provenance <span style="color: #e31b23;">*</span>
             </RadzenText>
             <RadzenDropDown @bind-Value="@model.Provenance" Data="@lieux" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                            Placeholder="Sélectionner ou saisir..." AllowClear="true" Style="width: 100%; border-radius: 6px;" />
+                            Placeholder="@L["Sec_PlSelectOrType"].Value" AllowClear="true" Style="width: 100%; border-radius: 6px;" />
         </RadzenStack>
 
         @* Destination *@
@@ -21,7 +22,7 @@
                 Destination <span style="color: #e31b23;">*</span>
             </RadzenText>
             <RadzenDropDown @bind-Value="@model.Destination" Data="@lieux" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                            Placeholder="Sélectionner ou saisir..." AllowClear="true" Style="width: 100%; border-radius: 6px;" />
+                            Placeholder="@L["Sec_PlSelectOrType"].Value" AllowClear="true" Style="width: 100%; border-radius: 6px;" />
         </RadzenStack>
 
         @* Barrières autorisées *@
@@ -32,7 +33,7 @@
             </RadzenText>
             <RadzenDropDown @bind-Value="@selectedBarrieres" Data="@barrieres" TextProperty="NomBarriere" ValueProperty="CodeBarriere"
                             Multiple="true" AllowClear="true" AllowFiltering="true" Chips="true"
-                            Placeholder="Sélectionner les barrières..." Style="width: 100%; border-radius: 6px;" />
+                            Placeholder="@L["Sec_PlSelectBarrieres"].Value" Style="width: 100%; border-radius: 6px;" />
             <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096; font-size: 0.8rem;">
                 Sélectionnez les barrières que les documents peuvent traverser pour cet itinéraire
             </RadzenText>
@@ -79,8 +80,8 @@
 
     @* Actions *@
     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem" Style="margin-top: 1rem;">
-        <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
-        <RadzenButton Text="@(isNew ? "Créer" : "Enregistrer")" Icon="save" ButtonStyle="ButtonStyle.Danger" 
+        <RadzenButton Text="@L["Btn_Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@L[isNew ? "Btn_Create" : "Btn_Save"]" Icon="save" ButtonStyle="ButtonStyle.Danger" 
                       Style="background-color: #e31b23;" Click="@Submit" IsBusy="@isSaving" 
                       Disabled="@(!IsValid)" />
     </RadzenStack>
@@ -160,7 +161,7 @@
     {
         if (!IsValid)
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "Validation", "Veuillez remplir tous les champs obligatoires");
+            NotificationService.Notify(NotificationSeverity.Warning, L["Lbl_Error"].Value, L["Msg_FillRequired"].Value);
             return;
         }
 

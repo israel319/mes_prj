@@ -179,7 +179,7 @@ public class ExcelExportService : IExcelExportService
             "RETURNED" => "Renvoyé",
             "COMPLETED" => "Terminé",
             "CANCELLED" => "Annulé",
-            "PENDINGSUP" or "PENDINGSUPERVISEUR" => "Chez Superviseur",
+            "PENDINGSUP" or "PENDINGSUPERVISEUR" => "Att. Approbateur",
             "PENDINGGM" => "Chez GM",
             "PENDINGOPJ" => "Chez OPJ",
             "PENDINGIDENTIFICATION" => "Chez Identification",

@@ -90,6 +90,12 @@ public interface IBonEntreeService
     Task<IReadOnlyList<BonEntree>> GetPendingApprovalsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Retourne les bons d'entrée approuvés où l'utilisateur courant est le dernier approbateur (Identification).
+    /// Permet la réimpression après approbation finale.
+    /// </summary>
+    Task<IReadOnlyList<BonEntree>> GetApprovedByMeAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Récupère les bons retournés pour modification à l'utilisateur courant
     /// </summary>
     Task<IReadOnlyList<ReturnedBemInfo>> GetMyReturnedBonsAsync(CancellationToken cancellationToken = default);
@@ -224,6 +230,19 @@ public class CreateBonEntreeRequest
     [Required(ErrorMessage = "Le motif de la visite est obligatoire")]
     public string ReasonOnSite { get; set; } = string.Empty;
 
+    // === Site KCC + RequestedFor (Glencore) ===
+    /// <summary>Site KCC sur lequel porte la demande (filtre les approbateurs spéciaux).</summary>
+    public int? SiteId { get; set; }
+
+    /// <summary>Code Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForEmployeeCode { get; set; }
+
+    /// <summary>Nom affichable Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForDisplay { get; set; }
+
+    /// <summary>Département Glencore de l'employé pour qui la demande est faite.</summary>
+    public string? RequestedForDepartement { get; set; }
+
     // === Détail de l'Escorteur ===
     [Required(ErrorMessage = "Le nom de l'escorteur est obligatoire")]
     public string NomEscorteur { get; set; } = string.Empty;
@@ -269,6 +288,12 @@ public class UpdateBonEntreeRequest
     public string Destination { get; set; } = string.Empty;
     public DateTime DateExpiration { get; set; }
     public string? Description { get; set; }
+
+    /// <summary>Site KCC sur lequel porte la demande.</summary>
+    public int? SiteId { get; set; }
+    public string? RequestedForEmployeeCode { get; set; }
+    public string? RequestedForDisplay { get; set; }
+    public string? RequestedForDepartement { get; set; }
 
     /// <summary>
     /// Liste des matériels à mettre à jour (uniquement en brouillon)

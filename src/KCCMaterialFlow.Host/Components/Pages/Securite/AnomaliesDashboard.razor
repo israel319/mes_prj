@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject NotificationService NotificationService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>Dashboard Anomalies - Investigation - KCC Material Flow</PageTitle>
 
@@ -19,16 +20,16 @@
                     <RadzenStack Gap="0">
                         <RadzenText TextStyle="TextStyle.H4" FontWeight="FontWeight.Bold" Style="color: #1a202c;">
                             <RadzenIcon Icon="dashboard" Style="vertical-align: middle; margin-right: 0.5rem; color: #4299e1;" />
-                            Dashboard Anomalies
+                            @L["Adb_Title"]
                         </RadzenText>
                         <RadzenText TextStyle="TextStyle.Caption" Style="color: #718096;">
-                            Vue d'ensemble des anomalies - Dernière mise à jour: @DateTime.Now.ToString("HH:mm")
+                            @(L["Adb_LastUpdate"].Value + " " + DateTime.Now.ToString("HH:mm"))
                         </RadzenText>
                     </RadzenStack>
                 </RadzenStack>
             </RadzenColumn>
             <RadzenColumn Size="12" SizeMD="4" class="rz-text-align-right">
-                <RadzenButton Text="Voir Toutes" Icon="list" ButtonStyle="ButtonStyle.Dark" 
+                <RadzenButton Text="@L["Adb_Btn_ViewAll"].Value" Icon="list" ButtonStyle="ButtonStyle.Dark" 
                               Style="border-radius: 8px;" 
                               Click="@(() => Navigation.NavigateTo("/securite/anomalies"))" />
             </RadzenColumn>
@@ -53,7 +54,7 @@
                             <RadzenText TextStyle="TextStyle.H3" FontWeight="FontWeight.Bold" Style="color: #e31b23;">
                                 @dashboard.TotalNonTraitees
                             </RadzenText>
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #c53030;">Non Traitées</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #c53030;">@L["Adb_Card_NonTraitees"]</RadzenText>
                         </RadzenStack>
                     </RadzenCard>
                 </RadzenColumn>
@@ -66,7 +67,7 @@
                             <RadzenText TextStyle="TextStyle.H3" FontWeight="FontWeight.Bold" Style="color: #d97706;">
                                 @dashboard.CritiquesNonTraitees
                             </RadzenText>
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #92400e;">Critiques</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #92400e;">@L["Adb_Card_Critiques"]</RadzenText>
                         </RadzenStack>
                     </RadzenCard>
                 </RadzenColumn>
@@ -79,7 +80,7 @@
                             <RadzenText TextStyle="TextStyle.H3" FontWeight="FontWeight.Bold" Style="color: #38a169;">
                                 @dashboard.TauxResolution.ToString("0.0")%
                             </RadzenText>
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #276749;">Taux Résolution</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #276749;">@L["Adb_Card_TauxResolution"]</RadzenText>
                         </RadzenStack>
                     </RadzenCard>
                 </RadzenColumn>
@@ -92,7 +93,7 @@
                             <RadzenText TextStyle="TextStyle.H3" FontWeight="FontWeight.Bold" Style="color: #3182ce;">
                                 @(dashboard.DelaiMoyenResolution.HasValue ? $"{dashboard.DelaiMoyenResolution.Value.TotalHours:0.0}h" : "-")
                             </RadzenText>
-                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #2c5282;">Délai Moyen</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: #2c5282;">@L["Adb_Card_DelaiMoyen"]</RadzenText>
                         </RadzenStack>
                     </RadzenCard>
                 </RadzenColumn>
@@ -105,7 +106,7 @@
                     <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
                         <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 1rem;">
                             <RadzenIcon Icon="pie_chart" Style="vertical-align: middle; margin-right: 0.5rem;" />
-                            Répartition par Type
+                            @L["Adb_Chart_ByType"]
                         </RadzenText>
                         @if (dashboard.ParType.Any())
                         {
@@ -118,7 +119,7 @@
                         else
                         {
                             <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 250px;">
-                                <RadzenText Style="color: #a0aec0;">Aucune donnée disponible</RadzenText>
+                                <RadzenText Style="color: #a0aec0;">@L["Adb_NoData"]</RadzenText>
                             </RadzenStack>
                         }
                     </RadzenCard>
@@ -129,7 +130,7 @@
                     <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.5rem; border: 1px solid #eee;">
                         <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c; margin-bottom: 1rem;">
                             <RadzenIcon Icon="bar_chart" Style="vertical-align: middle; margin-right: 0.5rem;" />
-                            Répartition par Gravité
+                            @L["Adb_Chart_ByGravity"]
                         </RadzenText>
                         @if (dashboard.ParGravite.Any())
                         {
@@ -141,7 +142,7 @@
                                     <RadzenAxisTitle Text="" />
                                 </RadzenCategoryAxis>
                                 <RadzenValueAxis>
-                                    <RadzenAxisTitle Text="Nombre" />
+                                    <RadzenAxisTitle Text="@L["Adb_Chart_Count"].Value" />
                                 </RadzenValueAxis>
                             </RadzenChart>
                         }
@@ -161,7 +162,7 @@
                     <RadzenColumn>
                         <RadzenText TextStyle="TextStyle.H6" FontWeight="FontWeight.Bold" Style="color: #1a202c;">
                             <RadzenIcon Icon="schedule" Style="vertical-align: middle; margin-right: 0.5rem;" />
-                            Anomalies Récentes (24h)
+                            @L["Adb_Recent"]
                         </RadzenText>
                     </RadzenColumn>
                     <RadzenColumn class="rz-text-align-right">
@@ -211,7 +212,7 @@
                 {
                     <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 2rem;">
                         <RadzenIcon Icon="check_circle" Style="font-size: 3rem; color: #48bb78;" />
-                        <RadzenText Style="color: #718096;">Aucune anomalie dans les dernières 24h</RadzenText>
+                        <RadzenText Style="color: #718096;">@L["Adb_NoRecent"]</RadzenText>
                     </RadzenStack>
                 }
             </RadzenCard>
@@ -224,13 +225,13 @@
                         <RadzenIcon Icon="error" Style="font-size: 2rem; color: #e31b23;" />
                         <RadzenStack Gap="0.25rem" Style="flex: 1;">
                             <RadzenText FontWeight="FontWeight.Bold" Style="color: #c53030;">
-                                Attention : @dashboard.CritiquesNonTraitees anomalie(s) critique(s) en attente !
+                                @(dashboard.CritiquesNonTraitees + " " + L["Adb_Alert_CriticalPending"].Value)
                             </RadzenText>
                             <RadzenText TextStyle="TextStyle.Caption" Style="color: #9b2c2c;">
-                                Ces anomalies nécessitent une attention immédiate de l'équipe Investigation.
+                                @L["Adb_Alert_CriticalMsg"]
                             </RadzenText>
                         </RadzenStack>
-                        <RadzenButton Text="Traiter" Icon="arrow_forward" ButtonStyle="ButtonStyle.Danger" 
+                        <RadzenButton Text="@L["Adb_Btn_Process"].Value" Icon="arrow_forward" ButtonStyle="ButtonStyle.Danger" 
                                       Click="@VoirCritiques" />
                     </RadzenStack>
                 </RadzenCard>
@@ -272,7 +273,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de charger le dashboard: {ex.Message}");
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, L["Msg_LoadFailed"].Value + " : " + ex.Message);
         }
         finally
         {
@@ -304,10 +305,10 @@
 
     private string GetGraviteLabel(string gravite) => gravite switch
     {
-        "Critique" => "Critique",
-        "Eleve" => "Élevée",
-        "Moyen" => "Moyenne",
-        "Faible" => "Faible",
+        "Critique" => L["Grav_Critique"].Value,
+        "Eleve" => L["Grav_Eleve"].Value,
+        "Moyen" => L["Grav_Moyen"].Value,
+        "Faible" => L["Grav_Faible"].Value,
         _ => gravite
     };
 
@@ -340,13 +341,13 @@
 
     private string GetTypeLabel(string type) => type switch
     {
-        "BarriereNonAutorisee" => "Barrière non autorisée",
-        "DocumentExpire" => "Document expiré",
-        "DocumentInexistant" => "Document inexistant",
-        "ScanDuplique" => "Scan dupliqué",
-        "QRCodeInvalide" => "QR Code invalide",
-        "ItineraireNonRespectee" => "Itinéraire non respecté",
-        "SignalementManuel" => "Signalement manuel",
+        "BarriereNonAutorisee" => L["Ano_BarriereNonAutorisee"].Value,
+        "DocumentExpire" => L["Ano_DocumentExpire"].Value,
+        "DocumentInexistant" => L["Ano_DocumentInexistant"].Value,
+        "ScanDuplique" => L["Ano_ScanDuplique"].Value,
+        "QRCodeInvalide" => L["Ano_QRCodeInvalide"].Value,
+        "ItineraireNonRespectee" => L["Ano_ItineraireNonRespectee"].Value,
+        "SignalementManuel" => L["Ano_SignalementManuel"].Value,
         _ => type
     };
 

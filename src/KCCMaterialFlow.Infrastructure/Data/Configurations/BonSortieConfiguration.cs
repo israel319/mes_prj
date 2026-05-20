@@ -91,6 +91,34 @@ public class BonSortieConfiguration : IEntityTypeConfiguration<BonSortie>
             .HasColumnName("EstDefinitif")
             .HasDefaultValue(true);
 
+        // ===== Site + RequestedFor (v2) =====
+        builder.Property(b => b.SiteId).HasColumnName("SiteId");
+        builder.HasOne(b => b.Site)
+            .WithMany()
+            .HasForeignKey(b => b.SiteId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // ===== TypeMaterielSortie (workflow routing) =====
+        builder.Property(b => b.TypeMaterielSortieId).HasColumnName("TypeMaterielSortieId");
+        builder.HasOne(b => b.TypeMaterielSortie)
+            .WithMany()
+            .HasForeignKey(b => b.TypeMaterielSortieId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        builder.Property(b => b.RequestedForEmployeeCode)
+            .HasColumnName("RequestedForEmployeeCode")
+            .HasMaxLength(50);
+        builder.Property(b => b.RequestedForDisplay)
+            .HasColumnName("RequestedForDisplay")
+            .HasMaxLength(200);
+        builder.Property(b => b.RequestedForDepartement)
+            .HasColumnName("RequestedForDepartement")
+            .HasMaxLength(200);
+        builder.Property(b => b.SiteManager)
+            .HasColumnName("SiteManager")
+            .HasMaxLength(200);
+
         // ===== Propriétés QR Code (BSM-030) =====
         builder.Property(b => b.QRCodeData)
             .HasColumnName("QRCodeData")

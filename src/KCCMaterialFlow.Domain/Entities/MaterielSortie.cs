@@ -22,6 +22,10 @@ public sealed class MaterielSortie : BaseEntity
     [MaxLength(500)]
     public string? Remarque { get; private set; }
 
+    /// <summary>Code département Glencore propriétaire du matériel (utilisé pour filtrer le dropdown matériel).</summary>
+    [MaxLength(50)]
+    public string? DepartementCode { get; set; }
+
     // ----- Liaison BEM (Bon d'Entrée Matériel) -----
 
     /// <summary>FK vers le matériel source du bon d'entrée.</summary>

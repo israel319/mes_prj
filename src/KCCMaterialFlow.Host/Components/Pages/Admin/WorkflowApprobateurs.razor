@@ -1,0 +1,191 @@
+@page "/admin/workflow-approbateurs"
+@attribute [Authorize(Roles = "Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using KCCMaterialFlow.Application.Common.Interfaces
+@using KCCMaterialFlow.Domain.Entities
+@using KCCMaterialFlow.Domain.Enums
+@using Microsoft.EntityFrameworkCore
+@inject IWorkflowApprobateurSpecialService Service
+@inject IDbContextFactory<KCCMaterialFlow.Infrastructure.Data.KCCMaterialFlowDbContext> DbFactory
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>Approbateurs Spéciaux - Admin - KCC Material Flow</PageTitle>
+
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["Wfa_Title"]</h1>
+                <p class="kcp-subtitle">@L["Wfa_Subtitle"]</p>
+            </div>
+            <div class="kcp-hero-actions">
+                <button class="kcp-btn kcp-btn-primary" type="button" @onclick="OpenAddDialog">
+                    <RadzenIcon Icon="add" Style="font-size:1rem;" />
+                    @L["Wfa_BtnAdd"]
+                </button>
+            </div>
+        </div>
+    </div>
+    <main class="kcp-main">
+
+    @if (items == null)
+    {
+        <RadzenCard Style="padding: 1.5rem; text-align: center;">
+            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Small" />
+        </RadzenCard>
+    }
+    else if (items.Count == 0)
+    {
+        <RadzenCard Style="padding: 1.5rem;">
+            <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter" AllowClose="false">
+                Aucun approbateur spécial défini. Cliquez sur <strong>@L["Wfa_BtnAdd"]</strong> pour commencer.
+            </RadzenAlert>
+        </RadzenCard>
+    }
+    else
+    {
+        @foreach (var typeGroup in items.GroupBy(x => x.Type).OrderBy(g => (int)g.Key))
+        {
+            var typeLabel = typeGroup.Key.ToString();
+            var typeBadge = TypeBadge(typeGroup.Key);
+            var typeIcon = typeGroup.Key == TypeApprobateurSpecial.OPJ ? "local_police" : "fingerprint";
+            var totalActifs = typeGroup.Count(x => x.EstActif);
+
+            <RadzenCard Style="padding: 1.25rem; margin-bottom: 1.25rem;">
+                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="margin-bottom: 1rem;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.6rem">
+                        <RadzenIcon Icon="@typeIcon" Style="font-size: 1.4rem; color: var(--kcc-info);" />
+                        <RadzenBadge Text="@typeLabel" BadgeStyle="@typeBadge" Style="font-size: 0.9rem; padding: 0.3rem 0.85rem;" />
+                        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500); margin: 0;">
+                            @totalActifs @L["Wfa_ActiveCount"] @typeGroup.Count()
+                        </RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.75rem;">
+                    @foreach (var siteGroup in typeGroup.GroupBy(x => x.SiteId).OrderBy(g => g.Key ?? int.MaxValue))
+                    {
+                        var siteLabel = siteGroup.First().Site?.Nom ?? L["Wfa_AllSites"].Value;
+                        var siteIcon = siteGroup.Key == null ? "public" : "place";
+                        var activeCount = siteGroup.Count(x => x.EstActif);
+
+                        <RadzenCard Variant="Variant.Outlined" Style="padding: 0.75rem;">
+                            <RadzenStack Gap="0.5rem">
+                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Style="padding-bottom: 0.4rem; border-bottom: 1px solid var(--rz-base-300);">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.35rem">
+                                        <RadzenIcon Icon="@siteIcon" Style="font-size: 1rem; color: var(--kcc-info);" />
+                                        <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0; font-weight: 600;">@siteLabel</RadzenText>
+                                    </RadzenStack>
+                                    <RadzenBadge Text="@($"{activeCount} {L["Wfa_ActiveBadge"].Value}")" BadgeStyle="@(activeCount > 0 ? BadgeStyle.Success : BadgeStyle.Secondary)" />
+                                </RadzenStack>
+
+                                @foreach (var x in siteGroup.OrderBy(x => x.Ordre))
+                                {
+                                    var rowBg = x.EstActif ? "var(--rz-base-100)" : "var(--rz-base-200)";
+                                    var rowBorder = x.EstActif ? "var(--rz-base-300)" : "var(--rz-base-400)";
+                                    var rowOpacity = x.EstActif ? "1" : "0.6";
+                                    var personIcon = x.EstActif ? "person" : "person_off";
+                                    var personColor = x.EstActif ? "#16a34a" : "#9ca3af";
+
+                                    <RadzenCard Variant="Variant.Flat" Style="@($"background: {rowBg}; border: 1px solid {rowBorder}; padding: 0.4rem 0.6rem; opacity: {rowOpacity};")">
+                                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                            <RadzenIcon Icon="@personIcon" Style="@($"color: {personColor};")" />
+                                            <RadzenStack Gap="0" Style="flex: 1; min-width: 0; overflow: hidden;">
+                                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                    @(x.Employee?.NomComplet ?? "—")
+                                                </RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); margin: 0;">
+                                                    @(x.Employee?.Matricule ?? "—") • @L["Wfa_Order"] @x.Ordre
+                                                    @if (!x.EstActif)
+                                                    {
+                                                        <span style="color: #dc2626; margin-left: 0.4rem; font-weight: 600;">• @L["Sta_BadgeInactif"]</span>
+                                                    }
+                                                </RadzenText>
+                                            </RadzenStack>
+                                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" AlignItems="AlignItems.Center">
+                                                <RadzenButton Icon="@(x.EstActif ? "block" : "check")"
+                                                              Size="ButtonSize.ExtraSmall" Variant="Variant.Outlined"
+                                                              ButtonStyle="@(x.EstActif ? ButtonStyle.Warning : ButtonStyle.Success)"
+                                                              Click="@(() => ToggleAsync(x))"
+                                                              title="@(x.EstActif ? L["Tt_Disable"].Value : L["Tt_Enable"].Value)" />
+                                                <RadzenButton Icon="delete" Size="ButtonSize.ExtraSmall" Variant="Variant.Outlined"
+                                                              ButtonStyle="ButtonStyle.Danger"
+                                                              Click="@(() => DeleteAsync(x))"
+                                                              title="@L["Tt_Delete"].Value" />
+                                            </RadzenStack>
+                                        </RadzenStack>
+                                    </RadzenCard>
+                                }
+                            </RadzenStack>
+                        </RadzenCard>
+                    }
+                </div>
+            </RadzenCard>
+        }
+    }
+    </main>
+</div>
+
+@code {
+    private List<WorkflowApprobateurSpecial>? items;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        var list = await Service.GetAllAsync();
+        items = list.ToList();
+    }
+
+    private static BadgeStyle TypeBadge(TypeApprobateurSpecial t) => t switch
+    {
+        TypeApprobateurSpecial.OPJ => BadgeStyle.Warning,
+        TypeApprobateurSpecial.Identification => BadgeStyle.Info,
+        _ => BadgeStyle.Secondary
+    };
+
+    private async Task OpenAddDialog()
+    {
+        var result = await DialogService.OpenAsync<AddApprobateurDialog>(
+            "Ajouter un approbateur spécial",
+            new Dictionary<string, object>(),
+            new DialogOptions { Width = "600px", CloseDialogOnEsc = true });
+
+        if (result is AddApprobateurResult ok)
+        {
+            try
+            {
+                await Service.AddAsync(ok.Type, ok.EmployeeId, ok.Ordre, ok.SiteId);
+                NotificationService.Notify(NotificationSeverity.Success, "Ajouté", $"Approbateur {ok.Type} ajouté.");
+                await LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            }
+        }
+    }
+
+    private async Task ToggleAsync(WorkflowApprobateurSpecial x)
+    {
+        await Service.UpdateAsync(x.Id, x.Ordre, !x.EstActif);
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(WorkflowApprobateurSpecial x)
+    {
+        var confirm = await DialogService.Confirm(
+            $"Supprimer l'approbateur {x.Type} ({x.Employee?.NomComplet}) ?",
+            "Confirmation",
+            new ConfirmOptions { OkButtonText = "Supprimer", CancelButtonText = "Annuler" });
+        if (confirm != true) return;
+
+        await Service.DeleteAsync(x.Id);
+        NotificationService.Notify(NotificationSeverity.Success, "Supprimé", "Approbateur supprimé.");
+        await LoadAsync();
+    }
+
+    public sealed record AddApprobateurResult(TypeApprobateurSpecial Type, int EmployeeId, int Ordre, int? SiteId);
+}

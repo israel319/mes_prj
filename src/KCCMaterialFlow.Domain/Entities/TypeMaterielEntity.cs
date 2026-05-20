@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using KCCMaterialFlow.Domain.Common;
+using KCCMaterialFlow.Domain.Enums;
 
 namespace KCCMaterialFlow.Domain.Entities;
 
@@ -46,4 +47,9 @@ public sealed class TypeMaterielEntity : BaseEntity
     public bool EstActif { get; set; } = true;
     public DateTime DateCreation { get; set; } = DateTime.Now;
     public DateTime? DateModification { get; set; }
+
+    /// <summary>
+    /// Détermine le chemin d'approbation déclenché par ce type de matériel lors d'un bon de sortie.
+    /// </summary>
+    public WorkflowRoutage WorkflowRoutage { get; set; } = WorkflowRoutage.Standard;
 }

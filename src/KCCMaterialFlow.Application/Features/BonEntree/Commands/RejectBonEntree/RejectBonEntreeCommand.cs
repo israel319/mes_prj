@@ -1,5 +1,6 @@
 using FluentValidation;
 using KCCMaterialFlow.Application.Common.Interfaces;
+using KCCMaterialFlow.Domain.Enums;
 using KCCMaterialFlow.Domain.Errors;
 using MediatR;
 
@@ -23,9 +24,15 @@ public sealed class RejectBonEntreeCommandHandler(
 {
     public async Task<Result> Handle(RejectBonEntreeCommand cmd, CancellationToken ct)
     {
+        if (currentUser.NiveauAdmin is NiveauAdmin.Admin or NiveauAdmin.SuperAdmin)
+            return Result.Failure(BonEntreeErrors.AdminNonAutorise);
+
         var bon = await dbContext.BonsEntree.FindAsync([cmd.BonEntreeId], ct);
         if (bon is null)
             return Result.Failure(Error.NotFound("BonEntree", cmd.BonEntreeId));
+
+        if (currentUser.EmployeeId is null || currentUser.EmployeeId.Value != bon.ProchainApprobateurId)
+            return Result.Failure(BonEntreeErrors.NonApprobateurEtape);
 
         var login = currentUser.GetUserLogin();
         var nom = currentUser.GetUserDisplayName();

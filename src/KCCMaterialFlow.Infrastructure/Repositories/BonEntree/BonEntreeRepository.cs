@@ -239,6 +239,38 @@ public class BonEntreeRepository : IBonEntreeRepository
     }
 
     /// <summary>
+    /// v2 — Bons en attente où l'étape COURANTE (première En attente) est assignée à l'employé (ApprobateurId).
+    /// Si <paramref name="isAdmin"/>, retourne tous les bons en attente.
+    /// </summary>
+    public async Task<IReadOnlyList<BonEntree>> GetPendingApprovalsByEmployeeAsync(int employeeId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var bons = await _dbContext.Set<BonEntree>()
+            .AsNoTracking()
+            .Where(b => b.StatutActuel != "Cancelled" && b.StatutActuel != "Draft"
+                      && b.StatutActuel != "Approved" && b.StatutActuel != "Rejected")
+            .Include(b => b.Materiels)
+            .Include(b => b.Approbations)
+            .Include(b => b.Historiques)
+            .OrderByDescending(b => b.DateCreation)
+            .ToListAsync(cancellationToken);
+
+        if (isAdmin) return bons;
+
+        return bons;  // Will be filtered by service with access to _currentUserService
+    }
+
+    public async Task<IReadOnlyList<BonEntree>> GetApprovedBonsWithApprobationsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Set<BonEntree>()
+            .AsNoTracking()
+            .Where(b => b.StatutActuel == "Approved")
+            .Include(b => b.Materiels)
+            .Include(b => b.Approbations)
+            .OrderByDescending(b => b.DateCreation)
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
     /// Mappe un NomEtape (display name) vers le code rôle correspondant.
     /// Nécessaire car les BEM stockent le nom d'affichage dans Approbation.NomEtape.
     /// </summary>

@@ -53,6 +53,23 @@ public sealed class BonEntree : BaseAuditableEntity
     public string HostDepartment { get; set; } = string.Empty;
     public int? DepartementId { get; set; }
     public int? RaisonEntreeId { get; set; }
+
+    // ── Site et RequestedFor (v2 — chaîne d'approbation par site/département) ──
+    /// <summary>Site sur lequel porte la demande (filtre les approbateurs spéciaux).</summary>
+    public int? SiteId { get; set; }
+    public Site? Site { get; set; }
+
+    /// <summary>Code Glencore de l'employé pour qui la demande est faite (peut différer du créateur).</summary>
+    [MaxLength(50)]
+    public string? RequestedForEmployeeCode { get; set; }
+
+    /// <summary>Nom affichable de l'employé pour qui la demande est faite.</summary>
+    [MaxLength(200)]
+    public string? RequestedForDisplay { get; set; }
+
+    /// <summary>Département de l'employé pour qui la demande est faite (auto-rempli depuis Glencore).</summary>
+    [MaxLength(200)]
+    public string? RequestedForDepartement { get; set; }
     [MaxLength(1000)]
     public string ReasonOnSite { get; set; } = string.Empty;
     [MaxLength(200)]
@@ -69,6 +86,12 @@ public sealed class BonEntree : BaseAuditableEntity
     public int? BonSortieAssocieId { get; set; }
     [MaxLength(20)]
     public string? BonSortieAssocieNumero { get; set; }
+
+    // ── Chaîne d'approbation dynamique ────────────────────────────
+    public int? ProchainApprobateurId { get; set; }
+    [MaxLength(200)]
+    public string? ProchainApprobateurNom { get; set; }
+    public int EtapeActuelleApprobation { get; set; } = 0; // Numéro de l'étape dans la chaîne
 
     // ── Collections encapsulées ──────────────────────────────────
     private readonly List<Materiel> _materiels = [];
@@ -194,6 +217,16 @@ public sealed class BonEntree : BaseAuditableEntity
 
         AddDomainEvent(new BonEntreeApprovedEvent(Id, NumeroReference, login, ancien, Statut));
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Assigne le prochain approbateur dans la chaîne d'approbation.
+    /// </summary>
+    public void AssignerProchainApprobateur(int approbateurId, string approbateurNom, int etapeNumber)
+    {
+        ProchainApprobateurId = approbateurId;
+        ProchainApprobateurNom = approbateurNom;
+        EtapeActuelleApprobation = etapeNumber;
     }
 
     public Result Rejeter(string login, string nom, string motif)

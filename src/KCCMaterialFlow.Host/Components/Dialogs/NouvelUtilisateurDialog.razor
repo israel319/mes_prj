@@ -1,0 +1,253 @@
+﻿@inject IDbContextFactory<KCCMaterialFlowDbContext> DbFactory
+@inject DialogService DialogService
+@inject NotificationService Notif
+@implements IDisposable
+@inject IStringLocalizer<SharedResource> L
+
+@using KCCMaterialFlow.Domain.Entities
+@using KCCMaterialFlow.Domain.Enums
+@using KCCMaterialFlow.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+
+<RadzenStack Gap="1.25rem" Style="padding: 0.25rem; min-width: 480px;">
+
+    <RadzenStack Gap="0.75rem">
+
+        @* Matricule (optionnel) *@
+        <RadzenStack Gap="0.2rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Lbl_Matricule"]</RadzenText>
+            <RadzenTextBox @bind-Value="form.Matricule" Style="width:100%;" Placeholder="@L["Usr_PlMatricule"].Value" />
+        </RadzenStack>
+
+        @* Prénom + Nom *@
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem">
+            <RadzenStack Gap="0.2rem" Style="flex:1;">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                    @L["Lbl_FirstName"] <span style="color:#e31b23;">*</span>
+                </RadzenText>
+                <RadzenTextBox @bind-Value="form.Prenom" Style="width:100%;" Placeholder="@L["Usr_PlPrenom"].Value" />
+            </RadzenStack>
+            <RadzenStack Gap="0.2rem" Style="flex:1;">
+                <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                    @L["Lbl_LastName"] <span style="color:#e31b23;">*</span>
+                </RadzenText>
+                <RadzenTextBox @bind-Value="form.Nom" Style="width:100%;" Placeholder="@L["Usr_PlNom"].Value" />
+            </RadzenStack>
+        </RadzenStack>
+
+        @* Login Windows *@
+        <RadzenStack Gap="0.2rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
+                @L["Lbl_LoginWindows"] <span style="color:#e31b23;">*</span>
+            </RadzenText>
+            <RadzenTextBox @bind-Value="form.Login" Style="width:100%;" Placeholder="@L["Usr_PlLogin"].Value" />
+        </RadzenStack>
+
+        @* Email *@
+        <RadzenStack Gap="0.2rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Lbl_Email"]</RadzenText>
+            <RadzenTextBox @bind-Value="form.Email" Style="width:100%;" Placeholder="@L["Usr_PlEmail"].Value" />
+        </RadzenStack>
+
+        @* Département — autocomplete avec chargement lazy *@
+        <RadzenStack Gap="0.2rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Lbl_Department"]</RadzenText>
+            <RadzenAutoComplete Data="@deptSuggestions"
+                                @bind-Value="form.Departement"
+                                MinLength="1"
+                                LoadData="@OnDeptLoadData"
+                                Change="@OnDeptChanged"
+                                Placeholder="@L["Usr_PlTypeToSearch"].Value"
+                                Style="width:100%;" />
+        </RadzenStack>
+
+        @* General Manager — rempli automatiquement depuis la hiérarchie *@
+        <RadzenStack Gap="0.2rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Lbl_GeneralManager"]</RadzenText>
+            @if (loadingManager)
+            {
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-400);">@L["Lbl_Loading"]</RadzenText>
+            }
+            else if (!string.IsNullOrEmpty(form.ManagerDisplay))
+            {
+                <RadzenCard Variant="Variant.Flat" Style="background: #f0fdf4; border: 1px solid #86efac; padding: 0.6rem 0.9rem;">
+                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                        <RadzenIcon Icon="person" Style="color: #16a34a; font-size: 1.1rem;" />
+                        <RadzenText Style="margin:0; font-size: 0.9rem; color: #15803d;">@form.ManagerDisplay</RadzenText>
+                    </RadzenStack>
+                </RadzenCard>
+            }
+            else
+            {
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-400); font-style:italic;">
+                    @L["Usr_SelectDeptForGM"]
+                </RadzenText>
+            }
+        </RadzenStack>
+
+        @* Niveau d'accès *@
+        <RadzenStack Gap="0.2rem">
+            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">@L["Lbl_AccessLevel"]</RadzenText>
+            <RadzenDropDown @bind-Value="form.NiveauAdmin"
+                            Data="@niveauOptions"
+                            TextProperty="Label" ValueProperty="Value"
+                            Style="width:100%;" />
+        </RadzenStack>
+
+    </RadzenStack>
+
+    @if (!string.IsNullOrEmpty(erreur))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Variant="Variant.Flat" ShowIcon="true">@erreur</RadzenAlert>
+    }
+
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+        <RadzenButton Text="@L["Btn_Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" Disabled="@saving" />
+        <RadzenButton Text="@L["Btn_Create"].Value" Icon="person_add" ButtonStyle="ButtonStyle.Primary"
+                      Click="@Submit"
+                      Disabled="@(saving || string.IsNullOrWhiteSpace(form.Prenom) || string.IsNullOrWhiteSpace(form.Nom) || string.IsNullOrWhiteSpace(form.Login))"
+                      IsBusy="@saving" />
+    </RadzenStack>
+
+</RadzenStack>
+
+@code {
+    [Parameter] public bool IsSuperAdmin { get; set; }
+
+    private FormModel form = new();
+    private bool saving;
+    private bool loadingManager;
+    private string? erreur;
+    private IEnumerable<string> deptSuggestions = Enumerable.Empty<string>();
+
+    private record NiveauOption(string Label, NiveauAdmin Value);
+    private List<NiveauOption> niveauOptions = new();
+
+    protected override void OnInitialized()
+    {
+        niveauOptions = IsSuperAdmin
+            ? new() {
+                new(L["Lbl_UserNoAdmin"].Value, NiveauAdmin.Aucun),
+                new("Admin", NiveauAdmin.Admin),
+                new("SuperAdmin", NiveauAdmin.SuperAdmin)
+              }
+            : new() {
+                new(L["Lbl_UserNoAdmin"].Value, NiveauAdmin.Aucun),
+                new("Admin", NiveauAdmin.Admin)
+              };
+    }
+
+    private async Task OnDeptLoadData(Radzen.LoadDataArgs args)
+    {
+        var filter = (args.Filter ?? "").ToLowerInvariant();
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            deptSuggestions = await ctx.AllEmployees.AsNoTracking()
+                .Where(g => g.Departement != null && g.Departement.ToLower().Contains(filter))
+                .Select(g => g.Departement!)
+                .Distinct()
+                .OrderBy(d => d)
+                .Take(20)
+                .ToListAsync();
+        }
+        catch { /* silencieux */ }
+    }
+
+    private async Task OnDeptChanged(object? value)
+    {
+        var dept = value as string ?? form.Departement;
+        if (string.IsNullOrWhiteSpace(dept)) { form.ManagerDisplay = ""; return; }
+
+        loadingManager = true;
+        if (!_disposed) StateHasChanged();
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var gm = await ctx.AllEmployees.AsNoTracking()
+                .Where(g => g.Departement == dept && g.GmEmployeeDisplay != null)
+                .Select(g => g.GmEmployeeDisplay)
+                .FirstOrDefaultAsync();
+            form.ManagerDisplay = gm ?? "";
+        }
+        catch { form.ManagerDisplay = ""; }
+        finally
+        {
+            loadingManager = false;
+            if (!_disposed) StateHasChanged();
+        }
+    }
+
+    private async Task Submit()
+    {
+        erreur = null;
+        var login   = form.Login.Trim();
+        var prenom  = form.Prenom.Trim();
+        var nom     = form.Nom.Trim();
+        var display = $"{prenom} {nom}".Trim();
+
+        if (string.IsNullOrWhiteSpace(display)) { erreur = L["Err_NameRequired"].Value; return; }
+        if (string.IsNullOrWhiteSpace(login))   { erreur = L["Err_LoginRequired"].Value; return; }
+
+        saving = true;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var loginLower = login.ToLower();
+            var exists = await ctx.AppUsers.AnyAsync(u => u.Login.ToLower() == loginLower);
+            if (exists)
+            {
+                erreur = string.Format(L["Err_LoginExists"].Value, login);
+                return;
+            }
+
+            var emp = new Employee
+            {
+                Matricule      = string.IsNullOrWhiteSpace(form.Matricule) ? null : form.Matricule.Trim(),
+                NomComplet     = display,
+                DisplayName    = display,
+                Prenom         = prenom,
+                Nom            = nom,
+                Email          = string.IsNullOrWhiteSpace(form.Email) ? null : form.Email.Trim(),
+                DepartementNom = string.IsNullOrWhiteSpace(form.Departement) ? null : form.Departement,
+                ReportToText   = string.IsNullOrWhiteSpace(form.ManagerDisplay) ? null : form.ManagerDisplay,
+                EstInterne     = true,
+                DateCreation   = DateTime.Now
+            };
+            ctx.Employees.Add(emp);
+            await ctx.SaveChangesAsync();
+
+            ctx.AppUsers.Add(new AppUser
+            {
+                Login        = login,
+                EmployeeId   = emp.Id,
+                NiveauAdmin  = form.NiveauAdmin,
+                EstActif     = true,
+                DateCreation = DateTime.Now
+            });
+            await ctx.SaveChangesAsync();
+
+            DialogService.Close(emp.Id);
+        }
+        catch (Exception ex) { erreur = ex.Message; }
+        finally { saving = false; }
+    }
+
+    private void Cancel() => DialogService.Close(null);
+
+    private bool _disposed;
+    public void Dispose() { _disposed = true; }
+
+    private sealed class FormModel
+    {
+        public string  Matricule      { get; set; } = "";
+        public string  Prenom         { get; set; } = "";
+        public string  Nom            { get; set; } = "";
+        public string  Login          { get; set; } = "";
+        public string  Email          { get; set; } = "";
+        public string? Departement    { get; set; }
+        public string  ManagerDisplay { get; set; } = "";
+        public NiveauAdmin NiveauAdmin { get; set; } = NiveauAdmin.Aucun;
+    }
+}

@@ -1,4 +1,5 @@
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1.5rem" Style="padding: 1rem;">
     @* En-tête avec icône *@
@@ -43,7 +44,7 @@
     @* Boutons d'action *@
     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" JustifyContent="JustifyContent.End"
                  Style="padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-        <RadzenButton Text="Annuler" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Light" 
+        <RadzenButton Text="@L["Btn_Cancel"].Value" Variant="Variant.Outlined" ButtonStyle="ButtonStyle.Light" 
                       Click="@Cancel" />
         <RadzenButton Text="@(IsApproval ? "Approuver" : "Rejeter")" 
                       Icon="@(IsApproval ? "check" : "close")"

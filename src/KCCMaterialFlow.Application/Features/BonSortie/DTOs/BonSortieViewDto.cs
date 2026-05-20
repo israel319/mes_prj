@@ -25,9 +25,8 @@ public class BonSortieViewDto
     public string MotifSortie { get; set; } = string.Empty;
     public bool EstDefinitif { get; set; }
 
-    // Type de matériel
-    public TypeMateriel TypeMateriel { get; set; }
-    public string TypeMaterielLibelle => TypeMateriel.ToString();
+    // Description du matériel
+    public string? DescriptionMateriel { get; set; }
 
     // Spécifiques Externe
     public int? BonEntreeAssocieId { get; set; }

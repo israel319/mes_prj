@@ -144,35 +144,9 @@ public class WorkflowService : IWorkflowService
             IsOptional = false
         });
 
-        // Étapes conditionnelles selon le type de matériel
-        var typeEnum = Enum.TryParse<TypeMateriel>(typeMateriel, out var tm) ? tm : TypeMateriel.Circulaire;
-
-        switch (typeEnum)
-        {
-            case TypeMateriel.Informatique:
-                steps.Add(new WorkflowStep
-                {
-                    Order = order++,
-                    RoleCode = "IT",
-                    StepName = "Validation IT",
-                    IsOptional = false
-                });
-                break;
-
-            case TypeMateriel.Residu:
-            case TypeMateriel.Radioprotection:
-            case TypeMateriel.Modification:
-                steps.Add(new WorkflowStep
-                {
-                    Order = order++,
-                    RoleCode = "Environnement",
-                    StepName = "Validation Environnement",
-                    IsOptional = false
-                });
-                break;
-        }
-
-        // Étape OPJ
+        // LEGACY: Étapes spéciales selon TypeMateriel supprimées.
+        // Routage déterminé par département du demandeur (via ChaineApprobationService).
+        // Étapes standards:
         steps.Add(new WorkflowStep
         {
             Order = order++,

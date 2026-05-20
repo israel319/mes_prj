@@ -7,6 +7,7 @@
 @inject NotificationService NotificationService
 @inject DialogService DialogService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>Scanner QR Code - KCC Material Flow</PageTitle>
 
@@ -21,7 +22,7 @@
                     Scanner QR Code
                 </RadzenText>
                 <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">
-                    Scannez le QR Code du bon de matériel pour valider le passage
+                    @L["Sqr_Subtitle"]
                 </RadzenText>
             </RadzenColumn>
         </RadzenRow>
@@ -30,10 +31,10 @@
         <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1.25rem; background-color: #2d3748;">
             <RadzenStack Gap="0.5rem">
                 <RadzenText TextStyle="TextStyle.Subtitle1" FontWeight="FontWeight.Bold" Style="color: white;">
-                    <RadzenIcon Icon="location_on" Style="vertical-align: middle;" /> Barrière Active
+                    <RadzenIcon Icon="location_on" Style="vertical-align: middle;" /> @L["Sqr_BarriereTitle"]
                 </RadzenText>
                 <RadzenDropDown @bind-Value="@selectedBarriereId" Data="@barrieres" TextProperty="NomBarriere" ValueProperty="Id"
-                                Placeholder="Sélectionnez votre barrière..." Style="width: 100%; border-radius: 8px;"
+                                Placeholder="@L["Sqr_BarrierePlaceholder"].Value" Style="width: 100%; border-radius: 8px;"
                                 Change="@OnBarriereChanged" />
             </RadzenStack>
         </RadzenCard>
@@ -46,9 +47,9 @@
                     
                     @* Toggle Camera / Manuel *@
                     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem">
-                        <RadzenButton Text="Caméra" Icon="camera_alt" ButtonStyle="@(useCameraMode ? ButtonStyle.Danger : ButtonStyle.Secondary)"
+                        <RadzenButton Text="@L["Sqr_Btn_Camera"].Value" Icon="camera_alt" ButtonStyle="@(useCameraMode ? ButtonStyle.Danger : ButtonStyle.Secondary)"
                                       Click="@(() => useCameraMode = true)" Style="border-radius: 8px;" />
-                        <RadzenButton Text="Saisie Manuelle" Icon="keyboard" ButtonStyle="@(!useCameraMode ? ButtonStyle.Danger : ButtonStyle.Secondary)"
+                        <RadzenButton Text="@L["Sqr_Btn_Manual"].Value" Icon="keyboard" ButtonStyle="@(!useCameraMode ? ButtonStyle.Danger : ButtonStyle.Secondary)"
                                       Click="@(() => useCameraMode = false)" Style="border-radius: 8px;" />
                     </RadzenStack>
 
@@ -60,15 +61,15 @@
                             {
                                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; color: #a0aec0;">
                                     <RadzenIcon Icon="videocam_off" Style="font-size: 4rem; margin-bottom: 1rem;" />
-                                    <RadzenText Style="color: #a0aec0;">Caméra non active</RadzenText>
-                                    <RadzenButton Text="Activer la caméra" Icon="videocam" ButtonStyle="ButtonStyle.Success"
+                                    <RadzenText Style="color: #a0aec0;">@L["Sqr_CameraOff"]</RadzenText>
+                                    <RadzenButton Text="@L["Sqr_Btn_StartCamera"].Value" Icon="videocam" ButtonStyle="ButtonStyle.Success"
                                                   Click="@StartCamera" Style="margin-top: 1rem; border-radius: 8px;" />
                                 </div>
                             }
                             else
                             {
                                 <video id="qr-video" style="width: 100%; height: 350px; object-fit: cover;"></video>
-                                <RadzenButton Text="Arrêter" Icon="stop" ButtonStyle="ButtonStyle.Danger"
+                                <RadzenButton Text="@L["Sqr_Btn_StopCamera"].Value" Icon="stop" ButtonStyle="ButtonStyle.Danger"
                                               Click="@StopCamera" Style="margin-top: 0.5rem; border-radius: 8px;" />
                             }
                         </div>
@@ -78,12 +79,12 @@
                         @* SEC-027: Saisie Manuelle *@
                         <RadzenStack Gap="1rem" Style="width: 100%; max-width: 500px;">
                             <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">
-                                Entrez le code QR ou le numéro de référence du bon :
+                                @L["Sqr_ManualHint"]
                             </RadzenText>
-                            <RadzenTextBox @bind-Value="@manualCode" Placeholder="Code QR ou Numéro de référence..."
+                            <RadzenTextBox @bind-Value="@manualCode" Placeholder="@L["Sqr_ManualPlaceholder"].Value"
                                            Style="width: 100%; border-radius: 8px; font-size: 1.2rem; padding: 1rem;"
                                            @onkeypress="@OnManualCodeKeyPress" />
-                            <RadzenButton Text="Valider le Code" Icon="check_circle" ButtonStyle="ButtonStyle.Success"
+                            <RadzenButton Text="@L["Sqr_Btn_ValidateCode"].Value" Icon="check_circle" ButtonStyle="ButtonStyle.Success"
                                           Click="@ProcessManualCode" Disabled="@(string.IsNullOrWhiteSpace(manualCode))"
                                           Style="width: 100%; border-radius: 8px; font-size: 1.1rem; padding: 0.75rem;" />
                         </RadzenStack>
@@ -105,7 +106,7 @@
                                 </div>
                                 <RadzenStack Gap="0.25rem">
                                     <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" Style="color: #48bb78;">
-                                        ACCÈS AUTORISÉ
+                                        @L["Sqr_AccessGranted"]
                                     </RadzenText>
                                     <RadzenText Style="color: white;">@lastScanResult.Message</RadzenText>
                                 </RadzenStack>
@@ -117,13 +118,13 @@
                                     <RadzenColumn Size="6">
                                         <RadzenStack Gap="0.5rem">
                                             <div>
-                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Référence</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">@L["Sqr_Col_Reference"]</RadzenText>
                                                 <RadzenText FontWeight="FontWeight.Bold" Style="color: white; font-family: monospace; font-size: 1.2rem;">
                                                     @lastScanResult.NumeroReference
                                                 </RadzenText>
                                             </div>
                                             <div>
-                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Type</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">@L["Sqr_Col_Type"]</RadzenText>
                                                 <RadzenBadge Text="@lastScanResult.TypeBon" BadgeStyle="BadgeStyle.Info" />
                                             </div>
                                         </RadzenStack>
@@ -131,11 +132,11 @@
                                     <RadzenColumn Size="6">
                                         <RadzenStack Gap="0.5rem">
                                             <div>
-                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Provenance (FROM)</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">@L["Sqr_Col_Provenance"]</RadzenText>
                                                 <RadzenText FontWeight="FontWeight.Bold" Style="color: white;">@lastScanResult.Provenance</RadzenText>
                                             </div>
                                             <div>
-                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Destination (TO)</RadzenText>
+                                                <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">@L["Sqr_Col_Destination"]</RadzenText>
                                                 <RadzenText FontWeight="FontWeight.Bold" Style="color: white;">@lastScanResult.Destination</RadzenText>
                                             </div>
                                         </RadzenStack>
@@ -143,13 +144,13 @@
                                 </RadzenRow>
                                 <RadzenRow Style="margin-top: 1rem;">
                                     <RadzenColumn Size="6">
-                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Nombre de Matériels</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">@L["Sqr_Col_Materials"]</RadzenText>
                                         <RadzenText FontWeight="FontWeight.Bold" Style="color: white; font-size: 1.5rem;">
                                             @lastScanResult.NombreMateriels
                                         </RadzenText>
                                     </RadzenColumn>
                                     <RadzenColumn Size="6">
-                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Expiration</RadzenText>
+                                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">@L["Sqr_Col_Expiration"]</RadzenText>
                                         <RadzenText FontWeight="FontWeight.Bold" Style="@GetExpirationStyle(lastScanResult.DateExpiration)">
                                             @lastScanResult.DateExpiration?.ToString("dd/MM/yyyy HH:mm")
                                         </RadzenText>
@@ -159,10 +160,10 @@
 
                             @* SEC-029: Boutons de Confirmation *@
                             <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.Center">
-                                <RadzenButton Text="Confirmer le Passage" Icon="verified" ButtonStyle="ButtonStyle.Success"
+                                <RadzenButton Text="@L["Sqr_Btn_ConfirmPassage"].Value" Icon="verified" ButtonStyle="ButtonStyle.Success"
                                               Size="ButtonSize.Large" Click="@ConfirmPassage"
                                               Style="border-radius: 8px; padding: 1rem 2rem; font-weight: bold;" />
-                                <RadzenButton Text="Signaler Anomalie" Icon="warning" ButtonStyle="ButtonStyle.Warning"
+                                <RadzenButton Text="@L["Sqr_Btn_SignalAnomaly"].Value" Icon="warning" ButtonStyle="ButtonStyle.Warning"
                                               Size="ButtonSize.Large" Click="@SignalerAnomalie"
                                               Style="border-radius: 8px; padding: 1rem 2rem;" />
                             </RadzenStack>
@@ -176,7 +177,7 @@
                                 </div>
                                 <RadzenStack Gap="0.25rem">
                                     <RadzenText TextStyle="TextStyle.H5" FontWeight="FontWeight.Bold" Style="color: #f56565;">
-                                        ACCÈS REFUSÉ
+                                        @L["Sqr_AccessDenied"]
                                     </RadzenText>
                                     <RadzenText Style="color: white;">@GetErrorMessage(lastScanResult.StatutScan)</RadzenText>
                                 </RadzenStack>
@@ -184,7 +185,7 @@
 
                             <RadzenCard Variant="Variant.Flat" Style="background-color: rgba(245,101,101,0.2); border-radius: 8px; padding: 1rem; border: 1px solid #f56565;">
                                 <RadzenText Style="color: #feb2b2;">
-                                    <strong>Raison :</strong> @lastScanResult.Message
+                                    <strong>@L["Sqr_Reason"] :</strong> @lastScanResult.Message
                                 </RadzenText>
                             </RadzenCard>
 
@@ -192,7 +193,7 @@
                             @if (lastScanResult.Anomalies?.Any() == true)
                             {
                                 <RadzenStack Gap="0.5rem">
-                                    <RadzenText FontWeight="FontWeight.Bold" Style="color: #f56565;">Anomalies détectées :</RadzenText>
+                                    <RadzenText FontWeight="FontWeight.Bold" Style="color: #f56565;">@L["Sqr_AnomaliesDetected"]</RadzenText>
                                     @foreach (var anomalie in lastScanResult.Anomalies)
                                     {
                                         <RadzenCard Variant="Variant.Flat" Style="background-color: rgba(245,101,101,0.1); border-radius: 6px; padding: 0.5rem;">
@@ -206,10 +207,10 @@
                             }
 
                             <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.Center">
-                                <RadzenButton Text="Nouveau Scan" Icon="refresh" ButtonStyle="ButtonStyle.Light"
+                                <RadzenButton Text="@L["Sqr_Btn_NewScan"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Light"
                                               Size="ButtonSize.Large" Click="@ResetScan"
                                               Style="border-radius: 8px; padding: 1rem 2rem;" />
-                                <RadzenButton Text="Signaler au Superviseur" Icon="report" ButtonStyle="ButtonStyle.Warning"
+                                <RadzenButton Text="@L["Sqr_Btn_ReportSupervisor"].Value" Icon="report" ButtonStyle="ButtonStyle.Warning"
                                               Size="ButtonSize.Large" Click="@SignalerSuperviseur"
                                               Style="border-radius: 8px; padding: 1rem 2rem;" />
                             </RadzenStack>
@@ -223,8 +224,8 @@
             {
                 <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 1rem; background-color: #2d3748;">
                     <RadzenStack Gap="0.5rem">
-                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">Observations (optionnel)</RadzenText>
-                        <RadzenTextArea @bind-Value="@observations" Placeholder="Ajouter des observations..."
+                        <RadzenText TextStyle="TextStyle.Caption" Style="color: #a0aec0;">@L["Sqr_ObsLabel"]</RadzenText>
+                        <RadzenTextArea @bind-Value="@observations" Placeholder="@L["Sqr_ObsPlaceholder"].Value"
                                         Rows="2" Style="width: 100%; border-radius: 8px;" />
                     </RadzenStack>
                 </RadzenCard>
@@ -235,7 +236,7 @@
             <RadzenCard Variant="Variant.Flat" Style="border-radius: 12px; padding: 2rem; background-color: #2d3748; text-align: center;">
                 <RadzenIcon Icon="info" Style="font-size: 3rem; color: #4299e1;" />
                 <RadzenText TextStyle="TextStyle.H6" Style="color: white; margin-top: 1rem;">
-                    Veuillez sélectionner votre barrière pour commencer le scan
+                    @L["Sqr_SelectBarriere"]
                 </RadzenText>
             </RadzenCard>
         }
@@ -277,7 +278,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de charger les barrières: {ex.Message}");
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"].Value, string.Format(L["Scan_NotifBarriereFail"].Value, ex.Message));
         }
     }
 
@@ -295,7 +296,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur Caméra", $"Impossible d'accéder à la caméra: {ex.Message}");
+            NotificationService.Notify(NotificationSeverity.Error, L["Scan_NotifCameraError"].Value, string.Format(L["Scan_NotifCameraFail"].Value, ex.Message));
         }
     }
 
@@ -349,16 +350,16 @@
             
             if (lastScanResult.IsValid)
             {
-                NotificationService.Notify(NotificationSeverity.Success, "Scan Valide", "Document vérifié avec succès");
+                NotificationService.Notify(NotificationSeverity.Success, L["Scan_NotifValid"].Value, L["Scan_NotifValidDetail"].Value);
             }
             else
             {
-                NotificationService.Notify(NotificationSeverity.Error, "Scan Invalide", lastScanResult.Message);
+                NotificationService.Notify(NotificationSeverity.Error, L["Scan_NotifError"].Value, lastScanResult.Message);
             }
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du scan: {ex.Message}");
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"].Value, string.Format(L["Scan_NotifError"].Value, ex.Message));
         }
         finally
         {
@@ -389,19 +390,19 @@
                 // SEC-031: Afficher et imprimer la preuve
                 await ShowPreuveDialog(processResult.Preuve);
                 
-                NotificationService.Notify(NotificationSeverity.Success, "Passage Confirmé", 
-                    $"Preuve de passage générée: {processResult.Preuve.NumeroPreuve}");
+                NotificationService.Notify(NotificationSeverity.Success, L["Scan_NotifValid"].Value, 
+                    $"{L["Scan_NotifValidDetail"].Value}: {processResult.Preuve.NumeroPreuve}");
                 
                 ResetScan();
             }
             else
             {
-                NotificationService.Notify(NotificationSeverity.Error, "Erreur", processResult.Message);
+                NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"].Value, processResult.Message);
             }
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors de la confirmation: {ex.Message}");
+            NotificationService.Notify(NotificationSeverity.Error, L["Lbl_Error"].Value, string.Format(L["Scan_NotifError"].Value, ex.Message));
         }
     }
 

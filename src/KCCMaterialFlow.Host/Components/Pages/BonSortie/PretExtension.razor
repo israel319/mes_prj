@@ -2,41 +2,42 @@
 @inject DialogService DialogService
 @inject IBonSortieService BonSortieService
 @inject NotificationService Notification
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1rem">
     <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small">
-        <strong>Note:</strong> L'extension de la date de retour est réservée au service Identification.
+        <strong>Note:</strong> @L["PExt_Note"]
     </RadzenAlert>
 
     <div>
-        <RadzenLabel Text="Date de Retour Actuelle" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenLabel Text="@L["PExt_CurrentDate"].Value" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
         <RadzenText TextStyle="TextStyle.Body1" Style="margin-top: 0.25rem;">
             <strong>@CurrentDate.ToString("dddd dd MMMM yyyy")</strong>
         </RadzenText>
     </div>
 
     <div>
-        <RadzenLabel Text="Nouvelle Date de Retour *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenLabel Text="@L["PExt_NewDate"].Value" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
         <RadzenDatePicker @bind-Value="@nouvelleDateRetour" DateFormat="dd/MM/yyyy" Style="width: 100%;"
-            Min="@DateTime.Today.AddDays(1)" Placeholder="Sélectionner une date..." />
+            Min="@DateTime.Today.AddDays(1)" Placeholder="@L["PExt_NewDatePlaceholder"].Value" />
     </div>
 
     <div>
-        <RadzenLabel Text="Motif de l'Extension *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
-        <RadzenDropDown @bind-Value="@motifSelectionne" Data="@motifs" Style="width: 100%;" Placeholder="Sélectionner un motif..." />
+        <RadzenLabel Text="@L["PExt_Reason"].Value" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenDropDown @bind-Value="@motifSelectionne" Data="@motifs" Style="width: 100%;" Placeholder="@L["PExt_SelectReason"].Value" />
     </div>
 
     @if (motifSelectionne == "Autre")
     {
         <div>
-            <RadzenLabel Text="Préciser le motif *" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
-            <RadzenTextArea @bind-Value="@motifAutre" Rows="2" Placeholder="Expliquez le motif..." Style="width: 100%;" />
+            <RadzenLabel Text="@L["PExt_OtherReason"].Value" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+            <RadzenTextArea @bind-Value="@motifAutre" Rows="2" Placeholder="@L["PExt_OtherPlaceholder"].Value" Style="width: 100%;" />
         </div>
     }
 
     <div>
-        <RadzenLabel Text="Commentaire" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
-        <RadzenTextArea @bind-Value="@commentaire" Rows="2" Placeholder="Observations (optionnel)..." Style="width: 100%;" />
+        <RadzenLabel Text="@L["Dlg_CommentLabel"].Value" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenTextArea @bind-Value="@commentaire" Rows="2" Placeholder="@L["Dlg_CommentPlaceholder"].Value" Style="width: 100%;" />
     </div>
 
     @if (showDureeInfo)
@@ -45,15 +46,15 @@
             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
                 <RadzenIcon Icon="info" Style="color: #17a2b8;" />
                 <RadzenText TextStyle="TextStyle.Body2">
-                    Durée de l'extension: <strong>@dureeExtension jour(s)</strong>
+                    @L["PExt_Duration"] <strong>@dureeExtension @L["BsmV_Days"]</strong>
                 </RadzenText>
             </RadzenStack>
         </RadzenCard>
     }
 
     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End" Style="margin-top: 1rem;">
-        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
-        <RadzenButton Text="Confirmer l'Extension" ButtonStyle="ButtonStyle.Primary" Icon="event" 
+        <RadzenButton Text="@L["Btn_Cancel"].Value" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@L["PExt_Confirm"].Value" ButtonStyle="ButtonStyle.Primary" Icon="event" 
             Click="@Confirm" Disabled="@(!IsValid)" />
     </RadzenStack>
 </RadzenStack>
@@ -114,11 +115,11 @@
             if (result.Success)
                 DialogService.Close(true);
             else
-                Notification.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Impossible de prolonger");
+                Notification.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, result.Message ?? L["PExt_ExtendFailed"].Value);
         }
         catch (Exception ex)
         {
-            Notification.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            Notification.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, ex.Message);
         }
     }
 }

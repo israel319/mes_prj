@@ -1,400 +1,301 @@
-@* Dialog paysage — détails d'un bon + approbation/rejet *@
-@inject IBonEntreeService BonEntreeService
+﻿@inject IBonEntreeService BonEntreeService
 @inject IBonSortieService BonSortieService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
-<div class="kcc-land">
-    @if (isLoading)
-    {
-        <div class="kcc-land__topbar">
-            <div class="kcc-land__topbar-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <div class="kcc-land__topbar-text">
-                <h2 class="kcc-land__title">Chargement...</h2>
-            </div>
-        </div>
-        <div class="kcc-land__loading">
-            <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
-            <span>Chargement des détails...</span>
-        </div>
-    }
-    else if (errorMessage != null)
-    {
-        <div class="kcc-land__topbar">
-            <div class="kcc-land__topbar-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-            </div>
-            <div class="kcc-land__topbar-text">
-                <h2 class="kcc-land__title">Erreur</h2>
-            </div>
-            <button type="button" class="kcc-land__close" @onclick="@Close" title="Fermer">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <div class="kcc-land__error">@errorMessage</div>
-        <div class="kcc-land__footer" style="justify-content: flex-end;">
-            <button type="button" class="kcc-land__btn kcc-land__btn--ghost" @onclick="@Close">Fermer</button>
-        </div>
-    }
-    else
-    {
-        @* ─── BANDEAU SUPÉRIEUR (pleine largeur) ─── *@
-        <div class="kcc-land__topbar">
-            <div class="kcc-land__topbar-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    @if (TypeBon == "BEM")
-                    { <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M13.8 12H3"/> }
-                    else
-                    { <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/> }
-                </svg>
-            </div>
-            <div class="kcc-land__topbar-text">
-                <h2 class="kcc-land__title">@numeroReference</h2>
-                <p class="kcc-land__desc">@(TypeBon == "BEM" ? "Bon d'Entrée Matériel" : "Bon de Sortie Matériel") &bull; @dateCreation.ToString("dd/MM/yyyy à HH:mm")</p>
-            </div>
-            <span class="kcc-land__badge @GetStatutCssClass(statutCode)">@statutLibelle</span>
-            <button type="button" class="kcc-land__close" @onclick="@Close" title="Fermer">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-            </button>
-        </div>
+@if (isLoading)
+{
+    <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="height: 400px; padding: 2rem;" Gap="1rem">
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
+        <RadzenText Style="color: #6b7280;">Chargement des détails...</RadzenText>
+    </RadzenStack>
+}
+else if (errorMessage != null)
+{
+    <RadzenStack Gap="1.5rem" Style="padding: 1rem;">
+        <RadzenAlert AlertStyle="AlertStyle.Danger" Shade="Shade.Lighter">@errorMessage</RadzenAlert>
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+            <RadzenButton Text="@L["Btn_Close"].Value" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Close" />
+        </RadzenStack>
+    </RadzenStack>
+}
+else
+{
+    <div style="display: flex; flex-direction: column;">
 
-        @* ─── CORPS DEUX COLONNES ─── *@
-        <div class="kcc-land__body">
+        @* ─── Header ─── *@
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.75rem"
+                     Style="padding: 1rem 1.25rem; background: #253C45; color: white; flex-shrink: 0;">
+            <div style="width: 36px; height: 36px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 0.5rem;">
+                <RadzenIcon Icon="@(TypeBon == "BEM" ? "login" : "logout")" Style="color: white;" />
+            </div>
+            <RadzenStack Gap="0" Style="flex: 1; min-width: 0;">
+                <RadzenText Style="font-weight: 700; color: white; margin: 0; font-size: 1rem;">@numeroReference</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="color: rgba(255,255,255,0.65); margin: 0;">
+                    @(TypeBon == "BEM" ? "Bon d'Entrée Matériel" : "Bon de Sortie Matériel") &bull; @dateCreation.ToString("dd/MM/yyyy à HH:mm")
+                </RadzenText>
+            </RadzenStack>
+            <RadzenBadge Text="@statutLibelle" BadgeStyle="@GetBadgeStyle()" Shade="Shade.Default" />
+            <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light"
+                          Click="@Close" Style="color: rgba(255,255,255,0.7); min-width: unset;" />
+        </RadzenStack>
 
-            @* ══════════ COLONNE GAUCHE — Infos du bon ══════════ *@
-            <div class="kcc-land__left">
+        @* ─── Corps ─── *@
+        <div style="display: flex;">
 
-                @* Demandeur + motif *@
-                <div class="kcc-land__card">
-                    <div class="kcc-land__card-row">
-                        <div class="kcc-land__avatar">@GetInitials(demandeur)</div>
-                        <div class="kcc-land__card-info">
-                            <span class="kcc-land__card-name">@(demandeur ?? "N/A")</span>
-                            <span class="kcc-land__card-sub">Demandeur</span>
+            @* Colonne gauche *@
+            <div style="flex: 7; border-right: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column;">
+                <RadzenStack Gap="0">
+
+                    @* ── Infos clés ── *@
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid rgba(0,0,0,0.07);">
+
+                        @* Demandeur *@
+                        <div style="padding:0.8rem 1.1rem;border-right:1px solid rgba(0,0,0,0.06);border-bottom:1px solid rgba(0,0,0,0.06);">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:0.3rem;">Demandeur</div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <div style="width:30px;height:30px;background:#BB8748;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.7rem;flex-shrink:0;border-radius:4px;">
+                                    @GetInitials(demandeur)
+                                </div>
+                                <div style="font-weight:700;font-size:0.88rem;color:#1f2937;line-height:1.3;">@(demandeur ?? "N/A")</div>
+                            </div>
                         </div>
+
+                        @* Entreprise (BEM) ou Trajet compact (BSM) *@
+                        @if (!string.IsNullOrEmpty(entreprise))
+                        {
+                            <div style="padding:0.8rem 1.1rem;border-bottom:1px solid rgba(0,0,0,0.06);">
+                                <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:0.3rem;">Entreprise</div>
+                                <div style="display:flex;align-items:center;gap:0.4rem;">
+                                    <RadzenIcon Icon="business" Style="font-size:1rem;color:#3b82f6;flex-shrink:0;" />
+                                    <div style="font-weight:700;font-size:0.88rem;color:#1f2937;">@entreprise</div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="padding:0.8rem 1.1rem;border-bottom:1px solid rgba(0,0,0,0.06);">
+                                <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:0.3rem;">Trajet</div>
+                                <div style="display:flex;align-items:center;gap:0.4rem;">
+                                    <span style="font-weight:700;font-size:0.88rem;color:#3b82f6;">@(provenance ?? "—")</span>
+                                    <RadzenIcon Icon="arrow_forward" Style="font-size:0.9rem;color:#BB8748;" />
+                                    <span style="font-weight:700;font-size:0.88rem;color:#00B193;">@(destination ?? "—")</span>
+                                </div>
+                            </div>
+                        }
+
+                        @* Motif / Raison *@
+                        <div style="padding:0.8rem 1.1rem;border-right:1px solid rgba(0,0,0,0.06);@(string.IsNullOrEmpty(entreprise) ? "" : "border-top:0;")">
+                            <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:0.3rem;">Motif</div>
+                            <div style="display:flex;align-items:flex-start;gap:0.35rem;">
+                                <RadzenIcon Icon="notes" Style="font-size:1rem;color:#f59e0b;flex-shrink:0;margin-top:0.05rem;" />
+                                <div style="font-weight:600;font-size:0.88rem;color:#1f2937;line-height:1.4;">@(raison ?? "—")</div>
+                            </div>
+                        </div>
+
+                        @* Trajet (seulement si BEM, la case Trajet n'est pas encore affichée) *@
+                        @if (!string.IsNullOrEmpty(entreprise))
+                        {
+                            <div style="padding:0.8rem 1.1rem;">
+                                <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;margin-bottom:0.3rem;">Trajet</div>
+                                <div style="display:flex;align-items:center;gap:0.4rem;">
+                                    <span style="font-weight:700;font-size:0.88rem;color:#3b82f6;">@(provenance ?? "—")</span>
+                                    <RadzenIcon Icon="arrow_forward" Style="font-size:0.9rem;color:#BB8748;" />
+                                    <span style="font-weight:700;font-size:0.88rem;color:#00B193;">@(destination ?? "—")</span>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div></div>
+                        }
+
                     </div>
-                    @if (!string.IsNullOrEmpty(description))
-                    {
-                        <div class="kcc-land__motif">
-                            <span class="kcc-land__motif-tag">Motif</span>
-                            <span class="kcc-land__motif-text">@description</span>
-                        </div>
-                    }
-                </div>
 
-                @* Trajet *@
-                <div class="kcc-land__section">
-                    <div class="kcc-land__section-head">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                        Trajet
-                    </div>
-                    <div class="kcc-land__trajet">
-                        <div class="kcc-land__trajet-box kcc-land__trajet-box--from">
-                            <span class="kcc-land__trajet-label">FROM</span>
-                            <span class="kcc-land__trajet-val">@(provenance ?? "N/A")</span>
+                    @* Materiels *@
+                    <div style="padding:0.85rem 1.1rem;flex:1;">
+                        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">
+                            <RadzenIcon Icon="inventory_2" Style="font-size:1rem;color:#253C45;" />
+                            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#253C45;">Matériels</span>
+                            <span style="font-size:0.72rem;font-weight:700;background:#253C45;color:white;padding:0.1rem 0.45rem;border-radius:10px;">@materiels.Count</span>
                         </div>
-                        <div class="kcc-land__trajet-arrow">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                        </div>
-                        <div class="kcc-land__trajet-box kcc-land__trajet-box--to">
-                            <span class="kcc-land__trajet-label">TO</span>
-                            <span class="kcc-land__trajet-val">@(destination ?? "N/A")</span>
-                        </div>
-                    </div>
-                </div>
-
-                @* Matériels *@
-                <div class="kcc-land__section kcc-land__section--grow">
-                    <div class="kcc-land__section-head">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-                        Matériels (@materiels.Count)
-                    </div>
-                    @if (materiels.Any())
-                    {
-                        <div class="kcc-land__table-wrap">
-                            <table class="kcc-land__table">
-                                <thead>
-                                    <tr>
-                                        <th style="text-align: left;">Désignation</th>
-                                        <th style="width: 110px;">N° Série</th>
-                                        <th style="width: 50px; text-align: center;">Qté</th>
-                                        @if (TypeBon == "BEM")
-                                        {
-                                            <th style="width: 60px; text-align: center;">Dispo</th>
-                                        }
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var mat in materiels)
-                                    {
-                                        <tr>
-                                            <td style="font-weight: 600;">@mat.Designation</td>
-                                            <td style="color: #6b7280;">@(string.IsNullOrEmpty(mat.NumeroSerie) ? "—" : mat.NumeroSerie)</td>
-                                            <td style="text-align: center; font-weight: 700;">@mat.Quantite</td>
+                        @if (materiels.Any())
+                        {
+                            <div style="max-height:260px;overflow-y:auto;border:1px solid rgba(0,0,0,0.09);border-radius:6px;">
+                                <table style="width:100%;border-collapse:collapse;font-size:0.87rem;">
+                                    <thead>
+                                        <tr style="background:#f1f5f9;">
+                                            <th style="text-align:left;padding:0.5rem 0.75rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:2px solid #e2e8f0;position:sticky;top:0;background:#f1f5f9;">Code / N° Série</th>
+                                            <th style="text-align:left;padding:0.5rem 0.75rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:2px solid #e2e8f0;position:sticky;top:0;background:#f1f5f9;">Désignation</th>
+                                            <th style="width:60px;text-align:right;padding:0.5rem 0.75rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:2px solid #e2e8f0;position:sticky;top:0;background:#f1f5f9;">Qté</th>
                                             @if (TypeBon == "BEM")
                                             {
-                                                <td style="text-align: center;">
-                                                    <span class="kcc-land__dispo @(mat.QuantiteDisponible > 0 ? "kcc-land__dispo--ok" : "kcc-land__dispo--ko")">@mat.QuantiteDisponible</span>
-                                                </td>
+                                                <th style="width:70px;text-align:center;padding:0.5rem 0.75rem;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;border-bottom:2px solid #e2e8f0;position:sticky;top:0;background:#f1f5f9;">Dispo</th>
                                             }
                                         </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="kcc-land__empty">Aucun matériel</div>
-                    }
-                </div>
-            </div>
-
-            @* ══════════ COLONNE DROITE — Approbations + Actions ══════════ *@
-            <div class="kcc-land__right">
-
-                @* Timeline approbations *@
-                @if (approbations.Any())
-                {
-                    <div class="kcc-land__section kcc-land__section--grow">
-                        <div class="kcc-land__section-head">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            Approbations
-                        </div>
-                        <div class="kcc-land__timeline">
-                            @foreach (var appro in approbations)
-                            {
-                                var dotClass = appro.IsApproved ? "kcc-land__dot--ok" : appro.IsRejected ? "kcc-land__dot--ko" : appro.IsCurrent ? "kcc-land__dot--cur" : "";
-                                <div class="kcc-land__step">
-                                    <div class="kcc-land__dot @dotClass">
-                                        @if (appro.IsApproved)
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var (mat, idx) in materiels.Select((m, i) => (m, i)))
                                         {
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                            <tr style="@(idx % 2 == 0 ? "background:white;" : "background:#fafbfc;")">
+                                                <td style="padding:0.55rem 0.75rem;border-bottom:1px solid rgba(0,0,0,0.05);">
+                                                    @if (!string.IsNullOrEmpty(mat.NumeroSerie))
+                                                    {
+                                                        <span style="font-family:monospace;font-size:0.82rem;font-weight:700;color:#3b82f6;background:rgba(59,130,246,0.08);padding:0.1rem 0.35rem;border-radius:3px;">@mat.NumeroSerie</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span style="color:#9ca3af;font-size:0.8rem;">—</span>
+                                                    }
+                                                </td>
+                                                <td style="padding:0.55rem 0.75rem;border-bottom:1px solid rgba(0,0,0,0.05);font-weight:600;color:#1f2937;font-size:0.88rem;">@mat.Designation</td>
+                                                <td style="padding:0.55rem 0.75rem;border-bottom:1px solid rgba(0,0,0,0.05);text-align:right;font-weight:700;color:#253C45;font-size:0.9rem;">@mat.Quantite.ToString("F2")</td>
+                                                @if (TypeBon == "BEM")
+                                                {
+                                                    <td style="padding:0.55rem 0.75rem;border-bottom:1px solid rgba(0,0,0,0.05);text-align:center;">
+                                                        <span style="font-size:0.82rem;font-weight:700;padding:0.15rem 0.45rem;border-radius:4px;background:@(mat.QuantiteDisponible > 0 ? "rgba(0,177,147,0.1)" : "rgba(220,38,38,0.08)");color:@(mat.QuantiteDisponible > 0 ? "#00B193" : "#dc2626");">
+                                                            @mat.QuantiteDisponible.ToString("F2")
+                                                        </span>
+                                                    </td>
+                                                }
+                                            </tr>
                                         }
-                                        else if (appro.IsRejected)
-                                        {
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                        }
-                                        else if (appro.IsCurrent)
-                                        {
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                        }
-                                    </div>
-                                    <div class="kcc-land__step-body">
-                                        <span class="kcc-land__step-name">@appro.NomEtape</span>
-                                        @if ((appro.IsApproved || appro.IsRejected) && !string.IsNullOrEmpty(appro.Approbateur))
-                                        {
-                                            <span class="kcc-land__step-detail">@appro.Approbateur &bull; @(appro.DateAction?.ToString("dd/MM HH:mm") ?? "")</span>
-                                        }
-                                        @if (appro.IsCurrent)
-                                        {
-                                            <span class="kcc-land__step-detail" style="color: #3b82f6; font-weight: 500;">En attente</span>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-
-                @* Zone action (commentaire) *@
-                @if (ShowActions && actionMode != null)
-                {
-                    <div class="kcc-land__action @(actionMode == "reject" ? "kcc-land__action--reject" : "")">
-                        <div class="kcc-land__section-head" style="padding: 0; border: none; margin-bottom: 0.4rem;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                                @if (actionMode == "reject")
-                                { <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/> }
-                                else
-                                { <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/> }
-                            </svg>
-                            @(actionMode == "reject" ? "Motif du rejet" : "Commentaire")
-                        </div>
-                        <textarea class="kcc-land__textarea" @bind="commentaire" rows="3"
-                                  placeholder="@(actionMode == "reject" ? "Expliquez le motif du rejet..." : "Ajoutez un commentaire (optionnel)...")"></textarea>
-                        @if (actionMode == "reject" && string.IsNullOrWhiteSpace(commentaire))
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;align-items:center;gap:0.35rem;padding:0.4rem 0.5rem 0;">
+                                <span style="font-size:0.8rem;color:#6b7280;">Total :</span>
+                                <span style="font-size:0.88rem;font-weight:700;color:#253C45;">@materiels.Sum(m => m.Quantite).ToString("F2")</span>
+                            </div>
+                        }
+                        else
                         {
-                            <p class="kcc-land__warn">Le motif du rejet est obligatoire.</p>
+                            <div style="text-align:center;padding:1.5rem;color:#9ca3af;font-size:0.82rem;font-style:italic;">
+                                <RadzenIcon Icon="inventory_2" Style="font-size:1.5rem;color:#d1d5db;display:block;margin:0 auto 0.4rem;" />
+                                Aucun matériel
+                            </div>
                         }
                     </div>
-                }
+
+                </RadzenStack>
+            </div>
+
+            @* Colonne droite *@
+            <div style="flex: 5; background: #fafbfc; display: flex; flex-direction: column;">
+                <RadzenStack Gap="0">
+
+                    @* Timeline approbations *@
+                    @if (approbations.Any())
+                    {
+                        <RadzenStack Style="padding: 0.75rem 1.25rem; flex: 1;" Gap="0.6rem">
+                            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold"
+                                        Style="color: #253C45; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.7rem; border-bottom: 1px solid rgba(0,0,0,0.07); padding-bottom: 0.4rem;">
+                                Approbations
+                            </RadzenText>
+                            <div style="position: relative;">
+                                @* Ligne verticale de la timeline *@
+                                <div style="position: absolute; left: 10px; top: 12px; bottom: 12px; width: 2px; background: #e5e7eb; z-index: 0;"></div>
+                                @foreach (var appro in approbations)
+                                {
+                                    var iconColor = appro.IsApproved ? "#00B193" : appro.IsRejected ? "#dc2626" : appro.IsCurrent ? "#3b82f6" : "#d1d5db";
+                                    var bgColor   = appro.IsApproved ? "#00B193" : appro.IsRejected ? "#dc2626" : appro.IsCurrent ? "#3b82f6" : "#ffffff";
+                                    var iconName  = appro.IsApproved ? "check" : appro.IsRejected ? "close" : appro.IsCurrent ? "schedule" : "radio_button_unchecked";
+                                    var iconTextColor = (appro.IsApproved || appro.IsRejected || appro.IsCurrent) ? "white" : iconColor;
+                                    <div style="display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.45rem 0; position: relative; z-index: 1;">
+                                        <div style="@($"width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: {bgColor}; border: 2px solid {iconColor}; border-radius: 50%; margin-top: 0.05rem;")">
+                                            <RadzenIcon Icon="@iconName" Style="@($"color: {iconTextColor}; font-size: 0.75rem;")" />
+                                        </div>
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-weight: 600; font-size: 0.92rem; color: #1f2937; line-height: 1.3;">@appro.NomEtape</div>
+                                            @if ((appro.IsApproved || appro.IsRejected) && !string.IsNullOrEmpty(appro.Approbateur))
+                                            {
+                                                <div style="font-size: 0.8rem; color: #6b7280; margin-top: 0.1rem;">
+                                                    @appro.Approbateur &bull; @(appro.DateAction?.ToString("dd/MM HH:mm") ?? "")
+                                                </div>
+                                            }
+                                            @if (appro.IsCurrent)
+                                            {
+                                                <div style="font-size: 0.8rem; color: #3b82f6; font-weight: 600; margin-top: 0.1rem;">
+                                                    En attente
+                                                    @if (!string.IsNullOrEmpty(appro.Approbateur))
+                                                    {
+                                                        <span> — <strong>@appro.Approbateur</strong></span>
+                                                    }
+                                                </div>
+                                            }
+                                            @if (!appro.IsApproved && !appro.IsRejected && !appro.IsCurrent)
+                                            {
+                                                <div style="font-size: 0.8rem; color: #9ca3af; margin-top: 0.1rem;">
+                                                    En attente
+                                                    @if (!string.IsNullOrEmpty(appro.Approbateur))
+                                                    {
+                                                        <span> — @appro.Approbateur</span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </RadzenStack>
+                    }
+
+                    @* Zone commentaire *@
+                    @if (ShowActions)
+                    {
+                        <RadzenStack Style="padding: 0.75rem 1.25rem; background: rgba(0,177,147,0.06); border-top: 2px solid rgba(0,177,147,0.25); margin-top: auto;" Gap="0.4rem">
+                            <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold" Style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #008f76;">
+                                Commentaire
+                            </RadzenText>
+                            <RadzenTextArea @bind-Value="commentaire" Rows="3" Style="width: 100%;"
+                                            Placeholder="@L["Dlg_PlOptComment"].Value" />
+                            @if (showRejectError)
+                            {
+                                <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" Size="AlertSize.Small" AllowClose="false">
+                                    Le motif du rejet est obligatoire.
+                                </RadzenAlert>
+                            }
+                        </RadzenStack>
+                    }
+
+                </RadzenStack>
             </div>
         </div>
 
-        @* ─── FOOTER (pleine largeur) ─── *@
-        @if (ShowActions)
-        {
-            <div class="kcc-land__footer">
-                <button type="button" class="kcc-land__btn kcc-land__btn--ghost" @onclick="@Close" disabled="@isProcessing">Fermer</button>
+        @* ─── Footer ─── *@
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem"
+                     Style="padding: 0.75rem 1.25rem; border-top: 1px solid rgba(0,0,0,0.08); background: #f4f5f7; flex-shrink: 0;">
+            <RadzenButton Text="@L["Btn_Close"].Value" Icon="close" ButtonStyle="ButtonStyle.Light"
+                          Click="@Close" Disabled="@isProcessing" />
+            @if (ShowActions)
+            {
                 <div style="flex: 1;"></div>
-                @if (actionMode == null)
-                {
-                    <button type="button" class="kcc-land__btn kcc-land__btn--danger" @onclick="@(() => SetActionMode("reject"))" disabled="@isProcessing">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
-                        Rejeter
-                    </button>
-                    <button type="button" class="kcc-land__btn kcc-land__btn--primary" @onclick="@(() => SetActionMode("approve"))" disabled="@isProcessing">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        Approuver
-                    </button>
-                }
-                else if (actionMode == "reject")
-                {
-                    <button type="button" class="kcc-land__btn kcc-land__btn--ghost" @onclick="@(() => SetActionMode(null))" disabled="@isProcessing">Annuler</button>
-                    <button type="button" class="kcc-land__btn kcc-land__btn--danger" @onclick="@ConfirmReject"
-                            disabled="@(isProcessing || string.IsNullOrWhiteSpace(commentaire))">
-                        Confirmer le rejet
-                    </button>
-                }
-                else if (actionMode == "approve")
-                {
-                    <button type="button" class="kcc-land__btn kcc-land__btn--ghost" @onclick="@(() => SetActionMode(null))" disabled="@isProcessing">Annuler</button>
-                    <button type="button" class="kcc-land__btn kcc-land__btn--primary" @onclick="@ConfirmApprove" disabled="@isProcessing">
-                        Confirmer l'approbation
-                    </button>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="kcc-land__footer" style="justify-content: flex-end;">
-                <button type="button" class="kcc-land__btn kcc-land__btn--ghost" @onclick="@Close">Fermer</button>
-            </div>
-        }
-    }
-</div>
+                <RadzenButton Text="@L["Btn_Reject"].Value" Icon="cancel" ButtonStyle="ButtonStyle.Danger"
+                              Click="@ClickReject" Disabled="@isProcessing" />
+                <RadzenButton Text="@L["Dlg_ConfirmApproval"].Value" Icon="check_circle" ButtonStyle="ButtonStyle.Success"
+                              Click="@ClickApprove" Disabled="@isProcessing" />
+            }
+        </RadzenStack>
 
-<style>
-    /* ============================================================
-       KCC LANDSCAPE MODAL — Bon Detail Dialog
-       Layout paysage : gauche infos, droite approbations
-       Couleurs : Vert #00B193 | Cuivre #BB8748 | Slate #253C45
-       Border-radius : 0
-       ============================================================ */
-
-    .kcc-land { display: flex; flex-direction: column; background: #ffffff; height: 100%; }
-
-    /* ─── TOPBAR ─── */
-    .kcc-land__topbar { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.5rem; background: #253C45; color: #ffffff; flex-shrink: 0; }
-    .kcc-land__topbar-icon { width: 36px; height: 36px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; }
-    .kcc-land__topbar-text { flex: 1; min-width: 0; }
-    .kcc-land__title { margin: 0; font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
-    .kcc-land__desc { margin: 0; font-size: 0.75rem; color: rgba(255,255,255,0.65); }
-    .kcc-land__close { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.7); cursor: pointer; flex-shrink: 0; }
-    .kcc-land__close:hover { background: rgba(255,255,255,0.1); color: #fff; }
-
-    /* Badge statut */
-    .kcc-land__badge { padding: 0.2rem 0.65rem; font-size: 0.68rem; font-weight: 600; flex-shrink: 0; text-transform: uppercase; letter-spacing: 0.03em; }
-    .kcc-land__badge--pending { background: rgba(245,158,11,0.2); color: #f59e0b; }
-    .kcc-land__badge--approved { background: rgba(0,177,147,0.2); color: #00B193; }
-    .kcc-land__badge--rejected { background: rgba(220,38,38,0.2); color: #dc2626; }
-    .kcc-land__badge--draft { background: rgba(107,114,128,0.2); color: #6b7280; }
-
-    /* ─── BODY 2 COLONNES ─── */
-    .kcc-land__body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
-
-    .kcc-land__left { flex: 3; display: flex; flex-direction: column; border-right: 1px solid rgba(0,0,0,0.06); overflow-y: auto; }
-    .kcc-land__right { flex: 2; display: flex; flex-direction: column; overflow-y: auto; background: #fafbfc; }
-
-    /* ─── CARTE DEMANDEUR ─── */
-    .kcc-land__card { padding: 0.85rem 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.06); background: #f8f9fb; }
-    .kcc-land__card-row { display: flex; align-items: center; gap: 0.65rem; }
-    .kcc-land__avatar { width: 36px; height: 36px; background: #BB8748; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; flex-shrink: 0; }
-    .kcc-land__card-info { display: flex; flex-direction: column; min-width: 0; }
-    .kcc-land__card-name { font-weight: 600; font-size: 0.85rem; color: #1a1a1a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .kcc-land__card-sub { font-size: 0.7rem; color: #6b7280; }
-
-    /* Motif */
-    .kcc-land__motif { display: flex; align-items: flex-start; gap: 0.4rem; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid rgba(0,0,0,0.04); }
-    .kcc-land__motif-tag { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; padding: 0.15rem 0.35rem; background: rgba(37,60,69,0.06); flex-shrink: 0; margin-top: 0.1rem; }
-    .kcc-land__motif-text { font-size: 0.82rem; font-weight: 500; color: #253C45; line-height: 1.4; word-break: break-word; }
-
-    /* ─── SECTIONS ─── */
-    .kcc-land__section { padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(0,0,0,0.04); }
-    .kcc-land__section--grow { flex: 1; }
-    .kcc-land__section-head { display: flex; align-items: center; gap: 0.35rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #253C45; padding-bottom: 0.45rem; border-bottom: 1px solid rgba(0,0,0,0.06); margin-bottom: 0.45rem; }
-    .kcc-land__section-head svg { color: #BB8748; flex-shrink: 0; }
-
-    /* ─── TRAJET ─── */
-    .kcc-land__trajet { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; }
-    .kcc-land__trajet-box { flex: 1; padding: 0.5rem 0.65rem; border: 1px solid rgba(0,0,0,0.08); background: #ffffff; display: flex; flex-direction: column; gap: 0.1rem; }
-    .kcc-land__trajet-box--from { border-left: 3px solid #3b82f6; }
-    .kcc-land__trajet-box--to { border-left: 3px solid #00B193; }
-    .kcc-land__trajet-label { font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #9ca3af; }
-    .kcc-land__trajet-val { font-size: 0.82rem; font-weight: 600; color: #1a1a1a; }
-    .kcc-land__trajet-arrow { color: #BB8748; flex-shrink: 0; }
-
-    /* ─── TABLE MATÉRIELS ─── */
-    .kcc-land__table-wrap { max-height: 220px; overflow-y: auto; }
-    .kcc-land__table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-    .kcc-land__table thead th { padding: 0.35rem 0.4rem; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; border-bottom: 1px solid rgba(0,0,0,0.08); position: sticky; top: 0; background: #ffffff; }
-    .kcc-land__table tbody td { padding: 0.35rem 0.4rem; border-bottom: 1px solid rgba(0,0,0,0.04); color: #1a1a1a; }
-    .kcc-land__table tbody tr:last-child td { border-bottom: none; }
-    .kcc-land__dispo { font-size: 0.68rem; font-weight: 600; padding: 0.1rem 0.35rem; display: inline-block; }
-    .kcc-land__dispo--ok { background: rgba(0,177,147,0.08); color: #00B193; }
-    .kcc-land__dispo--ko { background: rgba(220,38,38,0.08); color: #dc2626; }
-
-    .kcc-land__table-wrap::-webkit-scrollbar { width: 3px; }
-    .kcc-land__table-wrap::-webkit-scrollbar-track { background: transparent; }
-    .kcc-land__table-wrap::-webkit-scrollbar-thumb { background: #d1d5db; }
-
-    /* ─── TIMELINE APPROBATIONS ─── */
-    .kcc-land__timeline { display: flex; flex-direction: column; gap: 0; }
-    .kcc-land__step { display: flex; align-items: flex-start; gap: 0.55rem; padding: 0.4rem 0; position: relative; }
-    .kcc-land__step + .kcc-land__step::before { content: ""; position: absolute; left: 10px; top: -0.3rem; width: 1px; height: 0.7rem; background: rgba(0,0,0,0.1); }
-    .kcc-land__dot { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #e5e7eb; color: #9ca3af; }
-    .kcc-land__dot--ok { background: rgba(0,177,147,0.15); color: #00B193; }
-    .kcc-land__dot--ko { background: rgba(220,38,38,0.15); color: #dc2626; }
-    .kcc-land__dot--cur { background: rgba(59,130,246,0.15); color: #3b82f6; }
-    .kcc-land__step-body { display: flex; flex-direction: column; }
-    .kcc-land__step-name { font-weight: 600; font-size: 0.8rem; color: #1a1a1a; }
-    .kcc-land__step-detail { font-size: 0.7rem; color: #6b7280; }
-
-    /* ─── ZONE ACTION ─── */
-    .kcc-land__action { padding: 0.75rem 1.25rem; background: rgba(0,177,147,0.03); border-top: 1px solid rgba(0,177,147,0.15); margin-top: auto; }
-    .kcc-land__action--reject { background: rgba(220,38,38,0.03); border-top-color: rgba(220,38,38,0.15); }
-    .kcc-land__textarea { width: 100%; padding: 0.5rem 0.65rem; font-family: inherit; font-size: 0.82rem; border: 1px solid rgba(0,0,0,0.12); background: #ffffff; resize: vertical; margin-top: 0.35rem; box-sizing: border-box; }
-    .kcc-land__textarea:focus { outline: 2px solid #00B193; border-color: #00B193; }
-    .kcc-land__warn { margin: 0.3rem 0 0; font-size: 0.7rem; color: #BB8748; }
-
-    /* ─── FOOTER ─── */
-    .kcc-land__footer { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.25rem; border-top: 1px solid rgba(0,0,0,0.08); background: #f4f5f7; flex-shrink: 0; }
-    .kcc-land__btn { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.5rem 1.1rem; font-size: 0.8rem; font-weight: 600; font-family: inherit; border: 1px solid transparent; cursor: pointer; transition: all 0.1s; }
-    .kcc-land__btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .kcc-land__btn--ghost { background: #ffffff; color: #4a4a4a; border-color: rgba(0,0,0,0.12); }
-    .kcc-land__btn--ghost:hover:not(:disabled) { background: #ebedf0; }
-    .kcc-land__btn--primary { background: #00B193; color: #ffffff; border-color: #00B193; }
-    .kcc-land__btn--primary:hover:not(:disabled) { background: #008F76; border-color: #008F76; }
-    .kcc-land__btn--danger { background: #dc2626; color: #ffffff; border-color: #dc2626; }
-    .kcc-land__btn--danger:hover:not(:disabled) { background: #b91c1c; border-color: #b91c1c; }
-
-    /* ─── LOADING / ERROR / EMPTY ─── */
-    .kcc-land__loading { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 3rem 1.5rem; color: #6b7280; font-size: 0.85rem; flex: 1; justify-content: center; }
-    .kcc-land__error { padding: 1.5rem; color: #dc2626; font-size: 0.85rem; text-align: center; flex: 1; display: flex; align-items: center; justify-content: center; }
-    .kcc-land__empty { padding: 1rem 0; color: #6b7280; font-size: 0.78rem; font-style: italic; }
-
-    /* ─── Scrollbar colonnes ─── */
-    .kcc-land__left::-webkit-scrollbar, .kcc-land__right::-webkit-scrollbar { width: 3px; }
-    .kcc-land__left::-webkit-scrollbar-track, .kcc-land__right::-webkit-scrollbar-track { background: transparent; }
-    .kcc-land__left::-webkit-scrollbar-thumb, .kcc-land__right::-webkit-scrollbar-thumb { background: #d1d5db; }
-</style>
+    </div>
+}
 
 @code {
     [Parameter] public int BonId { get; set; }
     [Parameter] public string TypeBon { get; set; } = "BEM";
     [Parameter] public bool ShowActions { get; set; } = true;
-    [Parameter] public string? InitialAction { get; set; }
 
     private bool isLoading = true;
     private bool isProcessing = false;
     private string? errorMessage;
-    private string? actionMode;
+    private bool showRejectError = false;
     private string? commentaire;
 
     private string numeroReference = "";
     private string? demandeur;
+    private string? entreprise;
+    private string? raison;
     private string? description;
     private string? provenance;
     private string? destination;
@@ -407,8 +308,6 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadBonDetailsAsync();
-        if (!string.IsNullOrEmpty(InitialAction) && ShowActions)
-            actionMode = InitialAction;
     }
 
     private async Task LoadBonDetailsAsync()
@@ -425,7 +324,9 @@
 
                 numeroReference = bon.NumeroReference;
                 demandeur = bon.NomDemandeur;
-                description = $"{bon.NomCompagnie} - {bon.ReasonOnSite}";
+                entreprise = bon.NomCompagnie;
+                raison = bon.ReasonOnSite;
+                description = raison;
                 provenance = bon.Provenance;
                 destination = bon.Destination;
                 dateCreation = bon.DateCreation;
@@ -458,7 +359,9 @@
 
                 numeroReference = bon.NumeroReference;
                 demandeur = bon.NomDemandeur;
-                description = bon.MotifSortie;
+                entreprise = null;
+                raison = bon.MotifSortie;
+                description = raison;
                 provenance = bon.Provenance;
                 destination = bon.Destination;
                 dateCreation = bon.DateCreation;
@@ -489,26 +392,44 @@
         finally { isLoading = false; }
     }
 
-    private void SetActionMode(string? mode) { actionMode = mode; if (mode == null) commentaire = null; }
+    private async Task ClickReject()
+    {
+        if (string.IsNullOrWhiteSpace(commentaire))
+        {
+            showRejectError = true;
+            StateHasChanged();
+            return;
+        }
+        showRejectError = false;
+        await ConfirmReject();
+    }
+
+    private async Task ClickApprove()
+    {
+        showRejectError = false;
+        await ConfirmApprove();
+    }
 
     private async Task ConfirmApprove()
     {
         isProcessing = true;
         StateHasChanged();
+        var currentIndex = approbations.FindIndex(a => a.IsCurrent);
+        var isLastStep = currentIndex >= 0 && currentIndex == approbations.Count - 1;
         try
         {
             if (TypeBon == "BEM")
             {
                 var request = new ApprovalRequest { BonId = BonId, ReservesEventuelles = commentaire };
                 var result = await BonEntreeService.ApproveAsync(request);
-                if (result.Success) { DialogService.Close(new DialogResult { Action = "approved", Success = true }); }
+                if (result.Success) { DialogService.Close(new DialogResult { Action = isLastStep ? "approved_final" : "approved", Success = true }); }
                 else { NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur inconnue"); isProcessing = false; }
             }
             else
             {
                 var request = new BonSortieApprovalRequest { IdBon = BonId, Commentaire = commentaire };
                 var result = await BonSortieService.ApproveAsync(request);
-                if (result.Success) { DialogService.Close(new DialogResult { Action = "approved", Success = true }); }
+                if (result.Success) { DialogService.Close(new DialogResult { Action = isLastStep ? "approved_final" : "approved", Success = true }); }
                 else { NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur inconnue"); isProcessing = false; }
             }
         }
@@ -542,30 +463,28 @@
 
     private void Close() => DialogService.Close(null);
 
+    private BadgeStyle GetBadgeStyle()
+    {
+        var upper = statutCode?.ToUpperInvariant() ?? "";
+        if (upper.StartsWith("PENDING")) return BadgeStyle.Warning;
+        if (upper == "APPROVED") return BadgeStyle.Success;
+        if (upper == "REJECTED") return BadgeStyle.Danger;
+        if (upper == "DRAFT") return BadgeStyle.Light;
+        return BadgeStyle.Warning;
+    }
+
     private string GetStatutLibelle(string code) => code?.ToUpperInvariant() switch
     {
-        "DRAFT" => "Brouillon",
-        "PENDINGSUP" or "PENDING_SUP" or "PENDINGSUPERVISEUR" => "Att. Superviseur",
-        "PENDINGGM" or "PENDING_GM" => "Att. GM",
-        "PENDINGIT" or "PENDING_IT" => "Att. IT",
-        "PENDINGENV" or "PENDING_ENV" => "Att. Environnement",
-        "PENDINGOPJ" or "PENDING_OPJ" => "Att. OPJ",
-        "PENDINGIDENTIFICATION" or "PENDING_ID" => "Att. Identification",
-        "APPROVED" => "Approuvé",
-        "REJECTED" => "Rejeté",
-        "CANCELLED" => "Annulé",
-        _ => code ?? "-"
+        "DRAFT"                                                                  => L["Status_Draft"].Value,
+        "PENDINGSUP" or "PENDING_SUP" or "PENDINGSUPERVISEUR"
+        or "PENDINGGM" or "PENDING_GM" or "PENDINGIT" or "PENDING_IT"
+        or "PENDINGENV" or "PENDING_ENV" or "PENDINGOPJ" or "PENDING_OPJ"
+        or "PENDINGIDENTIFICATION" or "PENDING_ID"                               => L["Status_Pending"].Value,
+        "APPROVED"                                                               => L["Status_Approved"].Value,
+        "REJECTED"                                                               => L["Status_Rejected"].Value,
+        "CANCELLED"                                                              => L["Status_Cancelled"].Value,
+        _                                                                        => code ?? "-"
     };
-
-    private string GetStatutCssClass(string code)
-    {
-        var upper = code?.ToUpperInvariant() ?? "";
-        if (upper.StartsWith("PENDING")) return "kcc-land__badge--pending";
-        if (upper == "APPROVED") return "kcc-land__badge--approved";
-        if (upper == "REJECTED") return "kcc-land__badge--rejected";
-        if (upper == "DRAFT") return "kcc-land__badge--draft";
-        return "kcc-land__badge--pending";
-    }
 
     private static string GetInitials(string? name)
     {

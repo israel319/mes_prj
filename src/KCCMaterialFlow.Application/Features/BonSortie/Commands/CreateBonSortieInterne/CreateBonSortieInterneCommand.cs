@@ -17,7 +17,7 @@ public sealed record CreateBonSortieInterneCommand(
     string Provenance,
     string Destination,
     DateTime DateExpiration,
-    TypeMateriel TypeMateriel,
+    string? DescriptionMateriel,
     int? BonEntreeAssocieId = null,
     string? RaisonSortieCode = null,
     string? Description = null,
@@ -54,7 +54,7 @@ internal sealed class CreateBonSortieInterneCommandHandler(
         var result = BonSortieInterne.Create(
             request.NomDemandeur, request.FonctionDemandeur, request.DepartementDemandeur,
             currentUser.GetUserLogin(), request.MotifSortie, request.Provenance, request.Destination,
-            request.DateExpiration, request.TypeMateriel,
+            request.DateExpiration, request.DescriptionMateriel,
             request.BonEntreeAssocieId, request.RaisonSortieCode, request.Description,
             request.DepartementOrigine, request.FonctionReceveur, request.EmailReceveur,
             request.LocalisationDestination, request.DateTransfertPrevue);

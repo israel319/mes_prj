@@ -1,24 +1,25 @@
 @* Dialog pour enregistrer le retour d'un prêt *@
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1rem">
     <RadzenText TextStyle="TextStyle.Body2">
-        Enregistrez les informations de retour du prêt.
+        @L["Rtl_Desc"]
     </RadzenText>
     
     <div>
-        <RadzenLabel Text="État du Matériel au Retour" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenLabel Text="@L["Rtl_StateLabel"].Value" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
         <RadzenDropDown @bind-Value="@etatRetour" Data="@etats" Style="width:100%;" />
     </div>
     
     <div>
-        <RadzenLabel Text="Commentaire" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
-        <RadzenTextArea @bind-Value="@commentaire" Rows="2" Placeholder="Observations..." Style="width:100%;" />
+        <RadzenLabel Text="@L["Dlg_CommentLabel"].Value" Style="font-size: 0.75rem; font-weight: 600; color: #888;" />
+        <RadzenTextArea @bind-Value="@commentaire" Rows="2" Placeholder="@L["Rtl_ObsPlaceholder"].Value" Style="width:100%;" />
     </div>
     
     <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
-        <RadzenButton Text="Annuler" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
-        <RadzenButton Text="Confirmer Retour" ButtonStyle="ButtonStyle.Success" Icon="check" Click="@Confirm" />
+        <RadzenButton Text="@L["Btn_Cancel"].Value" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@L["Rtl_Confirm"].Value" ButtonStyle="ButtonStyle.Success" Icon="check" Click="@Confirm" />
     </RadzenStack>
 </RadzenStack>
 

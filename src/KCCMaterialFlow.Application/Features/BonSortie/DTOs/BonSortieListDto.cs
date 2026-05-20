@@ -22,9 +22,8 @@ public class BonSortieListDto
     // Compagnie/Destinataire
     public string NomDestinataire { get; set; } = string.Empty;
 
-    // Type de matériel
-    public TypeMateriel TypeMateriel { get; set; }
-    public string TypeMaterielLibelle => TypeMateriel.ToString();
+    // Type de matériel (libre)
+    public string? DescriptionMateriel { get; set; }
 
     // Compteur matériels
     public int NombreMateriels { get; set; }

@@ -21,6 +21,10 @@ public sealed class Materiel : BaseEntity
 
     public decimal QuantiteDisponible { get; set; } = 1;
 
+    /// <summary>Code département Glencore propriétaire du matériel (utilisé pour filtrer le dropdown matériel).</summary>
+    [MaxLength(50)]
+    public string? DepartementCode { get; set; }
+
     private Materiel() { }
 
     public Materiel(string codeProduitSerial, string designation, decimal quantite)

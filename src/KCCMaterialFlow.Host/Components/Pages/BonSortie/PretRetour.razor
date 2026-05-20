@@ -7,32 +7,33 @@
 @inject NavigationManager Navigation
 @inject NotificationService Notification
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Retour de Prêt - KCC Material Flow</PageTitle>
+<PageTitle>@L["PRet_PageTitle"]</PageTitle>
 
 @if (isLoading)
 {
     <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 60vh;">
         <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Medium" />
-        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Chargement...</RadzenText>
+        <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">@L["BsmV_Loading"]</RadzenText>
     </RadzenStack>
 }
 else if (pret == null)
 {
     <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem" Style="min-height: 40vh;">
         <RadzenAlert AlertStyle="AlertStyle.Danger" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small">
-            Prêt non trouvé ou inaccessible.
+            @L["PRet_NotFound"]
         </RadzenAlert>
-        <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="GoBack" />
+        <RadzenButton Text="@L["Btn_Back"].Value" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="GoBack" />
     </RadzenStack>
 }
 else if (pret.EstRetourne)
 {
     <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="1rem" Style="min-height: 40vh;">
         <RadzenAlert AlertStyle="AlertStyle.Info" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small">
-            Ce prêt a déjà été retourné le @pret.DateRetourEffective?.ToString("dd/MM/yyyy").
+            @L["PRet_AlreadyReturned"] @pret.DateRetourEffective?.ToString("dd/MM/yyyy").
         </RadzenAlert>
-        <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="GoBack" />
+        <RadzenButton Text="@L["Btn_Back"].Value" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="GoBack" />
     </RadzenStack>
 }
 else
@@ -52,10 +53,10 @@ else
                 </RadzenColumn>
                 <RadzenColumn Size="4" Style="text-align: center;">
                     <RadzenText TextStyle="TextStyle.H6" Style="font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin: 0;">
-                        Confirmation de Retour
+                        @L["PRet_Title"]
                     </RadzenText>
                     <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">
-                        LOAN RETURN CONFIRMATION
+                        @L["PRet_Subtitle"]
                     </RadzenText>
                 </RadzenColumn>
                 <RadzenColumn Size="4" Style="text-align: right;">
@@ -69,29 +70,29 @@ else
 
         @* ===== INFORMATIONS DU PRÊT ===== *@
         <RadzenCard>
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Informations du Prêt</RadzenText>
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">@L["PRet_LoanInfo"]</RadzenText>
                 <RadzenRow Gap="1rem">
                     <RadzenColumn Size="6">
                         <RadzenStack Gap="0.15rem">
-                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Demandeur</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">@L["BsmF_Requester"]</RadzenText>
                             <RadzenText TextStyle="TextStyle.Body2">@pret.NomDemandeur</RadzenText>
                         </RadzenStack>
                     </RadzenColumn>
                     <RadzenColumn Size="6">
                         <RadzenStack Gap="0.15rem">
-                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Département</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">@L["BsmF_DeptLabel"]</RadzenText>
                             <RadzenText TextStyle="TextStyle.Body2">@pret.DepartementDemandeur</RadzenText>
                         </RadzenStack>
                     </RadzenColumn>
                     <RadzenColumn Size="6">
                         <RadzenStack Gap="0.15rem">
-                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Date de Sortie</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">@L["PRet_ExitDate"]</RadzenText>
                             <RadzenText TextStyle="TextStyle.Body2">@pret.DateCreation.ToString("dd/MM/yyyy")</RadzenText>
                         </RadzenStack>
                     </RadzenColumn>
                     <RadzenColumn Size="6">
                         <RadzenStack Gap="0.15rem">
-                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Date de Retour Prévue</RadzenText>
+                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">@L["BsmF_ReturnDateLabel"]</RadzenText>
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
                                 <RadzenText TextStyle="TextStyle.Body2" Style="@(pret.EstEnRetard ? "font-weight: 700; color: #dc2626;" : "")">
                                     @pret.DateRetourPrevue.ToString("dd/MM/yyyy")
@@ -108,39 +109,39 @@ else
 
         @* ===== MATÉRIELS À RETOURNER ===== *@
         <RadzenCard>
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Matériels à Retourner</RadzenText>
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">@L["PRet_Materials"]</RadzenText>
             <RadzenDataGrid TItem="MaterielSortie" Data="@pret.Materiels" Density="Density.Compact" Style="border: none;">
                 <Columns>
-                    <RadzenDataGridColumn TItem="MaterielSortie" Property="Designation" Title="DÉSIGNATION" />
-                    <RadzenDataGridColumn TItem="MaterielSortie" Property="Quantite" Title="QTÉ" Width="100px" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="MaterielSortie" Property="Designation" Title="@L["BsmV_ColDesc"]" />
+                    <RadzenDataGridColumn TItem="MaterielSortie" Property="Quantite" Title="@L["BsmV_ColQty"]" Width="100px" TextAlign="TextAlign.Center" />
                 </Columns>
             </RadzenDataGrid>
         </RadzenCard>
 
         @* ===== ENREGISTREMENT DU RETOUR ===== *@
         <RadzenCard>
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Enregistrement du Retour</RadzenText>
+            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">@L["PRet_RecordReturn"]</RadzenText>
                 <RadzenRow Gap="1rem" Style="margin-bottom: 1rem;">
                     <RadzenColumn Size="6">
-                        <RadzenFormField Text="Date de Retour Effective *" Style="width: 100%;">
+                        <RadzenFormField Text="@L["PRet_EffectiveDate"].Value" Style="width: 100%;">
                             <RadzenDatePicker @bind-Value="@dateRetourEffective" DateFormat="dd/MM/yyyy" Style="width: 100%;" Max="@DateTime.Today" Density="Density.Compact" />
                         </RadzenFormField>
                     </RadzenColumn>
                     <RadzenColumn Size="6">
-                        <RadzenFormField Text="Réceptionné par" Style="width: 100%;">
-                            <RadzenTextBox @bind-Value="@receptionnePar" Placeholder="Nom de l'agent" Style="width: 100%;" Density="Density.Compact" />
+                        <RadzenFormField Text="@L["PRet_ReceivedBy"].Value" Style="width: 100%;">
+                            <RadzenTextBox @bind-Value="@receptionnePar" Placeholder="@L["PRet_AgentPlaceholder"].Value" Style="width: 100%;" Density="Density.Compact" />
                         </RadzenFormField>
                     </RadzenColumn>
                 </RadzenRow>
 
                 <RadzenStack Gap="0.5rem" Style="margin-bottom: 1rem;">
-                    <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">État Général du Matériel *</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">@L["PRet_MaterialState"]</RadzenText>
                     <RadzenRadioButtonList @bind-Value="@etatRetour" TValue="string" Orientation="Orientation.Horizontal">
                         <Items>
-                            <RadzenRadioButtonListItem Text="Bon état" Value="@("Bon")" />
-                            <RadzenRadioButtonListItem Text="Usé" Value="@("Usé")" />
-                            <RadzenRadioButtonListItem Text="Endommagé" Value="@("Endommagé")" />
-                            <RadzenRadioButtonListItem Text="Incomplet" Value="@("Incomplet")" />
+                            <RadzenRadioButtonListItem Text="@L["PRet_StateGood"].Value" Value="@("Bon")" />
+                            <RadzenRadioButtonListItem Text="@L["PRet_StateWorn"].Value" Value="@("Usé")" />
+                            <RadzenRadioButtonListItem Text="@L["PRet_StateDamaged"].Value" Value="@("Endomagé")" />
+                            <RadzenRadioButtonListItem Text="@L["PRet_StateIncomplete"].Value" Value="@("Incomplet")" />
                         </Items>
                     </RadzenRadioButtonList>
                 </RadzenStack>
@@ -148,20 +149,20 @@ else
                 @if (etatRetour is "Endommagé" or "Incomplet")
                 {
                     <RadzenAlert AlertStyle="AlertStyle.Warning" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small" Style="margin-bottom: 1rem;">
-                        Veuillez détailler les dommages ou éléments manquants.
+                        @L["PRet_DamageAlert"]
                     </RadzenAlert>
                 }
 
-                <RadzenFormField Text="Observations" Style="width: 100%;">
-                    <RadzenTextArea @bind-Value="@observations" Rows="3" Placeholder="Décrivez l'état du matériel..." Style="width: 100%;" />
+                <RadzenFormField Text="@L["PRet_Observations"].Value" Style="width: 100%;">
+                    <RadzenTextArea @bind-Value="@observations" Rows="3" Placeholder="@L["PRet_ObsPlaceholder"].Value" Style="width: 100%;" />
                 </RadzenFormField>
         </RadzenCard>
 
         @* ===== ACTIONS ===== *@
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-            <RadzenButton Text="Annuler" Icon="cancel" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
+            <RadzenButton Text="@L["Btn_Cancel"].Value" Icon="cancel" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
                           Size="ButtonSize.Small" Click="GoBack" />
-            <RadzenButton Text="Confirmer le Retour" Icon="check" ButtonStyle="ButtonStyle.Success"
+            <RadzenButton Text="@L["PRet_Confirm"].Value" Icon="check" ButtonStyle="ButtonStyle.Success"
                           Size="ButtonSize.Small" Click="@ConfirmerRetour" Disabled="@isSaving" IsBusy="@isSaving" />
         </RadzenStack>
     </RadzenStack>
@@ -205,13 +206,13 @@ else
     {
         if (!dateRetourEffective.HasValue || string.IsNullOrWhiteSpace(etatRetour))
         {
-            Notification.Notify(NotificationSeverity.Warning, "Validation", "Remplissez les champs obligatoires");
+            Notification.Notify(NotificationSeverity.Warning, L["Msg_Error"].Value, L["Msg_FillRequired"].Value);
             return;
         }
 
-        if ((etatRetour is "Endommagé" or "Incomplet") && string.IsNullOrWhiteSpace(observations))
+        if ((etatRetour is "Endomagé" or "Incomplet") && string.IsNullOrWhiteSpace(observations))
         {
-            Notification.Notify(NotificationSeverity.Warning, "Validation", "Décrivez les dommages/manquants");
+            Notification.Notify(NotificationSeverity.Warning, L["Msg_Error"].Value, L["PRet_DescDamage"].Value);
             return;
         }
 
@@ -229,17 +230,17 @@ else
 
             if (result.Success)
             {
-                Notification.Notify(NotificationSeverity.Success, "Succès", "Retour enregistré");
+                Notification.Notify(NotificationSeverity.Success, L["Msg_Success"].Value, L["Msg_Saved"].Value);
                 Navigation.NavigateTo("/bon-sortie/prets");
             }
             else
             {
-                Notification.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur");
+                Notification.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, result.Message ?? L["Msg_Error"].Value);
             }
         }
         catch (Exception ex)
         {
-            Notification.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            Notification.Notify(NotificationSeverity.Error, L["Msg_Error"].Value, ex.Message);
         }
         finally
         {

@@ -34,10 +34,6 @@ public class RaisonSortieConfiguration : IEntityTypeConfiguration<RaisonSortie>
         builder.Property(r => r.TypeApprobateurSpecial)
             .HasMaxLength(50);
 
-        builder.Property(r => r.TypeMaterielDefaut)
-            .HasColumnName("TypeMaterielDefaut")
-            .HasConversion<int?>();
-
         builder.Property(r => r.Icone)
             .HasMaxLength(50);
 

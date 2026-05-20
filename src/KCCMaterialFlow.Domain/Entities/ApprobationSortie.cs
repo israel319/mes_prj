@@ -15,6 +15,16 @@ public sealed class ApprobationSortie : BaseEntity
     [MaxLength(100)]
     public string? NomEtape { get; set; }
 
+    /// <summary>Code stable de l'étape (REPORTSTO|GM|IT|ENV|OPJ|IDENTIFICATION).</summary>
+    [MaxLength(30)]
+    public string? CodeEtape { get; set; }
+
+    /// <summary>FK vers T_Employees.Id de l'approbateur désigné par la chaîne.</summary>
+    public int? ApprobateurId { get; set; }
+
+    [MaxLength(50)]
+    public string? ApprobateurMatricule { get; set; }
+
     [MaxLength(50)]
     public string Decision { get; set; } = "En attente";
 
@@ -39,6 +49,23 @@ public sealed class ApprobationSortie : BaseEntity
         BonId = bonId;
         OrdreEtape = ordreEtape;
         NomEtape = nomEtape;
+    }
+
+    /// <summary>
+    /// Constructeur chaîne v2 : pré-renseigne l'approbateur désigné (Glencore/Workflow).
+    /// </summary>
+    public ApprobationSortie(int bonId, int ordreEtape, string codeEtape, string nomEtape,
+        int approbateurId, string? approbateurMatricule, string? approbateurLogin, string nomApprobateur)
+    {
+        BonId = bonId;
+        OrdreEtape = ordreEtape;
+        CodeEtape = codeEtape;
+        NomEtape = nomEtape;
+        ApprobateurId = approbateurId;
+        ApprobateurMatricule = approbateurMatricule;
+        ApprobateurLogin = approbateurLogin;
+        NomApprobateur = nomApprobateur;
+        RoleApprobateur = nomEtape;
     }
 
     public void Approuver(string approbateurLogin, string nomApprobateur, string roleApprobateur, string? commentaire = null)

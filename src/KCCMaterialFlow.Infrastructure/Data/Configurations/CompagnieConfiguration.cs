@@ -23,16 +23,12 @@ public class CompagnieConfiguration : IEntityTypeConfiguration<Compagnie>
             .HasMaxLength(200);
 
         builder.Property(c => c.Code)
-            .HasMaxLength(20);
-
-        builder.Property(c => c.Email)
-            .HasMaxLength(200);
+            .HasMaxLength(100);
 
         builder.Property(c => c.Telephone)
             .HasMaxLength(50);
 
-        builder.Property(c => c.SiteManager)
-            .HasMaxLength(200);
+        builder.HasIndex(c => c.Code).IsUnique(false);
 
         builder.HasMany(c => c.Contrats)
             .WithOne(ct => ct.Compagnie)

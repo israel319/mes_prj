@@ -14,7 +14,8 @@ public class BonSortieExterne : BonSortie
 {
     public int? BonEntreeAssocieId { get; private set; }
 
-    public TypeMateriel TypeMateriel { get; private set; } = TypeMateriel.Autre;
+    [MaxLength(200)]
+    public string? DescriptionMateriel { get; private set; }
 
     [MaxLength(200)]
     public string NomDestinataire { get; private set; } = string.Empty;
@@ -36,7 +37,7 @@ public class BonSortieExterne : BonSortie
     public static Result<BonSortieExterne> Create(
         string nomDemandeur, string fonctionDemandeur, string departementDemandeur,
         string createdByLogin, string motifSortie, string provenance, string destination,
-        DateTime dateExpiration, string nomDestinataire, TypeMateriel typeMateriel,
+        DateTime dateExpiration, string nomDestinataire, string? descriptionMateriel = null,
         int? bonEntreeAssocieId = null, string? raisonSortieCode = null,
         string? description = null, string? adresseDestination = null,
         string? numeroVehicule = null, string? nomChauffeur = null,
@@ -49,7 +50,7 @@ public class BonSortieExterne : BonSortie
 
         var bon = new BonSortieExterne();
 
-        bon.InitialiserExterne(nomDestinataire, typeMateriel, bonEntreeAssocieId,
+        bon.InitialiserExterne(nomDestinataire, descriptionMateriel, bonEntreeAssocieId,
             adresseDestination, numeroVehicule, nomChauffeur, telephoneChauffeur);
 
         bon.InitialiserBase(nomDemandeur, fonctionDemandeur, departementDemandeur,
@@ -70,13 +71,13 @@ public class BonSortieExterne : BonSortie
     /// Utilisé par le factory Create et par les sous-classes (Pret).
     /// </summary>
     protected void InitialiserExterne(
-        string nomDestinataire, TypeMateriel typeMateriel,
+        string nomDestinataire, string? descriptionMateriel,
         int? bonEntreeAssocieId = null, string? adresseDestination = null,
         string? numeroVehicule = null, string? nomChauffeur = null,
         string? telephoneChauffeur = null)
     {
         NomDestinataire = nomDestinataire;
-        TypeMateriel = typeMateriel;
+        DescriptionMateriel = descriptionMateriel;
         BonEntreeAssocieId = bonEntreeAssocieId;
         AdresseDestination = adresseDestination;
         NumeroVehicule = numeroVehicule;

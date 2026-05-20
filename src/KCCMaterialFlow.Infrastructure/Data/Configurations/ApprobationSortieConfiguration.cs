@@ -38,6 +38,17 @@ public class ApprobationSortieConfiguration : IEntityTypeConfiguration<Approbati
             .HasMaxLength(100)
             .IsRequired();
 
+        builder.Property(a => a.CodeEtape)
+            .HasColumnName("CodeEtape")
+            .HasMaxLength(30);
+
+        builder.Property(a => a.ApprobateurId)
+            .HasColumnName("ApprobateurId");
+
+        builder.Property(a => a.ApprobateurMatricule)
+            .HasColumnName("ApprobateurMatricule")
+            .HasMaxLength(50);
+
         builder.Property(a => a.Decision)
             .HasColumnName("Decision")
             .HasMaxLength(50)
@@ -69,5 +80,9 @@ public class ApprobationSortieConfiguration : IEntityTypeConfiguration<Approbati
         // Index RoleCode + Decision : clé de la requête "bons en attente pour mon rôle"
         builder.HasIndex(a => new { a.RoleApprobateur, a.Decision })
             .HasDatabaseName("IX_ApprobationsSortie_RoleCode_Decision");
+
+        // Index clé v2 : "bons en attente pour cet approbateur"
+        builder.HasIndex(a => new { a.ApprobateurId, a.Decision })
+            .HasDatabaseName("IX_ApprobationsSortie_Approbateur_Decision");
     }
 }

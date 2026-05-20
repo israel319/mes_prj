@@ -1,427 +1,650 @@
 @page "/admin/utilisateurs"
-@attribute [Authorize(Roles = "Admin")]
-@using Microsoft.AspNetCore.Authorization
-@inject IUtilisateurService UtilisateurService
-@inject IRoleService RoleService
-@inject IAuditLogService AuditLogService
-@inject ICurrentUserService CurrentUserService
-@inject KCCMaterialFlow.Host.Services.UserRoleCacheService RoleCacheService
-@inject DialogService DialogService
-@inject NotificationService NotificationService
-@inject NavigationManager Navigation
-@inject IJSRuntime JSRuntime
+@attribute [Authorize(Policy = "AdminOrAbove")]
+@implements IDisposable
+@using KCCMaterialFlow.Domain.Entities
+@using KCCMaterialFlow.Domain.Enums
+@using KCCMaterialFlow.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<KCCMaterialFlowDbContext> DbFactory
+@inject ICurrentUserService CurrentUser
+@inject KCCMaterialFlow.Host.Services.UserRoleCacheService RoleCache
+@inject KCCMaterialFlow.Host.Services.UserRoleChangeTracker RoleChangeTracker
+@inject NotificationService Notif
+@inject IJSRuntime JS
+@inject IParametreSystemeService ParametreService
+@inject DialogService DialogSvc
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Administration - Utilisateurs</PageTitle>
+<PageTitle>@L["Usr_Title"] — @L["Nav_Admin"]</PageTitle>
 
-<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
-    <AdminNav />
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["Usr_Title"] (@totalAvecCompte)</h1>
+            </div>
+            <div class="kcp-hero-actions">
+                @if (IsRealAdmin)
+                {
+                    <button class="kcp-btn kcp-btn-primary" type="button" @onclick="OuvrirNouvelUtilisateurAsync">
+                        <RadzenIcon Icon="person_add" Style="font-size:1rem;" />
+                        @L["Usr_BtnNew"]
+                    </button>
+                }
+                <button class="kcp-btn" type="button" @onclick="LoadAsync">
+                    <RadzenIcon Icon="refresh" Style="font-size:1rem;" />
+                </button>
+            </div>
+        </div>
+    </div>
+    <main class="kcp-main">
 
-    @* ─── En-tête ─── *@
-    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
-        <RadzenStack Gap="0.25rem">
-            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
-                Gestion des Utilisateurs
-            </RadzenText>
-            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light); margin-top: 0.25rem;">
-                @filteredUtilisateurs.Count utilisateur(s) sur @utilisateurs.Count
-            </RadzenText>
-        </RadzenStack>
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
-            <RadzenButton Icon="refresh" Text="Actualiser" Variant="Variant.Outlined"
-                          ButtonStyle="ButtonStyle.Secondary" Click="@LoadDataAsync" />
-            <RadzenButton Text="Nouvel utilisateur" Icon="person_add" ButtonStyle="ButtonStyle.Primary"
-                          Click="@ShowCreateDialog" />
-        </RadzenStack>
-    </RadzenStack>
-
-    @* ─── Filtres ─── *@
-    <RadzenCard>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Wrap="FlexWrap.Wrap" Gap="1rem" Style="padding: 0.5rem 0;">
-            <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Rechercher</RadzenText>
-                <RadzenTextBox @bind-Value="@searchTerm" Placeholder="Nom, login, email..."
-                               Style="min-width: 250px;" @oninput="@OnSearchChanged" />
-            </RadzenStack>
-            <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Département</RadzenText>
-                <RadzenDropDown TValue="string" Data="@departements" @bind-Value="@filterDepartement"
-                                AllowClear="true" Placeholder="Tous" Style="min-width: 160px;"
-                                Change="@(args => ApplyFilters())" />
-            </RadzenStack>
-            <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Rôle</RadzenText>
-                <RadzenDropDown TValue="int?" Data="@roles" @bind-Value="@filterRoleId"
-                                TextProperty="NomRole" ValueProperty="Id"
-                                AllowClear="true" Placeholder="Tous" Style="min-width: 160px;"
-                                Change="@(args => ApplyFilters())" />
-            </RadzenStack>
-            <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Statut</RadzenText>
-                <RadzenDropDown TValue="bool?" Data="@statutOptions" @bind-Value="@filterActif"
-                                TextProperty="Text" ValueProperty="Value"
-                                AllowClear="true" Placeholder="Tous" Style="min-width: 120px;"
-                                Change="@(args => ApplyFilters())" />
-            </RadzenStack>
-            <RadzenButton Icon="clear" Text="Effacer" Click="@ResetFilters"
-                          ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" class="kcc-btn-clear" />
+    @* === BARRE DE FILTRE === *@
+    <RadzenCard Style="padding: 0.75rem 1.25rem; margin-bottom: 1rem;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.75rem">
+            <RadzenIcon Icon="filter_list" Style="color: var(--kcc-primary); font-size: 1.1rem; flex-shrink: 0;" />
+            <RadzenTextBox Value="@searchText" @oninput="OnSearchInput" Placeholder="@L["Usr_SearchPh"].Value"
+                           Style="flex: 1; min-width: 220px; border-radius: 0.5rem;" />
+            <RadzenDropDown @bind-Value="filterDepartement" Data="@departementOptions" AllowFiltering="true" AllowClear="true"
+                           Placeholder="@L["Usr_FilterAllDepts"].Value" Style="min-width: 190px;"
+                           Change="@OnDeptFilterChanged" />
+            <RadzenDropDown @bind-Value="filterNiveau" Data="@niveauOptions" TextProperty="Text" ValueProperty="Value"
+                           Placeholder="@L["Usr_FilterPh"].Value" Style="min-width: 150px;"
+                           Change="@OnNiveauFilterChanged" />
         </RadzenStack>
     </RadzenCard>
 
-    @* ─── Tableau ─── *@
-    <RadzenCard>
-        <RadzenDataGrid @ref="grid" Data="@filteredUtilisateurs" TItem="Utilisateur"
-                        AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="15"
-                        PagerHorizontalAlign="HorizontalAlign.Center"
-                        AllowColumnResize="true"
-                        Density="Density.Compact"
-                        EmptyText="Aucun utilisateur trouvé">
-            <Columns>
-                <RadzenDataGridColumn TItem="Utilisateur" Property="NomComplet" Title="Utilisateur" Width="250px">
-                    <Template Context="user">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div style="width: 28px; height: 28px; background: #253C45;
-                                        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-                                        color: #fff; font-size: 11px; font-weight: 600;">
-                                @GetUserInitials(user.NomComplet)
-                            </div>
-                            <div>
-                                <div style="font-weight: 600; font-size: 0.8rem; color: #1a1a1a;">@user.NomComplet</div>
-                                <div style="font-size: 0.72rem; color: #666;">@user.Login</div>
-                            </div>
-                        </div>
-                    </Template>
-                </RadzenDataGridColumn>
-
-                <RadzenDataGridColumn TItem="Utilisateur" Property="Email" Title="Email">
-                    <Template Context="user">
-                        @if (!string.IsNullOrEmpty(user.Email))
-                        {
-                            <span>@user.Email</span>
-                        }
-                        else
-                        {
-                            <span style="color: #999;">—</span>
-                        }
-                    </Template>
-                </RadzenDataGridColumn>
-
-                <RadzenDataGridColumn TItem="Utilisateur" Property="Departement" Title="Département" Width="160px">
-                    <Template Context="user">
-                        @if (!string.IsNullOrEmpty(user.Departement))
-                        {
-                            <span>@user.Departement</span>
-                        }
-                        else
-                        {
-                            <span style="color: #999;">—</span>
-                        }
-                    </Template>
-                </RadzenDataGridColumn>
-
-                <RadzenDataGridColumn TItem="Utilisateur" Property="IdRole" Title="Rôle" Width="200px">
-                    <Template Context="user">
-                        @{ var roleName = GetRoleName(user); }
-                        <span style="font-size: 0.75rem; font-weight: 500; color: @(roleName == "—" ? "#999" : GetRoleColor(roleName));">
-                            @roleName
-                        </span>
-                    </Template>
-                </RadzenDataGridColumn>
-
-                <RadzenDataGridColumn TItem="Utilisateur" Property="EstActif" Title="Statut" Width="90px" TextAlign="TextAlign.Center">
-                    <Template Context="user">
-                        @if (user.EstActif)
-                        {
-                            <span style="font-size: 0.75rem; font-weight: 600; color: #059669;">Actif</span>
-                        }
-                        else
-                        {
-                            <span style="font-size: 0.75rem; font-weight: 600; color: #dc2626;">Inactif</span>
-                        }
-                    </Template>
-                </RadzenDataGridColumn>
-
-                <RadzenDataGridColumn TItem="Utilisateur" Title="Actions" Width="160px" TextAlign="TextAlign.Center" Sortable="false">
-                    <Template Context="user">
-                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.15rem" JustifyContent="JustifyContent.Center">
-                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
-                                          Click="@(() => ShowEditDialog(user))" title="Modifier" />
-                            <RadzenButton Icon="shield" ButtonStyle="ButtonStyle.Info" Variant="Variant.Text" Size="ButtonSize.Small"
-                                          Click="@(() => ShowRolesDialog(user))" title="Gérer les rôles" />
-                            @if (user.EstActif)
+    <div style="overflow-x: auto;">
+    <RadzenCard Style="padding: 0; overflow: hidden; border-radius: 0.75rem;">
+    <RadzenDataGrid Data="@rows" TItem="EmployeeAdminRow" AllowPaging="true" PageSize="@pageSize" AllowSorting="true"
+                    PageSizeOptions="@pageSizeOptions" ShowPagingSummary="true"
+                    AllowFiltering="false" EmptyText="@(loading ? L["Usr_Loading"].Value : L["Usr_Empty"].Value)">
+        <Columns>
+            <RadzenDataGridColumn TItem="EmployeeAdminRow" Property="EmployeeCode" Title="@L["Imp_ColMatricule"].Value" Width="110px" />
+            <RadzenDataGridColumn TItem="EmployeeAdminRow" Property="DisplayName" Title="@L["Imp_ColName"].Value" />
+            <RadzenDataGridColumn TItem="EmployeeAdminRow" Property="Departement" Title="@L["Imp_ColDept"].Value" Width="200px" />
+            <RadzenDataGridColumn TItem="EmployeeAdminRow" Property="ReportsToDisplay" Title="@L["Usr_ColManager"].Value" Width="220px">
+                <Template Context="row">
+                    @(row.ReportsToDisplay ?? row.ReportToText ?? "—")
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EmployeeAdminRow" Property="UserName" Title="@L["Imp_ColLogin"].Value" Width="200px" />
+            <RadzenDataGridColumn TItem="EmployeeAdminRow" Title="@L["Col_Status"].Value" Width="100px" TextAlign="TextAlign.Center" Sortable="false">
+                <Template Context="row">
+                    @if (!string.IsNullOrEmpty(row.UserName))
+                    {
+                        <RadzenBadge Text="@L["Sta_BadgeActif"].Value" BadgeStyle="BadgeStyle.Success" />
+                    }
+                    else
+                    {
+                        <RadzenBadge Text="@L["Sta_BadgeInactif"].Value" BadgeStyle="BadgeStyle.Secondary" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EmployeeAdminRow" Title="@L["Usr_ColAdminLevel"].Value" Width="190px" Sortable="false">
+                <Template Context="row">
+                    @if (CanEditNiveau(row))
+                    {
+                        <RadzenDropDown TValue="NiveauAdmin"
+                                        Value="@(row.NiveauAdmin ?? NiveauAdmin.Aucun)"
+                                        Data="@AllowedNiveauValues(row)"
+                                        Change="@(args => OnNiveauChanged(row, (NiveauAdmin)args!))"
+                                        Style="width: 100%;" />
+                    }
+                    else if (row.NiveauAdmin == NiveauAdmin.SuperAdmin)
+                    {
+                        <RadzenBadge Text="SuperAdmin" BadgeStyle="BadgeStyle.Danger" />
+                    }
+                    else if (row.NiveauAdmin == NiveauAdmin.Admin)
+                    {
+                        <RadzenBadge Text="Admin" BadgeStyle="BadgeStyle.Warning" />
+                    }
+                    else if (approverCodes.Contains(row.EmployeeCode))
+                    {
+                        <RadzenBadge Text="@L["Rol_BadgeApprover"].Value" Style="background-color: #00B193; color: #fff;" />
+                    }
+                    else
+                    {
+                        <RadzenBadge Text="@L["Rol_BadgeNone"].Value" BadgeStyle="BadgeStyle.Light" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EmployeeAdminRow" Title="@L["Col_Actions"].Value" Width="180px" Sortable="false">
+                <Template Context="row">
+                    @if (IsRealAdmin && row.EmployeeId != null
+                          && !string.Equals(row.EmployeeCode ?? row.Login, CurrentRealMatricule, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.3rem">
+                            @if (row.EstActif == true)
                             {
-                                <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
-                                              Click="@(() => ToggleUserStatus(user))" title="Désactiver" />
+                                <RadzenButton Text="@L["Tt_Disable"].Value" Icon="block" Size="ButtonSize.Small"
+                                              ButtonStyle="ButtonStyle.Danger" Variant="Variant.Outlined"
+                                              Click="@(() => ToggleAccesAsync(row, false))"
+                                              title="@L["Usr_TitleRevoke"].Value" />
                             }
                             else
                             {
-                                <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
-                                              Click="@(() => ToggleUserStatus(user))" title="Activer" />
+                                <RadzenButton Text="@L["Tt_Enable"].Value" Icon="check_circle" Size="ButtonSize.Small"
+                                              ButtonStyle="ButtonStyle.Success" Variant="Variant.Outlined"
+                                              Click="@(() => ToggleAccesAsync(row, true))"
+                                              title="@L["Usr_TitleGrant"].Value" />
                             }
-                            <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
-                                          Click="@(() => DeleteUser(user))" title="Supprimer" />
+                            @if (row.IsStandalone && IsRealSuperAdmin)
+                            {
+                                <RadzenButton Icon="delete" Size="ButtonSize.Small"
+                                              ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text"
+                                              Click="@(() => SupprimerAsync(row))"
+                                              title="@L["Usr_TitleDelete"].Value" />
+                            }
                         </RadzenStack>
-                    </Template>
-                </RadzenDataGridColumn>
-            </Columns>
-        </RadzenDataGrid>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
     </RadzenCard>
-</RadzenStack>
+    </div>
+    </main>
+</div>
 
 @code {
-    private RadzenDataGrid<Utilisateur>? grid;
-    private List<Utilisateur> utilisateurs = [];
-    private List<Utilisateur> filteredUtilisateurs = [];
-    private List<Role> roles = [];
-    private List<string> departements = [];
-
-    private string searchTerm = string.Empty;
+    private List<EmployeeAdminRow> rows = new();
+    private HashSet<string> approverCodes = new(StringComparer.OrdinalIgnoreCase);
+    private string searchText = "";
+    private string? filterNiveau = "AvecCompte";
     private string? filterDepartement;
-    private int? filterRoleId;
-    private bool? filterActif;
+    private List<string> departementOptions = new();
+    private int totalAvecCompte;
+    private bool loading = true;
+    private System.Threading.CancellationTokenSource? _searchCts;
+    private bool _disposed;
+    private string? CurrentRealMatricule;
+    private bool IsRealSuperAdmin;
+    private bool IsRealAdmin;
+    private int pageSize = 25;
+    private IEnumerable<int> pageSizeOptions = new[] { 10, 25, 50, 100, 200 };
 
-    private readonly List<object> statutOptions =
-    [
-        new { Text = "Actif", Value = true },
-        new { Text = "Inactif", Value = false }
-    ];
+    private record FilterOption(string Text, string? Value);
+    private readonly List<FilterOption> niveauOptions = new()
+    {
+        new("Avec compte Windows", "AvecCompte"),
+        new("Tous", null),
+        new("Aucun", "Aucun"),
+        new("Admin", "Admin"),
+        new("SuperAdmin", "SuperAdmin"),
+        new("Approbateurs", "Approbateur"),
+        new("Sans compte Windows", "SansCompte")
+    };
+
+    private NiveauAdmin[] AllowedNiveauValues(EmployeeAdminRow row)
+    {
+        if (IsRealSuperAdmin)
+            return new[] { NiveauAdmin.Aucun, NiveauAdmin.Admin, NiveauAdmin.SuperAdmin };
+        return new[] { NiveauAdmin.Aucun, NiveauAdmin.Admin };
+    }
+
+    private bool CanEditNiveau(EmployeeAdminRow row)
+    {
+        if (!IsRealAdmin) return false;
+        if (!string.IsNullOrEmpty(row.EmployeeCode)
+            && string.Equals(row.EmployeeCode, CurrentRealMatricule, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (!IsRealSuperAdmin && row.NiveauAdmin == NiveauAdmin.SuperAdmin)
+            return false;
+        return true;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDataAsync();
-    }
+        var info = CurrentUser.GetCurrentUser();
+        CurrentRealMatricule = info?.Matricule;
+        IsRealSuperAdmin = info?.NiveauAdmin == NiveauAdmin.SuperAdmin;
+        IsRealAdmin = info?.NiveauAdmin is NiveauAdmin.Admin or NiveauAdmin.SuperAdmin;
 
-    private async Task LoadDataAsync()
-    {
         try
         {
-            var allUsers = await UtilisateurService.GetAllAsync();
-            utilisateurs = allUsers.ToList();
-
-            roles = (await RoleService.GetAllAsync()).ToList();
-
-            departements = utilisateurs
-                .Where(u => !string.IsNullOrEmpty(u.Departement))
-                .Select(u => u.Departement!)
-                .Distinct()
-                .OrderBy(d => d)
-                .ToList();
-
-            ApplyFilters();
+            var v = await ParametreService.GetIntValueAsync("UI_ITEMS_PAR_PAGE", 25);
+            if (v > 0) pageSize = v;
         }
-        catch (Exception ex)
-        {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Erreur lors du chargement: {ex.Message}");
-        }
+        catch { /* fallback 25 */ }
+
+        await LoadAsync();
     }
 
-    private void ApplyFilters()
+    private async Task LoadAsync()
     {
-        var query = utilisateurs.AsEnumerable();
-
-        if (!string.IsNullOrWhiteSpace(searchTerm))
+        loading = true;
+        try
         {
-            var term = searchTerm.ToUpperInvariant();
-            query = query.Where(u =>
-                u.Login.ToUpperInvariant().Contains(term) ||
-                u.NomComplet.ToUpperInvariant().Contains(term) ||
-                (u.Email?.ToUpperInvariant().Contains(term) ?? false) ||
-                (u.Fonction?.ToUpperInvariant().Contains(term) ?? false));
-        }
+            await using var ctx = await DbFactory.CreateDbContextAsync();
 
-        if (!string.IsNullOrWhiteSpace(filterDepartement))
-            query = query.Where(u => u.Departement == filterDepartement);
+            // ---- Glencore query (filtres DB) ----
+            var glQuery = ctx.AllEmployees.AsNoTracking().AsQueryable();
 
-        if (filterRoleId.HasValue)
-            query = query.Where(u => u.IdRole == filterRoleId.Value);
+            // Filtre département
+            if (!string.IsNullOrWhiteSpace(filterDepartement))
+                glQuery = glQuery.Where(g => g.Departement == filterDepartement);
 
-        if (filterActif.HasValue)
-            query = query.Where(u => u.EstActif == filterActif.Value);
+            // Filtre niveau via le filtre "AvecCompte" / "SansCompte"
+            if (filterNiveau == "AvecCompte")
+                glQuery = glQuery.Where(g => g.UserName != null && g.UserName != "");
+            else if (filterNiveau == "SansCompte")
+                glQuery = glQuery.Where(g => g.UserName == null || g.UserName == "");
 
-        filteredUtilisateurs = query.ToList();
-    }
-
-    private void OnSearchChanged(ChangeEventArgs args)
-    {
-        searchTerm = args.Value?.ToString() ?? string.Empty;
-        ApplyFilters();
-    }
-
-    private void ResetFilters()
-    {
-        searchTerm = string.Empty;
-        filterDepartement = null;
-        filterRoleId = null;
-        filterActif = null;
-        ApplyFilters();
-    }
-
-    private async Task ShowCreateDialog()
-    {
-        var result = await DialogService.OpenAsync<UtilisateurEditDialog>("Nouvel utilisateur",
-            new Dictionary<string, object>(),
-            new DialogOptions { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
-
-        if (result is Utilisateur newUser)
-        {
-            await LoadDataAsync();
-            NotificationService.Notify(NotificationSeverity.Success, "Succès",
-                $"Utilisateur '{newUser.NomComplet}' créé. Les activités sont automatiquement liées aux rôles.");
-        }
-        else if (result == true)
-        {
-            await LoadDataAsync();
-        }
-    }
-
-    private async Task ShowEditDialog(Utilisateur user)
-    {
-        var result = await DialogService.OpenAsync<UtilisateurEditDialog>("Modifier l'utilisateur",
-            new Dictionary<string, object> { { "Utilisateur", user } },
-            new DialogOptions { Width = "600px", Height = "auto", Resizable = true, Draggable = true });
-
-        if (result == true)
-        {
-            await LoadDataAsync();
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Utilisateur modifié avec succès");
-        }
-    }
-
-    private async Task ShowRolesDialog(Utilisateur user)
-    {
-        var result = await DialogService.OpenAsync<UtilisateurRolesDialog>("Gérer les rôles",
-            new Dictionary<string, object> { { "Utilisateur", user } },
-            new DialogOptions { Width = "540px", Height = "auto", Resizable = false, Draggable = true, ShowTitle = false, CssClass = "kcc-dialog-clean" });
-
-        if (result is string modifiedLogin)
-        {
-            // Si on a changé ses propres rôles, forcer un rechargement HTTP complet
-            // vers l'accueil (on n'a peut-être plus accès à la page admin)
-            var currentLogin = CurrentUserService.GetUserLogin();
-            if (modifiedLogin.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)
-                || (currentLogin.Contains('\\') && modifiedLogin.Equals(currentLogin.Split('\\').Last(), StringComparison.OrdinalIgnoreCase)))
+            // Filtre texte (matricule, nom, login)
+            if (!string.IsNullOrWhiteSpace(searchText))
             {
-                // Forcer un VRAI rechargement HTTP (pas la navigation améliorée Blazor)
-                await JSRuntime.InvokeVoidAsync("forceReload", "/");
-                return;
+                var s = searchText.Trim().ToLower();
+                glQuery = glQuery.Where(g =>
+                    (g.EmployeeCode != null && g.EmployeeCode.ToLower().Contains(s)) ||
+                    (g.FirstName    != null && g.FirstName.ToLower().Contains(s))    ||
+                    (g.LastName     != null && g.LastName.ToLower().Contains(s))     ||
+                    (g.UserName     != null && g.UserName.ToLower().Contains(s))     ||
+                    (g.Mail         != null && g.Mail.ToLower().Contains(s)));
             }
 
-            // Forcer le rechargement depuis la BD (le cache a été invalidé dans le dialog)
-            await LoadDataAsync();
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Rôle mis à jour avec succès");
+            glQuery = glQuery.OrderBy(g => g.LastName).ThenBy(g => g.FirstName);
+
+            // Compteur "avec compte" (indépendant des filtres texte/dept)
+            totalAvecCompte = await ctx.AllEmployees.CountAsync(g => g.UserName != null && g.UserName != "");
+
+            var glencore = await glQuery.Take(200).ToListAsync();
+
+            var codes = glencore.Select(g => g.EmployeeCode).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
+            var employees = codes.Any()
+                ? await ctx.Employees.AsNoTracking()
+                    .Where(e => e.Matricule != null && codes.Contains(e.Matricule))
+                    .ToDictionaryAsync(e => e.Matricule!, e => e, StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, Employee>(StringComparer.OrdinalIgnoreCase);
+
+            // AppUsers indexés par EmployeeId pour rcup NiveauAdmin / EstActif / Login
+            var empIds = employees.Values.Select(e => e.Id).ToList();
+            var appUsers = empIds.Any()
+                ? await ctx.AppUsers.AsNoTracking()
+                    .Where(u => u.EmployeeId != null && empIds.Contains(u.EmployeeId!.Value))
+                    .ToListAsync()
+                : new List<AppUser>();
+            var appUserByEmpId = appUsers
+                .GroupBy(u => u.EmployeeId!.Value)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            // Approbateurs = codes référencés comme ReportsTo
+            approverCodes = new HashSet<string>(
+                glencore.Where(g => !string.IsNullOrWhiteSpace(g.ReportsToEmployeeCode))
+                        .Select(g => g.ReportsToEmployeeCode!)
+                        .Distinct(),
+                StringComparer.OrdinalIgnoreCase);
+
+            rows = glencore.Select(g =>
+            {
+                employees.TryGetValue(g.EmployeeCode, out var emp);
+                AppUser? appUser = null;
+                if (emp != null) appUserByEmpId.TryGetValue(emp.Id, out appUser);
+                var display = $"{g.FirstName} {g.LastName}".Trim();
+                if (string.IsNullOrWhiteSpace(display)) display = g.EmployeeCode;
+                return new EmployeeAdminRow
+                {
+                    EmployeeCode    = g.EmployeeCode,
+                    DisplayName     = display,
+                    Departement     = g.Departement,
+                    ReportsToDisplay = g.ManagerHodEmployeeDisplay,
+                    UserName        = g.UserName,
+                    Email           = g.Mail,
+                    FirstName       = g.FirstName,
+                    LastName        = g.LastName,
+                    EmployeeId      = emp?.Id,
+                    Login           = appUser?.Login,
+                    NiveauAdmin     = appUser?.NiveauAdmin,
+                    EstActif        = appUser?.EstActif
+                };
+            }).ToList();
+
+            // ---- Utilisateurs standalone (non liés au RH) ----
+            // On les inclut uniquement si le filtre Niveau n'exclut pas les "AvecCompte"
+            if (filterNiveau != "SansCompte")
+            {
+                var glCodes = new HashSet<string>(codes, StringComparer.OrdinalIgnoreCase);
+                var saQuery = ctx.Employees.AsNoTracking()
+                    .Where(e => e.Matricule == null || !glCodes.Contains(e.Matricule));
+
+                if (!string.IsNullOrWhiteSpace(searchText))
+                {
+                    var s = searchText.Trim().ToLower();
+                    // Logins matching searchText (T_Users)
+                    var matchingEmpIds = await ctx.AppUsers.AsNoTracking()
+                        .Where(u => u.EmployeeId != null && u.Login.ToLower().Contains(s))
+                        .Select(u => u.EmployeeId!.Value)
+                        .ToListAsync();
+                    saQuery = saQuery.Where(e =>
+                        (e.Matricule    != null && e.Matricule.ToLower().Contains(s))  ||
+                        (e.NomComplet   != null && e.NomComplet.ToLower().Contains(s)) ||
+                        (e.Email        != null && e.Email.ToLower().Contains(s))      ||
+                        matchingEmpIds.Contains(e.Id));
+                }
+                if (!string.IsNullOrWhiteSpace(filterDepartement))
+                    saQuery = saQuery.Where(e => e.DepartementNom == filterDepartement);
+
+                var standalone = await saQuery.Take(100).ToListAsync();
+                var standaloneIds = standalone.Select(e => e.Id).ToList();
+                var standaloneAppUsers = standaloneIds.Any()
+                    ? await ctx.AppUsers.AsNoTracking()
+                        .Where(u => u.EmployeeId != null && standaloneIds.Contains(u.EmployeeId!.Value))
+                        .ToListAsync()
+                    : new List<AppUser>();
+                var standaloneAuByEmp = standaloneAppUsers
+                    .GroupBy(u => u.EmployeeId!.Value)
+                    .ToDictionary(g => g.Key, g => g.First());
+
+                foreach (var emp in standalone)
+                {
+                    standaloneAuByEmp.TryGetValue(emp.Id, out var au);
+                    var display = emp.DisplayName ?? emp.NomComplet ?? au?.Login ?? "—";
+                    rows.Add(new EmployeeAdminRow
+                    {
+                        EmployeeCode    = emp.Matricule ?? "",
+                        DisplayName     = display,
+                        Departement     = emp.DepartementNom,
+                        ReportToText    = emp.ReportToText,
+                        UserName        = au?.Login,
+                        Email           = emp.Email,
+                        FirstName       = emp.Prenom,
+                        LastName        = emp.Nom,
+                        Login           = au?.Login,
+                        EmployeeId      = emp.Id,
+                        NiveauAdmin     = au?.NiveauAdmin,
+                        EstActif        = au?.EstActif,
+                        IsStandalone    = true
+                    });
+                }
+            }
+
+            // Filtres niveau Admin/SuperAdmin/Approbateur (post-join car ces données sont côté Employee)
+            if (filterNiveau == "Admin")
+                rows = rows.Where(r => r.NiveauAdmin == NiveauAdmin.Admin).ToList();
+            else if (filterNiveau == "SuperAdmin")
+                rows = rows.Where(r => r.NiveauAdmin == NiveauAdmin.SuperAdmin).ToList();
+            else if (filterNiveau == "Approbateur")
+                rows = rows.Where(r => approverCodes.Contains(r.EmployeeCode)).ToList();
+
+            // Mise à jour de la liste des départements (lazy : seulement si vide)
+            if (!departementOptions.Any())
+            {
+                departementOptions = await ctx.AllEmployees.AsNoTracking()
+                    .Where(g => g.Departement != null)
+                    .Select(g => g.Departement!)
+                    .Distinct()
+                    .OrderBy(d => d)
+                    .ToListAsync();
+            }
+        }
+        finally
+        {
+            loading = false;
         }
     }
 
-    private async Task ToggleUserStatus(Utilisateur user)
+    private async Task OnSearchInput(ChangeEventArgs e)
     {
-        var action = user.EstActif ? "désactiver" : "activer";
-        var confirmed = await DialogService.Confirm(
-            $"Voulez-vous vraiment {action} l'utilisateur {user.NomComplet} ?",
-            $"Confirmer {action}",
-            new ConfirmOptions { OkButtonText = "Oui", CancelButtonText = "Non" });
-
-        if (confirmed == true)
+        searchText = e.Value?.ToString() ?? "";
+        _searchCts?.Cancel();
+        _searchCts = new System.Threading.CancellationTokenSource();
+        var token = _searchCts.Token;
+        try
         {
-            try
+            await Task.Delay(350, token);
+            if (!token.IsCancellationRequested && !_disposed)
+                await LoadAsync();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task OnDeptFilterChanged(object? value)
+    {
+        filterDepartement = value as string;
+        await LoadAsync();
+    }
+
+    private async Task OnNiveauFilterChanged(object? value)
+    {
+        filterNiveau = value as string;
+        await LoadAsync();
+    }
+
+    private async Task OnNiveauChanged(EmployeeAdminRow row, NiveauAdmin newValue)
+    {
+        if (!IsRealSuperAdmin && (newValue == NiveauAdmin.SuperAdmin || row.NiveauAdmin == NiveauAdmin.SuperAdmin))
+        {
+            Notif.Notify(NotificationSeverity.Warning, "Action refusée",
+                "Seul un SuperAdmin peut gérer le niveau SuperAdmin.");
+            return;
+        }
+        if (!string.IsNullOrEmpty(row.EmployeeCode)
+            && string.Equals(row.EmployeeCode, CurrentRealMatricule, StringComparison.OrdinalIgnoreCase))
+        {
+            Notif.Notify(NotificationSeverity.Warning, "Action refusée",
+                "Vous ne pouvez pas modifier votre propre niveau.");
+            return;
+        }
+
+        var previous = row.NiveauAdmin;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // 1) Charger / créer l'Employee local depuis le référentiel Glencore
+            Employee? dbEmp = null;
+            if (row.EmployeeId.HasValue)
             {
-                user.EstActif = !user.EstActif;
-                user.DateModification = DateTime.Now;
-                await UtilisateurService.UpsertAsync(user);
+                dbEmp = await ctx.Employees.FirstOrDefaultAsync(e => e.Id == row.EmployeeId.Value);
+            }
+            if (dbEmp == null && !string.IsNullOrWhiteSpace(row.EmployeeCode))
+            {
+                dbEmp = await ctx.Employees.FirstOrDefaultAsync(e => e.Matricule == row.EmployeeCode);
+            }
 
-                // Invalider le cache centralisé pour effet immédiat
-                RoleCacheService.InvalidateUser(user.Login);
-
-                await AuditLogService.LogAsync(
-                    CurrentUserService.GetUserLogin(),
-                    CurrentUserService.GetUserDisplayName(),
-                    user.EstActif ? "Activate" : "Deactivate",
-                    "Utilisateur",
-                    $"Utilisateur {user.NomComplet} {(user.EstActif ? "activé" : "désactivé")}",
-                    user.Id.ToString(),
-                    "Utilisateur");
-
-                // Si on vient de se désactiver soi-même, forcer un rechargement HTTP complet
-                var currentLogin = CurrentUserService.GetUserLogin();
-                if (user.Login.Equals(currentLogin, StringComparison.OrdinalIgnoreCase)
-                    || (currentLogin.Contains('\\') && user.Login.Equals(currentLogin.Split('\\').Last(), StringComparison.OrdinalIgnoreCase)))
+            if (dbEmp == null)
+            {
+                // Provisionner depuis Glencore
+                var glencore = await ctx.AllEmployees.AsNoTracking()
+                    .FirstOrDefaultAsync(g => g.EmployeeCode == row.EmployeeCode);
+                if (glencore == null)
                 {
-                    await JSRuntime.InvokeVoidAsync("forceReload", "/");
+                    Notif.Notify(NotificationSeverity.Error, "Erreur",
+                        $"Employé introuvable pour le code {row.EmployeeCode}.");
                     return;
                 }
 
-                await LoadDataAsync();
-                NotificationService.Notify(NotificationSeverity.Success, "Succès", $"Utilisateur {(user.EstActif ? "activé" : "désactivé")}");
+                var displayName = $"{glencore.FirstName} {glencore.LastName}".Trim();
+                if (string.IsNullOrWhiteSpace(displayName)) displayName = glencore.EmployeeCode;
+
+                dbEmp = new Employee
+                {
+                    Matricule = glencore.EmployeeCode,
+                    NomComplet = displayName,
+                    DisplayName = displayName,
+                    Prenom = glencore.FirstName,
+                    Nom = glencore.LastName,
+                    Email = glencore.Mail,
+                    DepartementNom = glencore.Departement,
+                    EstInterne = true,
+                    DateCreation = DateTime.Now
+                };
+                ctx.Employees.Add(dbEmp);
+                await ctx.SaveChangesAsync();
+                row.EmployeeId = dbEmp.Id;
             }
-            catch (Exception ex)
+
+            // 2) Mettre à jour le niveau admin via AppUser (upsert)
+            var appUser = await ctx.AppUsers.FirstOrDefaultAsync(u => u.EmployeeId == dbEmp.Id);
+            if (appUser == null)
             {
-                NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+                var loginValue = !string.IsNullOrWhiteSpace(row.Login) ? row.Login
+                                : !string.IsNullOrWhiteSpace(row.UserName) ? row.UserName
+                                : dbEmp.Matricule ?? row.EmployeeCode;
+                appUser = new AppUser
+                {
+                    Login = loginValue!,
+                    EmployeeId = dbEmp.Id,
+                    NiveauAdmin = newValue,
+                    EstActif = true,
+                    DateCreation = DateTime.Now
+                };
+                ctx.AppUsers.Add(appUser);
+                row.EstActif = true;
             }
+            else
+            {
+                appUser.NiveauAdmin = newValue;
+            }
+            await ctx.SaveChangesAsync();
+
+            row.NiveauAdmin = newValue;
+            if (!string.IsNullOrWhiteSpace(row.EmployeeCode))
+            {
+                RoleCache.InvalidateUser(row.EmployeeCode);
+                RoleChangeTracker.MarkChanged(row.EmployeeCode);
+            }
+            if (!string.IsNullOrWhiteSpace(row.Login) && row.Login != row.EmployeeCode)
+            {
+                RoleCache.InvalidateUser(row.Login);
+                RoleChangeTracker.MarkChanged(KCCMaterialFlow.Host.Services.UserRoleCacheService.ExtractMatricule(row.Login));
+            }
+
+            Notif.Notify(NotificationSeverity.Success, "Niveau admin mis à jour",
+                $"{row.DisplayName} → {newValue}");
         }
-    }
-
-    private async Task DeleteUser(Utilisateur user)
-    {
-        var confirmed = await DialogService.Confirm(
-            $"Voulez-vous vraiment supprimer définitivement l'utilisateur {user.NomComplet} ?\n\nCette action est irréversible. Toutes les données associées (rôles, activités) seront supprimées.",
-            "Supprimer l'utilisateur",
-            new ConfirmOptions { OkButtonText = "Supprimer", CancelButtonText = "Annuler" });
-
-        if (confirmed == true)
+        catch (Exception ex)
         {
-            try
-            {
-                await UtilisateurService.DeleteAsync(user.Id);
-
-                // Invalider le cache centralisé
-                RoleCacheService.InvalidateUser(user.Login);
-
-                await AuditLogService.LogAsync(
-                    CurrentUserService.GetUserLogin(),
-                    CurrentUserService.GetUserDisplayName(),
-                    "Delete",
-                    "Utilisateur",
-                    $"Utilisateur {user.NomComplet} ({user.Login}) supprimé définitivement",
-                    user.Id.ToString(),
-                    "Utilisateur");
-
-                await LoadDataAsync();
-                NotificationService.Notify(NotificationSeverity.Success, "Succès", $"Utilisateur '{user.NomComplet}' supprimé");
-            }
-            catch (Exception ex)
-            {
-                NotificationService.Notify(NotificationSeverity.Error, "Erreur", $"Impossible de supprimer: {ex.Message}");
-            }
+            row.NiveauAdmin = previous;
+            Notif.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
         }
     }
 
-    private static string GetRoleName(Utilisateur user)
+    private async Task ToggleAccesAsync(EmployeeAdminRow row, bool activer)
     {
-        // Source de vérité unique : FK IdRole → RolePrincipal
-        if (user.RolePrincipal != null && !string.IsNullOrEmpty(user.RolePrincipal.NomRole))
-            return user.RolePrincipal.NomRole;
+        var previous = row.EstActif;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            if (row.EmployeeId is null) return;
+            var appUser = await ctx.AppUsers.FirstOrDefaultAsync(u => u.EmployeeId == row.EmployeeId.Value);
+            if (appUser == null)
+            {
+                Notif.Notify(NotificationSeverity.Warning, "Action impossible",
+                    "Aucun compte applicatif (AppUser) pour cet employ. Affectez-lui d'abord un niveau d'accs.");
+                return;
+            }
 
-        return "—";
+            appUser.EstActif = activer;
+            await ctx.SaveChangesAsync();
+            row.EstActif = activer;
+
+            if (!string.IsNullOrWhiteSpace(row.EmployeeCode))
+            {
+                RoleCache.InvalidateUser(row.EmployeeCode);
+                RoleChangeTracker.MarkChanged(row.EmployeeCode);
+            }
+            if (!string.IsNullOrWhiteSpace(row.Login) && row.Login != row.EmployeeCode)
+            {
+                RoleCache.InvalidateUser(row.Login);
+                RoleChangeTracker.MarkChanged(KCCMaterialFlow.Host.Services.UserRoleCacheService.ExtractMatricule(row.Login));
+            }
+
+            Notif.Notify(NotificationSeverity.Success,
+                activer ? "Accès activé" : "Accès désactivé",
+                $"{row.DisplayName} — accès {(activer ? "accordé" : "retiré")}.");
+        }
+        catch (Exception ex)
+        {
+            row.EstActif = previous;
+            Notif.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+        }
     }
 
-    private static string GetRoleColor(string roleName) => roleName switch
+    private async Task SupprimerAsync(EmployeeAdminRow row)
     {
-        "Administrateur" or "Admin" => "#dc2626",
-        "General Manager" or "GM" => "#7c3aed",
-        "Superviseur" => "#2563eb",
-        "Departement IT" or "IT" => "#0891b2",
-        "Departement Environnement" or "Environnement" => "#059669",
-        "Officier de Police Judiciaire" or "OPJ" => "#d97706",
-        "Equipe Identification" or "Identification" => "#0d9488",
-        "Investigation" => "#9333ea",
-        "Demandeur" => "#6b7280",
-        _ => "#374151"
-    };
+        if (row.EmployeeId is null) return;
 
-    private static string GetUserInitials(string name)
+        var confirm = await DialogSvc.Confirm(
+            $"Supprimer définitivement l'utilisateur <strong>{row.DisplayName}</strong> ({row.Login}) ?",
+            "Confirmer la suppression",
+            new ConfirmOptions { OkButtonText = "Supprimer", CancelButtonText = "Annuler" });
+        if (confirm != true) return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Vérifier dépendances bloquantes
+            var isApprobateurSpecial = await ctx.WorkflowApprobateursSpeciaux
+                .AnyAsync(x => x.EmployeeId == row.EmployeeId.Value);
+            if (isApprobateurSpecial)
+            {
+                Notif.Notify(NotificationSeverity.Warning, "Suppression impossible",
+                    $"{row.DisplayName} est configuré comme approbateur spécial. Retirez-le d'abord dans la page Workflow.");
+                return;
+            }
+
+            var emp = await ctx.Employees.FirstOrDefaultAsync(e => e.Id == row.EmployeeId.Value);
+            if (emp == null) return;
+
+            // Nullifier les références self-FK avant suppression
+            await ctx.Employees
+                .Where(e => e.ReportToEmployeeId == row.EmployeeId.Value)
+                .ExecuteUpdateAsync(s => s.SetProperty(e => e.ReportToEmployeeId, (int?)null));
+
+            ctx.Employees.Remove(emp);
+            await ctx.SaveChangesAsync();
+
+            rows.Remove(row);
+            RoleCache.InvalidateUser(row.Login ?? row.EmployeeCode);
+            Notif.Notify(NotificationSeverity.Success, "Utilisateur supprimé", $"{row.DisplayName} a été supprimé.");
+        }
+        catch (Exception ex)
+        {
+            Notif.Notify(NotificationSeverity.Error, "Erreur lors de la suppression", ex.Message);
+        }
+    }
+
+    private async Task OuvrirNouvelUtilisateurAsync()
     {
-        if (string.IsNullOrWhiteSpace(name)) return "?";
-        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length >= 2)
-            return $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[^1][0])}";
-        return parts[0][..Math.Min(2, parts[0].Length)].ToUpper();
+        var result = await DialogSvc.OpenAsync<KCCMaterialFlow.Host.Components.Dialogs.NouvelUtilisateurDialog>(
+            "Nouvel utilisateur",
+            new Dictionary<string, object>
+            {
+                { "IsSuperAdmin", IsRealSuperAdmin }
+            },
+            new DialogOptions { Width = "520px", CloseDialogOnOverlayClick = false });
+
+        if (result is int)
+        {
+            Notif.Notify(NotificationSeverity.Success, "Utilisateur créé", "Le nouvel utilisateur a été créé.");
+            await LoadAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+    }
+
+    private sealed class EmployeeAdminRow
+    {
+        public string EmployeeCode { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string? Departement { get; set; }
+        public string? ReportsToDisplay { get; set; }
+        public string? ReportToText { get; set; }
+        public string? UserName { get; set; }
+        public string? Email { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Login { get; set; }
+        public int? EmployeeId { get; set; }
+        public NiveauAdmin? NiveauAdmin { get; set; }
+        public bool? EstActif { get; set; }
+        public bool IsStandalone { get; set; }
     }
 }

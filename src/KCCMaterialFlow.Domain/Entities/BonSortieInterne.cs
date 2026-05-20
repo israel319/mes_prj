@@ -14,7 +14,8 @@ public sealed class BonSortieInterne : BonSortie
 {
     public int? BonEntreeAssocieId { get; private set; }
 
-    public TypeMateriel TypeMateriel { get; private set; } = TypeMateriel.Autre;
+    [MaxLength(200)]
+    public string? DescriptionMateriel { get; private set; }
 
     [MaxLength(100)]
     public string? DepartementOrigine { get; private set; }
@@ -36,7 +37,7 @@ public sealed class BonSortieInterne : BonSortie
     public static Result<BonSortieInterne> Create(
         string nomDemandeur, string fonctionDemandeur, string departementDemandeur,
         string createdByLogin, string motifSortie, string provenance, string destination,
-        DateTime dateExpiration, TypeMateriel typeMateriel,
+        DateTime dateExpiration, string? descriptionMateriel = null,
         int? bonEntreeAssocieId = null, string? raisonSortieCode = null,
         string? description = null, string? departementOrigine = null,
         string? fonctionReceveur = null, string? emailReceveur = null,
@@ -48,7 +49,7 @@ public sealed class BonSortieInterne : BonSortie
         var bon = new BonSortieInterne
         {
             BonEntreeAssocieId = bonEntreeAssocieId,
-            TypeMateriel = typeMateriel,
+            DescriptionMateriel = descriptionMateriel,
             DepartementOrigine = departementOrigine,
             FonctionReceveur = fonctionReceveur,
             EmailReceveur = emailReceveur,

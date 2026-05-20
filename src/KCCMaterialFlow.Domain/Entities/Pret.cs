@@ -30,7 +30,7 @@ public sealed class Pret : BonSortieExterne
     public static Result<Pret> Create(
         string nomDemandeur, string fonctionDemandeur, string departementDemandeur,
         string createdByLogin, string motifSortie, string provenance, string destination,
-        DateTime dateExpiration, string nomDestinataire, TypeMateriel typeMateriel,
+        DateTime dateExpiration, string nomDestinataire, string? descriptionMateriel,
         DateTime dateRetourPrevue,
         int? bonEntreeAssocieId = null, string? raisonSortieCode = null,
         string? description = null, string? adresseDestination = null)
@@ -48,7 +48,7 @@ public sealed class Pret : BonSortieExterne
             EstRetourne = false
         };
 
-        pret.InitialiserExterne(nomDestinataire, typeMateriel, bonEntreeAssocieId, adresseDestination);
+        pret.InitialiserExterne(nomDestinataire, descriptionMateriel, bonEntreeAssocieId, adresseDestination);
 
         pret.InitialiserBase(nomDemandeur, fonctionDemandeur, departementDemandeur,
             createdByLogin, motifSortie, provenance, destination, dateExpiration,

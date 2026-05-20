@@ -2,12 +2,13 @@
 @using Radzen
 @using Radzen.Blazor
 @typeparam TItem where TItem : class
+@inject IStringLocalizer<SharedResource> L
 
 @* DataGrid configurable avec tri et pagination *@
 
 @if (IsLoading)
 {
-    <LoadingSpinner Text="Chargement des données..." />
+    <LoadingSpinner Text="@L["Lbl_LoadingData"].Value" />
 }
 else if (Items == null || !Items.Any())
 {

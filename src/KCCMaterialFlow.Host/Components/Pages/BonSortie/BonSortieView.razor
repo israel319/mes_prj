@@ -5,309 +5,358 @@
 @inject IBonSortieService BonSortieService
 @inject ICurrentUserService CurrentUserService
 @inject INotificationRejetService NotificationRejetService
+@inject IWorkflowApprobateurSpecialService ApprobateurSpecialService
 @inject NavigationManager Navigation
 @inject NotificationService NotificationService
 @inject DialogService DialogService
 @inject IJSRuntime JSRuntime
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>@(bon?.NumeroReference ?? "Bon de Sortie") - KCC</PageTitle>
+<PageTitle>@(bon?.NumeroReference ?? L["BsmV_PageTitle"].Value) - KCC</PageTitle>
 
-<RadzenStack Gap="1rem" Style="max-width: 900px; margin: 0 auto; padding: 1.5rem 1rem;">
+<div class="kcp-page">
+
+    @* ===== ÉTATS DE CHARGEMENT / ERREUR (hors hero) ===== *@
     @if (isLoading)
     {
-        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 60vh;">
-            <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Medium" />
-            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin-top: 0.75rem;">Chargement du bon...</RadzenText>
-        </RadzenStack>
+        <div style="display:flex; justify-content:center; align-items:center; min-height:60vh;">
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem">
+                <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Medium" />
+                <RadzenText TextStyle="TextStyle.Body1">@L["BsmV_Loading"]</RadzenText>
+            </RadzenStack>
+        </div>
     }
     else if (accessDenied)
     {
-        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 60vh;">
-            <RadzenIcon Icon="lock" Style="font-size: 2.5rem; color: #dc2626;" />
-            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0.75rem 0 0.35rem;">Accès refusé</RadzenText>
-            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin-bottom: 1rem;">Vous n'êtes pas autorisé à consulter ce bon.</RadzenText>
-            <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@GoBack" />
-        </RadzenStack>
+        <div style="display:flex; justify-content:center; align-items:center; min-height:60vh;">
+            <RadzenStack AlignItems="AlignItems.Center" Gap="0.75rem">
+                <RadzenIcon Icon="lock" Style="font-size: 3rem; color: var(--rz-danger);" />
+                <RadzenText TextStyle="TextStyle.H6">@L["BemV_AccessDenied"]</RadzenText>
+                <RadzenText TextStyle="TextStyle.Body2">@L["BemV_AccessDeniedMsg"]</RadzenText>
+                <RadzenButton Text="@L["Btn_Back"].Value" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Click="@GoBack" />
+            </RadzenStack>
+        </div>
     }
     else if (bon == null)
     {
-        <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="min-height: 60vh;">
-            <RadzenIcon Icon="error_outline" Style="font-size: 2.5rem; color: #dc2626;" />
-            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0.75rem 0 0.35rem;">Bon non trouvé</RadzenText>
-            <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" Click="@GoBack" />
-        </RadzenStack>
+        <div style="display:flex; justify-content:center; align-items:center; min-height:60vh;">
+            <RadzenStack AlignItems="AlignItems.Center" Gap="0.75rem">
+                <RadzenIcon Icon="error_outline" Style="font-size: 3rem; color: var(--rz-danger);" />
+                <RadzenText TextStyle="TextStyle.H6">@L["BsmV_NotFound"]</RadzenText>
+                <RadzenButton Text="@L["Btn_Back"].Value" Icon="arrow_back" ButtonStyle="ButtonStyle.Primary" Click="@GoBack" />
+            </RadzenStack>
+        </div>
     }
     else
     {
-
-        @* ===== EN-TÊTE ===== *@
-        <RadzenCard Style="padding: 0.75rem 1rem; border-bottom: 2px solid var(--kcc-primary);">
-            <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                <RadzenColumn Size="3">
-                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                        <div style="width: 36px; height: 36px; border-radius: 6px; background: var(--kcc-primary); display: flex; align-items: center; justify-content: center;">
-                            <span style="color: #fff; font-weight: 700; font-size: 0.6rem; line-height: 1;">KCC</span>
-                        </div>
-                        <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600; margin: 0;">KCC Material Flow</RadzenText>
-                    </RadzenStack>
-                </RadzenColumn>
-                <RadzenColumn Size="6" Style="text-align: center;">
-                    <RadzenText TextStyle="TextStyle.H6" Style="font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin: 0;">
-                        Bon de Sortie de Matériel
-                    </RadzenText>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">
-                        PROPERTY REMOVAL PERMIT
-                    </RadzenText>
-                </RadzenColumn>
-                <RadzenColumn Size="3" Style="text-align: right;">
-                    <RadzenStack Gap="0.15rem" AlignItems="AlignItems.End">
-                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0;">
-                            <span style="color: var(--kcc-text-muted);">Expire date:</span> <strong>@bon.DateExpiration.ToString("dd/MM/yyyy")</strong>
-                        </RadzenText>
-                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0;">
-                            <span style="color: var(--kcc-text-muted);">No:</span> <strong style="color: var(--kcc-primary);">@bon.NumeroReference</strong>
-                        </RadzenText>
-                    </RadzenStack>
-                </RadzenColumn>
-            </RadzenRow>
-        </RadzenCard>
-
-        @* ===== BARRE DE STATUT ===== *@
-        <RadzenCard Style="padding: 0.5rem 0.75rem;">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                    <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" BadgeStyle="@GetStatusBadgeStyle()" />
-                    <RadzenBadge Text="@GetTypeLabel()" BadgeStyle="@GetTypeBadgeStyle()" />
-                </RadzenStack>
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">Créé le @bon.DateCreation.ToString("dd/MM/yyyy à HH:mm")</RadzenText>
-            </RadzenStack>
-        </RadzenCard>
-
-        @* ===== ALERTE RETOUR ===== *@
-        @if (!string.IsNullOrEmpty(dernierCommentaireRetour) && bon.StatutActuel == "Draft")
-        {
-            <RadzenAlert AlertStyle="AlertStyle.Warning" ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small">
-                <strong>Retourné pour modification:</strong> @dernierCommentaireRetour
-            </RadzenAlert>
-        }
-
-        @* ===== PRÊT INFO ===== *@
-        @if (bon is Pret pret)
-        {
-            <RadzenAlert AlertStyle="@(pret.EstRetourne ? AlertStyle.Success : pret.EstEnRetard ? AlertStyle.Danger : AlertStyle.Info)"
-                         ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small" Icon="schedule">
-                <strong>Prêt — Retour prévu:</strong> @pret.DateRetourPrevue.ToString("dd/MM/yyyy")
-                @if (pret.EstRetourne)
-                {
-                    <span> &#10003; Retourné le @pret.DateRetourEffective?.ToString("dd/MM/yyyy")</span>
-                }
-                else if (pret.EstEnRetard)
-                {
-                    <span> &#9888; En retard de @pret.JoursRetard jour(s)</span>
-                }
-            </RadzenAlert>
-        }
-
-        @* ===== ACTIONS (en haut) ===== *@
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center">
-            <RadzenButton Text="Retour" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat"
-                          Size="ButtonSize.Small" Click="@GoBack" />
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" Wrap="FlexWrap.Wrap">
-                @if (bon.StatutActuel == "Draft" && CanEdit)
-                {
-                    <RadzenButton Text="Modifier" Icon="edit" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Outlined"
-                                  Size="ButtonSize.Small" Click="@(() => Navigation.NavigateTo($"/bon-sortie/{Id}/modifier"))" />
-                }
-                @if (CanDelete)
-                {
-                    <RadzenButton Text="Supprimer" Icon="delete" ButtonStyle="ButtonStyle.Danger"
-                                  Size="ButtonSize.Small" Click="@ShowDeleteDialog" />
-                }
-                @if (CanSubmit)
-                {
-                    <RadzenButton Text="Soumettre" Icon="send" ButtonStyle="ButtonStyle.Primary"
-                                  Size="ButtonSize.Small" Click="@SubmitForApproval" />
-                }
-                @if (CanApprove)
-                {
-                    <RadzenButton Text="Approuver" Icon="check" ButtonStyle="ButtonStyle.Success"
-                                  Size="ButtonSize.Small" Click="@ShowApproveDialog" />
-                }
-                @if (CanReject)
-                {
-                    <RadzenButton Text="Rejeter" Icon="close" ButtonStyle="ButtonStyle.Danger"
-                                  Size="ButtonSize.Small" Click="@ShowRejectDialog" />
-                }
-                @if (bon is Pret pret2 && !pret2.EstRetourne && bon.StatutActuel == "Approved")
-                {
-                    <RadzenButton Text="Retour Prêt" Icon="assignment_return" ButtonStyle="ButtonStyle.Info" Variant="Variant.Outlined"
-                                  Size="ButtonSize.Small" Click="@ShowReturnDialog" />
-                }
-                @if (bon.StatutActuel == "Approved" && !string.IsNullOrEmpty(bon.QRCodeBase64) && CanPrint)
-                {
-                    <RadzenButton Text="Imprimer" Icon="print" ButtonStyle="ButtonStyle.Primary"
-                                  Size="ButtonSize.Small" Click="@(() => Navigation.NavigateTo($"/bon-sortie/{Id}/print"))" />
-                }
-                @if (CanDownloadPdf)
-                {
-                    <RadzenButton Text="Télécharger PDF" Icon="picture_as_pdf" ButtonStyle="ButtonStyle.Info" Variant="Variant.Outlined"
-                                  Size="ButtonSize.Small" Click="@DownloadPdf" />
-                }
-            </RadzenStack>
-        </RadzenStack>
-
-        @* ===== INFORMATIONS DU DEMANDEUR ===== *@
-        <RadzenCard>
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Informations du Demandeur</RadzenText>
-                <RadzenRow Gap="1.25rem">
-                    <RadzenColumn Size="4">
-                        <RadzenStack Gap="0.15rem">
-                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Name / Nom</RadzenText>
-                            <RadzenText TextStyle="TextStyle.Body2">@bon.NomDemandeur</RadzenText>
-                        </RadzenStack>
-                    </RadzenColumn>
-                    <RadzenColumn Size="4">
-                        <RadzenStack Gap="0.15rem">
-                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Function / Fonction</RadzenText>
-                            <RadzenText TextStyle="TextStyle.Body2">@(bon.FonctionDemandeur ?? "—")</RadzenText>
-                        </RadzenStack>
-                    </RadzenColumn>
-                    <RadzenColumn Size="4">
-                        <RadzenStack Gap="0.15rem">
-                            <RadzenText TextStyle="TextStyle.Overline" Style="color: var(--kcc-text-muted);">Department / Département</RadzenText>
-                            <RadzenText TextStyle="TextStyle.Body2">@(bon.DepartementDemandeur ?? "—")</RadzenText>
-                        </RadzenStack>
-                    </RadzenColumn>
-                </RadzenRow>
-        </RadzenCard>
-
-        @* ===== MATÉRIELS ===== *@
-        <RadzenCard>
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Matériels</RadzenText>
-            <RadzenDataGrid TItem="MaterielSortie" Data="@bon.Materiels" Density="Density.Compact" AllowPaging="false">
-                <Columns>
-                    <RadzenDataGridColumn TItem="MaterielSortie" Title="Code / N° Série" Width="120px">
-                        <Template Context="mat">
-                            <code>@(mat.CodeProduitSerial ?? "—")</code>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MaterielSortie" Property="Designation" Title="Désignation" />
-                    <RadzenDataGridColumn TItem="MaterielSortie" Title="Qté" Width="80px" TextAlign="TextAlign.Center">
-                        <Template Context="mat">
-                            <strong>@mat.Quantite.ToString("0.00")</strong>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MaterielSortie" Title="From" Width="150px">
-                        <Template Context="mat">@bon.Provenance</Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="MaterielSortie" Title="To" Width="150px">
-                        <Template Context="mat">@bon.Destination</Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Style="padding: 0.5rem 1rem; background: var(--kcc-bg-subtle); border-top: 1px solid var(--kcc-border);">
-                <RadzenText TextStyle="TextStyle.Body2"><strong>Total: </strong><span style="color: var(--kcc-primary); font-weight: 700;">@bon.Materiels.Sum(m => m.Quantite).ToString("0.00")</span></RadzenText>
-            </RadzenStack>
-        </RadzenCard>
-
-        @* ===== MOTIF ===== *@
-        <RadzenCard>
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Motif de Sortie</RadzenText>
-                <RadzenText TextStyle="TextStyle.Body2">@bon.MotifSortie</RadzenText>
-        </RadzenCard>
-
-        @* ===== BEM ASSOCIÉ ===== *@
-        @if (bon is BonSortieExterne ext && ext.BonEntreeAssocieId.HasValue)
-        {
-            <RadzenCard>
-                <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">BEM Associé</RadzenText>
-                    <a @onclick="@(() => Navigation.NavigateTo($"/bon-entree/{ext.BonEntreeAssocieId}"))"
-                       style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: var(--kcc-primary); font-weight: 500; cursor: pointer; text-decoration: none;">
-                        <RadzenIcon Icon="link" Style="font-size: 0.85rem;" />
-                        BEM-@ext.BonEntreeAssocieId
-                        <RadzenIcon Icon="open_in_new" Style="font-size: 0.75rem;" />
-                    </a>
-            </RadzenCard>
-        }
-
-        @* ===== WORKFLOW D'APPROBATION ===== *@
-        @if (bon.StatutActuel != "Draft")
-        {
-        <RadzenCard>
-            <RadzenText TextStyle="TextStyle.Subtitle2" Style="color: var(--kcc-primary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.75rem 0; padding-bottom: 0.4rem; border-bottom: 1px solid var(--kcc-border);">Workflow d'Approbation</RadzenText>
-                @{
-                    var appros = bon.Approbations.OrderBy(a => a.OrdreEtape).ToList();
-                    var bonRejete = bon.StatutActuel == "Rejected";
-                    var firstPending = bonRejete ? null : appros.FirstOrDefault(a => a.Decision == "En attente");
-                }
-                @if (appros.Any())
-                {
-                    <RadzenStack Gap="0.4rem">
-                        @foreach (var a in appros)
-                        {
-                            var isCurrent = firstPending != null && a.Id == firstPending.Id;
-                            var isApproved = a.Decision is "Approuvé" or "Approuve";
-                            var isRejected = a.Decision is "Rejeté" or "Rejete";
-                            var isReturned = a.Decision is "Retourné" or "Retourne";
-                            var bgColor = isApproved ? "#dcfce7" : (isRejected || isReturned) ? "#fee2e2" : isCurrent ? "#fef3c7" : "var(--kcc-bg-subtle)";
-                            var borderColor = isApproved ? "#86efac" : (isRejected || isReturned) ? "#fca5a5" : isCurrent ? "#fcd34d" : "var(--kcc-border)";
-                            var iconColor = isApproved ? "#16a34a" : (isRejected || isReturned) ? "#dc2626" : isCurrent ? "#d97706" : "#9ca3af";
-                            var icon = isApproved ? "check_circle" : isRejected ? "cancel" : isReturned ? "replay" : isCurrent ? "pending" : "radio_button_unchecked";
-
-                            <RadzenCard Variant="Variant.Flat" Style="@($"background: {bgColor}; border: 1px solid {borderColor}; padding: 0.5rem 0.75rem;")">
-                                <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                    <RadzenIcon Icon="@icon" Style="@($"color: {iconColor};")" />
-                                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
-                                        <strong>@a.NomEtape</strong>
-                                        @if (isApproved || isRejected || isReturned)
-                                        {
-                                            <span style="color: var(--kcc-text-muted); margin-left: 0.5rem; font-size: 0.85em;">@(a.NomApprobateur ?? "—") • @a.DateAction?.ToString("dd/MM HH:mm")</span>
-                                        }
-                                        else if (isCurrent)
-                                        {
-                                            <span style="color: #d97706; margin-left: 0.5rem; font-size: 0.85em;">En attente</span>
-                                        }
-                                    </RadzenText>
-                                </RadzenStack>
-                            </RadzenCard>
-                        }
-                    </RadzenStack>
-                }
-                else
-                {
-                    @* Bon pré-migration : approuvé/rejeté sans lignes d'approbation détaillées *@
-                    var legacyApproved = bon.StatutActuel is "Approved" or "Completed" or "ExitDone" or "Closed";
-                    var legacyRejected = bon.StatutActuel == "Rejected";
-                    var legacyBg = legacyApproved ? "#dcfce7" : legacyRejected ? "#fee2e2" : "#fef3c7";
-                    var legacyBorder = legacyApproved ? "#86efac" : legacyRejected ? "#fca5a5" : "#fcd34d";
-                    var legacyIconColor = legacyApproved ? "#16a34a" : legacyRejected ? "#dc2626" : "#d97706";
-                    var legacyIcon = legacyApproved ? "check_circle" : legacyRejected ? "cancel" : "pending";
-                    var legacyLabel = legacyApproved ? "Approuvé" : legacyRejected ? "Rejeté" : bon.StatutActuel;
-
-                    <RadzenCard Variant="Variant.Flat" Style="@($"background: {legacyBg}; border: 1px solid {legacyBorder}; padding: 0.5rem 0.75rem;")">
-                        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                            <RadzenIcon Icon="@legacyIcon" Style="@($"color: {legacyIconColor};")" />
-                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
-                                <strong>@legacyLabel</strong>
-                                <span style="color: var(--kcc-text-muted); margin-left: 0.5rem; font-size: 0.85em;">Workflow pré-migration</span>
-                            </RadzenText>
-                        </RadzenStack>
-                    </RadzenCard>
-                }
-
-                @if (bon.StatutActuel == "Rejected" && notificationRejet != null)
-                {
-                    <div style="margin-top: 0.75rem;">
-                        <RadzenButton Text="Voir détails du rejet" Icon="visibility" ButtonStyle="ButtonStyle.Danger"
-                                      Size="ButtonSize.Small" Click="@ShowRejetDetailsDialog" />
+        @* ===== HERO ===== *@
+        <div class="kcp-hero">
+            <div class="kcp-hero-inner">
+                <div>
+                    @* Badges de statut *@
+                    <div style="display:flex; gap:0.45rem; align-items:center; flex-wrap:wrap; margin-bottom:0.7rem;">
+                        <RadzenBadge Text="@GetStatutLabel(bon.StatutActuel)" BadgeStyle="@GetStatusBadgeStyle()" />
+                        <RadzenBadge Text="@GetTypeLabel()" BadgeStyle="@GetTypeBadgeStyle()" />
                     </div>
-                }
-        </RadzenCard>
-        }
+                    <h1 class="kcp-title">@bon.NomDemandeur</h1>
+                    <p class="kcp-subtitle">
+                        @bon.NumeroReference
+                        &nbsp;•&nbsp;
+                        @L["BemV_CreatedAt"] @bon.DateCreation.ToString("dd/MM/yyyy")
+                        &nbsp;•&nbsp;
+                        @L["BemF_Expires"] @bon.DateExpiration.ToString("dd/MM/yyyy")
+                    </p>
+                </div>
+                @* Boutons d'action dans le hero *@
+                <div class="kcp-hero-actions">
+                    <a class="kcp-btn" @onclick="@GoBack" href="javascript:void(0)">
+                        <RadzenIcon Icon="arrow_back" Style="font-size:1rem;" />
+                        @L["Btn_Back"]
+                    </a>
+                    @if (bon.StatutActuel == "Draft" && CanEdit)
+                    {
+                        <a class="kcp-btn" href="/bon-sortie/@Id/modifier">
+                            <RadzenIcon Icon="edit" Style="font-size:1rem;" />
+                            @L["BemV_Edit"]
+                        </a>
+                    }
+                    @if (CanDelete)
+                    {
+                        <button type="button" class="kcp-btn kcp-btn-danger" @onclick="@ShowDeleteDialog">
+                            <RadzenIcon Icon="delete" Style="font-size:1rem;" />
+                            @L["BemV_Delete"]
+                        </button>
+                    }
+                    @if (CanSubmit)
+                    {
+                        <button type="button" class="kcp-btn kcp-btn-primary" @onclick="@SubmitForApproval">
+                            <RadzenIcon Icon="send" Style="font-size:1rem;" />
+                            @L["BemV_Submit"]
+                        </button>
+                    }
+                    @if (CanApprove)
+                    {
+                        <button type="button" class="kcp-btn kcp-btn-success" @onclick="@ShowApproveDialog">
+                            <RadzenIcon Icon="check" Style="font-size:1rem;" />
+                            @L["BemV_Approve"]
+                        </button>
+                    }
+                    @if (CanReject)
+                    {
+                        <button type="button" class="kcp-btn kcp-btn-danger" @onclick="@ShowRejectDialog">
+                            <RadzenIcon Icon="close" Style="font-size:1rem;" />
+                            @L["BemV_Reject"]
+                        </button>
+                    }
+                    @if (bon is Pret pret2 && !pret2.EstRetourne && bon.StatutActuel == "Approved")
+                    {
+                        <button type="button" class="kcp-btn kcp-btn-primary" @onclick="@ShowReturnDialog">
+                            <RadzenIcon Icon="assignment_return" Style="font-size:1rem;" />
+                            @L["BsmV_LoanReturn"]
+                        </button>
+                    }
+                    @if (bon.StatutActuel == "Approved" && !string.IsNullOrEmpty(bon.QRCodeBase64) && CanPrint)
+                    {
+                        <a class="kcp-btn" href="/bon-sortie/@Id/print">
+                            <RadzenIcon Icon="print" Style="font-size:1rem;" />
+                            @L["BemV_Print"]
+                        </a>
+                    }
+                    @if (CanDownloadPdf)
+                    {
+                        <button type="button" class="kcp-btn" @onclick="@DownloadPdf">
+                            <RadzenIcon Icon="picture_as_pdf" Style="font-size:1rem;" />
+                            @L["BemV_DownloadPDF"]
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
 
-        @* === ACTIONS SUPPRIMÉES DU BAS — déplacées en haut === *@
+        @* ===== CONTENU PRINCIPAL FLOTTANT ===== *@
+        <main class="kcp-main">
+
+            @* === ALERTE RETOUR === *@
+            @if (!string.IsNullOrEmpty(dernierCommentaireRetour) && bon.StatutActuel == "Draft")
+            {
+                <div class="conf-banner" style="background:#fff5e0; border-color:#f0c674;">
+                    <span class="conf-icon"><RadzenIcon Icon="warning" /></span>
+                    <p><strong>@L["BemV_ReturnModif"] —</strong> @dernierCommentaireRetour</p>
+                </div>
+            }
+
+            @* === ALERTE PRÊT === *@
+            @if (bon is Pret pret)
+            {
+                <RadzenAlert AlertStyle="@(pret.EstRetourne ? AlertStyle.Success : pret.EstEnRetard ? AlertStyle.Danger : AlertStyle.Info)"
+                             ShowIcon="true" Variant="Variant.Flat" Size="AlertSize.Small" Icon="schedule">
+                    <strong>@L["BsmV_PretTitle"]</strong> @pret.DateRetourPrevue.ToString("dd/MM/yyyy")
+                    @if (pret.EstRetourne)
+                    {
+                        <span> &#10003; @L["BsmV_ReturnedOn"] @pret.DateRetourEffective?.ToString("dd/MM/yyyy")</span>
+                    }
+                    else if (pret.EstEnRetard)
+                    {
+                        <span> &#9888; @L["BsmV_Overdue"] @pret.JoursRetard @L["BsmV_Days"]</span>
+                    }
+                </RadzenAlert>
+            }
+
+
+            @* === GRILLE DEUX COLONNES : gauche = infos+matériels | droite = workflow === *@
+            <div style="display: grid; grid-template-columns: 1fr 380px; gap: 1rem; align-items: start;">
+
+                @* ── COLONNE GAUCHE ── *@
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+
+                    @* Informations du demandeur *@
+                    <div class="kcp-card">
+                        <h2 style="font-size:0.875rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--kcc-primary,#00B193); margin:0 0 1rem;">
+                            @L["BsmV_RequesterInfo"]
+                        </h2>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem 1.5rem;">
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--kcc-f-text-muted,#6b7280); text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.25rem;">@L["BsmF_NameLabel"]</div>
+                                <div style="font-size:0.9rem; color:var(--kcc-f-text,#111827); font-weight:500;">@bon.NomDemandeur</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--kcc-f-text-muted,#6b7280); text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.25rem;">@L["BsmF_FunctionLabel"]</div>
+                                <div style="font-size:0.9rem; color:var(--kcc-f-text,#111827);">@(bon.FonctionDemandeur ?? "—")</div>
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--kcc-f-text-muted,#6b7280); text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.25rem;">@L["BsmF_DeptLabel"]</div>
+                                <div style="font-size:0.9rem; color:var(--kcc-f-text,#111827);">@(bon.DepartementDemandeur ?? "—")</div>
+                            </div>
+                            <div style="grid-column: span 2;">
+                                <div style="font-size:0.75rem; font-weight:600; color:var(--kcc-f-text-muted,#6b7280); text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.25rem;">@L["BsmV_ExitReason"]</div>
+                                <div style="font-size:0.9rem; color:var(--kcc-f-text,#111827); min-height:2.5rem;">@(bon.MotifSortie ?? "—")</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Matériels *@
+                    <div class="kcp-card">
+                        <h2 style="font-size:0.875rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--kcc-primary,#00B193); margin:0 0 1rem;">
+                            @L["BsmV_Materials"]
+                        </h2>
+                        <RadzenDataGrid TItem="MaterielSortie" Data="@bon.Materiels" Density="Density.Compact" AllowPaging="false">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="MaterielSortie" Title="@L["BsmV_ColSerial"]" Width="120px">
+                                    <Template Context="mat">
+                                        <code>@(mat.CodeProduitSerial ?? "—")</code>
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="MaterielSortie" Property="Designation" Title="@L["BsmV_ColDesc"]" />
+                                <RadzenDataGridColumn TItem="MaterielSortie" Title="@L["BsmV_ColQty"]" Width="80px" TextAlign="TextAlign.Center">
+                                    <Template Context="mat">
+                                        <strong>@mat.Quantite.ToString("0.00")</strong>
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="MaterielSortie" Title="@L["BonVue_ColFrom"]" Width="150px">
+                                    <Template Context="mat">@bon.Provenance</Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="MaterielSortie" Title="@L["BonVue_ColTo"]" Width="150px">
+                                    <Template Context="mat">@bon.Destination</Template>
+                                </RadzenDataGridColumn>
+                            </Columns>
+                        </RadzenDataGrid>
+                        <div class="totaux-row" style="justify-content: flex-end;">
+                            <span><strong>@L["BsmV_Total"] :</strong> @bon.Materiels.Sum(m => m.Quantite).ToString("0.00")</span>
+                        </div>
+                    </div>
+
+                    @* BEM associé (BSE Externe uniquement) *@
+                    @if (bon is BonSortieExterne ext && ext.BonEntreeAssocieId.HasValue)
+                    {
+                        <div class="kcp-card" style="border: 1px solid var(--kcc-primary, #00B193);">
+                            <h2 style="font-size:0.875rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--kcc-primary,#00B193); margin:0 0 0.75rem;">
+                                @L["BsmV_AssocBem"]
+                            </h2>
+                            <a @onclick="@(() => Navigation.NavigateTo($"/bon-entree/{ext.BonEntreeAssocieId}"))"
+                               style="display: inline-flex; align-items: center; gap: 0.45rem; color: var(--kcc-f-teal); font-weight: 600; cursor: pointer; text-decoration: none;">
+                                <RadzenIcon Icon="link" Style="font-size: 1rem;" />
+                                BEM-@ext.BonEntreeAssocieId
+                                <RadzenIcon Icon="open_in_new" Style="font-size: 0.85rem;" />
+                            </a>
+                        </div>
+                    }
+
+                </div>
+
+                @* ── COLONNE DROITE : WORKFLOW ── *@
+                <div>
+                    @if (bon.StatutActuel != "Draft")
+                    {
+                        <div class="kcp-card">
+                            <h2 style="font-size:0.875rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--kcc-primary,#00B193); margin:0 0 1rem;">
+                                @L["BemV_Workflow"]
+                            </h2>
+                            @{
+                                var appros = bon.Approbations.OrderBy(a => a.OrdreEtape).ToList();
+                                var bonRejete = bon.StatutActuel == "Rejected";
+                                var firstPending = bonRejete ? null : appros.FirstOrDefault(a => a.Decision == "En attente");
+                            }
+                            @if (appros.Any())
+                            {
+                                <RadzenStack Gap="0.4rem">
+                                    @foreach (var a in appros)
+                                    {
+                                        var isCurrent = firstPending != null && a.Id == firstPending.Id;
+                                        var isApproved = a.Decision is "Approuvé" or "Approuve";
+                                        var isRejected = a.Decision is "Rejeté" or "Rejete";
+                                        var isReturned = a.Decision is "Retourné" or "Retourne";
+                                        var bgColor = isApproved ? "#dcfce7" : (isRejected || isReturned) ? "#fee2e2" : isCurrent ? "#fef3c7" : "var(--kcc-bg-subtle)";
+                                        var borderColor = isApproved ? "#86efac" : (isRejected || isReturned) ? "#fca5a5" : isCurrent ? "#fcd34d" : "var(--kcc-border)";
+                                        var iconColor = isApproved ? "#16a34a" : (isRejected || isReturned) ? "#dc2626" : isCurrent ? "#d97706" : "#9ca3af";
+                                        var icon = isApproved ? "check_circle" : isRejected ? "cancel" : isReturned ? "replay" : isCurrent ? "pending" : "radio_button_unchecked";
+
+                                        <RadzenCard Variant="Variant.Flat" Style="@($"background: {bgColor}; border: 1px solid {borderColor}; border-radius: 3px; padding: 0.5rem 0.75rem;")">
+                                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                                <RadzenIcon Icon="@icon" Style="@($"color: {iconColor};")" />
+                                                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                                    <strong>@a.NomEtape</strong>
+                                                    @if (isApproved || isRejected || isReturned)
+                                                    {
+                                                        <span style="color: var(--kcc-text-muted); margin-left: 0.5rem; font-size: 0.85em;">@(a.NomApprobateur ?? "—") • @a.DateAction?.ToString("dd/MM HH:mm")</span>
+                                                    }
+                                                    else if (isCurrent)
+                                                    {
+                                                        var pool = GetActiveApproversFor(a.CodeEtape, bon.SiteId).ToList();
+                                                        @if (pool.Count > 0)
+                                                        {
+                                                            <span style="color: #d97706; margin-left: 0.5rem; font-size: 0.85em;">
+                                                                @L["BemV_Pending"]
+                                                                @if (pool.Count == 1)
+                                                                {
+                                                                    <span> — <strong>@pool[0]</strong></span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span> — @string.Join(", ", pool)</span>
+                                                                }
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span style="color: #d97706; margin-left: 0.5rem; font-size: 0.85em;">
+                                                                @L["BemV_Pending"]
+                                                                @if (!string.IsNullOrEmpty(a.NomApprobateur))
+                                                                {
+                                                                    <span> — <strong>@a.NomApprobateur</strong></span>
+                                                                }
+                                                            </span>
+                                                        }
+                                                    }
+                                                </RadzenText>
+                                            </RadzenStack>
+                                        </RadzenCard>
+                                    }
+                                </RadzenStack>
+                            }
+                            else
+                            {
+                                @* Bon pré-migration : approuvé/rejeté sans lignes d'approbation détaillées *@
+                                var legacyApproved = bon.StatutActuel is "Approved" or "Completed" or "ExitDone" or "Closed";
+                                var legacyRejected = bon.StatutActuel == "Rejected";
+                                var legacyBg = legacyApproved ? "#dcfce7" : legacyRejected ? "#fee2e2" : "#fef3c7";
+                                var legacyBorder = legacyApproved ? "#86efac" : legacyRejected ? "#fca5a5" : "#fcd34d";
+                                var legacyIconColor = legacyApproved ? "#16a34a" : legacyRejected ? "#dc2626" : "#d97706";
+                                var legacyIcon = legacyApproved ? "check_circle" : legacyRejected ? "cancel" : "pending";
+                                var legacyLabel = legacyApproved ? "Approuvé" : legacyRejected ? "Rejeté" : bon.StatutActuel;
+
+                                <RadzenCard Variant="Variant.Flat" Style="@($"background: {legacyBg}; border: 1px solid {legacyBorder}; padding: 0.5rem 0.75rem;")">
+                                    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+                                        <RadzenIcon Icon="@legacyIcon" Style="@($"color: {legacyIconColor};")" />
+                                        <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">
+                                            <strong>@legacyLabel</strong>
+                                            <span style="color: var(--kcc-text-muted); margin-left: 0.5rem; font-size: 0.85em;">@L["BemV_PreMigration"]</span>
+                                        </RadzenText>
+                                    </RadzenStack>
+                                </RadzenCard>
+                            }
+
+                            @if (bon.StatutActuel == "Rejected" && notificationRejet != null)
+                            {
+                                <div style="margin-top: 0.75rem;">
+                                    <RadzenButton Text="@L["BemV_RejectDetails"].Value" Icon="visibility" ButtonStyle="ButtonStyle.Danger"
+                                                  Size="ButtonSize.Small" Click="@ShowRejetDetailsDialog" />
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="kcp-card" style="text-align:center; padding:2rem 1rem; color:var(--kcc-f-text-muted,#6b7280);">
+                            <RadzenIcon Icon="pending_actions" Style="font-size:2.5rem; opacity:.35;" />
+                            <div style="margin-top:0.5rem; font-size:0.85rem;">@L["BemV_Draft"]</div>
+                        </div>
+                    }
+                </div>
+
+            </div>
+        </main>
     }
-</RadzenStack>
+</div>
 
 @code {
     [Parameter] public int Id { get; set; }
@@ -317,6 +366,7 @@
     private bool accessDenied = false;
     private string? dernierCommentaireRetour;
     private KCCMaterialFlow.Domain.Entities.NotificationRejet? notificationRejet;
+    private IReadOnlyList<WorkflowApprobateurSpecial> _activeSpecials = Array.Empty<WorkflowApprobateurSpecial>();
 
     private static readonly string[] RolesPrivilegies = { "Admin", "Superviseur", "GM", "OPJ", "Identification", "Security", "IT", "Environnement" };
     
@@ -340,41 +390,69 @@
                              (CurrentUserService.IsInAnyRole("Admin", "Demandeur") ||
                               bon.NomDemandeur == CurrentUserService.GetUserDisplayName());
 
-    private bool CanApproveIT => bon?.StatutActuel == "PendingIT" && 
-                                  CurrentUserService.IsInAnyRole("Admin", "IT") &&
-                                  CurrentUserService.HasActivite("BSM_APPROUVER") &&
-                                  GetTypeMateriel() == TypeMateriel.Informatique;
-    
-    private bool CanApproveENV => bon?.StatutActuel == "PendingEnv" && 
-                                   CurrentUserService.IsInAnyRole("Admin", "Environnement") &&
-                                   CurrentUserService.HasActivite("BSM_APPROUVER") &&
-                                   (GetTypeMateriel() == TypeMateriel.Residu || 
-                                    GetTypeMateriel() == TypeMateriel.Radioprotection || 
-                                    GetTypeMateriel() == TypeMateriel.Modification);
+    private bool CanApproveIT => CanApproveCurrentStep("ITDEPARTMENT");
+    private bool CanApproveENV => CanApproveCurrentStep("ENVIRONMENTDEPARTMENT");
+    private bool CanApproveSuperviseur => CanApproveCurrentStep("REPORTSTO");
+    private bool CanApproveGM => CanApproveCurrentStep("GM");
+    private bool CanApproveOPJ => CanApproveCurrentStep("OPJ");
+    private bool CanApproveIdentification => CanApproveCurrentStep("IDENTIFICATION");
 
-    private bool CanApproveSuperviseur => bon?.StatutActuel == "PendingSuperviseur" && 
-                                           CurrentUserService.IsInAnyRole("Admin", "Superviseur") &&
-                                           CurrentUserService.HasActivite("BSM_APPROUVER");
+    private bool CanApprove => CanApproveCurrentStep(null);
 
-    private bool CanApproveGM => bon?.StatutActuel == "PendingGM" && 
-                                  CurrentUserService.IsInAnyRole("Admin", "GM") &&
-                                  CurrentUserService.HasActivite("BSM_APPROUVER");
-
-    private bool CanApproveOPJ => bon?.StatutActuel == "PendingOPJ" && 
-                                   CurrentUserService.IsInAnyRole("Admin", "OPJ") &&
-                                   CurrentUserService.HasActivite("BSM_APPROUVER");
-
-    private bool CanApproveIdentification => bon?.StatutActuel == "PendingIdentification" && 
-                                              CurrentUserService.IsInAnyRole("Admin", "Identification") &&
-                                              CurrentUserService.HasActivite("BSM_APPROUVER");
-    
-    private bool CanApprove => CanApproveIT || CanApproveENV || CanApproveSuperviseur || CanApproveGM || CanApproveOPJ || CanApproveIdentification;
+    /// <summary>True si l'utilisateur courant est l'approbateur de l'étape en attente.
+    /// Si <paramref name="codeEtapeFilter"/> est fourni, l'étape doit aussi correspondre à ce code.</summary>
+    private bool CanApproveCurrentStep(string? codeEtapeFilter)
+    {
+        if (bon == null) return false;
+        if (!CurrentUserService.HasActivite("BSM_APPROUVER")) return false;
+        var current = bon.Approbations?
+            .Where(a => a.Decision == "En attente")
+            .OrderBy(a => a.OrdreEtape)
+            .FirstOrDefault();
+        if (current == null) return false;
+        if (codeEtapeFilter != null &&
+            !string.Equals(current.CodeEtape, codeEtapeFilter, StringComparison.OrdinalIgnoreCase))
+            return false;
+        // Pas de bypass Admin/SuperAdmin : seul l'approbateur désigné de l'étape
+        // en cours peut agir. La chaîne d'approbation doit être respectée.
+        return CurrentUserService.EmployeeId.HasValue
+            && current.ApprobateurId == CurrentUserService.EmployeeId.Value;
+    }
 
     private bool CanReject => CanApprove && CurrentUserService.HasActivite("BSM_REJETER");
 
     private bool CanReturn => CanApprove && CurrentUserService.HasActivite("BSM_RETOURNER");
-    
-    private bool CanPrint => CurrentUserService.HasActivite("BSM_IMPRIMER");
+
+    private bool CanPrint => bon?.StatutActuel == "Approved" && IsLastApprover();
+
+    private bool IsLastApprover()
+    {
+        if (bon == null) return false;
+        var lastApproved = bon.Approbations
+            .Where(a => a.Decision is "Approuv\u00e9" or "Approuve")
+            .OrderByDescending(a => a.OrdreEtape)
+            .FirstOrDefault();
+        if (lastApproved == null) return false;
+        if (CurrentUserService.IsAdmin) return true;
+        if (lastApproved.ApprobateurId.HasValue && CurrentUserService.EmployeeId.HasValue
+            && lastApproved.ApprobateurId == CurrentUserService.EmployeeId)
+            return true;
+        var login = CurrentUserService.GetUserLogin()?.Trim().ToLowerInvariant() ?? "";
+        var bs = login.LastIndexOf('\\');
+        if (bs >= 0) login = login[(bs + 1)..];
+        var at = login.IndexOf('@');
+        if (at >= 0) login = login[..at];
+        var approvalLogin = lastApproved.ApprobateurLogin?.Trim().ToLowerInvariant() ?? "";
+        var bsA = approvalLogin.LastIndexOf('\\');
+        if (bsA >= 0) approvalLogin = approvalLogin[(bsA + 1)..];
+        var atA = approvalLogin.IndexOf('@');
+        if (atA >= 0) approvalLogin = approvalLogin[..atA];
+        if (!string.IsNullOrEmpty(login) && !string.IsNullOrEmpty(approvalLogin) && login == approvalLogin)
+            return true;
+        var mat = lastApproved.ApprobateurMatricule?.Trim().ToUpperInvariant() ?? "";
+        var curMat = CurrentUserService.Matricule?.Trim().ToUpperInvariant() ?? "";
+        return !string.IsNullOrEmpty(mat) && !string.IsNullOrEmpty(curMat) && mat == curMat;
+    }
 
     private bool CanDownloadPdf => CurrentUserService.IsInAnyRole("Identification");
 
@@ -390,6 +468,7 @@
         try
         {
             bon = await BonSortieService.GetAsync(Id);
+            _activeSpecials = await ApprobateurSpecialService.GetAllAsync();
             
             if (bon != null && bon.StatutActuel == "Draft")
             {
@@ -408,8 +487,8 @@
             {
                 accessDenied = true;
                 bon = null;
-                NotificationService.Notify(NotificationSeverity.Warning, "Accès refusé", 
-                    "Vous n'êtes pas autorisé à consulter ce bon.");
+                NotificationService.Notify(NotificationSeverity.Warning, L["BemV_AccessDenied"], 
+                    L["BemV_AccessDeniedMsg"]);
                 return;
             }
             
@@ -420,7 +499,7 @@
         }
         catch (Exception ex)
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", ex.Message);
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"], ex.Message);
         }
         finally
         {
@@ -442,25 +521,48 @@
         _ => "badge-interne"
     };
 
-    private TypeMateriel GetTypeMateriel() => bon switch
+    private string GetDescriptionMateriel() => bon switch
     {
-        BonSortieExterne e => e.TypeMateriel,
-        BonSortieInterne i => i.TypeMateriel,
-        _ => TypeMateriel.Autre
+        BonSortieExterne e => e.DescriptionMateriel ?? "(non spécifié)",
+        BonSortieInterne i => i.DescriptionMateriel ?? "(non spécifié)",
+        _ => "(non spécifié)"
     };
 
-    private static string GetStatutLabel(string? s) => s?.ToUpperInvariant() switch
+    private IEnumerable<string> GetActiveApproversFor(string? codeEtape, int? siteId)
     {
-        "DRAFT" => "Brouillon",
-        "PENDINGIT" => "Att. IT",
-        "PENDINGENV" => "Att. ENV",
-        "PENDINGSUPERVISEUR" => "Att. Sup.",
-        "PENDINGGM" => "Att. GM",
-        "PENDINGOPJ" => "Att. OPJ",
-        "PENDINGIDENTIFICATION" => "Att. ID",
-        "APPROVED" => "Approuvé",
-        "REJECTED" => "Rejeté",
-        "RETURNED" => "Retourné",
+        if (_activeSpecials.Count == 0) yield break;
+        TypeApprobateurSpecial? type = codeEtape?.ToUpperInvariant() switch
+        {
+            "OPJ" => TypeApprobateurSpecial.OPJ,
+            "IDENTIFICATION" => TypeApprobateurSpecial.Identification,
+            _ => null
+        };
+        if (type == null) yield break;
+        var candidates = _activeSpecials.Where(s => s.Type == type.Value && s.EstActif).ToList();
+        if (type == TypeApprobateurSpecial.OPJ)
+        {
+            var siteSpecific = candidates.Where(x => x.SiteId == siteId).ToList();
+            var pool = siteSpecific.Count > 0 ? siteSpecific : candidates.Where(x => x.SiteId == null).ToList();
+            foreach (var p in pool.OrderBy(x => x.Ordre))
+                yield return p.Employee?.NomComplet ?? $"#{p.EmployeeId}";
+        }
+        else
+        {
+            foreach (var p in candidates.OrderBy(x => x.Ordre))
+                yield return p.Employee?.NomComplet ?? $"#{p.EmployeeId}";
+        }
+    }
+
+    private string GetStatutLabel(string? s) => s?.ToUpperInvariant() switch
+    {
+        "DRAFT" => L["Statut_Draft"].Value,
+        "APPROVED" => L["Statut_Approved"].Value,
+        "REJECTED" => L["Statut_Rejected"].Value,
+        "RETURNED" => L["Statut_Returned"].Value,
+        "CANCELLED" => L["Statut_Cancelled"].Value,
+        // Tout statut Pending* → libellé générique. Le nom réel de l'approbateur courant
+        // est affiché dans le badge "Chez {nom}" à côté (voir GetCurrentApproverName).
+        _ when (s ?? "").ToUpperInvariant().StartsWith("PENDING") => L["Lbl_Pending"].Value,
         _ => s ?? "-"
     };
 
@@ -489,6 +591,18 @@
         _ => BadgeStyle.Secondary
     };
 
+    /// <summary>Nom de l'approbateur en attente actuel (étape courante de la chaîne).</summary>
+    private string? GetCurrentApproverName()
+    {
+        if (bon == null || bon.StatutActuel is "Draft" or "Approved" or "Rejected" or "Cancelled")
+            return null;
+        var current = bon.Approbations?
+            .Where(a => a.Decision == "En attente")
+            .OrderBy(a => a.OrdreEtape)
+            .FirstOrDefault();
+        return current?.NomApprobateur;
+    }
+
     private async Task GoBack() => await JSRuntime.InvokeVoidAsync("history.back");
 
     private async Task DownloadPdf()
@@ -501,19 +615,19 @@
         var result = await BonSortieService.SubmitForApprovalAsync(Id);
         if (result.Success)
         {
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Bon soumis pour approbation");
+            NotificationService.Notify(NotificationSeverity.Success, L["Msg_Success"], L["Msg_Approved"]);
             await LoadBonAsync();
         }
         else
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Une erreur est survenue");
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"], result.Message ?? L["Msg_UnexpectedError"].Value);
         }
     }
 
     private async Task ShowApproveDialog()
     {
         var result = await DialogService.OpenAsync<ApprovalDialog>(
-            "Approuver le bon",
+            L["Dlg_ApproveLabel"],
             new Dictionary<string, object> { { "IsReject", false } },
             new DialogOptions { Width = "450px" }
         );
@@ -527,7 +641,7 @@
     private async Task ShowRejectDialog()
     {
         var result = await DialogService.OpenAsync<ApprovalDialog>(
-            "Rejeter le bon",
+            L["Dlg_RejectLabel"],
             new Dictionary<string, object> { { "IsReject", true } },
             new DialogOptions { Width = "450px" }
         );
@@ -541,7 +655,7 @@
     private async Task ShowReturnToUserDialog()
     {
         var result = await DialogService.OpenAsync<ApprovalDialog>(
-            "Retourner pour modification",
+            L["Dlg_ReturnLabel"],
             new Dictionary<string, object> { { "IsReject", true } },
             new DialogOptions { Width = "450px" }
         );
@@ -562,12 +676,12 @@
 
         if (result.Success)
         {
-            NotificationService.Notify(NotificationSeverity.Success, "Succès", "Le bon a été approuvé.");
+            NotificationService.Notify(NotificationSeverity.Success, L["Msg_Success"], L["Msg_Submitted"]);
             await LoadBonAsync();
         }
         else
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur lors de l'approbation.");
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"], result.Message ?? L["Msg_UnexpectedError"].Value);
         }
     }
 
@@ -581,12 +695,12 @@
         
         if (result.Success)
         {
-            NotificationService.Notify(NotificationSeverity.Warning, "Rejeté", "Le bon a été rejeté.");
+            NotificationService.Notify(NotificationSeverity.Warning, L["Msg_Rejected"], L["Msg_BonRejected"]);
             await LoadBonAsync();
         }
         else
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur lors du rejet.");
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"], result.Message ?? L["Msg_UnexpectedError"].Value);
         }
     }
 
@@ -600,12 +714,12 @@
 
         if (result.Success)
         {
-            NotificationService.Notify(NotificationSeverity.Info, "Retourné", "Le bon a été retourné au demandeur.");
+            NotificationService.Notify(NotificationSeverity.Info, L["Msg_Returned"], L["Msg_BonReturned"]);
             await LoadBonAsync();
         }
         else
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur lors du retour.");
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"], result.Message ?? L["Msg_UnexpectedError"].Value);
         }
     }
 
@@ -626,12 +740,12 @@
             
             if (returnResult.Success)
             {
-                NotificationService.Notify(NotificationSeverity.Success, "Succès", "Retour enregistré");
+                NotificationService.Notify(NotificationSeverity.Success, L["Msg_Success"], L["Msg_Saved"]);
                 await LoadBonAsync();
             }
             else
             {
-                NotificationService.Notify(NotificationSeverity.Error, "Erreur", returnResult.Message ?? "Erreur");
+                NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"], returnResult.Message ?? L["Msg_UnexpectedError"].Value);
             }
         }
     }
@@ -659,12 +773,12 @@
         
         if (result.Success)
         {
-            NotificationService.Notify(NotificationSeverity.Success, "Supprimé", result.Message ?? "Le brouillon a été supprimé.");
+            NotificationService.Notify(NotificationSeverity.Success, L["Msg_Success"], result.Message ?? L["Msg_Deleted"]);
             Navigation.NavigateTo("/bon-sortie");
         }
         else
         {
-            NotificationService.Notify(NotificationSeverity.Error, "Erreur", result.Message ?? "Erreur lors de la suppression.");
+            NotificationService.Notify(NotificationSeverity.Error, L["Msg_Error"], result.Message ?? L["Msg_UnexpectedError"].Value);
         }
     }
 

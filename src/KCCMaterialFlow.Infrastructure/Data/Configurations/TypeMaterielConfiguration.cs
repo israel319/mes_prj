@@ -1,4 +1,5 @@
 using KCCMaterialFlow.Domain.Entities;
+using KCCMaterialFlow.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -42,6 +43,11 @@ public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMaterielEn
 
         builder.HasIndex(t => new { t.EstActif, t.Ordre })
             .HasDatabaseName("IX_TypesMateriels_EstActif_Ordre");
+
+        builder.Property(t => t.WorkflowRoutage)
+            .HasColumnName("WorkflowRoutage")
+            .HasConversion<int>()
+            .HasDefaultValue(WorkflowRoutage.Standard);
 
         // Données de base pour les types de matériel
         builder.HasData(
@@ -144,6 +150,154 @@ public class TypeMaterielConfiguration : IEntityTypeConfiguration<TypeMaterielEn
                 Ordre = 99,
                 EstActif = true,
                 DateCreation = new DateTime(2024, 1, 1)
+            },
+            // ─── Types de sortie (Workflow Sortie) ───────────────────────────────
+            new TypeMaterielEntity
+            {
+                Id = 10,
+                CodeType = "BSM_CIRCULANT",
+                NomType = "Circulant",
+                Description = "Matériel circulant entre sites — workflow standard.",
+                Categorie = "Workflow Sortie",
+                Icone = "bi-arrow-repeat",
+                Couleur = "#0d6efd",
+                RequiertApprobationDepartement = true,
+                RequiertApprobationDirection = false,
+                NiveauxApprobation = 1,
+                DureeValiditeDefautJours = 30,
+                DureeMaximumJours = 365,
+                NumeroSerieObligatoire = false,
+                PhotoObligatoire = false,
+                WorkflowRoutage = WorkflowRoutage.Standard,
+                Ordre = 10,
+                EstActif = true,
+                DateCreation = new DateTime(2025, 1, 1)
+            },
+            new TypeMaterielEntity
+            {
+                Id = 11,
+                CodeType = "BSM_EQUIPEMENT_IT",
+                NomType = "Équipement IT",
+                Description = "Équipement informatique — passe par le département IT.",
+                Categorie = "Workflow Sortie",
+                Icone = "bi-laptop",
+                Couleur = "#6610f2",
+                RequiertApprobationDepartement = true,
+                RequiertApprobationDirection = true,
+                NiveauxApprobation = 2,
+                DureeValiditeDefautJours = 30,
+                DureeMaximumJours = 365,
+                NumeroSerieObligatoire = true,
+                PhotoObligatoire = false,
+                WorkflowRoutage = WorkflowRoutage.IT,
+                Ordre = 11,
+                EstActif = true,
+                DateCreation = new DateTime(2025, 1, 1)
+            },
+            new TypeMaterielEntity
+            {
+                Id = 12,
+                CodeType = "BSM_FIN_PROJET",
+                NomType = "Fin de projet",
+                Description = "Sortie en fin de chantier / projet — workflow standard.",
+                Categorie = "Workflow Sortie",
+                Icone = "bi-flag",
+                Couleur = "#20c997",
+                RequiertApprobationDepartement = true,
+                RequiertApprobationDirection = false,
+                NiveauxApprobation = 1,
+                DureeValiditeDefautJours = 30,
+                DureeMaximumJours = 365,
+                NumeroSerieObligatoire = false,
+                PhotoObligatoire = false,
+                WorkflowRoutage = WorkflowRoutage.Standard,
+                Ordre = 12,
+                EstActif = true,
+                DateCreation = new DateTime(2025, 1, 1)
+            },
+            new TypeMaterielEntity
+            {
+                Id = 13,
+                CodeType = "BSM_RESIDU_DECHET",
+                NomType = "Résidu / Déchet",
+                Description = "Résidu ou déchet industriel — passe par le département Environnement.",
+                Categorie = "Workflow Sortie",
+                Icone = "bi-trash",
+                Couleur = "#fd7e14",
+                RequiertApprobationDepartement = true,
+                RequiertApprobationDirection = false,
+                NiveauxApprobation = 1,
+                DureeValiditeDefautJours = 30,
+                DureeMaximumJours = 365,
+                NumeroSerieObligatoire = false,
+                PhotoObligatoire = false,
+                WorkflowRoutage = WorkflowRoutage.Environment,
+                Ordre = 13,
+                EstActif = true,
+                DateCreation = new DateTime(2025, 1, 1)
+            },
+            new TypeMaterielEntity
+            {
+                Id = 14,
+                CodeType = "BSM_RADIOPROTECTION",
+                NomType = "Radioprotection",
+                Description = "Matériel de radioprotection — passe par le département Environnement.",
+                Categorie = "Workflow Sortie",
+                Icone = "bi-radioactive",
+                Couleur = "#dc3545",
+                RequiertApprobationDepartement = true,
+                RequiertApprobationDirection = false,
+                NiveauxApprobation = 1,
+                DureeValiditeDefautJours = 30,
+                DureeMaximumJours = 365,
+                NumeroSerieObligatoire = true,
+                PhotoObligatoire = false,
+                WorkflowRoutage = WorkflowRoutage.Environment,
+                Ordre = 14,
+                EstActif = true,
+                DateCreation = new DateTime(2025, 1, 1)
+            },
+            new TypeMaterielEntity
+            {
+                Id = 15,
+                CodeType = "BSM_MODIFICATION",
+                NomType = "Modification",
+                Description = "Matériel sorti pour modification — passe par le département Environnement.",
+                Categorie = "Workflow Sortie",
+                Icone = "bi-tools",
+                Couleur = "#ffc107",
+                RequiertApprobationDepartement = true,
+                RequiertApprobationDirection = false,
+                NiveauxApprobation = 1,
+                DureeValiditeDefautJours = 30,
+                DureeMaximumJours = 365,
+                NumeroSerieObligatoire = false,
+                PhotoObligatoire = false,
+                WorkflowRoutage = WorkflowRoutage.Environment,
+                Ordre = 15,
+                EstActif = true,
+                DateCreation = new DateTime(2025, 1, 1)
+            },
+            new TypeMaterielEntity
+            {
+                Id = 16,
+                CodeType = "BSM_PRET_MATERIEL",
+                NomType = "Matériel prêté",
+                Description = "Matériel prêté temporairement — workflow standard.",
+                Categorie = "Workflow Sortie",
+                Icone = "bi-box-arrow-up-right",
+                Couleur = "#6c757d",
+                RequiertApprobationDepartement = true,
+                RequiertApprobationDirection = false,
+                NiveauxApprobation = 1,
+                DureeValiditeDefautJours = 30,
+                DureeMaximumJours = 180,
+                NumeroSerieObligatoire = false,
+                PhotoObligatoire = false,
+                WorkflowRoutage = WorkflowRoutage.Standard,
+                Ordre = 16,
+                EstActif = true,
+                DateCreation = new DateTime(2025, 1, 1)
             }
         );
     }

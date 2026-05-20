@@ -1,4 +1,4 @@
-@page "/admin/types-materiels"
+﻿@page "/admin/types-materiels"
 @attribute [Authorize(Roles = "Admin")]
 @using Microsoft.AspNetCore.Authorization
 @inject ITypeMaterielService TypeMaterielService
@@ -6,175 +6,191 @@
 @inject ICurrentUserService CurrentUserService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
+@inject IStringLocalizer<SharedResource> L
 
 <PageTitle>Administration - Types de Matériel</PageTitle>
 
-<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
-    <AdminNav />
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["Tma_Title"]</h1>
+                <p class="kcp-subtitle">@filteredTypes.Count @L["Tma_Count"] @types.Count</p>
+            </div>
+            <div class="kcp-hero-actions">
+                <button class="kcp-btn kcp-btn-primary" type="button" @onclick="ShowCreateDialog">
+                    <RadzenIcon Icon="add_circle" Style="font-size:1rem;" />
+                    @L["Tma_BtnNew"]
+                </button>
+                <button class="kcp-btn" type="button" @onclick="LoadDataAsync">
+                    <RadzenIcon Icon="refresh" Style="font-size:1rem;" />
+                    @L["Btn_Refresh"]
+                </button>
+            </div>
+        </div>
+    </div>
+    <main class="kcp-main">
 
-    @* ─── En-tête ─── *@
-    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
-        <RadzenStack Gap="0.25rem">
-            <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">
-                Gestion des Types de Matériel
-            </RadzenText>
-        </RadzenStack>
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center">
-            <RadzenButton Icon="refresh" Text="Actualiser" Variant="Variant.Outlined"
-                          ButtonStyle="ButtonStyle.Secondary" Click="@LoadDataAsync" />
-            <RadzenButton Text="Nouveau type" Icon="add" ButtonStyle="ButtonStyle.Primary"
-                          Click="@ShowCreateDialog" />
-        </RadzenStack>
+
+    @if (!string.IsNullOrEmpty(activeFilter))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter"
+                     AllowClose="true" Close="@(() => SetFilter(null))" class="rz-mb-4">
+            @L["Lbl_ActiveFilter"] <strong>@(activeFilter == "active" ? L["Lbl_Active"].Value : L["Lbl_Inactive"].Value)</strong>
+        </RadzenAlert>
+    }
+
+    @* === RECHERCHE === *@
+    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" class="rz-mb-4">
+        <RadzenIcon Icon="search" Style="color: var(--gray-400);" />
+        <RadzenTextBox @bind-Value="searchTerm" Placeholder="@L["Tma_SearchPh"].Value"
+                       Style="flex: 1; min-width: 220px;" Change="@(_ => StateHasChanged())" />
+        <RadzenDropDown TValue="string" Data="@categories" @bind-Value="filterCategorie"
+                        AllowClear="true" Placeholder="@L["Tma_FilterAllCategories"].Value" Style="min-width: 180px;"
+                        Change="@(_ => StateHasChanged())" />
+        @if (!string.IsNullOrWhiteSpace(searchTerm) || !string.IsNullOrEmpty(filterCategorie))
+        {
+            <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" Click="@ResetFilters" />
+        }
     </RadzenStack>
 
-    @* ─── Filtres ─── *@
-    <RadzenCard>
-        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.End" Wrap="FlexWrap.Wrap" Gap="1rem" Style="padding: 0.5rem 0;">
-            <RadzenStack Gap="0.15rem">
-                <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted);">Catégorie</RadzenText>
-                <RadzenDropDown TValue="string" Data="@categories" @bind-Value="@filterCategorie"
-                                AllowClear="true" Placeholder="Toutes" Style="min-width: 160px;"
-                                Change="@(args => ApplyFilters())" />
-            </RadzenStack>
-            <RadzenButton Icon="clear" Text="Effacer" Click="@ResetFilters"
-                          ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" class="kcc-btn-clear" />
-        </RadzenStack>
-    </RadzenCard>
-
-    @* ─── Grille des types ─── *@
-    <RadzenCard>
-        <RadzenDataGrid @ref="grid" Data="@filteredTypes" TItem="TypeMaterielEntity"
-                        AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="15"
-                        PagerHorizontalAlign="HorizontalAlign.Center"
-                        AllowColumnResize="true"
-                        Density="Density.Compact"
-                        EmptyText="Aucun type trouvé">
-                <Columns>
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Ordre" Title="#" Width="50px" TextAlign="TextAlign.Center" />
-
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="CodeType" Title="Code" Width="220px">
-                        <Template Context="type">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                @if (!string.IsNullOrEmpty(type.Icone))
-                                {
-                                    <div style="width: 28px; height: 28px; background: @(type.Couleur ?? "#6c757d");
-                                                display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                        <RadzenIcon Icon="@type.Icone" Style="color: #fff; font-size: 14px;" />
-                                    </div>
-                                }
-                                <div>
-                                    <div style="font-weight: 600; font-size: 0.8rem; color: #1a1a1a;">@type.CodeType</div>
-                                    <div style="font-size: 0.72rem; color: #666;">@type.NomType</div>
-                                </div>
+    @* === GRID === *@
+    <RadzenDataGrid @ref="grid" Data="@filteredTypes" TItem="TypeMaterielEntity"
+                    AllowFiltering="false" AllowSorting="true" AllowPaging="true" PageSize="10"
+                    PagerHorizontalAlign="HorizontalAlign.Center"
+                    Density="Density.Compact"
+                    GridLines="DataGridGridLines.Horizontal"
+                    EmptyText="@L["Tma_Empty"].Value">
+        <Columns>
+            <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Ordre" Title="@L["Tma_ColNum"].Value" Width="60px" TextAlign="TextAlign.Center" Sortable="true" />
+            <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="CodeType" Title="@L["Tma_ColType"].Value" Width="240px" Sortable="true">
+                <Template Context="type">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        @if (!string.IsNullOrEmpty(type.Icone))
+                        {
+                            <div style="width: 32px; height: 32px; background: @(type.Couleur ?? "#6c757d"); border-radius: 8px;
+                                        display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <RadzenIcon Icon="@type.Icone" Style="color: #fff; font-size: 16px;" />
                             </div>
-                        </Template>
-                    </RadzenDataGridColumn>
-
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Categorie" Title="Catégorie" Width="130px">
-                        <Template Context="type">
-                            @if (!string.IsNullOrEmpty(type.Categorie))
+                        }
+                        <div>
+                            <div style="font-weight: 600; font-size: 0.85rem;">@type.NomType</div>
+                            <div style="font-size: 0.75rem; color: var(--gray-500); font-family: monospace;">@type.CodeType</div>
+                        </div>
+                    </div>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="Categorie" Title="@L["Tma_ColCategory"].Value" Width="140px" Sortable="true">
+                <Template Context="type">
+                    @if (!string.IsNullOrEmpty(type.Categorie))
+                    {
+                        <RadzenBadge Text="@type.Categorie" BadgeStyle="BadgeStyle.Light" />
+                    }
+                    else
+                    {
+                        <span style="color: #999;">—</span>
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="@L["Tma_ColApprovals"].Value" Width="160px" Sortable="false">
+                <Template Context="type">
+                    <RadzenStack Gap="0.25rem">
+                        <span style="font-size: 0.85rem; font-weight: 600;">@type.NiveauxApprobation @L["Tma_Levels"]</span>
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem">
+                            @if (type.RequiertApprobationDepartement)
                             {
-                                <span style="font-size: 0.78rem; color: #374151;">@type.Categorie</span>
+                                <RadzenBadge Text="@L["Tma_BadgeDept"].Value" BadgeStyle="BadgeStyle.Info" />
                             }
-                            else
+                            @if (type.RequiertApprobationDirection)
                             {
-                                <span style="color: #999;">—</span>
+                                <RadzenBadge Text="@L["Tma_BadgeDir"].Value" BadgeStyle="BadgeStyle.Warning" />
                             }
-                        </Template>
-                    </RadzenDataGridColumn>
-
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Approbations" Width="140px">
-                        <Template Context="type">
-                            <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                <span style="font-size: 0.78rem; font-weight: 600; color: #374151;">@type.NiveauxApprobation</span>
-                                <span style="font-size: 0.72rem; color: #666;">niveau(x)</span>
-                            </div>
-                            <div style="display: flex; gap: 0.25rem; margin-top: 0.15rem;">
-                                @if (type.RequiertApprobationDepartement)
-                                {
-                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(59,130,246,0.1); color: #2563eb;">Dept</span>
-                                }
-                                @if (type.RequiertApprobationDirection)
-                                {
-                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: rgba(245,158,11,0.1); color: #d97706;">Dir</span>
-                                }
-                            </div>
-                        </Template>
-                    </RadzenDataGridColumn>
-
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Validité" Width="110px">
-                        <Template Context="type">
-                            <div style="font-size: 0.78rem; color: #374151;">@type.DureeValiditeDefautJours j <span style="color: #999;">/ max @type.DureeMaximumJours j</span></div>
-                        </Template>
-                    </RadzenDataGridColumn>
-
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Requis" Width="120px">
-                        <Template Context="type">
-                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
-                                @if (type.NumeroSerieObligatoire)
-                                {
-                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: #f3f4f6; color: #374151;">N° série</span>
-                                }
-                                @if (type.PhotoObligatoire)
-                                {
-                                    <span style="font-size: 0.65rem; padding: 0.1rem 0.4rem; background: #f3f4f6; color: #374151;">Photo</span>
-                                }
-                                @if (!type.NumeroSerieObligatoire && !type.PhotoObligatoire)
-                                {
-                                    <span style="color: #999;">—</span>
-                                }
-                            </div>
-                        </Template>
-                    </RadzenDataGridColumn>
-
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="EstActif" Title="Statut" Width="80px" TextAlign="TextAlign.Center">
-                        <Template Context="type">
-                            @if (type.EstActif)
-                            {
-                                <span style="font-size: 0.72rem; font-weight: 600; color: #059669;">Actif</span>
-                            }
-                            else
-                            {
-                                <span style="font-size: 0.72rem; font-weight: 600; color: #dc2626;">Inactif</span>
-                            }
-                        </Template>
-                    </RadzenDataGridColumn>
-
-                    <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="Actions" Width="90px" TextAlign="TextAlign.Center" Sortable="false">
-                        <Template Context="type">
-                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" JustifyContent="JustifyContent.Center">
-                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                              Click="@(() => ShowEditDialog(type))" title="Modifier" />
-                                @if (type.EstActif)
-                                {
-                                    <RadzenButton Icon="block" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Text" Size="ButtonSize.Small"
-                                                  Click="@(() => ToggleStatus(type))" title="Désactiver" />
-                                }
-                                else
-                                {
-                                    <RadzenButton Icon="check_circle" ButtonStyle="ButtonStyle.Success" Variant="Variant.Text" Size="ButtonSize.Small"
-                                                  Click="@(() => ToggleStatus(type))" title="Activer" />
-                                }
-                            </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        </RadzenCard>
-</RadzenStack>
+                        </RadzenStack>
+                    </RadzenStack>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="@L["Tma_ColValidity"].Value" Width="130px" Sortable="false">
+                <Template Context="type">
+                    <span style="font-size: 0.85rem;">@type.DureeValiditeDefautJours @L["Tma_DaysMax"] @type.DureeMaximumJours @L["Tma_DaysUnit"]</span>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="@L["Tma_ColRequired"].Value" Width="140px" Sortable="false">
+                <Template Context="type">
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.25rem" Wrap="FlexWrap.Wrap">
+                        @if (type.NumeroSerieObligatoire)
+                        {
+                                <RadzenBadge Text="@L["Tma_BadgeSerial"].Value" BadgeStyle="BadgeStyle.Light" />
+                        }
+                        @if (type.PhotoObligatoire)
+                        {
+                                <RadzenBadge Text="@L["Tma_BadgePhoto"].Value" BadgeStyle="BadgeStyle.Light" />
+                        }
+                        @if (!type.NumeroSerieObligatoire && !type.PhotoObligatoire)
+                        {
+                            <span style="color: #999;">—</span>
+                        }
+                    </RadzenStack>
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="TypeMaterielEntity" Property="EstActif" Title="@L["Sta_ColStatut"].Value" Width="100px" TextAlign="TextAlign.Center" Sortable="true">
+                <Template Context="type">
+                    @if (type.EstActif)
+                    {
+                        <RadzenBadge Text="@L["Tma_BadgeActive"].Value" BadgeStyle="BadgeStyle.Success" />
+                    }
+                    else
+                    {
+                        <RadzenBadge Text="@L["Tma_BadgeInactive"].Value" BadgeStyle="BadgeStyle.Light" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="TypeMaterielEntity" Title="@L["Col_Actions"].Value" Width="140px" TextAlign="TextAlign.Right" Sortable="false">
+                <Template Context="type">
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" JustifyContent="JustifyContent.End">
+                        <RadzenButton Icon="edit" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                      ButtonStyle="ButtonStyle.Dark" Click="@(() => ShowEditDialog(type))" title="@L["Tt_Edit"].Value" />
+                        <RadzenButton Icon="@(type.EstActif ? "block" : "check_circle")" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                      ButtonStyle="@(type.EstActif ? ButtonStyle.Warning : ButtonStyle.Success)"
+                                      Click="@(() => ToggleStatus(type))" title="@(type.EstActif ? L["Tt_Disable"].Value : L["Tt_Enable"].Value)" />
+                    </RadzenStack>
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+    </main>
+</div>
 
 @code {
     private RadzenDataGrid<TypeMaterielEntity>? grid;
     private List<TypeMaterielEntity> types = [];
-    private List<TypeMaterielEntity> filteredTypes = [];
     private List<string> categories = [];
-    
-    private string? filterCategorie;
 
-    protected override async Task OnInitializedAsync()
+    private string? searchTerm;
+    private string? filterCategorie;
+    private string? activeFilter;
+
+    private List<TypeMaterielEntity> filteredTypes
     {
-        await LoadDataAsync();
+        get
+        {
+            IEnumerable<TypeMaterielEntity> q = types;
+            if (activeFilter == "active") q = q.Where(t => t.EstActif);
+            else if (activeFilter == "inactive") q = q.Where(t => !t.EstActif);
+            if (!string.IsNullOrWhiteSpace(filterCategorie))
+                q = q.Where(t => t.Categorie == filterCategorie);
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var s = searchTerm.Trim();
+                q = q.Where(t =>
+                    t.CodeType.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    t.NomType.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    (t.Categorie ?? "").Contains(s, StringComparison.OrdinalIgnoreCase));
+            }
+            return q.OrderBy(t => t.Ordre).ToList();
+        }
     }
+
+    protected override async Task OnInitializedAsync() => await LoadDataAsync();
 
     private async Task LoadDataAsync()
     {
@@ -182,7 +198,6 @@
         {
             types = (await TypeMaterielService.GetAllAsync()).ToList();
             categories = (await TypeMaterielService.GetCategoriesAsync()).ToList();
-            ApplyFilters();
         }
         catch (Exception ex)
         {
@@ -190,30 +205,14 @@
         }
     }
 
-    private void ApplyFilters()
-    {
-        var query = types.AsEnumerable();
-        
-        if (!string.IsNullOrWhiteSpace(filterCategorie))
-        {
-            query = query.Where(t => t.Categorie == filterCategorie);
-        }
-        
-        filteredTypes = query.OrderBy(t => t.Ordre).ToList();
-    }
-
-    private void ResetFilters()
-    {
-        filterCategorie = null;
-        ApplyFilters();
-    }
+    private void SetFilter(string? f) { activeFilter = f; StateHasChanged(); }
+    private void ResetFilters() { searchTerm = null; filterCategorie = null; StateHasChanged(); }
 
     private async Task ShowCreateDialog()
     {
         var result = await DialogService.OpenAsync<TypeMaterielEditDialog>("Nouveau type de matériel",
             new Dictionary<string, object>(),
             new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
-        
         if (result == true)
         {
             await LoadDataAsync();
@@ -226,7 +225,6 @@
         var result = await DialogService.OpenAsync<TypeMaterielEditDialog>("Modifier le type",
             new Dictionary<string, object> { { "TypeMateriel", type } },
             new DialogOptions { Width = "700px", Height = "auto", Resizable = true, Draggable = true });
-        
         if (result == true)
         {
             await LoadDataAsync();
@@ -241,13 +239,12 @@
             $"Voulez-vous vraiment {action} le type {type.NomType} ?",
             $"Confirmer {action}",
             new ConfirmOptions { OkButtonText = "Oui", CancelButtonText = "Non" });
-        
+
         if (confirmed == true)
         {
             try
             {
                 await TypeMaterielService.DeleteAsync(type.Id);
-                
                 await AuditLogService.LogAsync(
                     CurrentUserService.GetUserLogin(),
                     CurrentUserService.GetUserDisplayName(),
@@ -256,9 +253,8 @@
                     $"Type {type.NomType} {(type.EstActif ? "désactivé" : "activé")}",
                     type.Id.ToString(),
                     "TypeMateriel");
-                
                 await LoadDataAsync();
-                NotificationService.Notify(NotificationSeverity.Success, "Succès", 
+                NotificationService.Notify(NotificationSeverity.Success, "Succès",
                     $"Type {(type.EstActif ? "désactivé" : "activé")}");
             }
             catch (Exception ex)

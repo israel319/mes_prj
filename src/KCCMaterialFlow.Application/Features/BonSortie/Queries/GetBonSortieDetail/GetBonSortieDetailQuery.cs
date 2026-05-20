@@ -43,7 +43,7 @@ public sealed record HistoriqueSortieDto(
 
 public sealed record ExterneInfoDto(
     string NomDestinataire,
-    TypeMateriel TypeMateriel,
+    string? DescriptionMateriel,
     int? BonEntreeAssocieId,
     string? AdresseDestination,
     string? NumeroVehicule,
@@ -51,7 +51,7 @@ public sealed record ExterneInfoDto(
     string? TelephoneChauffeur);
 
 public sealed record InterneInfoDto(
-    TypeMateriel TypeMateriel,
+    string? DescriptionMateriel,
     int? BonEntreeAssocieId,
     string? DepartementOrigine,
     string? FonctionReceveur,
@@ -133,12 +133,12 @@ internal sealed class GetBonSortieDetailQueryHandler(IApplicationDbContext dbCon
                 h.ActionByNom, h.ActionDate, h.Comment, h.StatutAvant, h.StatutApres)).ToList();
 
         ExterneInfoDto? externeInfo = bon is BonSortieExterne ext
-            ? new ExterneInfoDto(ext.NomDestinataire, ext.TypeMateriel, ext.BonEntreeAssocieId,
+            ? new ExterneInfoDto(ext.NomDestinataire, ext.DescriptionMateriel, ext.BonEntreeAssocieId,
                 ext.AdresseDestination, ext.NumeroVehicule, ext.NomChauffeur, ext.TelephoneChauffeur)
             : null;
 
         InterneInfoDto? interneInfo = bon is BonSortieInterne intBon
-            ? new InterneInfoDto(intBon.TypeMateriel, intBon.BonEntreeAssocieId,
+            ? new InterneInfoDto(intBon.DescriptionMateriel, intBon.BonEntreeAssocieId,
                 intBon.DepartementOrigine, intBon.FonctionReceveur, intBon.EmailReceveur,
                 intBon.LocalisationDestination, intBon.DateTransfertPrevue, intBon.DateTransfertEffective)
             : null;

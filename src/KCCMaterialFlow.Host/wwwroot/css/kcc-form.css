@@ -1,0 +1,599 @@
+/* ===========================================================
+   KCC Form — Styles repris du modèle KCC_WIM_ConcernForm.html
+   Adapté pour les pages détail Bons (BEM/BSE/BSI)
+   Numérotation .section-number désactivée (demande utilisateur)
+   =========================================================== */
+
+.kcc-form-scope {
+    --kcc-f-teal: #00B193;
+    --kcc-f-teal-dark: #008F76;
+    --kcc-f-teal-light: #e6f7f4;
+    --kcc-f-gold: #c9973a;
+    --kcc-f-gold-light: #fdf6e8;
+    --kcc-f-text: #1e2a2a;
+    --kcc-f-text-muted: #6b7f7f;
+    --kcc-f-border: #d0dede;
+    --kcc-f-bg: #f4f7f7;
+    --kcc-f-white: #ffffff;
+    --kcc-f-danger: #c0392b;
+    --kcc-f-success: #1a7a4a;
+    --kcc-f-radius: 3px;
+    --kcc-f-shadow: 0 1px 4px rgba(0, 177, 147, .06);
+
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 15px;
+    color: var(--kcc-f-text);
+}
+
+    .kcc-form-scope .form-container {
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    /* ── Confidentiality / info banner ───────────────────────── */
+    .kcc-form-scope .conf-banner {
+        background: var(--kcc-f-gold-light);
+        border: 1.5px solid #e8c878;
+        border-radius: var(--kcc-f-radius);
+        padding: .85rem 1.1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: .7rem;
+        margin-bottom: 1.25rem;
+    }
+
+        .kcc-form-scope .conf-banner svg,
+        .kcc-form-scope .conf-banner .conf-icon {
+            color: var(--kcc-f-gold);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .kcc-form-scope .conf-banner p {
+            font-size: .8rem;
+            color: #6b5000;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .kcc-form-scope .conf-banner strong {
+            font-weight: 600;
+        }
+
+    /* ── Form card & sections ─────────────────────────────── */
+    .kcc-form-scope .form-card {
+        background: var(--kcc-f-white);
+        border-radius: var(--kcc-f-radius);
+        box-shadow: var(--kcc-f-shadow);
+        border: 1px solid var(--kcc-f-border);
+        overflow: hidden;
+        margin-bottom: 1.25rem;
+        padding-bottom: .75rem;
+    }
+
+    .kcc-form-scope .form-section-header {
+        padding: .7rem 1.25rem .6rem;
+        border-bottom: 1px solid var(--kcc-f-border);
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        background: #fafcfc;
+    }
+
+        .kcc-form-scope .form-section-header h2 {
+            font-size: .83rem;
+            font-weight: 600;
+            color: var(--kcc-f-teal-dark);
+            letter-spacing: .01em;
+            margin: 0;
+        }
+
+    .kcc-form-scope .section-number {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--kcc-f-teal);
+        color: var(--kcc-f-white);
+        font-size: .68rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .kcc-form-scope .form-section-body {
+        padding: .9rem 1.25rem;
+    }
+
+    .kcc-form-scope .form-divider {
+        border: none;
+        border-top: 1px solid var(--kcc-f-border);
+        margin: 0;
+    }
+
+    /* ── Field groups ─────────────────────────────────────── */
+    .kcc-form-scope .field-group {
+        margin-bottom: 1.15rem;
+    }
+
+        .kcc-form-scope .field-group:last-child {
+            margin-bottom: 0;
+        }
+
+    .kcc-form-scope .field-label {
+        display: block;
+        font-size: .83rem;
+        font-weight: 600;
+        color: var(--kcc-f-text);
+        margin-bottom: .45rem;
+    }
+
+        .kcc-form-scope .field-label .req {
+            color: var(--kcc-f-danger);
+            margin-left: .15rem;
+            font-weight: 700;
+        }
+
+    .kcc-form-scope .field-hint {
+        font-size: .75rem;
+        color: var(--kcc-f-text-muted);
+        margin-top: .35rem;
+        line-height: 1.5;
+    }
+
+    /* Lecture seule : valeur affichée comme "input plein" */
+    .kcc-form-scope .field-value {
+        width: 100%;
+        padding: .42rem .7rem;
+        border: 1px solid var(--kcc-f-border);
+        border-radius: 2px;
+        font-family: inherit;
+        font-size: .85rem;
+        color: var(--kcc-f-text);
+        background: #fafcfc;
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        word-break: break-word;
+    }
+
+        .kcc-form-scope .field-value.is-empty {
+            color: #aab8b8;
+            font-style: italic;
+        }
+
+    /* Grille deux colonnes (Inter, comme le formulaire d'origine) */
+    .kcc-form-scope .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+@media (max-width: 600px) {
+    .kcc-form-scope .field-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+    /* ── Inputs (au cas où on édite plus tard) ───────────── */
+    .kcc-form-scope .form-input,
+    .kcc-form-scope .form-select,
+    .kcc-form-scope .form-textarea {
+        width: 100%;
+        padding: .42rem .7rem;
+        border: 1px solid var(--kcc-f-border);
+        border-radius: 2px;
+        font-family: inherit;
+        font-size: .85rem;
+        color: var(--kcc-f-text);
+        background: var(--kcc-f-white);
+        transition: border-color .18s, box-shadow .18s;
+    }
+
+        .kcc-form-scope .form-input:focus,
+        .kcc-form-scope .form-select:focus,
+        .kcc-form-scope .form-textarea:focus {
+            outline: none;
+            border-color: var(--kcc-f-teal);
+            box-shadow: 0 0 0 3px rgba(0, 95, 96, .12);
+        }
+
+        .kcc-form-scope .form-textarea {
+            resize: vertical;
+            min-height: 110px;
+        }
+
+    /* ── Form actions footer ─────────────────────────────── */
+    .kcc-form-scope .form-actions {
+        display: flex;
+        align-items: center;
+        gap: .85rem;
+        padding: 1.25rem 1.5rem;
+        border-top: 1px solid var(--kcc-f-border);
+        background: #fafcfc;
+        flex-wrap: wrap;
+    }
+
+    .kcc-form-scope .btn-submit {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .55rem 1.3rem;
+        background: var(--kcc-f-teal);
+        color: var(--kcc-f-white);
+        border: none;
+        border-radius: 2px;
+        font-family: inherit;
+        font-size: .85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .18s, transform .12s;
+        text-decoration: none;
+    }
+
+        .kcc-form-scope .btn-submit:hover {
+            background: var(--kcc-f-teal-dark);
+        }
+
+        .kcc-form-scope .btn-submit:active {
+            transform: scale(.98);
+        }
+
+    .kcc-form-scope .btn-reset {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .55rem 1rem;
+        background: transparent;
+        color: var(--kcc-f-text-muted);
+        border: 1px solid var(--kcc-f-border);
+        border-radius: 2px;
+        font-family: inherit;
+        font-size: .85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: border-color .18s, color .18s;
+        text-decoration: none;
+    }
+
+        .kcc-form-scope .btn-reset:hover {
+            border-color: var(--kcc-f-text-muted);
+            color: var(--kcc-f-text);
+        }
+
+    .kcc-form-scope .actions-note {
+        font-size: .76rem;
+        color: var(--kcc-f-text-muted);
+        margin-left: auto;
+    }
+
+    /* ── En-tête de page (logo + titre central + n° / date) */
+    .kcc-form-scope .form-page-header {
+        background: var(--kcc-f-white);
+        border: 1px solid var(--kcc-f-border);
+        border-radius: var(--kcc-f-radius);
+        box-shadow: var(--kcc-f-shadow);
+        padding: 1.1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+        .kcc-form-scope .form-page-header img.logo {
+            max-height: 42px;
+        }
+
+        .kcc-form-scope .form-page-header .title-block {
+            text-align: center;
+            flex: 1;
+        }
+
+            .kcc-form-scope .form-page-header .title-block h1 {
+                font-size: 1.05rem;
+                font-weight: 700;
+                letter-spacing: 1px;
+                color: var(--kcc-f-teal-dark);
+                margin: 0;
+            }
+
+            .kcc-form-scope .form-page-header .title-block .subtitle {
+                font-size: .72rem;
+                color: var(--kcc-f-text-muted);
+                letter-spacing: .04em;
+                text-transform: uppercase;
+            }
+
+        .kcc-form-scope .form-page-header .meta-block {
+            text-align: right;
+            font-size: .82rem;
+            line-height: 1.5;
+        }
+
+            .kcc-form-scope .form-page-header .meta-block strong {
+                color: var(--kcc-f-teal-dark);
+            }
+
+    /* ── Status row (badges + date création) ─────────────── */
+    .kcc-form-scope .form-status-bar {
+        background: var(--kcc-f-teal-light);
+        border: 1px solid var(--kcc-f-border);
+        border-radius: var(--kcc-f-radius);
+        padding: .65rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+    }
+
+        .kcc-form-scope .form-status-bar .meta {
+            font-size: .78rem;
+            color: var(--kcc-f-text-muted);
+        }
+
+    /* Tableau matériels intégré au form-card */
+    .kcc-form-scope .form-section-body .rz-data-grid {
+        border: 1px solid var(--kcc-f-border);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .kcc-form-scope .totaux-row {
+        display: flex;
+        justify-content: space-between;
+        padding: .5rem .75rem;
+        margin-top: .5rem;
+        background: #fafcfc;
+        border: 1px solid var(--kcc-f-border);
+        border-radius: 2px;
+        font-size: .8rem;
+        color: var(--kcc-f-text-muted);
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+        .kcc-form-scope .totaux-row strong {
+            color: var(--kcc-f-text);
+        }
+
+    /* ── Boutons d'action en haut : forcer la couleur teal ── */
+    .kcc-form-scope .rz-button.rz-primary {
+        background-color: var(--kcc-f-teal) !important;
+        border-color: var(--kcc-f-teal) !important;
+    }
+
+        .kcc-form-scope .rz-button.rz-primary:hover {
+            background-color: var(--kcc-f-teal-dark) !important;
+            border-color: var(--kcc-f-teal-dark) !important;
+        }
+
+    .kcc-form-scope .rz-button.rz-info,
+    .kcc-form-scope .rz-button.rz-secondary {
+        background-color: var(--kcc-f-teal) !important;
+        border-color: var(--kcc-f-teal) !important;
+        color: #fff !important;
+    }
+
+    .kcc-form-scope .rz-button.rz-info.rz-variant-outlined,
+    .kcc-form-scope .rz-button.rz-secondary.rz-variant-outlined,
+    .kcc-form-scope .rz-button.rz-primary.rz-variant-outlined {
+        background-color: transparent !important;
+        color: var(--kcc-f-teal) !important;
+        border-color: var(--kcc-f-teal) !important;
+    }
+
+    .kcc-form-scope .rz-badge.rz-badge-info {
+        background-color: var(--kcc-f-teal) !important;
+        color: #fff !important;
+    }
+
+/* === Approbation expand panel (WIM card style) === */
+.kcc-approbation-detail {
+    padding: 1rem 1.25rem;
+    background: #fafcfc;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 3px;
+    margin: 0.25rem 0;
+}
+
+.kcc-approbation-detail__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.85rem 1.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.kcc-approbation-detail__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.kcc-approbation-detail__field--full {
+    margin-bottom: 0.85rem;
+}
+
+.kcc-approbation-detail__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #6b7f7f;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.kcc-approbation-detail__value {
+    font-size: 0.88rem;
+    color: #1e2a2a;
+    word-break: break-word;
+}
+
+.kcc-approbation-detail__last-step {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    padding: 0.55rem 0.85rem;
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    border-radius: 3px;
+    margin-bottom: 0.85rem;
+}
+
+.kcc-approbation-detail__step-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #14532d;
+}
+
+.kcc-approbation-detail__step-meta {
+    color: #5f6f6f;
+    font-size: 0.78rem;
+}
+
+.kcc-approbation-detail__step-comment {
+    font-style: italic;
+    color: #4a5a5a;
+    font-size: 0.78rem;
+}
+
+.kcc-approbation-detail__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+
+/* ============================================================
+   Champs de saisie - bordures complètes (encadrement standard)
+   Applique un look uniforme aux formulaires :
+     - .kcc-form-scope  : BonEntreeNew / BonEntreeEdit (BEM)
+     - .bon-form        : BonSortieNew / BonSortieEdit (BSM)
+   ============================================================ */
+
+.kcc-form-scope .rz-textbox,
+.kcc-form-scope .rz-dropdown,
+.kcc-form-scope .rz-textarea,
+.kcc-form-scope .rz-numeric .rz-spinner-input,
+.kcc-form-scope .rz-datepicker .rz-inputtext,
+.kcc-form-scope input[type="date"],
+.kcc-form-scope input[type="text"]:not([class*="rz-"]),
+.kcc-form-scope input[type="email"]:not([class*="rz-"]),
+.bon-form .rz-textbox,
+.bon-form .rz-dropdown,
+.bon-form .rz-textarea,
+.bon-form .rz-numeric .rz-spinner-input,
+.bon-form .rz-datepicker .rz-inputtext,
+.bon-form input[type="date"],
+.bon-form input[type="text"]:not([class*="rz-"]),
+.bon-form input[type="email"]:not([class*="rz-"]) {
+    border: 1px solid #d0dede !important;
+    border-radius: 4px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    padding: .45rem .65rem !important;
+    transition: border-color .18s, box-shadow .18s !important;
+}
+
+/* Hover */
+.kcc-form-scope .rz-textbox:hover,
+.kcc-form-scope .rz-dropdown:hover,
+.kcc-form-scope .rz-textarea:hover,
+.kcc-form-scope .rz-datepicker .rz-inputtext:hover,
+.bon-form .rz-textbox:hover,
+.bon-form .rz-dropdown:hover,
+.bon-form .rz-textarea:hover,
+.bon-form .rz-datepicker .rz-inputtext:hover {
+    border-color: #a8bcbc !important;
+}
+
+/* Focus */
+.kcc-form-scope .rz-textbox:focus,
+.kcc-form-scope .rz-dropdown:focus,
+.kcc-form-scope .rz-textarea:focus,
+.kcc-form-scope .rz-datepicker .rz-inputtext:focus,
+.kcc-form-scope input[type="date"]:focus,
+.bon-form .rz-textbox:focus,
+.bon-form .rz-dropdown:focus,
+.bon-form .rz-textarea:focus,
+.bon-form .rz-datepicker .rz-inputtext:focus,
+.bon-form input[type="date"]:focus,
+.kcc-form-scope .rz-dropdown.rz-state-focused,
+.kcc-form-scope .rz-state-focused .rz-dropdown,
+.bon-form .rz-dropdown.rz-state-focused,
+.bon-form .rz-state-focused .rz-dropdown {
+    outline: none !important;
+    border-color: var(--kcc-primary, #00B193) !important;
+    box-shadow: 0 0 0 3px rgba(0, 177, 147, .15) !important;
+}
+
+/* Le label de dropdown reste transparent dans son conteneur */
+.kcc-form-scope .rz-dropdown .rz-dropdown-label,
+.bon-form .rz-dropdown .rz-dropdown-label {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.kcc-form-scope .rz-dropdown .rz-dropdown-trigger,
+.bon-form .rz-dropdown .rz-dropdown-trigger {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Textarea - hauteur min */
+.kcc-form-scope .rz-textarea,
+.bon-form .rz-textarea {
+    min-height: 80px;
+}
+
+/* État invalide */
+.kcc-form-scope .rz-state-error .rz-textbox,
+.kcc-form-scope .rz-state-error .rz-dropdown,
+.kcc-form-scope .rz-textbox.rz-state-error,
+.kcc-form-scope .rz-dropdown.rz-state-error,
+.bon-form .rz-state-error .rz-textbox,
+.bon-form .rz-state-error .rz-dropdown,
+.bon-form .rz-textbox.rz-state-error,
+.bon-form .rz-dropdown.rz-state-error {
+    border-color: #c0392b !important;
+}
+
+/* ── Numérotation des sections masquée (demande utilisateur) ── */
+.bon-form__section-number {
+    display: none !important;
+}
+
+/* ── Boutons de sélection de mode INTERNE / EXTERNE ── */
+.kcc-form-scope .mode-toggle-btn {
+    padding: 0.45rem 1.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 2px solid #e5e7eb;
+    border-radius: 2px;
+    background: #fff;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+}
+
+    .kcc-form-scope .mode-toggle-btn:hover {
+        border-color: #aab8b8;
+        color: #1e2a2a;
+    }
+
+    .kcc-form-scope .mode-toggle-btn.is-interne-active {
+        border-color: var(--kcc-f-teal);
+        background: var(--kcc-f-teal);
+        color: #fff;
+    }
+
+    .kcc-form-scope .mode-toggle-btn.is-externe-active {
+        border-color: #3b82f6;
+        background: #3b82f6;
+        color: #fff;
+    }

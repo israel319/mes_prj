@@ -1,21 +1,22 @@
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1rem" Style="padding: 0.5rem;">
     <RadzenText Style="color: #4a5568;">
-        Veuillez indiquer le motif de la réouverture de cette anomalie.
+        @L["Rad_Prompt"]
     </RadzenText>
 
     <RadzenStack Gap="0.25rem">
         <RadzenText TextStyle="TextStyle.Caption" FontWeight="FontWeight.Bold">
-            Motif <span style="color: #e31b23;">*</span>
+            @L["Rad_MotifLabel"] <span style="color: #e31b23;">*</span>
         </RadzenText>
-        <RadzenTextArea @bind-Value="@motif" Rows="3" Placeholder="Pourquoi réouvrir cette anomalie..." 
+        <RadzenTextArea @bind-Value="@motif" Rows="3" Placeholder="@L["Rad_MotifPlaceholder"].Value" 
                         Style="width: 100%; border-radius: 6px;" />
     </RadzenStack>
 
     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
-        <RadzenButton Text="Annuler" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
-        <RadzenButton Text="Réouvrir" Icon="refresh" ButtonStyle="ButtonStyle.Warning" 
+        <RadzenButton Text="@L["Rad_Btn_Cancel"].Value" Icon="close" ButtonStyle="ButtonStyle.Light" Click="@Cancel" />
+        <RadzenButton Text="@L["Rad_Btn_Reopen"].Value" Icon="refresh" ButtonStyle="ButtonStyle.Warning" 
                       Click="@Submit" Disabled="@(string.IsNullOrWhiteSpace(motif))" />
     </RadzenStack>
 </RadzenStack>

@@ -1,4 +1,5 @@
 @inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
 
 <RadzenStack Gap="1rem" class="rz-p-4">
     <RadzenText TextStyle="TextStyle.Body1">
@@ -15,12 +16,12 @@
     @if (Action == "reject" && string.IsNullOrWhiteSpace(commentaire))
     {
         <RadzenAlert AlertStyle="AlertStyle.Warning" Shade="Shade.Lighter" Size="AlertSize.Small">
-            Le motif du rejet est obligatoire.
+            @L["Dlg_RejectRequired"]
         </RadzenAlert>
     }
 
     <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem" JustifyContent="JustifyContent.End">
-        <RadzenButton Text="Annuler"
+        <RadzenButton Text="@L["Btn_Cancel"].Value"
                       Icon="close"
                       ButtonStyle="ButtonStyle.Light"
                       Click="@Cancel" />
@@ -40,32 +41,32 @@
 
     private string GetActionDescription() => Action switch
     {
-        "approve" => "Vous êtes sur le point d'approuver ce bon d'entrée.",
-        "return" => "Ce bon sera retourné au demandeur pour modification. Veuillez indiquer les corrections nécessaires.",
-        "reject" => "Ce bon sera définitivement rejeté. Cette action est irréversible.",
+        "approve" => L["Dlg_ApproveDesc"].Value,
+        "return" => L["Dlg_ReturnDesc"].Value,
+        "reject" => L["Dlg_RejectDesc"].Value,
         _ => ""
     };
 
     private string GetLabelText() => Action switch
     {
-        "reject" => "Motif du rejet *",
-        "return" => "Raison du retour",
-        _ => "Commentaire (optionnel)"
+        "reject" => L["Dlg_RejectLabel"].Value,
+        "return" => L["Dlg_ReturnLabel"].Value,
+        _ => L["Dlg_ApproveLabel"].Value
     };
 
     private string GetPlaceholder() => Action switch
     {
-        "reject" => "Expliquez le motif du rejet...",
-        "return" => "Indiquez les corrections nécessaires...",
-        _ => "Ajoutez un commentaire (optionnel)..."
+        "reject" => L["Dlg_RejectPlaceholder"].Value,
+        "return" => L["Dlg_ReturnPlaceholder"].Value,
+        _ => L["Dlg_ApprovePlaceholder"].Value
     };
 
     private string GetButtonText() => Action switch
     {
-        "approve" => "Approuver",
-        "return" => "Retourner",
-        "reject" => "Rejeter",
-        _ => "Confirmer"
+        "approve" => L["Dlg_Approve"].Value,
+        "return" => L["Dlg_Return"].Value,
+        "reject" => L["Dlg_Reject"].Value,
+        _ => L["Dlg_Confirm"].Value
     };
 
     private string GetButtonIcon() => Action switch

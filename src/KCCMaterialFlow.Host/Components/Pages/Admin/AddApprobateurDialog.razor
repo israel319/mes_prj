@@ -1,0 +1,105 @@
+@using KCCMaterialFlow.Application.Common.Interfaces
+@using KCCMaterialFlow.Domain.Entities
+@using KCCMaterialFlow.Domain.Enums
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<KCCMaterialFlow.Infrastructure.Data.KCCMaterialFlowDbContext> DbFactory
+@inject DialogService DialogService
+@inject IStringLocalizer<SharedResource> L
+
+<RadzenTemplateForm TItem="FormModel" Data="@model" Submit="@OnSubmit">
+    <RadzenStack Gap="1rem">
+        <RadzenFormField Text="@L["Adg_LblType"].Value" Variant="Variant.Outlined">
+            <RadzenDropDown TValue="TypeApprobateurSpecial" Data="@types" @bind-Value="model.Type" />
+        </RadzenFormField>
+
+        <RadzenFormField Text="@L["Adg_LblEmployee"].Value" Variant="Variant.Outlined">
+            <RadzenDropDown TValue="int" Data="@employees" @bind-Value="model.EmployeeId"
+                            ValueProperty="Id"
+                            AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            FilterOperator="StringFilterOperator.Contains"
+                            TextProperty="Display" />
+        </RadzenFormField>
+
+        <RadzenFormField Text="@L["Adg_LblSite"].Value" Variant="Variant.Outlined">
+            <RadzenDropDown TValue="int?" Data="@sites" @bind-Value="model.SiteId"
+                            ValueProperty="Id" TextProperty="Nom"
+                            AllowFiltering="true" AllowClear="true"
+                            Placeholder="@L["Adg_PlaceholderSite"].Value" />
+        </RadzenFormField>
+
+        <RadzenFormField Text="@L["Adg_LblOrdre"].Value" Variant="Variant.Outlined">
+            <RadzenNumeric TValue="int" @bind-Value="model.Ordre" Min="1" Max="10" />
+        </RadzenFormField>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+            <RadzenButton Text="@L["Btn_Cancel"].Value" ButtonStyle="ButtonStyle.Light" Variant="Variant.Outlined" Click="@(() => DialogService.Close(null))" />
+            <RadzenButton Text="@L["Btn_Add"].Value" ButtonStyle="ButtonStyle.Primary" ButtonType="ButtonType.Submit"
+                          Disabled="@(model.EmployeeId == 0)" />
+        </RadzenStack>
+    </RadzenStack>
+</RadzenTemplateForm>
+
+@code {
+    private readonly TypeApprobateurSpecial[] types =
+    {
+        TypeApprobateurSpecial.OPJ,
+        TypeApprobateurSpecial.Identification,
+        TypeApprobateurSpecial.IT,
+        TypeApprobateurSpecial.Environment
+    };
+
+    private List<EmployeeOption> employees = new();
+    private List<Site> sites = new();
+    private FormModel model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        // Employees ayant un AppUser actif (= compte d'accès actif)
+        var activeEmployeeIds = await ctx.AppUsers
+            .Where(u => u.EstActif && u.EmployeeId != null)
+            .Select(u => u.EmployeeId!.Value)
+            .Distinct()
+            .ToListAsync();
+
+        var list = await ctx.Employees
+            .Where(e => activeEmployeeIds.Contains(e.Id))
+            .OrderBy(e => e.NomComplet)
+            .Select(e => new EmployeeOption
+            {
+                Id = e.Id,
+                NomComplet = e.NomComplet,
+                Matricule = e.Matricule,
+                NumeroEmploye = e.NumeroEmploye
+            })
+            .ToListAsync();
+        employees = list;
+
+        sites = await ctx.Sites
+            .Where(s => s.EstActif)
+            .OrderBy(s => s.Nom)
+            .ToListAsync();
+    }
+
+    private void OnSubmit()
+    {
+        DialogService.Close(new WorkflowApprobateurs.AddApprobateurResult(model.Type, model.EmployeeId, model.Ordre, model.SiteId));
+    }
+
+    private sealed class FormModel
+    {
+        public TypeApprobateurSpecial Type { get; set; } = TypeApprobateurSpecial.OPJ;
+        public int EmployeeId { get; set; }
+        public int Ordre { get; set; } = 1;
+        public int? SiteId { get; set; }
+    }
+
+    private sealed class EmployeeOption
+    {
+        public int Id { get; set; }
+        public string NomComplet { get; set; } = "";
+        public string? Matricule { get; set; }
+        public string? NumeroEmploye { get; set; }
+        public string Display => $"{NomComplet} ({Matricule ?? "—"} / {NumeroEmploye ?? "—"})";
+    }
+}

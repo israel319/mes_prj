@@ -1,231 +1,475 @@
 @page "/"
 @attribute [Authorize]
-@using BonEntreeEntity = KCCMaterialFlow.Domain.Entities.BonEntree
-@using BonSortieEntity = KCCMaterialFlow.Domain.Entities.BonSortie
-@using BonSortieExterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieExterne
-@using BonSortieInterneEntity = KCCMaterialFlow.Domain.Entities.BonSortieInterne
-@using PretEntity = KCCMaterialFlow.Domain.Entities.Pret
+@implements IDisposable
 @inject NavigationManager Navigation
 @inject IBonEntreeService BonEntreeService
 @inject IBonSortieService BonSortieService
 @inject ICurrentUserService CurrentUserService
 @inject INotificationRejetService NotificationRejetService
+@inject KCCMaterialFlow.Host.Services.UserRoleCacheService RoleCacheService
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Tableau de bord - KCC Material</PageTitle>
+<PageTitle>@L["Dash_Title"] — KCC Material Flow</PageTitle>
 
-<RadzenStack Gap="1.5rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+@* ====== Design system : transposition fidèle du Lovable "simple-status-board" en couleurs KCC ====== *@
+<style>
+    /* ── Full-bleed : supprime le padding rz-body (1rem Radzen) et le max-width
+       du wrapper kcc-content quand le dashboard est rendu. ──────────────────── */
+    .rz-body:has(.kcc-dash) {
+        padding: 0 !important;
+    }
+    .kcc-content:has(.kcc-dash) {
+        max-width: none !important;
+    }
 
-    @* === PAGE HEADER === *@
-    <RadzenStack Gap="0.25rem">
-        <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-text-title); margin: 0;">Tableau de bord</RadzenText>
-        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin: 0;">Vue d'ensemble des bons d'entrée et de sortie</RadzenText>
-    </RadzenStack>
+    .kcc-dash {
+        --kdash-bg: var(--kcc-bg, #f0f2f5);
+        --kdash-card: var(--kcc-bg-card, #ffffff);
+        --kdash-text: var(--kcc-text-title, #1a1a1a);
+        --kdash-muted: var(--kcc-text-muted, #6b7280);
+        --kdash-border: var(--kcc-border, rgba(0,0,0,0.08));
+        --kdash-hero: var(--kcc-bg-elevated, #253C45);  /* identique au topbar → raccord sans couture */
+        --kdash-primary: var(--kcc-primary, #00B193);
+        --kdash-primary-dark: var(--kcc-primary-dark, #008F76);
+        --kdash-blue: var(--kcc-blue-brand, #003468);
+        --kdash-info: var(--kcc-info, #3B82F6);
+        --kdash-warning: var(--kcc-warning, #F59E0B);
+        --kdash-accent: var(--kcc-accent, #A61B0C);
+        --kdash-copper: var(--kcc-copper, #BB8748);
 
-    @* === STATS GRID === *@
-    <RadzenStack Orientation="Orientation.Horizontal" Wrap="FlexWrap.Wrap" Gap="1rem">
-        @* Bons d'entrée *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: var(--kcc-info-light);" @onclick="@(() => NavigateTo("/liste-bons/bem"))">
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Bons d'entrée</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-info); margin: 0;">@stats.TotalBEM</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">Total des entrées</RadzenText>
-                </RadzenStack>
-                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-info);">
-                    <RadzenIcon Icon="input" />
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
+        background: var(--kdash-bg);
+        color: var(--kdash-text);
+        min-height: 100%;
+        font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
 
-        @* Bons de sortie *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: var(--kcc-primary-light);" @onclick="@(() => NavigateTo("/liste-bons/bsm"))">
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Bons de sortie</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-primary); margin: 0;">@stats.TotalBSM</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">Total des sorties</RadzenText>
-                </RadzenStack>
-                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-primary);">
-                    <RadzenIcon Icon="output" />
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
+    /* ==== HERO DARK ==== */
+    .kdash-hero {
+        position: relative;
+        overflow: hidden;
+        background: var(--kdash-hero);
+        color: #fff;
+    }
 
-        @* En attente *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: var(--kcc-warning-light);" @onclick="@(() => NavigateTo(isApprover ? "/mes-approbations" : "/suivi-bons"))">
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">En attente</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-warning); margin: 0;">@stats.EnAttente</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">@(isApprover ? "À traiter" : "Mes demandes")</RadzenText>
-                </RadzenStack>
-                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-warning);">
-                    <RadzenIcon Icon="pending_actions" />
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
+    .kdash-hero-pattern {
+        pointer-events: none;
+        position: absolute;
+        inset: 0 0 0 auto;
+        width: 66%;
+        opacity: 0.22;
+        background-image: radial-gradient(rgba(0, 177, 147, 0.55) 1px, transparent 1px);
+        background-size: 14px 14px;
+        -webkit-mask-image: radial-gradient(ellipse at right, black 35%, transparent 75%);
+                mask-image: radial-gradient(ellipse at right, black 35%, transparent 75%);
+    }
 
-        @* Approuvés *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: rgba(5,150,105,0.08);" @onclick="@(() => NavigateTo("/liste-bons?statut=approuve"))">
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Approuvés</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: #059669; margin: 0;">@stats.Approuves</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">Ce mois</RadzenText>
-                </RadzenStack>
-                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: #059669;">
-                    <RadzenIcon Icon="check_circle" />
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
+    .kdash-hero-glow-1 {
+        pointer-events: none;
+        position: absolute;
+        top: -10rem;
+        left: -8rem;
+        height: 24rem;
+        width: 24rem;
+        border-radius: 9999px;
+        filter: blur(60px);
+        background: rgba(0, 177, 147, 0.40);
+    }
 
-        @* Rejets *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: var(--kcc-accent-light);" @onclick="@(() => NavigateTo("/liste-rejets"))">
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Rejets</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-accent); margin: 0;">@stats.Rejetes</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">@(stats.RejetsNonLus > 0 ? $"{stats.RejetsNonLus} non lu(s)" : "Tous lus")</RadzenText>
-                </RadzenStack>
-                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: var(--kcc-accent);">
-                    <RadzenIcon Icon="cancel" />
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
+    .kdash-hero-glow-2 {
+        pointer-events: none;
+        position: absolute;
+        top: 0;
+        right: 33%;
+        height: 18rem;
+        width: 18rem;
+        border-radius: 9999px;
+        filter: blur(60px);
+        background: rgba(0, 52, 104, 0.45);
+    }
 
-        @* Prêts actifs *@
-        <RadzenCard Style="flex: 1 1 200px; min-width: 200px; cursor: pointer; background: rgba(139,92,246,0.08);" @onclick="@(() => NavigateTo("/liste-bons/prets"))">
-            <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start">
-                <RadzenStack Gap="0.25rem">
-                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); font-weight: 500; margin: 0;">Prêts</RadzenText>
-                    <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: #8B5CF6; margin: 0;">@stats.PretsActifs</RadzenText>
-                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">
-                        @(stats.PretsEnRetard > 0 ? $"{stats.PretsEnRetard} en retard" : "Aucun retard")
-                    </RadzenText>
-                </RadzenStack>
-                <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center"
-                             Style="width: 40px; height: 40px; background: rgba(255,255,255,0.6); color: #8B5CF6;">
-                    <RadzenIcon Icon="swap_horiz" />
-                </RadzenStack>
-            </RadzenStack>
-        </RadzenCard>
-    </RadzenStack>
+    .kdash-hero-inner {
+        position: relative;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
 
-    @* === ACTIONS RAPIDES === *@
-    <RadzenCard>
-        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0 0 0.25rem 0;">Actions rapides</RadzenText>
-        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin: 0 0 1rem 0;">Créer un nouveau bon d'entrée ou de sortie</RadzenText>
-        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" Wrap="FlexWrap.Wrap">
-            <RadzenButton Text="Nouveau bon d'entrée" Icon="add" ButtonStyle="ButtonStyle.Primary"
-                          Click="@(() => NavigateTo("/bon-entree/nouveau"))" />
-            <RadzenButton Text="Nouveau bon de sortie" Icon="add" ButtonStyle="ButtonStyle.Secondary" Variant="Variant.Outlined"
-                          Click="@(() => NavigateTo("/bon-sortie/nouveau"))" />
-        </RadzenStack>
-    </RadzenCard>
+    .kdash-welcome {
+        padding-top: 2.25rem;
+        padding-bottom: 6rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1.5rem;
+    }
 
-    @* === 2 COLONNES: Entrées / Sorties récentes === *@
-    <RadzenRow Gap="1.5rem">
-        @* Colonne 1: Entrées récentes *@
-        <RadzenColumn Size="12" SizeMD="6">
-            <RadzenCard>
-                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start" class="rz-mb-3">
-                    <RadzenStack Gap="0.125rem">
-                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Entrées récentes</RadzenText>
-                        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin: 0;">Derniers bons d'entrée créés</RadzenText>
-                    </RadzenStack>
-                    <RadzenButton Text="Voir tout" Icon="arrow_forward" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
-                                  Size="ButtonSize.Small" Click="@(() => NavigateTo("/liste-bons/bem"))" class="kcc-link-button" />
-                </RadzenStack>
+    .kdash-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        padding: 0.25rem 0.65rem;
+        border-radius: 9999px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.72);
+        margin-bottom: 0.75rem;
+    }
 
-                @if (isLoading)
-                {
-                    <RadzenStack AlignItems="AlignItems.Center" Style="padding: 2rem;">
-                        <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Small" />
-                    </RadzenStack>
+    .kdash-pill-dot {
+        height: 6px;
+        width: 6px;
+        border-radius: 9999px;
+        background: var(--kdash-primary);
+        animation: kdash-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @@keyframes kdash-pulse {
+        0%, 100% { opacity: 1; }
+        50%      { opacity: 0.45; }
+    }
+
+    .kdash-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        line-height: 1.1;
+        margin: 0;
+    }
+
+    @@media (min-width: 768px) {
+        .kdash-title { font-size: 1.9rem; }
+    }
+
+    .kdash-subtitle {
+        margin: 0.4rem 0 0 0;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.62);
+    }
+
+    .kdash-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .kdash-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-radius: 0.5rem;
+        padding: 0.55rem 0.85rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: filter 0.18s, background 0.18s, transform 0.18s;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        background: rgba(255, 255, 255, 0.07);
+        color: rgba(255, 255, 255, 0.85);
+        white-space: nowrap;
+    }
+
+    .kdash-btn:hover {
+        background: rgba(255, 255, 255, 0.12);
+        text-decoration: none;
+        color: #fff;
+    }
+
+    .kdash-btn-primary {
+        background: var(--kdash-primary);
+        color: #fff;
+        border-color: transparent;
+        font-weight: 600;
+    }
+
+    .kdash-btn-primary:hover {
+        background: var(--kdash-primary);
+        filter: brightness(1.10);
+        color: #fff;
+    }
+
+    /* ==== STATS PANEL FLOTTANT ==== */
+    .kdash-main {
+        position: relative;
+        z-index: 10;
+        max-width: 1400px;
+        margin: -4rem auto 0;
+        padding: 0 1.5rem 4rem;
+    }
+
+    .kdash-panel {
+        background: var(--kdash-card);
+        border: 1px solid var(--kdash-border);
+        border-radius: 0;
+        padding: 1.5rem;
+        box-shadow: 0 20px 60px -20px rgba(30, 48, 56, 0.35);
+    }
+
+    @@media (min-width: 768px) {
+        .kdash-panel { padding: 1.75rem; }
+    }
+
+    .kdash-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+
+    .kdash-panel-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--kdash-text);
+    }
+
+    .kdash-panel-sub {
+        font-size: 0.75rem;
+        color: var(--kdash-muted);
+        margin: 0.15rem 0 0 0;
+    }
+
+    .kdash-segmented {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15rem;
+        border: 1px solid var(--kdash-border);
+        border-radius: 0.5rem;
+        padding: 0.15rem;
+        font-size: 0.75rem;
+    }
+
+    .kdash-seg {
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.35rem;
+        cursor: pointer;
+        color: var(--kdash-muted);
+        background: transparent;
+        border: 0;
+        font-weight: 500;
+    }
+
+    .kdash-seg.is-active {
+        background: #f3f4f6;
+        color: var(--kdash-text);
+        font-weight: 600;
+    }
+
+    /* ==== KPI GRID : séparateurs 1px style tableau ==== */
+    .kdash-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1px;
+        background: var(--kdash-border);
+    }
+
+    @@media (max-width: 767px) {
+        .kdash-grid { grid-template-columns: 1fr; }
+    }
+    @@media (min-width: 768px) and (max-width: 1023px) {
+        .kdash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    .kdash-kpi {
+        background: var(--kdash-card);
+        padding: 1.25rem 1.5rem;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        transition: background 0.15s;
+    }
+
+    .kdash-kpi:hover {
+        background: #fafafa;
+    }
+
+    /* ligne 1 : valeur+label à gauche, icône à droite */
+    .kdash-kpi-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+
+    .kdash-kpi-icon {
+        flex-shrink: 0;
+        height: 3.25rem;
+        width: 3.25rem;
+        border-radius: 0.75rem;
+        display: grid;
+        place-items: center;
+        background: var(--kdash-tone-bg);
+        color: var(--kdash-tone);
+    }
+
+    .kdash-kpi-icon .rzi { font-size: 1.6rem; }
+
+    .kdash-kpi-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--kdash-muted);
+        margin: 0.2rem 0 0 0;
+    }
+
+    /* ligne 2 : valeur */
+    .kdash-kpi-value {
+        font-size: 2rem;
+        line-height: 1;
+        font-weight: 800;
+        color: var(--kdash-tone);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* ligne 3 : sous-titre */
+    .kdash-kpi-caption {
+        font-size: 0.75rem;
+        color: var(--kdash-muted);
+        margin: 0;
+    }
+
+    /* ==== FOOTER PANEL ==== */
+    .kdash-foot {
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--kdash-border);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .kdash-foot small {
+        font-size: 0.75rem;
+        color: var(--kdash-muted);
+    }
+
+    .kdash-foot strong {
+        color: var(--kdash-text);
+        font-weight: 600;
+    }
+
+    .kdash-foot-link {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--kdash-primary);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .kdash-foot-link:hover {
+        text-decoration: underline;
+        color: var(--kdash-primary-dark);
+    }
+
+    /* ==== TONES (mapping KCC) ==== */
+    .tone-primary { --kdash-tone: var(--kdash-primary); --kdash-tone-bg: color-mix(in oklab, var(--kdash-primary) 12%, white); --kdash-tone-soft: color-mix(in oklab, var(--kdash-primary) 30%, transparent); }
+    .tone-info    { --kdash-tone: var(--kdash-info);    --kdash-tone-bg: color-mix(in oklab, var(--kdash-info) 12%, white);    --kdash-tone-soft: color-mix(in oklab, var(--kdash-info) 30%, transparent); }
+    .tone-warning { --kdash-tone: var(--kdash-warning); --kdash-tone-bg: color-mix(in oklab, var(--kdash-warning) 14%, white); --kdash-tone-soft: color-mix(in oklab, var(--kdash-warning) 30%, transparent); }
+    .tone-accent  { --kdash-tone: var(--kdash-accent);  --kdash-tone-bg: color-mix(in oklab, var(--kdash-accent) 10%, white);  --kdash-tone-soft: color-mix(in oklab, var(--kdash-accent) 28%, transparent); }
+    .tone-blue    { --kdash-tone: var(--kdash-blue);    --kdash-tone-bg: color-mix(in oklab, var(--kdash-blue) 10%, white);    --kdash-tone-soft: color-mix(in oklab, var(--kdash-blue) 28%, transparent); }
+    .tone-copper  { --kdash-tone: var(--kdash-copper);  --kdash-tone-bg: color-mix(in oklab, var(--kdash-copper) 14%, white);  --kdash-tone-soft: color-mix(in oklab, var(--kdash-copper) 28%, transparent); }
+</style>
+
+<div class="kcc-dash">
+    @* === HERO DARK === *@
+    <div class="kdash-hero">
+        <div class="kdash-hero-pattern" aria-hidden="true"></div>
+        <div class="kdash-hero-glow-1"  aria-hidden="true"></div>
+        <div class="kdash-hero-glow-2"  aria-hidden="true"></div>
+
+        <div class="kdash-hero-inner">
+            <div class="kdash-welcome">
+                <div>
+                    <div class="kdash-pill">
+                        <span class="kdash-pill-dot"></span>
+                        @L["Dash_LivePortal"]
+                    </div>
+                    <h1 class="kdash-title">@GetGreeting() @CurrentUserService.GetUserFirstName()</h1>
+                    <p class="kdash-subtitle">@L["Dash_Subtitle"]</p>
+                </div>
+                <div class="kdash-actions">
+                    <a class="kdash-btn" href="/bon-sortie/nouveau">
+                        @L["Dash_NewBSM"]
+                        <RadzenIcon Icon="north_east" Style="font-size:1rem;" />
+                    </a>
+                    <a class="kdash-btn kdash-btn-primary" href="/bon-entree/nouveau">
+                        @L["Dash_NewBEM"]
+                        <RadzenIcon Icon="north_east" Style="font-size:1rem;" />
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* === STATS PANEL FLOTTANT === *@
+    <main class="kdash-main">
+        <div class="kdash-panel">
+            <div class="kdash-panel-head">
+                <div>
+                    <h2 class="kdash-panel-title">@L["Dash_LiveIndicators"]</h2>
+                    <p class="kdash-panel-sub">@L["Dash_VolumeTotal"] : @TotalVolume @L["Dash_Operations"]</p>
+                </div>
+            
+            </div>
+
+            @* === KPI GRID === *@
+            <div class="kdash-grid">
+                @{
+                    var kpis = new[]
+                    {
+                        new KpiDef(L["Dash_EntryVouchers"], stats.TotalBEM,    L["Dash_TotalEntries"].Value,                                                                                "login",        "tone-info",    "/liste-bons/bem"),
+                        new KpiDef(L["Dash_ExitVouchers"],  stats.TotalBSM,    L["Dash_TotalExits"].Value,                                                                                  "logout",       "tone-copper",  "/liste-bons/bsm"),
+                        new KpiDef(L["Dash_Pending"],       stats.EnAttente,   isApprover ? L["Dash_ToProcess"].Value : L["Dash_MyRequests"].Value,                                         "assignment",   "tone-warning", isApprover ? "/mes-approbations" : "/suivi-bons",
+                                   stats.EnAttente > 0 ? $"↗ +{stats.EnAttente}" : "↗ —"),
+                        new KpiDef(L["Dash_Approved"],      stats.Approuves,   L["Dash_ThisMonth"].Value,                                                                                   "check_circle", "tone-primary", "/liste-bons?statut=approuve"),
+                        new KpiDef(L["Dash_Rejections"],    stats.Rejetes,     stats.RejetsNonLus > 0 ? $"{stats.RejetsNonLus} {L["Dash_Unread"]}" : L["Dash_AllRead"].Value,              "cancel",       "tone-accent",  "/liste-rejets",
+                                   stats.RejetsNonLus > 0 ? $"↘ {stats.RejetsNonLus}" : "↗ 0"),
+                        new KpiDef(L["Dash_Loans"],         stats.PretsActifs, stats.PretsEnRetard > 0 ? $"{stats.PretsEnRetard} {L["Dash_Overdue"]}" : L["Dash_NoOverdue"].Value,         "swap_horiz",   "tone-blue",    "/liste-bons/prets",
+                                   stats.PretsEnRetard > 0 ? $"↘ {stats.PretsEnRetard}" : "↗ —"),
+                    };
                 }
-                else if (entreesRecentes.Any())
+                @foreach (var k in kpis)
                 {
-                    <RadzenStack Gap="0">
-                        @foreach (var entree in entreesRecentes)
-                        {
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center"
-                                         JustifyContent="JustifyContent.SpaceBetween"
-                                         Style="padding: 0.75rem 0; border-bottom: 1px solid var(--kcc-border); cursor: pointer;"
-                                         @onclick="() => NavigateTo(entree.Url)">
-                                <RadzenStack Gap="0.125rem">
-                                    <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 500; margin: 0;">@entree.Reference</RadzenText>
-                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">@entree.NomEntreprise</RadzenText>
-                                </RadzenStack>
-                                <RadzenBadge Text="@entree.StatutLibelle" BadgeStyle="@GetBadgeStyleFromCode(entree.StatutCode)" />
-                            </RadzenStack>
-                        }
-                    </RadzenStack>
+                    <div class="kdash-kpi @k.Tone" @onclick="@(() => Navigation.NavigateTo(k.Url))">
+                        <div class="kdash-kpi-head">
+                            <div>
+                                <span class="kdash-kpi-value">@k.Value</span>
+                                <p class="kdash-kpi-label">@k.Label</p>
+                            </div>
+                            <div class="kdash-kpi-icon"><RadzenIcon Icon="@k.Icon" /></div>
+                        </div>
+                        <p class="kdash-kpi-caption">@k.Sublabel</p>
+                    </div>
                 }
-                else
-                {
-                    <RadzenStack AlignItems="AlignItems.Center" Style="padding: 2rem;">
-                        <RadzenIcon Icon="inbox" Style="font-size: 2.5rem; opacity: 0.5; color: var(--kcc-text-muted);" />
-                        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin: 0;">Aucune entrée récente</RadzenText>
-                    </RadzenStack>
-                }
-            </RadzenCard>
-        </RadzenColumn>
+            </div>
 
-        @* Colonne 2: Sorties récentes *@
-        <RadzenColumn Size="12" SizeMD="6">
-            <RadzenCard>
-                <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Start" class="rz-mb-3">
-                    <RadzenStack Gap="0.125rem">
-                        <RadzenText TextStyle="TextStyle.H6" Style="margin: 0;">Sorties récentes</RadzenText>
-                        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin: 0;">Derniers bons de sortie créés</RadzenText>
-                    </RadzenStack>
-                    <RadzenButton Text="Voir tout" Icon="arrow_forward" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text"
-                                  Size="ButtonSize.Small" Click="@(() => NavigateTo("/liste-bons/bsm"))" class="kcc-link-button" />
-                </RadzenStack>
-
-                @if (isLoading)
-                {
-                    <RadzenStack AlignItems="AlignItems.Center" Style="padding: 2rem;">
-                        <RadzenProgressBarCircular ShowValue="false" Size="ProgressBarCircularSize.Small" />
-                    </RadzenStack>
-                }
-                else if (sortiesRecentes.Any())
-                {
-                    <RadzenStack Gap="0">
-                        @foreach (var sortie in sortiesRecentes)
-                        {
-                            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center"
-                                         JustifyContent="JustifyContent.SpaceBetween"
-                                         Style="padding: 0.75rem 0; border-bottom: 1px solid var(--kcc-border); cursor: pointer;"
-                                         @onclick="() => NavigateTo(sortie.Url)">
-                                <RadzenStack Gap="0.125rem">
-                                    <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 500; margin: 0;">@sortie.Reference</RadzenText>
-                                    <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--kcc-text-muted); margin: 0;">@sortie.NomEntreprise</RadzenText>
-                                </RadzenStack>
-                                <RadzenBadge Text="@sortie.StatutLibelle" BadgeStyle="@GetBadgeStyleFromCode(sortie.StatutCode)" />
-                            </RadzenStack>
-                        }
-                    </RadzenStack>
-                }
-                else
-                {
-                    <RadzenStack AlignItems="AlignItems.Center" Style="padding: 2rem;">
-                        <RadzenIcon Icon="outbox" Style="font-size: 2.5rem; opacity: 0.5; color: var(--kcc-text-muted);" />
-                        <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-muted); margin: 0;">Aucune sortie récente</RadzenText>
-                    </RadzenStack>
-                }
-            </RadzenCard>
-        </RadzenColumn>
-    </RadzenRow>
-</RadzenStack>
+            <div class="kdash-foot">
+                <small>@L["Dash_LiveIndicators"] · <strong>@now.ToString("HH:mm")</strong></small>
+                
+            </div>
+        </div>
+    </main>
+</div>
 
 @code {
-    // ============ MODELE DE DONNEES ============
+    private string GetGreeting()
+    {
+        var h = DateTime.Now.Hour;
+        if (h < 5)  return L["Dash_GoodEvening"];
+        if (h < 12) return L["Dash_GoodMorning"];
+        if (h < 18) return L["Dash_GoodAfternoon"];
+        return L["Dash_GoodEvening"];
+    }
+
+    private record KpiDef(LocalizedString Label, int Value, string Sublabel, string Icon, string Tone, string Url, string Badge = "↗ —");
+
     private class DashboardStats
     {
         public int TotalBEM { get; set; }
@@ -237,54 +481,44 @@
         public int PretsActifs { get; set; }
         public int PretsEnRetard { get; set; }
     }
-    
-    private class BonItem
-    {
-        public string Reference { get; set; } = string.Empty;
-        public string NomEntreprise { get; set; } = string.Empty;
-        public string StatutCode { get; set; } = string.Empty;
-        public string StatutLibelle { get; set; } = string.Empty;
-        public string Url { get; set; } = string.Empty;
-    }
-    
-    // ============ DONNEES ============
-    private bool isLoading = true;
+
     private DashboardStats stats = new();
-    private List<BonItem> entreesRecentes = new();
-    private List<BonItem> sortiesRecentes = new();
     private bool canSeeAll = false;
     private bool isApprover = false;
-    private List<string> approverRoles = new();
-    
-    // Liste des rôles qui peuvent approuver
-    private static readonly string[] AllApproverRoles = new[] 
-    { 
-        "Superviseur", "GM", "OPJ", "IT", "Environnement", "Identification", "Investigation", "Barriere" 
-    };
-    
+    private DateTime now = DateTime.Now;
+    private System.Threading.Timer? clockTimer;
+
+    // TotalBEM et TotalBSM représentent déjà tous les bons (approuvés, en attente, etc.)
+    // EnAttente/Approuvés sont des sous-ensembles → ne pas les additionner pour éviter le double comptage
+    private int TotalVolume => stats.TotalBEM + stats.TotalBSM;
+
     protected override async Task OnInitializedAsync()
     {
-        isLoading = true;
         try
         {
-            // Récupérer les rôles de l'utilisateur
-            var roles = CurrentUserService.GetUserRoles().ToList();
-            canSeeAll = roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase));
-            
-            // Vérifier si l'utilisateur est un approbateur
-            approverRoles = roles.Where(r => AllApproverRoles.Contains(r, StringComparer.OrdinalIgnoreCase)).ToList();
-            isApprover = approverRoles.Any();
-            
-            await Task.WhenAll(LoadStatsAsync(), LoadRecentBonsAsync());
+            // canSeeAll : Admin / SuperAdmin (vue globale).
+            // isApprover : Admin/SuperAdmin OU manager (subordonnés) OU approbateur spécial.
+            var niveau = CurrentUserService.NiveauAdmin;
+            canSeeAll = niveau >= KCCMaterialFlow.Domain.Enums.NiveauAdmin.Admin;
+            isApprover = canSeeAll || RoleCacheService.IsApprover(CurrentUserService.GetUserLogin());
+
+            await LoadStatsAsync();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Erreur dashboard: {ex.Message}");
         }
-        finally
+
+        clockTimer = new System.Threading.Timer(_ =>
         {
-            isLoading = false;
-        }
+            now = DateTime.Now;
+            InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+    }
+
+    public void Dispose()
+    {
+        clockTimer?.Dispose();
     }
 
     private async Task LoadStatsAsync()
@@ -293,10 +527,9 @@
         {
             var currentLogin = CurrentUserService.GetUserLogin();
             var currentName = CurrentUserService.GetUserDisplayName();
-            
+
             if (canSeeAll)
             {
-                // Admins : lancer tous les appels en parallèle
                 var bemStatsTask = BonEntreeService.GetStatsAsync();
                 var bsmStatsTask = BonSortieService.GetStatsAsync();
                 var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
@@ -325,9 +558,6 @@
             }
             else if (isApprover)
             {
-                // Approbateurs : bons propres (server-side) + pending approvals en parallèle
-                // BEM: NomDemandeur stores display name → use currentName
-                // BSM: filter checks both NomDemandeur and CreatedByLogin → use currentLogin
                 var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 100 });
                 var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 100 });
                 var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
@@ -338,33 +568,26 @@
 
                 await Task.WhenAll(myBEMTask, myBSMTask, pendingBEMTask, pendingBSMTask, allRejetsTask, activeLoansTask, overdueLoansTask);
 
-                var myBEM = myBEMTask.Result;
-                var myBSM = myBSMTask.Result;
+                var userBEM = myBEMTask.Result.Items.ToList();
+                var userBSM = myBSMTask.Result.Items.ToList();
                 var pendingBEM = pendingBEMTask.Result;
                 var pendingBSM = pendingBSMTask.Result;
 
-                var userBEM = myBEM.Items.ToList();
-                var userBSM = myBSM.Items.ToList();
-
-                // Calculer les totaux visibles (propres + pending, dédupliqués)
                 var allVisibleBEMIds = new HashSet<int>(userBEM.Select(b => b.Id));
                 foreach (var bon in pendingBEM) allVisibleBEMIds.Add(bon.Id);
 
                 var allVisibleBSMIds = new HashSet<int>(userBSM.Select(b => b.Id));
                 foreach (var bon in pendingBSM) allVisibleBSMIds.Add(bon.Id);
 
-                // Tous les bons visibles pour compter les approuvés
                 var allVisibleBEM = userBEM.Concat(pendingBEM.Where(b => !userBEM.Any(u => u.Id == b.Id))).ToList();
                 var allVisibleBSM = userBSM.Concat(pendingBSM.Where(b => !userBSM.Any(u => u.Id == b.Id))).ToList();
 
-                // Filtrer les rejets liés à l'utilisateur
                 var allRejets = allRejetsTask.Result;
                 var userRejets = allRejets.Where(r =>
                     (r.DemandeurNom?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true) ||
                     (r.DemandeurNom?.Equals(currentName, StringComparison.OrdinalIgnoreCase) == true) ||
                     (r.ApprobateurLogin?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true)).ToList();
 
-                // Filtrer les prêts : uniquement ceux liés aux BSM visibles (propres + pending)
                 var userActiveLoans = activeLoansTask.Result.Where(p => allVisibleBSMIds.Contains(p.Id)).ToList();
                 var userOverdueLoans = overdueLoansTask.Result.Where(p => allVisibleBSMIds.Contains(p.Id)).ToList();
 
@@ -383,9 +606,6 @@
             }
             else
             {
-                // Utilisateurs normaux : filtrage server-side par demandeur
-                // BEM: NomDemandeur stores display name → use currentName
-                // BSM: filter checks both NomDemandeur and CreatedByLogin → use currentLogin
                 var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 100 });
                 var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 100 });
                 var allRejetsTask = NotificationRejetService.GetNotificationsAsync();
@@ -397,13 +617,11 @@
                 var userBEM = myBEMTask.Result.Items.ToList();
                 var userBSM = myBSMTask.Result.Items.ToList();
 
-                // Filtrer les rejets : uniquement ceux où l'utilisateur est le demandeur
                 var allRejets = allRejetsTask.Result;
                 var userRejets = allRejets.Where(r =>
                     (r.DemandeurNom?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true) ||
                     (r.DemandeurNom?.Equals(currentName, StringComparison.OrdinalIgnoreCase) == true)).ToList();
 
-                // Filtrer les prêts : uniquement ceux liés aux BSM de l'utilisateur
                 var userBSMIds = new HashSet<int>(userBSM.Select(b => b.Id));
                 var userActiveLoans = activeLoansTask.Result.Where(p => userBSMIds.Contains(p.Id)).ToList();
                 var userOverdueLoans = overdueLoansTask.Result.Where(p => userBSMIds.Contains(p.Id)).ToList();
@@ -424,159 +642,5 @@
             }
         }
         catch { }
-    }
-
-    private async Task LoadRecentBonsAsync()
-    {
-        try
-        {
-            var currentLogin = CurrentUserService.GetUserLogin();
-            var currentName = CurrentUserService.GetUserDisplayName();
-            
-            if (canSeeAll)
-            {
-                // Admins : les 5 derniers bons en parallèle
-                var allBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Take = 5 });
-                var allBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Take = 5 });
-                await Task.WhenAll(allBEMTask, allBSMTask);
-
-                entreesRecentes = allBEMTask.Result.Items.Select(b => new BonItem
-                {
-                    Reference = b.NumeroReference,
-                    NomEntreprise = b.NomCompagnie ?? "N/A",
-                    StatutCode = MapStatutCode(b.StatutActuel),
-                    StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                    Url = $"/bon-entree/{b.Id}"
-                }).ToList();
-
-                sortiesRecentes = allBSMTask.Result.Items.Select(b => new BonItem
-                {
-                    Reference = b.NumeroReference,
-                    NomEntreprise = GetBSMType(b),
-                    StatutCode = MapStatutCode(b.StatutActuel),
-                    StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                    Url = $"/bon-sortie/{b.Id}"
-                }).ToList();
-            }
-            else if (isApprover)
-            {
-                // Approbateurs : bons propres + pending à mon niveau, triés par date, top 5
-                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 20 });
-                var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 20 });
-                var pendingBEMTask = BonEntreeService.GetPendingApprovalsAsync();
-                var pendingBSMTask = BonSortieService.GetPendingApprovalsAsync();
-                await Task.WhenAll(myBEMTask, myBSMTask, pendingBEMTask, pendingBSMTask);
-
-                var bemIds = new HashSet<int>();
-                var allBEM = new List<BonEntreeEntity>();
-                foreach (var b in myBEMTask.Result.Items) { if (bemIds.Add(b.Id)) allBEM.Add(b); }
-                foreach (var b in pendingBEMTask.Result) { if (bemIds.Add(b.Id)) allBEM.Add(b); }
-
-                entreesRecentes = allBEM
-                    .OrderByDescending(b => b.DateCreation)
-                    .Take(5)
-                    .Select(b => new BonItem
-                    {
-                        Reference = b.NumeroReference,
-                        NomEntreprise = b.NomCompagnie ?? "N/A",
-                        StatutCode = MapStatutCode(b.StatutActuel),
-                        StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                        Url = $"/bon-entree/{b.Id}"
-                    }).ToList();
-
-                var bsmIds = new HashSet<int>();
-                var allBSM = new List<BonSortieEntity>();
-                foreach (var b in myBSMTask.Result.Items) { if (bsmIds.Add(b.Id)) allBSM.Add(b); }
-                foreach (var b in pendingBSMTask.Result) { if (bsmIds.Add(b.Id)) allBSM.Add(b); }
-
-                sortiesRecentes = allBSM
-                    .OrderByDescending(b => b.DateCreation)
-                    .Take(5)
-                    .Select(b => new BonItem
-                    {
-                        Reference = b.NumeroReference,
-                        NomEntreprise = GetBSMType(b),
-                        StatutCode = MapStatutCode(b.StatutActuel),
-                        StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                        Url = $"/bon-sortie/{b.Id}"
-                    }).ToList();
-            }
-            else
-            {
-                // Utilisateurs normaux : uniquement leurs propres bons
-                // BEM: NomDemandeur stores display name → use currentName
-                // BSM: filter checks both NomDemandeur and CreatedByLogin → use currentLogin
-                var myBEMTask = BonEntreeService.GetListAsync(new BonEntreeFilter { Demandeur = currentName, Take = 5 });
-                var myBSMTask = BonSortieService.GetListAsync(new BonSortieFilter { Demandeur = currentLogin, Take = 5 });
-                await Task.WhenAll(myBEMTask, myBSMTask);
-
-                entreesRecentes = myBEMTask.Result.Items
-                    .Select(b => new BonItem
-                    {
-                        Reference = b.NumeroReference,
-                        NomEntreprise = b.NomCompagnie ?? "N/A",
-                        StatutCode = MapStatutCode(b.StatutActuel),
-                        StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                        Url = $"/bon-entree/{b.Id}"
-                    }).ToList();
-
-                sortiesRecentes = myBSMTask.Result.Items
-                    .Select(b => new BonItem
-                    {
-                        Reference = b.NumeroReference,
-                        NomEntreprise = GetBSMType(b),
-                        StatutCode = MapStatutCode(b.StatutActuel),
-                        StatutLibelle = GetStatutDisplay(b.StatutActuel),
-                        Url = $"/bon-sortie/{b.Id}"
-                    }).ToList();
-            }
-        }
-        catch { }
-    }
-
-    private static string GetBSMType(BonSortieEntity bon) => bon switch
-    {
-        PretEntity => "Prêt",
-        BonSortieInterneEntity => "Interne",
-        BonSortieExterneEntity => "Externe",
-        _ => "N/A"
-    };
-
-    private static string MapStatutCode(string? statut) => statut?.ToUpperInvariant() switch
-    {
-        "DRAFT" => "brouillon",
-        "APPROVED" => "approuve",
-        "REJECTED" => "rejete",
-        var s when s != null && s.StartsWith("PENDING") => "en_attente",
-        _ => "brouillon"
-    };
-
-    private static string GetStatutDisplay(string? statut) => statut?.ToUpperInvariant() switch
-    {
-        "DRAFT" => "Brouillon",
-        "APPROVED" => "Approuvé",
-        "REJECTED" => "Rejeté",
-        "COMPLETED" => "Complété",
-        "CANCELLED" => "Annulé",
-        var s when s != null && s.StartsWith("PENDING") => "En attente",
-        _ => statut ?? "N/A"
-    };
-    
-    // ============ HELPERS ============
-    private BadgeStyle GetBadgeStyleFromCode(string statutCode)
-    {
-        return statutCode switch
-        {
-            "approuve" => BadgeStyle.Success,
-            "en_attente" => BadgeStyle.Warning,
-            "rejete" => BadgeStyle.Danger,
-            "brouillon" => BadgeStyle.Light,
-            _ => BadgeStyle.Light
-        };
-    }
-    
-    private void NavigateTo(string url)
-    {
-        Navigation.NavigateTo(url);
     }
 }

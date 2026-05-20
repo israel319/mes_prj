@@ -1,31 +1,32 @@
 @inject ICurrentUserService CurrentUserService
+@inject IStringLocalizer<SharedResource> L
 
-<RadzenPanelMenuItem Text="Dashboard" Icon="dashboard" Path="/" />
-<RadzenPanelMenuItem Text="Tous les Bons" Icon="list_alt" Path="/liste-bons" />
+<RadzenPanelMenuItem Text="@L["Nav_Dashboard"]" Icon="dashboard" Path="/" />
+<RadzenPanelMenuItem Text="@L["Nav_AllVouchers"]" Icon="list_alt" Path="/liste-bons" />
 
 @if (CanApprove)
 {
-    <RadzenPanelMenuItem Text="Approbations" Icon="rule" Path="/mes-approbations" />
+    <RadzenPanelMenuItem Text="@L["Nav_Approvals"]" Icon="rule" Path="/mes-approbations" />
 }
 
 @if (CanCreateBEM)
 {
-    <RadzenPanelMenuItem Text="Nouveau BEM" Icon="input" Path="/bon-entree/nouveau" />
+    <RadzenPanelMenuItem Text="@L["Nav_NewBEM"]" Icon="input" Path="/bon-entree/nouveau" />
 }
 @if (CanCreateBSM)
 {
-    <RadzenPanelMenuItem Text="Nouveau BSM" Icon="output" Path="/bon-sortie/nouveau" />
+    <RadzenPanelMenuItem Text="@L["Nav_NewBSM"]" Icon="output" Path="/bon-sortie/nouveau" />
 }
 @if (CanScan)
 {
-    <RadzenPanelMenuItem Text="Scanner" Icon="qr_code_scanner" Path="/securite/scanner" />
+    <RadzenPanelMenuItem Text="@L["Nav_Scanner"]" Icon="qr_code_scanner" Path="/securite/scanner" />
 }
 
 @if (IsAdmin)
 {
-    <RadzenPanelMenuItem Text="Admin" Icon="settings" Path="/admin/utilisateurs" />
-    <RadzenPanelMenuItem Text="Workflows" Icon="route" Path="/admin/workflows" />
-    <RadzenPanelMenuItem Text="Dept / Motifs" Icon="account_tree" Path="/admin/departement-motifs" />
+    <RadzenPanelMenuItem Text="@L["Nav_Admin"]" Icon="settings" Path="/admin/utilisateurs" />
+    <RadzenPanelMenuItem Text="@L["AdmNav_Workflows"]" Icon="route" Path="/admin/workflows" />
+    <RadzenPanelMenuItem Text="@L["Nav_DeptMotifs"]" Icon="account_tree" Path="/admin/departement-motifs" />
 }
 
 @code {

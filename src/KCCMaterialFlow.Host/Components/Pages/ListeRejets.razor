@@ -1,146 +1,192 @@
-@page "/liste-rejets"
+﻿@page "/liste-rejets"
 @attribute [Authorize]
 @using KCCMaterialFlow.Host.Components.Dialogs
 @inject INotificationRejetService NotificationRejetService
 @inject ICurrentUserService CurrentUserService
 @inject DialogService DialogService
 @inject NotificationService NotificationService
-@inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>Rejets - KCC Material</PageTitle>
+<PageTitle>@L["Rejets_Title"] — KCC Material Flow</PageTitle>
 
-<RadzenStack Gap="1rem" Style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
-    @* PAGE HEADER *@
-    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween" Wrap="FlexWrap.Wrap" Gap="1rem">
-        <RadzenStack Gap="0.25rem">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                <RadzenIcon Icon="cancel" Style="color: #ef4444;" />
-                <RadzenText TextStyle="TextStyle.H4" Style="font-weight: 700; color: var(--kcc-slate); margin: 0;">Liste des rejets</RadzenText>
+<div class="kcp-page">
+    <div class="kcp-hero">
+        <div class="kcp-hero-inner">
+            <div>
+                <h1 class="kcp-title">@L["Rejets_Title"]</h1>
+                <p class="kcp-subtitle">@L["Rejets_Subtitle"]</p>
+            </div>
+            <div class="kcp-hero-actions">
+                <button class="kcp-btn" type="button" @onclick="MarkAllAsRead" disabled="@(!rejets.Any(r => !r.EstLue))">
+                    <RadzenIcon Icon="done_all" Style="font-size:1rem;" />
+                    @L["Rejets_MarkAllRead"]
+                </button>
+                <button class="kcp-btn" type="button" @onclick="LoadRejetsAsync">
+                    <RadzenIcon Icon="refresh" Style="font-size:1rem;" />
+                    @L["Btn_Refresh"]
+                </button>
+            </div>
+        </div>
+    </div>
+    <main class="kcp-main">
+
+
+    @* Filtre actif *@
+    @if (!string.IsNullOrEmpty(activeFilter))
+    {
+        <RadzenAlert AlertStyle="AlertStyle.Info" Variant="Variant.Flat" Shade="Shade.Lighter"
+                     AllowClose="true" Close="@(() => SetFilter(null))" class="rz-mb-4">
+            @L["Lbl_ActiveFilter"] <strong>@(activeFilter == "non-lus" ? L["Rejets_Unread"] : L["Rejets_Read"])</strong>
+        </RadzenAlert>
+    }
+
+    @* === CONTENU === *@
+    @if (isLoading)
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 4rem;">
+                <RadzenProgressBarCircular Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" Size="ProgressBarCircularSize.Large" />
+                <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500);">@L["Rejets_Loading"]</RadzenText>
             </RadzenStack>
-            <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--kcc-text-light);">Consultez les bons rejetés et leurs motifs</RadzenText>
+        </RadzenCard>
+    }
+    else if (!filteredRejets.Any())
+    {
+        <RadzenCard>
+            <RadzenStack AlignItems="AlignItems.Center" Gap="1rem" Style="padding: 4rem;">
+                <RadzenIcon Icon="check_circle" Style="font-size: 4rem; color: var(--kcc-green); opacity: 0.4;" />
+                    <RadzenText TextStyle="TextStyle.H6" Style="color: var(--kcc-green); font-weight: 600;">@L["Rejets_None"]</RadzenText>
+                    <RadzenText TextStyle="TextStyle.Body2" Style="color: var(--gray-500);">@L["Rejets_NoneDesc"]</RadzenText>
+            </RadzenStack>
+        </RadzenCard>
+    }
+    else
+    {
+        @* === BARRE DE RECHERCHE === *@
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.75rem" AlignItems="AlignItems.Center" class="rz-mb-4">
+            <RadzenIcon Icon="search" Style="color: var(--gray-400);" />
+            <RadzenTextBox @bind-Value="searchTerm" Placeholder="@L["Rejets_SearchPlaceholder"]"
+                           Style="flex: 1;" Change="@(_ => StateHasChanged())" />
+            @if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                <RadzenButton Icon="close" Variant="Variant.Text" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                              Click="@(() => { searchTerm = null; StateHasChanged(); })" />
+            }
         </RadzenStack>
-        <RadzenButton Text="Retour au dashboard" Icon="arrow_back" ButtonStyle="ButtonStyle.Light" Click="@(() => Navigation.NavigateTo("/"))" />
-    </RadzenStack>
 
-    @* STATS *@
-    <RadzenStack Orientation="Orientation.Horizontal" Gap="1rem">
-        <RadzenCard Style="padding: 0.75rem 1.25rem; background: var(--kcc-accent-light);">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Total:</RadzenText>
-                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 700; color: var(--kcc-accent); margin: 0;">@rejets.Count</RadzenText>
-            </RadzenStack>
-        </RadzenCard>
-        <RadzenCard Style="padding: 0.75rem 1.25rem; background: var(--kcc-warning-light);">
-            <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0;">Non lus:</RadzenText>
-                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 700; color: var(--kcc-warning); margin: 0;">@rejets.Count(r => !r.EstLue)</RadzenText>
-            </RadzenStack>
-        </RadzenCard>
-    </RadzenStack>
-
-    @* FILTERS *@
-    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Gap="0.75rem">
-        <RadzenDropDown @bind-Value="@selectedBonType" Data="@bonTypes" TextProperty="Label" ValueProperty="Value" Placeholder="Type de bon" AllowClear="true" Change="@(async _ => await LoadRejetsAsync())" Style="width: 150px;" />
-        <RadzenDropDown @bind-Value="@selectedLecture" Data="@lectureOptions" TextProperty="Label" ValueProperty="Value" Placeholder="Statut de lecture" AllowClear="true" Change="@(async _ => await LoadRejetsAsync())" Style="width: 150px;" />
-        <RadzenButton Text="Marquer tout comme lu" Icon="done_all" ButtonStyle="ButtonStyle.Secondary" Disabled="@(!rejets.Any(r => !r.EstLue))" Click="@MarkAllAsRead" />
-    </RadzenStack>
-
-    @* DATA GRID *@
-    <RadzenCard Style="padding: 0;">
-        @if (isLoading)
-        {
-            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 4rem 2rem;">
-                <RadzenProgressBarCircular ShowValue="false" />
-                <RadzenText TextStyle="TextStyle.Body2">Chargement...</RadzenText>
-            </RadzenStack>
-        }
-        else if (!rejets.Any())
-        {
-            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Style="padding: 4rem 2rem; color: var(--kcc-text-muted);">
-                <RadzenIcon Icon="check_circle" Style="font-size: 4rem; opacity: 0.5;" />
-                <RadzenText TextStyle="TextStyle.H6">Aucun rejet</RadzenText>
-                <RadzenText TextStyle="TextStyle.Body2">Aucun bon rejeté correspondant aux critères</RadzenText>
-            </RadzenStack>
-        }
-        else
-        {
-            <RadzenDataGrid Data="@rejets" TItem="NotificationRejet"
-                            AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
-                            AllowSorting="true"
-                            RowClick="@(async (args) => { if (args.Data != null) await ShowRejetDetail(args.Data); })"
-                            Style="cursor: pointer;"
-                            EmptyText="Aucun rejet trouvé">
-                <Columns>
-                    <RadzenDataGridColumn TItem="NotificationRejet" Title="" Width="50px" Sortable="false">
-                        <Template Context="rejet">
-                            @if (!rejet.EstLue)
-                            {
-                                <RadzenBadge Text="●" BadgeStyle="BadgeStyle.Danger" />
-                            }
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="NotificationRejet" Property="NumeroReference" Title="Référence" Width="180px">
-                        <Template Context="rejet">
+        <RadzenDataGrid Data="@filteredRejets" TItem="NotificationRejet"
+                        AllowPaging="true" PageSize="10" PagerHorizontalAlign="HorizontalAlign.Center"
+                        AllowSorting="true" AllowFiltering="false"
+                        Density="Density.Compact"
+                        GridLines="DataGridGridLines.Horizontal"
+                        ExpandMode="DataGridExpandMode.Single">
+            <Template Context="rejet">
+                <div style="padding: 0.75rem 1rem; background: var(--rz-base-200); border-radius: 8px; margin: 0.25rem 0;">
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="2rem" Wrap="FlexWrap.Wrap" Style="margin-bottom: 0.5rem;">
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">@L["Lbl_Requester"] :</strong> @(rejet.DemandeurNom ?? "N/A")</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">@L["Rejets_Step"] :</strong> @(rejet.EtapeRejet ?? "N/A")</span>
+                        <span><strong style="color: var(--gray-500); font-size: 0.8rem;">@L["Lbl_Date"] :</strong> @rejet.DateRejet.ToString("dd/MM/yyyy HH:mm")</span>
+                    </RadzenStack>
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong style="color: var(--gray-500); font-size: 0.8rem;">@L["Rejets_FullReason"]</strong>
+                        <span>@rejet.MotifRejet</span>
+                    </div>
+                    <div style="text-align: right; margin-top: 0.5rem;">
+                        <RadzenButton Text="@L["Rejets_Detail"]" Icon="visibility" Variant="Variant.Outlined"
+                                      ButtonStyle="ButtonStyle.Dark" Size="ButtonSize.Small"
+                                      Click="@(() => ShowRejetDetail(rejet))" />
+                    </div>
+                </div>
+            </Template>
+            <Columns>
+                <RadzenDataGridColumn TItem="NotificationRejet" Title="@L["Col_Type"]" Width="100px" Property="BonType" Sortable="true">
+                    <Template Context="rejet">
+                        <RadzenBadge Text="@rejet.BonType"
+                                     BadgeStyle="@(rejet.BonType == "BEM" ? BadgeStyle.Info : BadgeStyle.Secondary)" />
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="NotificationRejet" Property="NumeroReference" Title="@L["Col_Reference"]" Width="200px" Sortable="true">
+                    <Template Context="rejet">
+                        <RadzenStack Gap="0.25rem">
                             <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
-                                <strong style="@(!rejet.EstLue ? "color: var(--kcc-slate);" : "")">@rejet.NumeroReference</strong>
-                                @if (!rejet.EstLue)
+                                <RadzenText TextStyle="TextStyle.Body2" Style="font-weight: 600; margin: 0;">@rejet.NumeroReference</RadzenText>
+                                  @if (!rejet.EstLue)
                                 {
-                                    <RadzenBadge Text="Nouveau" BadgeStyle="BadgeStyle.Danger" />
+                                    <RadzenBadge Text="@L["Rejets_New"]" BadgeStyle="BadgeStyle.Danger" />
                                 }
                             </RadzenStack>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="NotificationRejet" Property="ApprobateurNom" Title="Rejeté par" />
-                    <RadzenDataGridColumn TItem="NotificationRejet" Property="EtapeRejet" Title="Étape" Width="140px" />
-                    <RadzenDataGridColumn TItem="NotificationRejet" Property="MotifRejet" Title="Motif">
-                        <Template Context="rejet">
-                            <RadzenText TextStyle="TextStyle.Body2" Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;" title="@rejet.MotifRejet">
-                                @rejet.MotifRejet
+                            <RadzenText TextStyle="TextStyle.Caption" Style="color: var(--gray-500); margin: 0;">
+                                @rejet.DateRejet.ToString("dd/MM/yyyy")
                             </RadzenText>
-                        </Template>
-                    </RadzenDataGridColumn>
-                    <RadzenDataGridColumn TItem="NotificationRejet" Property="DateRejet" Title="Date" Width="130px" SortOrder="SortOrder.Descending" FormatString="{0:dd/MM/yyyy HH:mm}" />
-                    <RadzenDataGridColumn TItem="NotificationRejet" Property="BonType" Title="Type" Width="80px">
-                        <Template Context="rejet">
-                            <RadzenBadge Text="@rejet.BonType" 
-                                         BadgeStyle="@(rejet.BonType == "BEM" ? BadgeStyle.Info : BadgeStyle.Success)" 
-                                         />
-                        </Template>
-                    </RadzenDataGridColumn>
-                </Columns>
-            </RadzenDataGrid>
-        }
-    </RadzenCard>
-</RadzenStack>
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="NotificationRejet" Property="ApprobateurNom" Title="@L["Rejets_RejectedBy"]" Width="180px" Sortable="true" />
+                <RadzenDataGridColumn TItem="NotificationRejet" Property="EtapeRejet" Title="@L["Rejets_Step"]" Width="140px" Sortable="true" />
+                <RadzenDataGridColumn TItem="NotificationRejet" Property="MotifRejet" Title="@L["Rejets_Reason"]" Sortable="false">
+                    <Template Context="rejet">
+                        <RadzenText TextStyle="TextStyle.Body2" Style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px; display: block;" title="@rejet.MotifRejet">
+                            @rejet.MotifRejet
+                        </RadzenText>
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="NotificationRejet" Title="@L["Col_Status"]" Width="120px" Sortable="false">
+                    <Template Context="rejet">
+                        @if (rejet.EstLue)
+                        {
+                            <RadzenBadge Text="@L["Rejets_Read"]" BadgeStyle="BadgeStyle.Light" />
+                        }
+                        else
+                        {
+                            <RadzenBadge Text="@L["Rejets_Unread"]" BadgeStyle="BadgeStyle.Warning" />
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="NotificationRejet" Title="@L["Col_Actions"]" Width="140px" TextAlign="TextAlign.Right" Sortable="false">
+                    <Template Context="rejet">
+                        <RadzenButton Icon="visibility" Text="@L["Rejets_Detail"]" Variant="Variant.Outlined" Size="ButtonSize.Small"
+                                      ButtonStyle="ButtonStyle.Dark"
+                                      Click="@(() => ShowRejetDetail(rejet))" />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    }
+    </main>
+</div>
 
 @code {
     private List<NotificationRejet> rejets = new();
     private bool isLoading = true;
-    private string? selectedBonType;
-    private bool? selectedLecture;
+    private string? activeFilter;
+    private string? searchTerm;
 
-    private List<SelectOption> bonTypes = new()
+    private IEnumerable<NotificationRejet> filteredRejets
     {
-        new SelectOption { Label = "BEM", Value = "BEM" },
-        new SelectOption { Label = "BSM", Value = "BSM" }
-    };
+        get
+        {
+            IEnumerable<NotificationRejet> q = rejets;
+            if (activeFilter == "non-lus") q = q.Where(r => !r.EstLue);
+            else if (activeFilter == "lus") q = q.Where(r => r.EstLue);
 
-    private List<SelectOption<bool?>> lectureOptions = new()
-    {
-        new SelectOption<bool?> { Label = "Non lus", Value = false },
-        new SelectOption<bool?> { Label = "Lus", Value = true }
-    };
-
-    private class SelectOption
-    {
-        public string Label { get; set; } = "";
-        public string Value { get; set; } = "";
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var s = searchTerm.Trim();
+                q = q.Where(r =>
+                    (r.NumeroReference ?? "").Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    (r.ApprobateurNom ?? "").Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    (r.MotifRejet ?? "").Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                    (r.DemandeurNom ?? "").Contains(s, StringComparison.OrdinalIgnoreCase));
+            }
+            return q;
+        }
     }
 
-    private class SelectOption<T>
+    private void SetFilter(string? f)
     {
-        public string Label { get; set; } = "";
-        public T? Value { get; set; }
+        activeFilter = f;
+        StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
@@ -153,9 +199,7 @@
         isLoading = true;
         try
         {
-            var allRejets = await NotificationRejetService.GetNotificationsAsync(
-                bonType: selectedBonType,
-                estLue: selectedLecture);
+            var allRejets = await NotificationRejetService.GetNotificationsAsync();
 
             // Filtrer par rôle utilisateur
             var roles = CurrentUserService.GetUserRoles().ToList();
@@ -169,9 +213,8 @@
             }
             else
             {
-                // Les utilisateurs voient les rejets où ils sont demandeurs ou approbateurs
                 rejets = allRejets
-                    .Where(r => 
+                    .Where(r =>
                         (r.DemandeurNom?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true) ||
                         (r.DemandeurNom?.Equals(currentName, StringComparison.OrdinalIgnoreCase) == true) ||
                         (r.ApprobateurLogin?.Equals(currentLogin, StringComparison.OrdinalIgnoreCase) == true) ||
@@ -192,19 +235,19 @@
 
     private async Task ShowRejetDetail(NotificationRejet rejet)
     {
-        var result = await DialogService.OpenAsync<RejetDetailDialog>(
-            $"Détails du rejet",
+        await DialogService.OpenAsync<RejetDetailDialog>(
+            "Détails du rejet",
             new Dictionary<string, object>
             {
                 { "Notification", rejet },
-                { "OnMarkedAsRead", EventCallback.Factory.Create(this, async () => 
+                { "OnMarkedAsRead", EventCallback.Factory.Create(this, async () =>
                     {
                         await NotificationRejetService.MarquerCommeLueAsync(rejet.Id);
                         rejet.EstLue = true;
                         rejet.DateLecture = DateTime.Now;
                         DialogService.Close();
                         StateHasChanged();
-                    }) 
+                    })
                 },
                 { "OnClose", EventCallback.Factory.Create(this, () => DialogService.Close()) }
             },
@@ -217,7 +260,6 @@
                 CssClass = "kcc-dialog-clean"
             });
 
-        // Si le rejet n'était pas lu et que le user l'a ouvert, le marquer comme lu
         if (!rejet.EstLue)
         {
             await NotificationRejetService.MarquerCommeLueAsync(rejet.Id);
@@ -243,3 +285,5 @@
         }
     }
 }
+
+

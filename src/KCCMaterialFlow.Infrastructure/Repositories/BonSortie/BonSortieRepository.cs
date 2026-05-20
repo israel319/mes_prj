@@ -253,6 +253,46 @@ public class BonSortieRepository : IBonSortieRepository
             .ToListAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// v2 — BSM en attente où l'étape COURANTE (première En attente) est assignée à l'employé (ApprobateurId).
+    /// </summary>
+    public async Task<IReadOnlyList<BonSortie>> GetPendingApprovalsByEmployeeAsync(int employeeId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        using var context = _dbContextFactory.CreateDbContext();
+        var query = context.Set<BonSortie>()
+            .AsNoTracking()
+            .Include(b => b.Materiels)
+            .Include(b => b.Historiques)
+            .Include(b => b.Approbations);
+
+        if (isAdmin)
+        {
+            return await query
+                .Where(b => b.Approbations.Any(a => a.Decision == "En attente"))
+                .OrderBy(b => b.DateCreation)
+                .ToListAsync(cancellationToken);
+        }
+
+        var bons = await query
+            .Where(b => b.Approbations.Any(a => a.Decision == "En attente"))
+            .OrderBy(b => b.DateCreation)
+            .ToListAsync(cancellationToken);
+
+        return bons;  // Will be filtered by service with access to _currentUserService
+    }
+
+    public async Task<IReadOnlyList<BonSortie>> GetApprovedBonsWithApprobationsAsync(CancellationToken cancellationToken = default)
+    {
+        using var context = _dbContextFactory.CreateDbContext();
+        return await context.Set<BonSortie>()
+            .AsNoTracking()
+            .Where(b => b.StatutActuel == "Approved")
+            .Include(b => b.Materiels)
+            .Include(b => b.Approbations)
+            .OrderByDescending(b => b.DateCreation)
+            .ToListAsync(cancellationToken);
+    }
+
     private static string BuildPendingStatusFromRole(string role)
     {
         if (string.IsNullOrWhiteSpace(role))
@@ -428,15 +468,6 @@ public class BonSortieRepository : IBonSortieRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == raisonId, cancellationToken);
         return raison?.Code;
-    }
-
-    public async Task<DomainEnums.TypeMateriel?> GetTypeMaterielByRaisonCodeAsync(string raisonCode, CancellationToken cancellationToken = default)
-    {
-        using var context = _dbContextFactory.CreateDbContext();
-        var raison = await context.Set<RaisonSortie>()
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Code == raisonCode && r.EstActif, cancellationToken);
-        return raison?.TypeMaterielDefaut;
     }
 
     public async Task RemoveMaterielsAsync(int bonSortieId, CancellationToken cancellationToken = default)
